@@ -1,0 +1,206 @@
+/* Staff Layout — Light Mode Sidebar & Unified Layout */
+
+.db-staff-sidebar {
+  width: clamp(230px, 18vw, 260px);
+  background-color: var(--db-card-bg);
+  border-right: 1px solid var(--db-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  transition: width 0.25s ease;
+  z-index: 25;
+}
+
+.db-staff-sidebar__logo-area {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-bottom: 1px solid var(--db-border);
+  min-height: 68px;
+  box-sizing: border-box;
+}
+
+.db-staff-sidebar__logo {
+  height: 36px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.db-staff-sidebar__nav {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.db-staff-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--db-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.db-staff-sidebar__item:hover {
+  background-color: var(--db-surface);
+  color: var(--db-text-primary);
+}
+
+.db-staff-sidebar__item--active {
+  background-color: var(--db-sidebar-active-bg);
+  color: var(--db-primary-button);
+  font-weight: 600;
+}
+
+.db-staff-sidebar__item--active .db-staff-sidebar__item-icon {
+  color: var(--db-primary-button);
+}
+
+.db-staff-sidebar__item-icon {
+  font-size: var(--font-size-xl);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--db-text-muted);
+  transition: color 0.15s ease;
+}
+
+.db-staff-sidebar__footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--db-border);
+  font-size: var(--font-size-sm);
+  color: var(--db-text-muted);
+  background-color: var(--db-card-bg);
+}
+
+/* Staff Topbar */
+.db-staff-topbar {
+  min-height: 60px;
+  height: 60px;
+  background-color: var(--db-card-bg);
+  border-bottom: 1px solid var(--db-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(16px, 2.2vw, 32px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.db-staff-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-staff-topbar__breadcrumb-root {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--db-text-muted);
+}
+
+.db-staff-topbar__breadcrumb-separator {
+  font-size: var(--font-size-base);
+  color: var(--db-text-muted);
+}
+
+.db-staff-topbar__breadcrumb-current {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--db-text-primary);
+}
+
+.db-staff-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.db-staff-topbar__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.db-staff-topbar__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background-color: var(--db-status-closing-bg);
+  color: var(--db-primary-button);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--db-status-closing-border);
+  flex-shrink: 0;
+}
+
+.db-staff-topbar__user-text {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.db-staff-topbar__name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--db-text-primary);
+  line-height: 1.2;
+}
+
+.db-staff-topbar__role {
+  font-size: var(--font-size-xs);
+  color: var(--db-text-muted);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.db-staff-topbar__logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 768px) {
+  .db-staff-sidebar {
+    width: 64px;
+  }
+  .db-staff-sidebar__logo,
+  .db-staff-sidebar__footer,
+  .db-staff-sidebar__item span:not(.db-staff-sidebar__item-icon),
+  .db-staff-topbar__user-text {
+    display: none;
+  }
+  .db-staff-sidebar__logo-area {
+    padding: 14px 8px;
+    align-items: center;
+  }
+  .db-staff-sidebar__item {
+    justify-content: center;
+    padding: 12px;
+  }
+}

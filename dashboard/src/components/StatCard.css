@@ -1,0 +1,39 @@
+.db-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.db-stat-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.db-stat-card__label {
+  font-size: var(--font-size-xs, 12px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--db-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.db-stat-card__main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.db-stat-card__value {
+  font-size: var(--font-size-3xl, 28px);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--db-text-primary);
+  line-height: 1.1;
+}
+
+.db-stat-card__footer {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--db-text-muted);
+  margin-top: -4px;
+}

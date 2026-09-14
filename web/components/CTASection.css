@@ -1,0 +1,67 @@
+.tw-cta {
+  padding: 28px 20px;
+  background-color: var(--tw-background);
+  border-top: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+}
+
+.tw-cta__card {
+  padding: 24px 20px;
+  background-color: var(--tw-background);
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+  border-radius: var(--radius-lg);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.tw-cta__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--tw-brand-primary);
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.tw-cta__card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.tw-cta__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background-color: var(--tw-background);
+  color: var(--tw-brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--tw-card-shadow);
+}
+
+.tw-cta__title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--tw-text-primary);
+  font-family: var(--tw-font-heading);
+  line-height: 1.3;
+}
+
+.tw-cta__text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-text-primary);
+  opacity: 0.85;
+  max-width: 320px;
+}
+
+.tw-cta__action {
+  width: 100%;
+  margin-top: 6px;
+}

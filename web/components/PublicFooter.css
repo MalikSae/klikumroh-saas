@@ -1,0 +1,56 @@
+.tw-footer {
+  padding: 24px 20px 96px 20px; /* 96px bottom padding to give clearance for fixed BottomNavbar */
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 5%, #FAFAFA);
+  border-top: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+  color: var(--tw-text-primary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tw-footer__brand {
+  margin-bottom: 14px;
+}
+
+.tw-footer__title {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--tw-font-heading);
+  color: var(--tw-text-primary);
+  margin-bottom: 4px;
+}
+
+.tw-footer__legal {
+  font-size: 11px;
+  color: var(--tw-brand-primary);
+  font-weight: 600;
+}
+
+.tw-footer__contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tw-footer__contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tw-text-primary);
+  opacity: 0.85;
+}
+
+.tw-footer__contact-icon {
+  color: var(--tw-brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tw-footer__bottom {
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--tw-brand-primary) 10%, rgba(0, 0, 0, 0.08));
+  text-align: center;
+  font-size: 11px;
+  opacity: 0.65;
+}

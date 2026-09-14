@@ -1,0 +1,794 @@
+[
+    {
+        "id": 1,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Orang Tua",
+        "kenapa_dicoba": "Orang tua memiliki rasa percaya paling tinggi kepada Anda dan merupakan pintu keberkahan utama dalam melayani tamu Allah.",
+        "cara_mulai": "Ajak bicara dari hati ke hati di momen santai. Dengarkan kerinduan mereka ke Baitullah, lalu tawarkan diri untuk mengurus segala keperluannya dari awal sampai pulang.",
+        "contoh": "Ayah, Ibu, ada kerinduan ke Baitullah dalam waktu dekat? Kebetulan sekarang saya aktif membantu keberangkatan umroh di travel resmi. Kalau Ayah dan Ibu berkenan, biar saya yang urus dan dampingi semua persiapannya dari awal sampai selesai."
+    },
+    {
+        "id": 2,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Saudara Kandung",
+        "kenapa_dicoba": "Komunikasi dengan saudara kandung cair dan santai. Sangat potensial untuk inisiatif patungan mengumrohkan orang tua atau berangkat bersama satu keluarga.",
+        "cara_mulai": "Buka obrolan keluarga, diskusikan rencana menghadiahkan umroh untuk orang tua atau merencanakan keberangkatan bersama saat liburan.",
+        "contoh": "Kak/Dek, kepikiran nggak kalau tahun ini atau tahun depan kita patungan hadiahkan umroh buat Ibu dan Ayah? Di travel tempatku sekarang ada paket yang fasilitasnya sangat ramah untuk orang tua. Nanti aku share rinciannya ya."
+    },
+    {
+        "id": 3,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Saudara Ipar",
+        "kenapa_dicoba": "Saudara ipar menghubungkan Anda dengan keluarga besar besan yang memiliki lingkaran relasi baru yang belum tersentuh.",
+        "cara_mulai": "Mulai dari silaturahmi kabar keluarga, kemudian tanyakan dengan santun apakah di keluarga besarnya ada yang sedang merencanakan umroh.",
+        "contoh": "Assalamu'alaikum Mas/Mbak, apa kabar keluarga di sana? Oya, di keluarga besar sana kira-kira ada kerabat yang lagi ada rencana ke Tanah Suci nggak ya? Kebetulan saya lagi aktif bantu pendaftaran umroh, barangkali ada yang butuh rekomendasi jadwal dan hotel yang dekat."
+    },
+    {
+        "id": 4,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Sepupu",
+        "kenapa_dicoba": "Sepupu berada pada usia produktif dan memiliki jejaring sosial, pertemanan, serta tempat kerja yang berbeda dari Anda.",
+        "cara_mulai": "Sapa ramah lewat WhatsApp, tanyakan kesibukan terkini, lalu sambungkan dengan obrolan reuni keluarga atau rencana ibadah keluarga.",
+        "contoh": "Assalamu'alaikum [Nama], apa kabar? Semoga sehat ya sekeluarga. Kemarin pas kumpul keluarga sempat ada yang nyeletuk kangen ke Tanah Suci bareng. Di keluargamu ada yang lagi persiapan mau umroh juga nggak tahun ini?"
+    },
+    {
+        "id": 5,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Paman dan Bibi",
+        "kenapa_dicoba": "Paman dan bibi umumnya memiliki kestabilan finansial, waktu luang, serta jaringan pertemanan lansia dan pengajian yang sangat luas.",
+        "cara_mulai": "Kirim pesan silaturahmi yang santun. Informasikan aktivitas baru Anda sebagai pendamping umroh dan tawarkan bantuan informasi jika diperlukan.",
+        "contoh": "Assalamu'alaikum Om/Tante [Nama], semoga selalu sehat wal afiat. Izin silaturahmi, sekarang saya aktif membantu pendaftaran dan konsultasi umroh resmi. Siapa tahu Om, Tante, atau rekan pengajian ada rencana ke Baitullah, insyaAllah saya siap bantu jadwalkan yang terbaik."
+    },
+    {
+        "id": 6,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Keluarga Pasangan",
+        "kenapa_dicoba": "Mertua dan keluarga pasangan memiliki ikatan emosional kuat. Mereka senang jika menantu memiliki peran terpercaya dalam urusan ibadah.",
+        "cara_mulai": "Manfaatkan momen kunjungan keluarga untuk berdiskusi santai tentang kenyamanan ibadah lansia dan fasilitas hotel yang dekat pelataran masjid.",
+        "contoh": "Bapak, Ibu mertua sehat? Alhamdulillah kemarin jamaah yang kami berangkatkan sangat bersyukur karena hotelnya dekat dan pembimbingnya sabar. Bapak dan Ibu ada kerinduan untuk umroh lagi? InsyaAllah biar kami yang bantu atur semuanya."
+    },
+    {
+        "id": 7,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Teman Dekat",
+        "kenapa_dicoba": "Teman dekat sudah mengenal kepribadian dan kejujuran Anda, sehingga obrolan mengalir tanpa ada rasa curiga atau resistensi jualan.",
+        "cara_mulai": "Tanyakan rencana liburan atau impian hidupnya, lalu gali apakah dia atau orang tuanya sudah memiliki niat berangkat ke Tanah Suci.",
+        "contoh": "Bro/Sis, apa kabar? Mau nanya santai nih, lu sendiri atau orang tua ada rencana mau umroh dalam waktu dekat nggak? Di travel tempat gw lagi ada program pendampingan yang oke banget, barangkali mau intip dulu jadwal dan programnya."
+    },
+    {
+        "id": 8,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Teman Lama",
+        "kenapa_dicoba": "Membuka kembali silaturahmi masa lalu sering membuahkan hasil karena ada rasa nostalgia dan kedekatan emosional yang sudah terbangun.",
+        "cara_mulai": "Sapa hangat tanyakan kabar kabar keluarga tanpa langsung menawarkan paket, ceritakan aktivitas baru Anda secara natural.",
+        "contoh": "Assalamu'alaikum [Nama], lama banget ya kita nggak kontak. Gimana kabarnya sekarang sekeluarga? Oya sekarang selain aktivitas biasa, gw juga lagi aktif bantu teman-teman yang mau persiapan umroh. Siapa tahu lu atau keluarga lagi ada rencana ke sana, kabar-kabari ya."
+    },
+    {
+        "id": 9,
+        "kategori": "Keluarga & Relasi Pribadi",
+        "sumber": "Kenalan Keluarga",
+        "kenapa_dicoba": "Sahabat orang tua atau kerabat jauh biasanya menaruh rasa hormat kepada anak dari sahabatnya.",
+        "cara_mulai": "Sebutkan nama orang tua Anda sebagai jembatan pembuka komunikasi yang santun dan penuh adab.",
+        "contoh": "Assalamu'alaikum Bapak/Ibu [Nama], saya [Nama Anda] putranya Pak [Nama Ayah]. Semoga Bapak sekeluarga sehat selalu. Izin silaturahmi Pak, saat ini saya bertugas membantu pendaftaran jamaah umroh. Barangkali Bapak atau keluarga ada rencana ke Baitullah, saya siap bantu berikan informasi lengkapnya."
+    },
+    {
+        "id": 10,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Tetangga Sebelah Rumah",
+        "kenapa_dicoba": "Interaksi harian yang sering menciptakan kedekatan nyata. Tetangga lebih tenang mendaftar ke orang yang rumahnya jelas bersebelahan.",
+        "cara_mulai": "Manfaatkan momen bertemu di teras, jalan santai, atau setelah shalat berjamaah untuk berbagi cerita hangat tentang kepulangan jamaah umroh.",
+        "contoh": "Pak/Bu [Nama], alhamdulillah kemarin jamaah dari travel kami baru pulang, dengar cerita haru saat ziarah di Raudhah bikin adem banget. Bapak dan Ibu sendiri ada rencana atau kerinduan buat umroh lagi dalam waktu dekat Pak?"
+    },
+    {
+        "id": 11,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Warga Satu RT",
+        "kenapa_dicoba": "Ikatan ketetanggaan RT mempermudah komunikasi karena Anda sudah dikenal sebagai bagian dari warga setempat.",
+        "cara_mulai": "Hadir aktif di kerja bakti atau pertemuan RT, kenalkan peran Anda dalam membantu konsultasi umroh bagi warga.",
+        "contoh": "Pak, sering ketemu pas kegiatan RT tapi belum sempat ngobrol banyak. Oya Pak, kalau di lingkungan kita ada warga yang lagi cari travel umroh yang amanah dan hotelnya dekat, saya siap bantu kasih konsultasi gratis ya Pak."
+    },
+    {
+        "id": 12,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Warga Satu RW",
+        "kenapa_dicoba": "Jangkauan warga RW lebih luas, mencakup tokoh masyarakat, pensiunan, dan keluarga mapan di wilayah Anda.",
+        "cara_mulai": "Manfaatkan forum silaturahmi RW atau grup warga untuk memposisikan diri sebagai konsultan umroh warga setempat.",
+        "contoh": "Assalamu'alaikum Pak [Nama], salam kenal saya dari RT sebelah. Senang bisa ketemu di forum warga ini. Kebetulan saya aktif membantu warga sekitar yang mau berangkat umroh. Kalau Bapak atau keluarga ada rencana, bisa kontak saya kapan saja Pak."
+    },
+    {
+        "id": 13,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Grup WhatsApp Komplek",
+        "kenapa_dicoba": "Pusat lalu lintas informasi warga. Informasi edukatif yang bermanfaat akan dibaca oleh puluhan kepala keluarga.",
+        "cara_mulai": "Jangan spam brosur harga terus-menerus. Bagikan panduan edukatif, checklist persiapan manasik, atau tips umroh musim liburan.",
+        "contoh": "Bismillah, izin berbagi bapak/ibu warga komplek. Menjelang musim umroh, banyak yang bingung persiapan fisik bagi lansia dan anak. Kami izin share rangkuman checklist persiapan ibadah umroh, semoga bermanfaat bagi yang sedang berniat ke Tanah Suci."
+    },
+    {
+        "id": 14,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Pengurus RT atau RW",
+        "kenapa_dicoba": "Pengurus RT/RW mengetahui kondisi warga, siapa yang baru pensiun, atau keluarga yang sering menanyakan informasi umroh.",
+        "cara_mulai": "Sowan silaturahmi secara pribadi, sampaikan niat baik Anda untuk melayani warga yang ingin beribadah.",
+        "contoh": "Pak RT, izin silaturahmi. Kami saat ini memegang amanah di travel umroh resmi. Barangkali ada warga kita yang butuh panduan pendaftaran, tabungan umroh, atau konsultasi manasik, insyaAllah kami siap bantu koordinasi dengan baik."
+    },
+    {
+        "id": 15,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Ibu-Ibu PKK",
+        "kenapa_dicoba": "Forum PKK adalah wadah komunikasi paling aktif di perumahan dan sering menjadi pengambil keputusan keberangkatan keluarga.",
+        "cara_mulai": "Jalin hubungan akrab terlebih dahulu, tawarkan sesi sharing persiapan ibadah wanita atau kesehatan saat di Tanah Suci.",
+        "contoh": "Bu, alhamdulillah sekarang banyak ibu-ibu yang antusias merencanakan umroh bareng kelompok arisan atau keluarga. Kalau di PKK ada yang butuh sesi penjelasan paket umroh keluarga yang santai, saya siap bantu jelaskan Bu."
+    },
+    {
+        "id": 16,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Arisan Lingkungan",
+        "kenapa_dicoba": "Suasana arisan yang guyub dan santai membuat topik tabungan dan rencana perjalanan umroh sangat mudah diterima.",
+        "cara_mulai": "Ceritakan kisah inspiratif jamaah yang menabung sedikit demi sedikit hingga akhirnya bisa berangkat umroh.",
+        "contoh": "Seru ya Bu kalau suatu saat nanti kelompok arisan kita bisa manasik dan umroh bareng-bareng ke Madinah. Di travel saya ada program pendampingan rombongan khusus arisan lho Bu, barangkali ada yang mau dipelajari dulu."
+    },
+    {
+        "id": 17,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Komunitas Perumahan",
+        "kenapa_dicoba": "Komunitas seperti klub sepeda, senam, atau pecinta tanaman memiliki keakraban sosial tanpa sekat formalitas.",
+        "cara_mulai": "Ikut serta dalam kegiatan komunitas, lalu buka obrolan saat istirahat santai bersama anggota lain.",
+        "contoh": "Pak/Bu, seru juga ya olahraga bareng warga. Fisik prima begini cocok banget dipersiapkan buat tawaf dan sai di Tanah Suci. Bapak/Ibu sudah ada jadwal umroh dalam waktu dekat?"
+    },
+    {
+        "id": 18,
+        "kategori": "Lingkungan Tempat Tinggal",
+        "sumber": "Warga Kampung Asal",
+        "kenapa_dicoba": "Warga sekampung halaman memiliki ikatan kekeluargaan tinggi dan merasa bangga jika dibantu oleh putra daerah sendiri.",
+        "cara_mulai": "Hubungi tokoh atau kerabat saat pulang kampung, tunjukkan komitmen membantu warga daerah mendapatkan travel yang amanah.",
+        "contoh": "Assalamu'alaikum Kang/Pak, alhamdulillah kangen juga sama suasana kampung. Oya sekarang saya bantu warga daerah kita yang mau umroh biar nggak khawatir soal travel bodong. Kalau ada kerabat sekampung yang mau daftar, kabari saya ya."
+    },
+    {
+        "id": 19,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Jamaah Masjid",
+        "kenapa_dicoba": "Jamaah masjid sudah memiliki kesadaran ibadah dan kerinduan spiritual yang tinggi untuk beribadah ke Baitullah.",
+        "cara_mulai": "Sapa setelah shalat berjamaah atau saat dzikir pagi/petang. Jangan langsung jualan, buka obrolan tentang keutamaan ibadah di Haramain.",
+        "contoh": "Assalamu'alaikum Pak, masyaAllah istiqomah sekali shalatnya. Pak, kalau ngingat suasana shalat di depan Ka'bah rasanya selalu rindu ya. Bapak sendiri kapan terakhir ziarah ke Mekkah dan Madinah Pak?"
+    },
+    {
+        "id": 20,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Pengurus Masjid",
+        "kenapa_dicoba": "Pengurus DKM adalah rujukan jamaah. Rekomendasi dari pengurus masjid memiliki otoritas dan kepercayaan mutlak.",
+        "cara_mulai": "Sampaikan penawaran program kemitraan atau infak umroh untuk masjid dari setiap jamaah yang mendaftar.",
+        "contoh": "Ustadz/Pak Pengurus, kami ingin bersilaturahmi. Kami ada program kolaborasi syiar umroh bersama DKM, di mana setiap jamaah warga yang mendaftar juga ada porsi dana dakwah untuk kas masjid. Kapan kira-kira kami bisa sowan berdiskusi?"
+    },
+    {
+        "id": 21,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Jamaah Mushalla",
+        "kenapa_dicoba": "Lingkup mushalla lebih personal, antarjamaah saling mengenal nama dan alamat rumah masing-masing.",
+        "cara_mulai": "Mulai dari obrolan ringan sesudah shalat Maghrib atau Subuh seputar persiapan fisik ibadah.",
+        "contoh": "Pak Haji, sehat selalu ya. Boleh minta nasehat dan pengalamannya pas umroh dulu Pak? Kebetulan saya sekarang aktif membantu keberangkatan jamaah di travel resmi, siapa tahu ada jamaah mushalla kita yang butuh info."
+    },
+    {
+        "id": 22,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Majelis Taklim",
+        "kenapa_dicoba": "Anggota majelis taklim rutin belajar agama dan memiliki antusiasme tinggi untuk menyempurnakan ibadah ke Baitullah bersama rombongan.",
+        "cara_mulai": "Hadir istiqomah di taklim, sampaikan kepada pembina majelis tentang fasilitas bimbingan manasik komprehensif bagi rombongan.",
+        "contoh": "Ustadzah/Ibu Pembina, alhamdulillah kajiannya sangat menyejukkan hati. Banyak jamaah yang rindu mempraktikkan ilmu thaharah dan shalat langsung di Masjidil Haram. Kalau majelis kita berkenan merencanakan umroh satu rombongan, kami siap bantu susunkan jadwal khususnya."
+    },
+    {
+        "id": 23,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Pengajian Ibu-Ibu",
+        "kenapa_dicoba": "Ibu-ibu pengajian memiliki kekuatan viral word-of-mouth yang sangat kuat dalam mempengaruhi keputusan keluarga dan teman arisan.",
+        "cara_mulai": "Sampaikan informasi program umroh yang mengutamakan kenyamanan, makanan nusantara yang cocok, dan pembimbing yang telaten.",
+        "contoh": "Ibu-ibu sekalian, di travel kami pembimbingnya sangat telaten membimbing doa satu per satu dan hotelnya langsung pelataran masjid jadi tidak capek jalan. Barangkali ada yang mau lihat video testimoni kepulangan jamaah kemarin?"
+    },
+    {
+        "id": 24,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Pengajian Bapak-Bapak",
+        "kenapa_dicoba": "Bapak-bapak pengajian seringkali merupakan pengambil keputusan anggaran umroh untuk istri dan anak-anaknya.",
+        "cara_mulai": "Fokus pada kejelasan legalitas, kepastian tanggal terbang, maskapai penerbangan, dan fasilitas hotel.",
+        "contoh": "Pak, dalam memilih travel umroh yang paling utama memang kepastian izin Kemenag dan kejelasan jadwal tiketnya. Di tempat kami semuanya transparan tanpa biaya tersembunyi. Barangkali Bapak ingin cek paket umroh keluarga untuk akhir tahun ini?"
+    },
+    {
+        "id": 25,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Jamaah Kajian Rutin",
+        "kenapa_dicoba": "Peserta kajian rutin memiliki kecintaan pada sunnah dan bimbingan ibadah yang sesuai tuntunan syariat.",
+        "cara_mulai": "Tunjukkan bahwa pembimbing umroh di travel Anda adalah ustadz yang kompeten, amanah, dan membimbing sesuai Al-Qur'an dan As-Sunnah.",
+        "contoh": "Akhi/Ukhti, alhamdulillah di travel kami setiap keberangkatan didampingi asatidzah yang membimbing manasik sesuai sunnah secara intensif. Antum atau keluarga ada rencana keberangkatan dalam waktu dekat?"
+    },
+    {
+        "id": 26,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Peserta Kajian Akbar",
+        "kenapa_dicoba": "Acara kajian akbar dihadiri ribuan orang yang sedang dalam kondisi hati sangat terbuka dan terinspirasi untuk ibadah.",
+        "cara_mulai": "Berkenalan saat jam istirahat atau jeda shalat, bertukar nomor kontak WhatsApp untuk memperluas silaturahmi ukhuwah.",
+        "contoh": "Assalamu'alaikum Mas, datang dari kota mana? MasyaAllah ramai sekali kajian hari ini. Izin bertukar nomor WA ya, saling simpan kontak ukhuwah. Kebetulan saya juga sering berbagi info manasik dan jadwal umroh sunnah."
+    },
+    {
+        "id": 27,
+        "kategori": "Masjid & Kegiatan Keagamaan",
+        "sumber": "Panitia Kegiatan Keagamaan",
+        "kenapa_dicoba": "Panitia acara keagamaan adalah penggerak aktif yang memiliki kontak ribuan jamaah dan dipercaya di komunitasnya.",
+        "cara_mulai": "Dukung kegiatan panitia terlebih dahulu, kemudian tawarkan program sponsorship atau reward umroh untuk panitia.",
+        "contoh": "Akhi panitia, terima kasih atas dedikasinya untuk umat. Kalau di kegiatan berikutnya membutuhkan support atau kerja sama media partner dari travel umroh kami, silakan hubungi kami ya, insyaAllah kami siap bersinergi."
+    },
+    {
+        "id": 28,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Teman SD",
+        "kenapa_dicoba": "Ikatan teman masa kecil sangat murni, tidak ada batasan gengsi, dan obrolan bisa langsung hangat dalam hitungan menit.",
+        "cara_mulai": "Kirim pesan reuni kecil mengenang masa SD, tanyakan kabar orang tuanya yang dulu mungkin Anda kenal saat antar-jemput sekolah.",
+        "contoh": "Assalamu'alaikum [Nama], ingat nggak masa-masa SD dulu? Gimana kabar Ibu dan Bapakmu sekarang? Semoga sehat ya. Oya sekarang gw aktif di travel umroh, kalau orang tuamu atau keluargamu ada niat ke Baitullah, kabari gw ya bro, biar gw bantu kawal maksimal."
+    },
+    {
+        "id": 29,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Teman SMP",
+        "kenapa_dicoba": "Teman SMP kini telah tersebar di berbagai sektor pekerjaan dan keluarga dengan kondisi finansial yang sudah mapan.",
+        "cara_mulai": "Sapa hangat tanyakan kabar domisili dan keluarga, ceritakan sekilas kesibukan Anda mengurus jamaah umroh.",
+        "contoh": "Halo [Nama], apa kabar nih? Sekarang domisili di mana? Lama banget ya sejak lulus SMP. Oya sekarang selain kerja, gw juga bantu teman-teman yang mau berangkat umroh. Barangkali lu atau mertua lagi cari travel yang terpercaya, feel free buat tanya-tanya ke gw ya."
+    },
+    {
+        "id": 30,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Teman SMA",
+        "kenapa_dicoba": "Lingkaran pertemanan SMA biasanya memiliki grup WhatsApp yang masih aktif dan sering mengadakan agenda buka puasa atau reuni.",
+        "cara_mulai": "Gunakan pendekatan santai menanyakan kabar orang tua mereka, karena usia orang tua teman SMA umumnya sedang giat-giatnya ingin beribadah umroh.",
+        "contoh": "Bro/Sis [Nama], apa kabar? Mau nanya nih, orang tua lu ada rencana mau umroh nggak tahun ini? Di travel tempat gw lagi ada program umroh plus Turki dan paket reguler yang amanah banget. Siapa tahu orang tua lu lagi butuh info."
+    },
+    {
+        "id": 31,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Teman Kuliah",
+        "kenapa_dicoba": "Teman kuliah berada di puncak karier atau bisnis dan banyak yang memiliki resolusi menghadiahkan umroh untuk keluarga tercinta.",
+        "cara_mulai": "Mulai dari diskusi karier atau keluarga, lalu sambungkan ke resolusi ibadah tahun ini.",
+        "contoh": "[Nama], apa kabar? Gimana kerjaan dan bisnisnya sekarang? Oya mau nanya santai, lu ada resolusi mau bawa keluarga umroh bareng nggak tahun ini? Kantor gw lagi ada promo paket grup keluarga yang fasilitasnya mantap."
+    },
+    {
+        "id": 32,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Grup Alumni Sekolah",
+        "kenapa_dicoba": "Grup alumni berisi ratusan anggota terverifikasi yang saling mengenal dan memiliki rasa saling percaya almamater.",
+        "cara_mulai": "Jangan langsung promosi jualan. Berikan ucapan doa saat hari raya, bagikan tips manasik, atau tawarkan reuni sambil umroh bareng alumni.",
+        "contoh": "Teman-teman alumni yang dirahmati Allah, seru juga ya kalau suatu saat kita bisa adakan reuni berkah, umroh bareng satu angkatan ke Baitullah. Kalau ada teman-teman yang berminat diskusikan konsepnya, silakan japri saya ya."
+    },
+    {
+        "id": 33,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Grup Alumni Kampus",
+        "kenapa_dicoba": "Jaringan alumni kampus mencakup para profesional lintas profesi dengan daya beli dan kepedulian tinggi terhadap reputasi travel resmi.",
+        "cara_mulai": "Bagikan artikel edukasi cara memilih travel umroh berizin resmi Kemenag (5 Pasti Umroh) agar alumni terhindar dari penipuan.",
+        "contoh": "Rekan-rekan alumni, izin berbagi tips penting '5 Pasti Umroh' dari Kemenag untuk memastikan visa, tiket, dan hotel terjamin sebelum bayar. Bagi rekan yang sedang merencanakan keberangkatan bersama keluarga, saya siap membantu konsultasi jadwal resmi."
+    },
+    {
+        "id": 34,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Guru dan Tenaga Pendidik",
+        "kenapa_dicoba": "Guru sangat dihormati dan sering menjadi teladan bagi ratusan murid serta wali murid di lingkungannya.",
+        "cara_mulai": "Sampaikan salam takzim dan terima kasih atas ilmu yang diberikan, lalu tawarkan kemudahan program tabungan umroh guru.",
+        "contoh": "Assalamu'alaikum Ibu/Bapak Guru [Nama], salam takzim dari muridmu [Nama Anda]. Semoga Ibu senantiasa diberi kesehatan dan keberkahan. Izin mengabarkan Bu, saat ini saya bertugas di travel umroh resmi. Kami ada program pendampingan khusus guru, barangkali Ibu ada kerinduan ke Baitullah."
+    },
+    {
+        "id": 35,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Orang Tua Murid",
+        "kenapa_dicoba": "Komunitas antarorang tua murid di sekolah anak sering berkumpul, mengobrol, dan merencanakan liburan sekolah bersama.",
+        "cara_mulai": "Buka topik saat menunggu jam jemput anak sekolah atau di grup paguyuban kelas tentang rencana liburan berkah anak.",
+        "contoh": "Mama/Papa [Nama Anak], nanti pas liburan semester kepikiran ajak anak liburan ke mana? Kemarin ada wali murid yang umroh bareng anak, masyaAllah katanya anak jadi jauh lebih mandiri dan rajin shalat. Tertarik lihat paket umroh liburan sekolah?"
+    },
+    {
+        "id": 36,
+        "kategori": "Sekolah, Kampus & Alumni",
+        "sumber": "Alumni Pesantren",
+        "kenapa_dicoba": "Ikatan santri dan alumni pesantren sangat solid serta menjunjung tinggi keberkahan dalam setiap perjalanan ibadah.",
+        "cara_mulai": "Gunakan bahasa ukhuwah santri, tawarkan paket ziarah napak tilas sejarah Islam dengan bimbingan asatidz yang mumpuni.",
+        "contoh": "Assalamu'alaikum Kang/Gus, salam takzim sesama alumni pondok. InsyaAllah kami di travel menyediakan program umroh dengan pendalaman muthowwif bersanad dan ziarah sirah nabawiyah. Siapa tahu ada keluarga santri atau alumni yang sedang berniat berangkat."
+    },
+    {
+        "id": 37,
+        "kategori": "Dunia Kerja",
+        "sumber": "Rekan Kerja",
+        "kenapa_dicoba": "Rekan kerja bertemu hampir setiap hari dan saling mengetahui rencana cuti tahunan masing-masing.",
+        "cara_mulai": "Tanyakan rencana cuti akhir tahun atau saat libur nasional panjang, lalu berikan opsi pemanfaatan cuti untuk umroh 9 hari.",
+        "contoh": "Mas/Mba, kalau jatah cuti nanti kepikiran dihabiskan ke mana? Teman-teman kemarin ada yang manfaatkan libur kejepit buat umroh 9 hari jadi nggak potong cuti banyak. Mau kubagi jadwal tanggal keberangkatannya?"
+    },
+    {
+        "id": 38,
+        "kategori": "Dunia Kerja",
+        "sumber": "Mantan Rekan Kerja",
+        "kenapa_dicoba": "Hubungan baik di kantor lama tetap terjaga dan menjadi sarana memperluas lingkaran prospek tanpa mengganggu etika kantor saat ini.",
+        "cara_mulai": "Sapa via WhatsApp atau LinkedIn, tanyakan kabar kariernya, lalu informasikan peran Anda saat ini sebagai konsultan umroh.",
+        "contoh": "Halo [Nama], apa kabar? Gimana sekarang di kantor baru, makin seru ya? Oya gw sekarang selain rutinitas juga megang konsultasi travel umroh resmi. Kalau lu atau kantor ada agenda corporate umroh atau keluarga mau ke Baitullah, kontak gw ya!"
+    },
+    {
+        "id": 39,
+        "kategori": "Dunia Kerja",
+        "sumber": "Mantan Atasan",
+        "kenapa_dicoba": "Mantan atasan umumnya memiliki finansial mapan dan menghargai inisiatif bisnis mantan anak buahnya yang berprestasi.",
+        "cara_mulai": "Kirimkan pesan silaturahmi penuh rasa hormat, tanyakan kabar keluarga dan sampaikan aktivitas Anda di bidang travel umroh.",
+        "contoh": "Assalamu'alaikum Pak/Bu [Nama], semoga selalu sehat dan sukses dalam memimpin. Izin silaturahmi Pak, saat ini saya juga dipercaya mendampingi pendaftaran umroh VIP dan keluarga. Barangkali Bapak dan keluarga ada agenda ibadah umroh tahun ini, saya siap membantu presentasikan jadwalnya."
+    },
+    {
+        "id": 40,
+        "kategori": "Dunia Kerja",
+        "sumber": "Mantan Bawahan",
+        "kenapa_dicoba": "Mantan anak buah menaruh respek kepada mantan pemimpinnya dan senang jika ditawari peluang atau solusi ibadah terbaik.",
+        "cara_mulai": "Tanyakan perkembangan karier dan keluarganya, tanyakan impian ibadahnya ke Tanah Suci.",
+        "contoh": "Halo [Nama], senang lihat perkembangan kariermu sekarang makin bagus. Oya, sudah pernah kepikiran buat hadiahkan umroh untuk orang tua belum? Kalau ada niat, kabari Mas ya, nanti Mas bantu carikan program yang cicilan atau biayanya bersahabat."
+    },
+    {
+        "id": 41,
+        "kategori": "Dunia Kerja",
+        "sumber": "Teman Satu Profesi",
+        "kenapa_dicoba": "Memiliki ritme kerja dan tantangan serupa sehingga topik seputar burnout kerja dan recharge spiritual sangat nyambung.",
+        "cara_mulai": "Diskusikan kebutuhan 'recharge iman' di tengah padatnya deadline kerja dengan berziarah ke Tanah Suci.",
+        "contoh": "Bro/Sis sesama pejuang deadline, kadang kita butuh momen jeda biar pikiran tenang dan berkah. Ibadah ke Raudhah dan depan Ka'bah beneran bikin baterai hidup keisi lagi. Kepikiran nggak ambil cuti buat umroh bareng?"
+    },
+    {
+        "id": 42,
+        "kategori": "Dunia Kerja",
+        "sumber": "Karyawan Perusahaan",
+        "kenapa_dicoba": "Karyawan perusahaan memiliki fasilitas tunjangan tahunan, bonus, dan jadwal libur bersama yang jelas.",
+        "cara_mulai": "Tawarkan program gathering umroh perusahaan atau fasilitasi sosialisasi tabungan umroh potong gaji di kantor.",
+        "contoh": "Bapak/Ibu, di beberapa perusahaan kami ada program sosialisasi 'Mudahnya Merencanakan Umroh Karyawan'. Karyawan bisa konsultasi gratis cara menabung umroh yang aman. Apakah memungkinkan kami jadwalkan sesi sharing singkat?"
+    },
+    {
+        "id": 43,
+        "kategori": "Dunia Kerja",
+        "sumber": "Pegawai Instansi",
+        "kenapa_dicoba": "Aparatur instansi pemerintah atau BUMN memiliki paguyuban keagamaan (Rohis) aktif yang rutin mengadakan kegiatan umroh berkala.",
+        "cara_mulai": "Hubungi pengurus Rohis instansi dan sampaikan penawaran proposal resmi travel umroh berizin Kemenag.",
+        "contoh": "Assalamu'alaikum Bapak/Ibu pengurus Rohis, kami dari travel umroh resmi izin menyampaikan profil program umroh korporasi dan instansi. Kami menyediakan sistem administrasi yang tertib, laporan resmi, dan legalitas Kemenag lengkap. Kapan kami bisa kirimkan proposalnya Pak?"
+    },
+    {
+        "id": 44,
+        "kategori": "Dunia Kerja",
+        "sumber": "Tenaga Kesehatan",
+        "kenapa_dicoba": "Dokter, perawat, dan nakes memiliki kesibukan tinggi namun memiliki penghasilan stabil dan menghargai layanan yang profesional.",
+        "cara_mulai": "Tekankan fasilitas hotel bintang lima dekat masjid agar waktu istirahat nakes yang terbatas bisa dimanfaatkan optimal.",
+        "contoh": "Dokter/Nakes [Nama], di tengah padatnya melayani pasien, ibadah umroh dengan hotel depan pelataran masjid tentu sangat memudahkan agar tidak menguras tenaga. Kami punya paket khusus jadwal fleksibel dengan fasilitas privat. Boleh saya kirimkan jadwalnya Dok?"
+    },
+    {
+        "id": 45,
+        "kategori": "Dunia Kerja",
+        "sumber": "Komunitas Pensiunan",
+        "kenapa_dicoba": "Pensiunan memiliki dana pesangon/taspen dan waktu yang sangat leluasa untuk beribadah dalam durasi yang lebih panjang.",
+        "cara_mulai": "Tawarkan paket santai ramah lansia dengan dokter pendamping dan pembimbing yang sabar tanpa terburu-buru.",
+        "contoh": "Bapak/Ibu sekalian, program umroh lansia kami didesain khusus tanpa terburu-buru, ada dokter pendamping dan kursi roda yang siap membantu. Ibadah jadi tenang dan khusyuk. Barangkali Bapak/Ibu ingin mempelajari jadwalnya?"
+    },
+    {
+        "id": 46,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Pemilik Toko",
+        "kenapa_dicoba": "Pemilik toko memiliki perputaran uang harian dan sering memiliki niat bernazar umroh saat usahanya diberi kelancaran rezeki.",
+        "cara_mulai": "Jadilah pelanggan toko mereka terlebih dahulu, bangun keakraban pedagang, lalu diskusikan kemudahan mengatur waktu saat toko ditinggal umroh.",
+        "contoh": "Pak/Bu, dagangannya makin laris ya, alhamdulillah berkah. Biasanya kalau lagi musim sepi toko bisa ditinggal gantian sama keluarga buat umroh Pak. Di travel kami tanggal keberangkatannya banyak pilihan yang pas dengan ritme usaha Bapak."
+    },
+    {
+        "id": 47,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Pemilik Warung atau Restoran",
+        "kenapa_dicoba": "Pemilik usaha kuliner memiliki tekad kuat dan senang mendengarkan cerita keberkahan rezeki setelah pulang dari Baitullah.",
+        "cara_mulai": "Makan di tempat usahanya, puji rasa masakannya, dan tanyakan apakah ada impian berdoa langsung di depan Ka'bah agar usahanya makin berkah.",
+        "contoh": "Masakan di warung Bapak beneran enak dan berkah. Banyak pengusaha kuliner yang setelah doa di Multazam usahanya makin lancar dan hati makin tenang. Bapak dan keluarga sudah ada niat umroh lagi dalam waktu dekat?"
+    },
+    {
+        "id": 48,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Pemilik Usaha Kecil",
+        "kenapa_dicoba": "Pengusaha kecil memiliki fleksibilitas waktu dan sering mencari motivasi spiritual untuk mengembangkan bisnisnya.",
+        "cara_mulai": "Ajak diskusi tentang ikhtiar langit menjemput rezeki berkah melalui wasilah ibadah umroh.",
+        "contoh": "Sebagai sesama pengusaha, ikhtiar bumi dan langit harus seimbang ya Mas. Banyak teman UMKM yang menyempatkan diri sujud di Baitullah buat minta petunjuk bisnis. Mau ikut jadwal rombongan pengusaha bulan depan?"
+    },
+    {
+        "id": 49,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Pengusaha Lokal",
+        "kenapa_dicoba": "Pengusaha lokal seringkali memiliki anggaran untuk mengumrohkan orang tua, istri, hingga karyawan teladannya.",
+        "cara_mulai": "Fasilitasi program reward umroh untuk karyawan berprestasi mereka yang bisa dihitung sebagai pengeluaran pembinaan staf.",
+        "contoh": "Pak [Nama], banyak pengusaha sukses yang loyalitas karyawannya luar biasa karena dihadiahi umroh. Travel kami menyediakan paket khusus reward karyawan dengan sertifikat resmi dan dokumentasi lengkap. Barangkali Bapak berkenan kami presentasikan konsepnya?"
+    },
+    {
+        "id": 50,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Pedagang Pasar",
+        "kenapa_dicoba": "Pedagang pasar tradisional memiliki budaya menabung emas atau uang tunai yang sangat disiplin untuk ibadah haji/umroh.",
+        "cara_mulai": "Sampaikan dengan bahasa sederhana tanpa istilah perbankan yang rumit, jelaskan bahwa menabung sedikit demi sedikit bisa langsung berangkat.",
+        "contoh": "Ibu/Bapak, jualan tiap hari alhamdulillah berkah. Kami ada program pendampingan untuk pedagang yang ingin niat ke Tanah Suci, cukup simpan bertahap insyaAllah tanggal keberangkatannya pasti. Boleh saya jelaskan caranya Bu?"
+    },
+    {
+        "id": 51,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Komunitas UMKM",
+        "kenapa_dicoba": "Grup UMKM memiliki ratusan pengusaha aktif yang sering berkolaborasi dan mencari berkah berjamaah.",
+        "cara_mulai": "Hadir di gathering UMKM, bagikan pengalaman mengelola bisnis syariah, lalu perkenalkan layanan travel umroh Anda.",
+        "contoh": "Sahabat UMKM, keberkahan bisnis tidak lepas dari doa di tempat-tempat mustajab. Kami sedang menginisiasi rombongan umroh bertajuk 'Pebisnis Berkah Baitullah', di sana kita bisa ibadah bareng sekaligus networking pengusaha se-Indonesia. Mau gabung grup informasinya?"
+    },
+    {
+        "id": 52,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Komunitas Pengusaha",
+        "kenapa_dicoba": "Anggota HIPMI, Kadin, TDA, atau komunitas bisnis lainnya terbiasa memilih paket VIP dengan pelayanan private yang prima.",
+        "cara_mulai": "Tawarkan paket Umroh Eksekutif dengan hotel bintang lima pelataran masjid, kereta cepat Haramain, dan pembimbing berpengalaman.",
+        "contoh": "Rekan pengusaha, waktu Anda sangat berharga. Program Umroh Executive kami memastikan mobilitas cepat dengan Haramain Highspeed Railway dan hotel tepat di depan pelataran, sehingga waktu ibadah dan istirahat maksimal. Boleh kami kirimkan e-brochure privatnya?"
+    },
+    {
+        "id": 53,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Komunitas Hobi",
+        "kenapa_dicoba": "Komunitas hobi (fotografi, motor, otomotif, memancing) memiliki solidaritas tinggi dan terbiasa bepergian bersama-sama.",
+        "cara_mulai": "Gunakan pendekatan touring berkah atau eksplorasi sejarah Islam di Mekkah dan Madinah.",
+        "contoh": "Teman-teman sehobi, touring duniawi sudah sering kita jalani, gimana kalau kita rencanakan 'Touring Iman' bareng-bareng ke Baitullah? Pemandangan Jabal Rahmah, Badar, dan Madinah masyaAllah luar biasa untuk disaksikan langsung."
+    },
+    {
+        "id": 54,
+        "kategori": "Usaha & Komunitas",
+        "sumber": "Komunitas Olahraga",
+        "kenapa_dicoba": "Anggota klub lari, gym, atau gowes memiliki stamina fisik prima yang sangat siap untuk ibadah fisik seperti tawaf dan sai.",
+        "cara_mulai": "Kaitkan kebugaran fisik mereka dengan kesiapan ibadah umroh yang membutuhkan stamina prima.",
+        "contoh": "Fisik kita yang rajin olahraga ini bakal terasa banget manfaatnya pas tawaf dan sai di Masjidil Haram, langkah jadi ringan dan ibadah maksimal. Kepikiran nggak manfaatkan stamina fit ini buat berangkat umroh tahun ini?"
+    },
+    {
+        "id": 55,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Organisasi Kemasyarakatan",
+        "kenapa_dicoba": "Ormas memiliki jejaring kepengurusan berjenjang dari pusat hingga kelurahan dengan anggota yang sangat loyal.",
+        "cara_mulai": "Sowan ke jajaran pimpinan ormas, tawarkan kerja sama syiar umroh resmi bagi seluruh anggota dan pengurus.",
+        "contoh": "Assalamu'alaikum Pengurus Ormas [Nama], kami ingin bersinergi menyediakan kemudahan akses umroh yang aman, berizin Kemenag, dan terjangkau bagi warga organisasi. Apakah berkenan kami jadwalkan audiensi kerja sama resmi?"
+    },
+    {
+        "id": 56,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Organisasi Keagamaan",
+        "kenapa_dicoba": "Wadah ormas Islam (NU, Muhammadiyah, Persis, dll.) sangat mengedepankan kesesuaian bimbingan ibadah dengan manhaj masing-masing.",
+        "cara_mulai": "Jelaskan bahwa travel Anda siap memfasilitasi pembimbing manasik dari tokoh ormas setempat yang disegani jamaah.",
+        "contoh": "Pak Kiai/Ustadz, untuk rombongan umroh warga organisasi, pembimbing manasiknya kami serahkan penuh kepada asatidz yang ditunjuk ormas agar tata cara ibadahnya sesuai dengan amaliyah warga. Kami siap menyediakan teknis perjalanannya."
+    },
+    {
+        "id": 57,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Organisasi Profesi",
+        "kenapa_dicoba": "Asosiasi dokter (IDI), guru (PGRI), notaris (INI), atau advokat memiliki agenda tahunan dan dana sosial organisasi.",
+        "cara_mulai": "Kirimkan surat permohonan presentasi program umroh kolektif bagi anggota profesi dengan harga dan fasilitas kemitraan.",
+        "contoh": "Kepada Yth. Pengurus Asosiasi [Nama Profesi], kami dari travel umroh resmi izin menawarkan program Corporate Umroh Privilege khusus bagi anggota profesi. Kami menyediakan kemudahan fasilitas booking dan pendampingan khusus."
+    },
+    {
+        "id": 58,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Komunitas Sosial",
+        "kenapa_dicoba": "Pegiat sosial terbiasa bergerak untuk kebaikan dan memiliki empati tinggi untuk mengajak orang lain beribadah bersama.",
+        "cara_mulai": "Diskusikan program umrohPlus Sedekah atau program apresiasi bagi relawan sosial berprestasi.",
+        "contoh": "Sahabat sosial, dedikasi rekan-rekan untuk kemanusiaan masyaAllah luar biasa. Kami ada paket umroh yang sebagian keuntungannya disalurkan kembali untuk program sosial komunitas. Tertarik untuk kita kolaborasikan?"
+    },
+    {
+        "id": 59,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Komunitas Relawan",
+        "kenapa_dicoba": "Relawan memiliki jaringan lapangan yang luas dan dipercaya masyarakat saat merekomendasikan layanan publik.",
+        "cara_mulai": "Bangun pertemanan tulus, kenalkan Anda sebagai mitra terpercaya jika masyarakat menanyakan informasi umroh.",
+        "contoh": "Kang/Mba relawan, di lapangan sering ketemu warga yang bingung pilih travel umroh amanah nggak? Kalau ada yang butuh bantuan informasi, bisa diarahkan ke kami ya, insyaAllah amanah dan transparan."
+    },
+    {
+        "id": 60,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Koperasi",
+        "kenapa_dicoba": "Koperasi memiliki anggota aktif dan skema simpan pinjam yang bisa dikombinasikan dengan tabungan umroh.",
+        "cara_mulai": "Tawarkan kemitraan produk Simpanan Umroh Koperasi di mana travel Anda menjadi pelaksana perjalanannya.",
+        "contoh": "Pengurus Koperasi, kami ingin menawarkan kerja sama pengadaan 'Tabungan Umroh Anggota Koperasi'. Anggota bisa menyicil simpanan dan travel kami menjamin kepastian seat serta keberangkatannya. Kapan kami bisa paparkan teknisnya?"
+    },
+    {
+        "id": 61,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Paguyuban Daerah",
+        "kenapa_dicoba": "Perantau dalam paguyuban daerah memiliki kerinduan berkumpul dan sering merencanakan perjalanan ibadah bersama warga sedaerah.",
+        "cara_mulai": "Hadir di pertemuan rutin paguyuban, sampaikan ide keberangkatan umroh rombongan 'Sedulur Salembur' ke Tanah Suci.",
+        "contoh": "Bapak/Ibu sesepuh paguyuban, masyaAllah guyub sekali warga perantauan kita. Alangkah indahnya kalau kita bisa adakan umroh bersama warga paguyuban, di Mekkah dan Madinah kita doa bersama untuk kemakmuran keluarga kita di perantauan dan kampung."
+    },
+    {
+        "id": 62,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Komunitas Keluarga Besar",
+        "kenapa_dicoba": "Bani atau trah keluarga besar berkumpul setahun sekali saat halal bihalal dan memiliki ikatan kekerabatan yang kuat.",
+        "cara_mulai": "Usulkan program umroh akbar keluarga besar satu kakek/nenek saat momen pertemuan keluarga.",
+        "contoh": "Bapak, Ibu, dan seluruh keluarga besar Bani [Nama], seru sekali ya kalau momen liburan mendatang trah keluarga kita berangkat umroh bareng satu bus. Ibadah khusyuk, silaturahmi keluarga makin erat di hadapan Baitullah. Boleh saya buatkan perhitungannya?"
+    },
+    {
+        "id": 63,
+        "kategori": "Organisasi & Kegiatan Sosial",
+        "sumber": "Peserta Kegiatan Sosial",
+        "kenapa_dicoba": "Masyarakat yang hadir di acara bakti sosial atau sunatan massal memiliki kontak yang bisa ditindaklanjuti untuk pembinaan keagamaan.",
+        "cara_mulai": "Bantu di acara kegiatan sosial, simpan kontak peserta atau donatur untuk menjalin hubungan silaturahmi jangka panjang.",
+        "contoh": "Bapak/Ibu donatur yang baik, terima kasih atas kepeduliannya dalam acara baksos kemarin. Semoga Allah lipat gandakan rezeki dan segera panggil untuk ziarah ke Baitullah. Izin saling simpan nomor WA ya Pak/Bu."
+    },
+    {
+        "id": 64,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Peserta Seminar",
+        "kenapa_dicoba": "Peserta seminar adalah orang yang haus ilmu, berpikiran terbuka, dan proaktif dalam merencanakan masa depan.",
+        "cara_mulai": "Buka obrolan saat jeda coffee break mengenai resolusi perbaikan diri dan spiritual.",
+        "contoh": "Materinya daging banget ya Mas. Oya selain upgrade skill ilmu, tahun ini Mas ada target spiritual yang mau dicapai nggak, misal umroh bareng keluarga? Siapa tahu bisa sharing info jadwal keberangkatan."
+    },
+    {
+        "id": 65,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Peserta Workshop",
+        "kenapa_dicoba": "Sesi workshop yang intensif selama berhari-hari membangun keakraban antarpeserta dengan sangat cepat.",
+        "cara_mulai": "Ajak mengobrol santai saat makan siang bersama, kenalkan profesi Anda di sela-sela bertukar kartu nama.",
+        "contoh": "Senang bisa satu meja workshop dengan Mas. Oya saya selain di bidang ini juga aktif membantu layanan travel umroh resmi. Saling simpan kontak ya Mas, barangkali ada keluarga yang butuh konsultasi umroh amanah."
+    },
+    {
+        "id": 66,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Pengunjung Bazar",
+        "kenapa_dicoba": "Pengunjung bazar sedang dalam suasana hati senang jalan-jalan dan siap menerima brosur atau penawaran menarik.",
+        "cara_mulai": "Sapa ramah, berikan souvenir kecil atau kuis berhadiah merchandise umroh untuk mencairkan suasana sebelum minta kontak.",
+        "contoh": "Selamat siang Kak/Bu, silakan ambil souvenir stiker doa dan checklist umroh gratis kami. Kalau boleh tahu, sudah pernah merencanakan umroh dalam 1 tahun ke depan? Izin catat nomor WA ya untuk kami kirimkan jadwal promo terbarunya."
+    },
+    {
+        "id": 67,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Pengunjung Pameran",
+        "kenapa_dicoba": "Pengunjung pameran travel memang datang dengan niat mencari informasi perjalanan dan membandingkan paket travel.",
+        "cara_mulai": "Fokus pada diferensiasi unik travel Anda: kepastian jadwal, hotel pelataran masjid, dan bimbingan manasik intensif.",
+        "contoh": "Bapak/Ibu, selamat datang. Yang membedakan paket kami adalah hotel di Madinah dan Mekkah benar-benar di pelataran utama dan tiket pesawatnya sudah direct tanpa transit lama. Boleh kami jelaskan paket favorit keluarga?"
+    },
+    {
+        "id": 68,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Peserta Reuni",
+        "kenapa_dicoba": "Reuni membangkitkan kehangatan pertemanan lama dan membuka kesempatan berbicara santai tanpa rasa sungkan.",
+        "cara_mulai": "Setelah nostalgia masa sekolah, tanyakan kabar orang tua dan sampaikan bahwa Anda kini siap membantu kebutuhan umroh teman-teman.",
+        "contoh": "Alhamdulillah senang banget bisa kumpul reuni lagi hari ini. Oya teman-teman, kalau kalian atau orang tua ada niat ke Baitullah, kontak gw ya. Gw sekarang di travel resmi, insyaAllah gw pastikan teman-teman dapat pelayanan terbaik."
+    },
+    {
+        "id": 69,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Tamu Pernikahan",
+        "kenapa_dicoba": "Suasana pesta pernikahan penuh doa keberkahan dan mempertemukan Anda dengan puluhan kenalan lama dalam satu waktu.",
+        "cara_mulai": "Sapa hangat kenalan di meja makan, tanyakan kabar keluarga, lalu arahkan pembicaraan ke paket umroh pengantin baru (honeymoon halal) atau umroh keluarga.",
+        "contoh": "MasyaAllah acaranya meriah dan berkah ya. Oya sekarang banyak pasangan yang memilih hadiah pernikahan berupa umroh honeymoon berkah ke Tanah Suci. Siapa tahu ada saudara yang mau kasih kado berkah, saya siap bantu siapkan paketnya."
+    },
+    {
+        "id": 70,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Tamu Acara Keluarga",
+        "kenapa_dicoba": "Acara aqiqah, khitanan, atau syukuran rumah baru adalah momen hangat di mana keluarga berkumpul dalam suasana syukur.",
+        "cara_mulai": "Kaitkan rasa syukur nikmat hidup dengan keinginan menyempurnakan rasa syukur langsung di hadapan Ka'bah.",
+        "contoh": "Alhamdulillah syukuran hari ini lancar ya Bu. Menambah rasa syukur nikmat Allah, biasanya afdol kalau disambung dengan sujud syukur langsung di Ka'bah. Ibu dan Bapak sudah ada rencana umroh lagi?"
+    },
+    {
+        "id": 71,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Peserta Gathering",
+        "kenapa_dicoba": "Acara gathering kantor atau asosiasi menciptakan atmosfer kebersamaan yang sangat cocok untuk menawarkan umroh bersama.",
+        "cara_mulai": "Berbaur saat games atau acara malam, ajak ngobrol santai seputar impian perjalanan hidup yang bermakna.",
+        "contoh": "Keseruan gathering begini bakal berkali-kali lipat rasanya kalau kita bisa jalan bareng ke Mekkah dan Madinah. Ibadah bareng, ziarah bareng. Kepikiran nggak kita usulkan gathering religi tahun depan?"
+    },
+    {
+        "id": 72,
+        "kategori": "Event & Pertemuan",
+        "sumber": "Peserta Manasik",
+        "kenapa_dicoba": "Calon jamaah yang hadir di manasik memiliki sanak saudara atau tetangga yang ikut terinspirasi melihat persiapan mereka.",
+        "cara_mulai": "Dampingi calon jamaah dengan ramah, tanyakan apakah keluarga yang mengantar ada yang ingin menyusul di keberangkatan berikutnya.",
+        "contoh": "Bapak/Ibu yang mengantar, masyaAllah ya melihat suasana manasik jadi ikut merinding dan rindu Ka'bah. InsyaAllah bulan depan kami buka kloter berikutnya, barangkali Bapak/Ibu mau menyusul berangkat?"
+    },
+    {
+        "id": 73,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Kontak WhatsApp Pribadi",
+        "kenapa_dicoba": "Kontak di buku telepon Anda adalah orang yang sudah menyimpan nomor Anda dan mengenal identitas asli Anda.",
+        "cara_mulai": "Kirim pesan broadcast personal (bukan spam grup) berisi doa pagi atau info tips persiapan ibadah umroh.",
+        "contoh": "Assalamu'alaikum [Nama], semoga hari ini penuh berkah untukmu sekeluarga. Izin berbagi jadwal resmi keberangkatan umroh travel kami untuk periode musim ini. Barangkali lu atau orang tua ada rencana, bisa langsung tanya-tanya ke gw ya."
+    },
+    {
+        "id": 74,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Viewer Status WhatsApp",
+        "kenapa_dicoba": "Orang yang rutin melihat status WA Anda adalah silent observer yang diam-diam memperhatikan aktivitas dan konsistensi Anda.",
+        "cara_mulai": "Posting dokumentasi nyata (suasana manasik, jamaah di Raudhah, review hotel) lalu sapa mereka yang rajin melihat status.",
+        "contoh": "Assalamu'alaikum [Nama], sering lihat status umroh gw ya, alhamdulillah. Semoga jadi wasilah doa biar disegerakan berangkat ke Baitullah ya! Lu sendiri ada rencana mau ke sana tahun ini?"
+    },
+    {
+        "id": 75,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Orang yang Membalas Status",
+        "kenapa_dicoba": "Mereka yang membalas status ('Aamiin', 'Keren', 'Berapa biayanya?') sudah memiliki ketertarikan aktif dan berada di funnel hangat.",
+        "cara_mulai": "Segera balas dengan doa tulus dan buka sesi konsultasi santai tanpa kesan langsung memaksa closing.",
+        "contoh": "Aamiin ya Rabbal 'alamin. Makasih doanya ya [Nama]. Oya kalau lu beneran lagi ada rencana atau kepo soal rincian paketnya, santai aja mau tanya-tanya dulu, gw kirimin rincian PDF-nya ya?"
+    },
+    {
+        "id": 76,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Anggota Grup WhatsApp",
+        "kenapa_dicoba": "Anggota grup WA komunitas satu minat memiliki kesamaan latar belakang dan bisa dihubungi secara personal (japri).",
+        "cara_mulai": "Jangan jualan di dalam grup. Kirim pesan japri santun dengan menyebutkan nama grup asal sebagai pembuka silaturahmi.",
+        "contoh": "Assalamu'alaikum Mas [Nama], izin japri, salam kenal sesama member di grup WA [Nama Grup]. Senang bisa satu komunitas. Kebetulan saya aktif di layanan konsultasi umroh resmi. Saling simpan kontak ya Mas, barangkali kelak butuh informasi."
+    },
+    {
+        "id": 77,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Followers Instagram",
+        "kenapa_dicoba": "Followers Instagram tertarik pada konten visual estetis seputar keindahan Mekkah, Madinah, dan tips ibadah.",
+        "cara_mulai": "Buat story interaktif berupa polling ('Kangen Raudhah atau Ka'bah?') lalu DM mereka yang merespons polling.",
+        "contoh": "Assalamu'alaikum Kak! Makasih ya sudah vote di story kemarin. MasyaAllah memang kerinduan ke Raudhah luar biasa. Kakak sudah pernah umroh atau lagi merencanakan keberangkatan pertama nih Kak?"
+    },
+    {
+        "id": 78,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Followers Facebook",
+        "kenapa_dicoba": "Pengguna Facebook memiliki demografi usia 35-65 tahun yang merupakan target pasar paling potensial dan siap bayar untuk paket umroh.",
+        "cara_mulai": "Tulis postingan cerita narasi (storytelling) pengalaman spiritual mendampingi jamaah lansia, lalu ajak diskusi di kolom komentar.",
+        "contoh": "Bapak/Ibu yang ikut terharu membaca kisah jamaah tadi, semoga Allah segerakan langkah panjenengan sekeluarga untuk sujud di pelataran Ka'bah. Yang sedang mencari jadwal dan travel amanah berizin resmi, silakan DM saya ya."
+    },
+    {
+        "id": 79,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Followers TikTok",
+        "kenapa_dicoba": "Konten video edukasi singkat di TikTok memiliki jangkauan viral yang sangat cepat ke audiens muda yang ingin umroh.",
+        "cara_mulai": "Buat video edukasi 'Berapa biaya umroh mandiri vs travel?' lalu arahkan penonton untuk klik link di bio profil Anda.",
+        "contoh": "Buat teman-teman yang mau tanya rincian jadwal dan fasilitas umroh lengkap seperti di video tadi, langsung klik link WhatsApp di bio profil saya ya, konsultasi 100% gratis!"
+    },
+    {
+        "id": 80,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Orang yang Mengirim DM",
+        "kenapa_dicoba": "Calon jamaah yang berinisiatif kirim DM sudah berada pada tahap evaluasi dan butuh respon cepat serta kredibel.",
+        "cara_mulai": "Balas dalam hitungan menit, sapa dengan ramah, jawab pertanyaannya secara transparan, lalu tawarkan sambung ke WhatsApp.",
+        "contoh": "Halo Kak [Nama], terima kasih sudah menghubungi kami! Untuk paket umroh reguler 9 hari fasilitas hotel pelataran masjid biayanya mulai Rp28 jutaan all-in. Boleh minta nomor WhatsApp Kakak agar saya kirimkan jadwal lengkap dan foto hotelnya?"
+    },
+    {
+        "id": 81,
+        "kategori": "WhatsApp & Media Sosial",
+        "sumber": "Penonton Live",
+        "kenapa_dicoba": "Penonton siaran langsung melihat Anda secara real-time sehingga tingkat kepercayaan terhadap figur Anda sangat tinggi.",
+        "cara_mulai": "Adakan live sharing seputar tips manasik atau review hotel Mekkah Madinah, dan ajak penonton berkomentar untuk disapa.",
+        "contoh": "Terima kasih untuk Kak [Nama] yang sudah join live. Yang sedang berniat umroh di musim awal tahun ini, silakan ketik di komentar atau langsung tap link di profil ya, ada bonus perlengkapan koper eksklusif bagi pendaftar minggu ini."
+    },
+    {
+        "id": 82,
+        "kategori": "Database & Referral",
+        "sumber": "Orang yang Pernah Bertanya",
+        "kenapa_dicoba": "Mereka sudah memiliki niat dan mengenal Anda, hanya saja sebelumnya mungkin belum cocok jadwal atau tanggal keberangkatannya.",
+        "cara_mulai": "Sapa kembali dengan ramah, berikan kabar terbaru mengenai pembukaan jadwal kloter baru tanpa kesan mengejar-ngejar.",
+        "contoh": "Assalamu'alaikum Bapak/Ibu [Nama], semoga sehat selalu ya. Sekadar mengabarkan, travel kami baru saja merilis jadwal keberangkatan kloter baru dengan tanggal yang sangat pas di musim liburan. Barangkali Bapak/Ibu ingin melihat jadwal terbarunya?"
+    },
+    {
+        "id": 83,
+        "kategori": "Database & Referral",
+        "sumber": "Orang yang Pernah Minta Brosur",
+        "kenapa_dicoba": "Prospek yang meminta brosur sudah mengantongi informasi dasar dan kemungkinan sedang berdiskusi dengan pasangan atau keluarga.",
+        "cara_mulai": "Tanyakan bagian mana dari brosur yang masih memerlukan penjelasan tambahan atau konsultasi teknis.",
+        "contoh": "Halo Kak [Nama], semoga kabarnya baik ya. Brosur paket umroh yang kemarin saya kirimkan apakah sudah sempat dipelajari bersama keluarga? Barangkali ada bagian jadwal atau hotel yang ingin Kakak tanyakan lebih detail?"
+    },
+    {
+        "id": 84,
+        "kategori": "Database & Referral",
+        "sumber": "Orang yang Pernah Minta Harga",
+        "kenapa_dicoba": "Faktor pertimbangan mereka biasanya adalah anggaran dan skema pembayaran.",
+        "cara_mulai": "Informasikan program promo diskon khusus, skema tabungan cicilan, atau paket alternatif yang lebih sesuai dengan budget mereka.",
+        "contoh": "Assalamu'alaikum Mas [Nama], sekadar info baik, bulan ini kami ada promo potongan harga khusus pendaftar awal untuk paket hotel bintang empat. Rincian harganya jadi lebih hemat. Mau saya kirimkan perhitungannya Mas?"
+    },
+    {
+        "id": 85,
+        "kategori": "Database & Referral",
+        "sumber": "Prospek yang Menunda",
+        "kenapa_dicoba": "Alasan menunda biasanya karena kendala pekerjaan atau waktu cuti, bukan karena menolak ibadah.",
+        "cara_mulai": "Hargai keputusannya menunda, jalin silaturahmi berkala, dan tanyakan perkembangan kesiapan rencana mereka.",
+        "contoh": "Assalamu'alaikum Bu [Nama], apa kabar? Semoga urusan kemarin sudah selesai dengan lancar ya Bu. Sekarang kami ada jadwal keberangkatan di kuartal berikutnya yang lebih santai. Siapa tahu Ibu dan keluarga sudah siap untuk meninjau kembali rencananya."
+    },
+    {
+        "id": 86,
+        "kategori": "Database & Referral",
+        "sumber": "Jamaah yang Sudah Pernah Berangkat",
+        "kenapa_dicoba": "Alumni jamaah yang puas adalah duta promosi terbaik travel Anda dan seringkali ingin mengulang kembali ibadah umrohnya.",
+        "cara_mulai": "Jaga silaturahmi pasca-umroh, tanyakan kabar kerinduan mereka ke Haramain, dan tawarkan program alumni umroh.",
+        "contoh": "Assalamu'alaikum Pak Haji, gimana kabarnya? Masih terbayang suasana shalat di Raudhah kemarin ya Pak. Kalau Bapak ada kerinduan untuk kembali ziarah, kami ada program reuni alumni jamaah dengan fasilitas spesial lho Pak."
+    },
+    {
+        "id": 87,
+        "kategori": "Database & Referral",
+        "sumber": "Keluarga Jamaah Lama",
+        "kenapa_dicoba": "Keluarga jamaah lama melihat langsung kepuasan orang tuanya atau saudaranya yang pulang dari umroh dengan bahagia.",
+        "cara_mulai": "Gunakan testimoni kepuasan jamaah lama sebagai jembatan untuk mengajak anggota keluarga lainnya berangkat.",
+        "contoh": "Halo Mbak [Nama], alhamdulillah kemarin dengar cerita Ibu sangat bahagia dan puas sepulang umroh bareng travel kami. Mbak dan keluarga ada rencana mau menyusul jejak Ibu untuk berangkat umroh juga?"
+    },
+    {
+        "id": 88,
+        "kategori": "Database & Referral",
+        "sumber": "Teman Jamaah Lama",
+        "kenapa_dicoba": "Teman dari jamaah lama biasanya mendengar cerita seru secara langsung dari sahabatnya yang baru pulang umroh.",
+        "cara_mulai": "Minta izin menyebutkan nama jamaah lama sebagai perekat kepercayaan saat membuka komunikasi.",
+        "contoh": "Assalamu'alaikum Bapak [Nama], saya dihubungi oleh Pak Haji [Nama Jamaah Lama], sahabat Bapak. Beliau menceritakan bahwa Bapak sempat menanyakan pengalaman umroh beliau kemarin. Barangkali saya bisa bantu berikan informasi paket yang serupa Pak?"
+    },
+    {
+        "id": 89,
+        "kategori": "Database & Referral",
+        "sumber": "Referral dari Jamaah",
+        "kenapa_dicoba": "Leads referral dari jamaah memiliki tingkat konversi closing tertinggi (di atas 50%) karena faktor rekomendasi terpercaya.",
+        "cara_mulai": "Ucapkan terima kasih dan respon dalam waktu kurang dari 1 jam dengan standar pelayanan yang sangat prima.",
+        "contoh": "Assalamu'alaikum Ibu [Nama], salam kenal saya [Nama Anda] dari [Nama Travel]. Saya menerima kontak Ibu dari Ibu [Nama Jamaah], beliau merekomendasikan kami untuk membantu rencana umroh Ibu. Kapan waktu yang nyaman untuk kita mengobrol santai Bu?"
+    },
+    {
+        "id": 90,
+        "kategori": "Database & Referral",
+        "sumber": "Referral dari Prospek",
+        "kenapa_dicoba": "Meskipun prospek belum berangkat sendiri, mereka seringkali merekomendasikan saudaranya yang sudah memiliki dana siap berangkat.",
+        "cara_mulai": "Apresiasi rekomendasi mereka, berikan laporan bahwa kerabatnya telah dilayani dengan baik.",
+        "contoh": "Mas [Nama], makasih banyak ya kemarin sudah merekomendasikan pamanmu ke kami. Alhamdulillah pamannya sangat cocok dengan jadwal yang kami tawarkan. Semoga jadi amal jariyah yang melapangkan rezeki Mas juga ya!"
+    },
+    {
+        "id": 91,
+        "kategori": "Partner Strategis",
+        "sumber": "Ustadz atau Ustadzah",
+        "kenapa_dicoba": "Asatidzah memiliki jamaah binaan tetap yang membutuhkan kepastian travel amanah yang dapat memfasilitasi ustadznya sebagai pembimbing.",
+        "cara_mulai": "Sampaikan rasa hormat, tawarkan posisi pembimbing ibadah (muthowwif/tour leader) untuk rombongan jamaah binaan beliau.",
+        "contoh": "Assalamu'alaikum Ustadz, salam takzim. Kami dari travel umroh berizin Kemenag resmi ingin menawarkan sinergi khidmat umat. Jika Ustadz berkenan membimbing jamaah taklim Ustadz ke Baitullah, kami siap menyiapkan seluruh teknis legalitas, hotel, dan tiketnya secara profesional."
+    },
+    {
+        "id": 92,
+        "kategori": "Partner Strategis",
+        "sumber": "Ketua Pengajian",
+        "kenapa_dicoba": "Ketua pengajian adalah tokoh penggerak yang mampu mengumpulkan 20-50 jamaah dalam satu keputusan keberangkatan.",
+        "cara_mulai": "Tawarkan program reward atau subsidi biaya bagi ketua pengajian jika berhasil mengkoordinir rombongan satu majelis.",
+        "contoh": "Ibu Ketua Pengajian, kami ada program apresiasi keberangkatan untuk pimpinan majelis yang mengkoordinasikan jamaahnya umroh bersama. Dengan fasilitas bimbingan privat, jamaah Ibu akan merasa nyaman dan tenang. Kapan kita bisa sowan berdiskusi Bu?"
+    },
+    {
+        "id": 93,
+        "kategori": "Partner Strategis",
+        "sumber": "Tokoh Masyarakat",
+        "kenapa_dicoba": "Tokoh masyarakat memiliki kharisma dan panutan moral di wilayahnya. Keikutsertaan beliau membuat warga lain mantap ikut mendaftar.",
+        "cara_mulai": "Sowan meminta restu dan nasehat, ajak beliau menjadi tokoh penasihat rombongan umroh warga setempat.",
+        "contoh": "Assalamu'alaikum Bapak Tokoh, kami memohon nasehat dan arahan beliau. Kami berikhtiar menyelenggarakan umroh warga yang amanah dan mabrur. Alangkah berkahnya jika Bapak berkenan mendampingi sebagai tokoh kehormatan rombongan warga kita."
+    },
+    {
+        "id": 94,
+        "kategori": "Partner Strategis",
+        "sumber": "Pengurus Organisasi",
+        "kenapa_dicoba": "Pengurus organisasi dapat menerbitkan surat rekomendasi resmi atau edaran kegiatan ke seluruh ranting anggota.",
+        "cara_mulai": "Susun MoU resmi kerja sama kemitraan umroh dengan pembagian bagi hasil (ujrah kemitraan) yang transparan untuk kas organisasi.",
+        "contoh": "Kepada jajaran pengurus, kami mengajukan draf nota kesepahaman (MoU) kemitraan syiar umroh. Setiap pendaftaran dari anggota organisasi akan dialokasikan kontribusi resmi untuk mendukung kegiatan operasional organisasi. Mari kita agendakan pembahasan drafnya."
+    },
+    {
+        "id": 95,
+        "kategori": "Partner Strategis",
+        "sumber": "Agen atau Mitra Lain",
+        "kenapa_dicoba": "Agen wisata umum, freelance marketer, atau agen asuransi/haji memiliki database nasabah yang butuh diversifikasi paket umroh terpercaya.",
+        "cara_mulai": "Ajak kolaborasi sebagai sub-agen dengan sistem bagi komisi yang jelas, cepat cair, dan didukung materi promosi lengkap.",
+        "contoh": "Halo rekan marketing, kalau di database nasabahmu ada yang tanya paket umroh resmi Kemenag, lempar ke sistem referral kami saja. Ada bagi hasil komisi menarik per jamaah tanpa kamu harus pusing mengurus operasional dan handling bandara."
+    },
+    {
+        "id": 96,
+        "kategori": "Partner Strategis",
+        "sumber": "Pemilik Perusahaan",
+        "kenapa_dicoba": "Owner perusahaan memiliki wewenang mengalokasikan anggaran CSR atau bonus tahunan untuk keberangkatan umroh jajaran pimpinan.",
+        "cara_mulai": "Ajukan proposal Corporate Incentive Umroh yang memaparkan dampak peningkatan loyalitas kerja karyawan pasca-umroh.",
+        "contoh": "Bapak Owner [Nama Perusahaan], banyak riset membuktikan bahwa reward ibadah umroh bagi karyawan memberikan dampak spiritual dan loyalitas kerja yang jauh lebih besar dibanding bonus tunai biasa. Izinkan kami memaparkan proposal program umroh korporasi khusus untuk staf Bapak."
+    },
+    {
+        "id": 97,
+        "kategori": "Partner Strategis",
+        "sumber": "HRD Perusahaan",
+        "kenapa_dicoba": "HRD bertugas mengelola program kesejahteraan karyawan (employee wellbeing) dan penyusunan kalender cuti bersama.",
+        "cara_mulai": "Kirimkan penawaran fasilitas sosialisasi literasi perencanaan ibadah dan program cicilan syariah tanpa bunga bagi karyawan.",
+        "contoh": "Kepada Tim HRD, kami dari [Nama Travel] menyediakan program 'Employee Spiritual Wellness' berupa sesi edukasi perencanaan ibadah ke Tanah Suci bagi karyawan. Program ini murni edukasi dan sangat diminati di berbagai perusahaan. Apakah bisa kami kirimkan detailnya?"
+    },
+    {
+        "id": 98,
+        "kategori": "Partner Strategis",
+        "sumber": "Pengelola Sekolah atau Yayasan",
+        "kenapa_dicoba": "Yayasan pendidikan mengelola ratusan guru, dosen, dan staf yang sering memiliki program umroh berkala yayasan.",
+        "cara_mulai": "Sowan ke pimpinan yayasan untuk menawarkan paket Umroh Pendidik dengan fasilitas bimbingan dan cicilan yang fleksibel.",
+        "contoh": "Bapak/Ibu Pimpinan Yayasan, kami memiliki dedikasi khusus untuk memfasilitasi para ustadz dan guru sekolah ke Tanah Suci melalui program Umroh Khidmat Pendidik. Kami siap membantu merancang skema keberangkatan yang sesuai dengan agenda kalender akademik sekolah."
+    },
+    {
+        "id": 99,
+        "kategori": "Partner Strategis",
+        "sumber": "Mitra Referral Lokal",
+        "kenapa_dicoba": "Pemilik usaha fotokopi, salon muslimah, butik busana muslim, atau toko herbal adalah titik kumpul strategis calon jamaah umroh.",
+        "cara_mulai": "Titipkan standing banner, brosur elegan, dan buat kesepakatan komisi referral bagi setiap kontak yang berhasil closing.",
+        "contoh": "Mbak/Mas pemilik usaha, toko busana muslim ini ramai sekali dikunjungi ibu-ibu. Boleh kami titipkan standing banner resmi travel umroh kami di sini? Setiap ada pengunjung yang mendaftar lewat kode referral toko ini, kami berikan komisi referral yang menarik."
+    }
+]

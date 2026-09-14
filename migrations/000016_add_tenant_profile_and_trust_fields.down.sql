@@ -1,0 +1,13 @@
+ALTER TABLE tenants
+    DROP COLUMN tagline,
+    DROP COLUMN about_summary,
+    DROP COLUMN ppiu_number,
+    DROP COLUMN address,
+    DROP COLUMN phone,
+    DROP COLUMN email,
+    DROP COLUMN trust_rating,
+    DROP COLUMN trust_alumni_count,
+    DROP COLUMN trust_guarantee,
+    DROP COLUMN social_instagram,
+    DROP COLUMN social_facebook,
+    DROP COLUMN social_youtube;

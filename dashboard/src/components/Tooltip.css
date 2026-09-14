@@ -1,0 +1,141 @@
+.db-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  outline: none;
+}
+
+.db-tooltip-icon {
+  color: var(--db-text-muted);
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.db-tooltip-wrap:hover .db-tooltip-icon,
+.db-tooltip-wrap:focus .db-tooltip-icon,
+.db-tooltip-wrap:focus-visible .db-tooltip-icon {
+  color: var(--db-accent-teal);
+}
+
+.db-tooltip-popup {
+  position: absolute;
+  left: 50%;
+  background-color: var(--db-sidebar-bg);
+  color: var(--db-card-bg);
+  font-size: var(--font-size-sm);
+  font-family: var(--db-font-body, inherit);
+  font-weight: 400;
+  line-height: 1.45;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  white-space: normal;
+  width: max-content;
+  max-width: 290px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  z-index: 1050;
+  text-align: left;
+}
+
+/* Position: Top */
+.db-tooltip-popup--top {
+  bottom: calc(100% + 7px);
+  top: auto;
+  transform: translateX(-50%) translateY(4px);
+}
+
+.db-tooltip-popup--top::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--db-sidebar-bg) transparent transparent transparent;
+}
+
+/* Position: Bottom */
+.db-tooltip-popup--bottom {
+  top: calc(100% + 7px);
+  bottom: auto;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.db-tooltip-popup--bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--db-sidebar-bg) transparent;
+}
+
+/* Align right if specified or near right edge */
+.db-tooltip-popup--left {
+  left: auto;
+  right: -8px;
+}
+.db-tooltip-popup--left.db-tooltip-popup--top {
+  transform: translateY(4px);
+}
+.db-tooltip-popup--left.db-tooltip-popup--bottom {
+  transform: translateY(-4px);
+}
+.db-tooltip-popup--left::after {
+  left: auto;
+  right: 12px;
+  transform: none;
+}
+
+/* Align left if specified or near left edge */
+.db-tooltip-popup--right {
+  left: -8px;
+}
+.db-tooltip-popup--right.db-tooltip-popup--top {
+  transform: translateY(4px);
+}
+.db-tooltip-popup--right.db-tooltip-popup--bottom {
+  transform: translateY(-4px);
+}
+.db-tooltip-popup--right::after {
+  left: 12px;
+  transform: none;
+}
+
+/* Hover / Focus state */
+.db-tooltip-wrap:hover .db-tooltip-popup--top,
+.db-tooltip-wrap:focus .db-tooltip-popup--top,
+.db-tooltip-wrap:focus-visible .db-tooltip-popup--top {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.db-tooltip-wrap:hover .db-tooltip-popup--bottom,
+.db-tooltip-wrap:focus .db-tooltip-popup--bottom,
+.db-tooltip-wrap:focus-visible .db-tooltip-popup--bottom {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.db-tooltip-wrap:hover .db-tooltip-popup--left,
+.db-tooltip-wrap:focus .db-tooltip-popup--left,
+.db-tooltip-wrap:focus-visible .db-tooltip-popup--left {
+  transform: translateY(0);
+}
+
+.db-tooltip-wrap:hover .db-tooltip-popup--right,
+.db-tooltip-wrap:focus .db-tooltip-popup--right,
+.db-tooltip-wrap:focus-visible .db-tooltip-popup--right {
+  transform: translateY(0);
+}

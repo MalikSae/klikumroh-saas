@@ -1,0 +1,68 @@
+.tw-dev-page {
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tw-dev-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--tw-canvas-backdrop);
+  padding-bottom: 16px;
+}
+
+.tw-dev-header__badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--tw-brand-primary);
+  background-color: var(--tw-canvas-backdrop);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.tw-dev-header__title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--tw-text-primary);
+  line-height: 1.2;
+}
+
+.tw-dev-header__desc {
+  font-size: 13px;
+  color: var(--tw-brand-secondary);
+  opacity: 0.8;
+}
+
+.tw-dev-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tw-dev-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-brand-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tw-dev-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tw-dev-box {
+  background-color: var(--tw-background);
+  border: 1px solid var(--tw-canvas-backdrop);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

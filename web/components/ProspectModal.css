@@ -1,0 +1,126 @@
+.tw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: var(--tw-modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: twFadeIn 0.2s ease;
+}
+
+.tw-modal-card {
+  background-color: var(--tw-background);
+  border-radius: var(--radius-lg);
+  max-width: 440px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: var(--tw-modal-shadow);
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.tw-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tw-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--tw-text-primary);
+  font-family: var(--tw-font-heading);
+  line-height: 1.35;
+}
+
+.tw-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--tw-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.tw-modal-close:hover {
+  opacity: 1;
+}
+
+.tw-modal-selected-pkg {
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 6%, #F8F9FA);
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tw-modal-selected-pkg__label {
+  font-size: 11px;
+  color: var(--tw-text-primary);
+  opacity: 0.7;
+}
+
+.tw-modal-selected-pkg__name {
+  font-weight: 600;
+  color: var(--tw-text-primary);
+  margin-top: 2px;
+}
+
+.tw-modal-error {
+  padding: 8px 12px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-sm);
+  color: #991B1B;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tw-modal-success {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.tw-modal-success__icon {
+  color: var(--tw-brand-primary);
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.tw-modal-success__title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tw-text-primary);
+  margin-bottom: 8px;
+  font-family: var(--tw-font-heading);
+}
+
+.tw-modal-success__desc {
+  font-size: 14px;
+  color: var(--tw-text-primary);
+  opacity: 0.8;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.tw-modal-footer-note {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--tw-text-secondary);
+  margin-top: 8px;
+  line-height: 1.4;
+}

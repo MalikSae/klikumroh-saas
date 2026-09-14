@@ -1,0 +1,101 @@
+.db-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--db-modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: db-fade-in 0.15s ease-out;
+}
+
+.db-modal-content {
+  background-color: var(--db-card-bg);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--db-modal-shadow);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  animation: db-zoom-in 0.15s ease-out;
+}
+
+.db-modal-content--overflow-visible {
+  overflow: visible;
+}
+
+.db-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(14px, 1.8vw, 20px);
+  border-bottom: 1px solid var(--db-border);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+.db-modal-title {
+  font-size: var(--font-size-lg, 17px);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--db-text-primary);
+  font-family: var(--db-font-heading);
+}
+
+.db-modal-close {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-xl);
+  color: var(--db-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.db-modal-close:hover {
+  color: var(--db-text-primary);
+  background-color: var(--db-chart-area-fill);
+}
+
+.db-modal-body {
+  position: relative;
+  z-index: 2;
+  padding: clamp(14px, 1.8vw, 20px);
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.db-modal-content--overflow-visible .db-modal-body {
+  overflow: visible;
+  max-height: none;
+}
+
+.db-modal-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: clamp(12px, 1.5vw, 16px) clamp(14px, 1.8vw, 20px);
+  border-top: 1px solid var(--db-border);
+  background-color: var(--db-chart-area-fill);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+@keyframes db-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes db-zoom-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

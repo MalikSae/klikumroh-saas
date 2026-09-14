@@ -1,0 +1,84 @@
+.staff-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--db-page-bg);
+  padding: 24px;
+}
+
+.staff-login-card {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--db-card-bg);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-md);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+.staff-login-card__header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.staff-login-card__logo-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--db-sidebar-bg);
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.staff-login-card__logo {
+  height: 28px;
+  width: auto;
+  display: block;
+}
+
+.staff-login-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--db-text-primary);
+  margin: 0 0 6px 0;
+}
+
+.staff-login-card__subtitle {
+  font-size: var(--font-size-base);
+  color: var(--db-text-muted);
+  margin: 0;
+}
+
+.staff-login-card__badge {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--db-sidebar-active-bg);
+  color: var(--db-sidebar-active-highlight);
+  margin-top: 8px;
+}
+
+.staff-login-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.staff-login-card__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background-color: var(--db-negative-bg);
+  color: var(--db-negative);
+  border: 1px solid var(--db-negative-border);
+  font-size: var(--font-size-base);
+}

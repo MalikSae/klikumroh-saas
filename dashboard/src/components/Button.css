@@ -1,0 +1,55 @@
+.db-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: var(--font-weight-medium, 500);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.db-button--sm {
+  padding: 6px 12px;
+  font-size: var(--font-size-sm, 13px);
+}
+
+.db-button--md {
+  padding: 9px 18px;
+  font-size: var(--font-size-base, 14px);
+}
+
+.db-button--lg {
+  padding: 12px 24px;
+  font-size: var(--font-size-lg, 16px);
+}
+
+.db-button--primary {
+  background-color: var(--db-primary-button);
+  color: var(--db-card-bg);
+}
+
+.db-button--primary:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.db-button--secondary {
+  background-color: var(--db-card-bg);
+  color: var(--db-text-primary);
+  border-color: var(--db-border);
+}
+
+.db-button--secondary:hover:not(:disabled) {
+  background-color: var(--db-chart-area-fill);
+  border-color: var(--db-accent-teal);
+  color: var(--db-accent-teal);
+}
+
+.db-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

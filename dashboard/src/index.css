@@ -1,0 +1,398 @@
+:root {
+  /* Typography Tokens (Global standard: Nunito heading, Roboto body) */
+  --db-font-heading: 'Nunito', sans-serif;
+  --db-font-body: 'Roboto', sans-serif;
+
+  /* Dashboard Design Tokens (Fixed - KlikUmroh Admin - Synced with Marketing Palette) */
+  --db-sidebar-bg: #052F2C;
+  --db-sidebar-active-highlight: #007C74;
+  --db-primary-button: #006E67;
+  --db-accent-teal: #007C74;
+  --db-accent: #007C74;
+  --db-page-bg: #F3F8F7;
+  --db-card-bg: #FFFFFF;
+  --db-chart-area-fill: #E4F2F0;
+  --db-positive: #007C74;
+  --db-negative: #B84B3E;
+  --db-rating-star: #E8B85B;
+  --db-text-primary: #073B38;
+  --db-text-muted: #5D7471;
+  --db-border: #CFE0DD;
+
+  /* Dashboard Compound & Utility Tokens */
+  --db-surface: #EAF3F1;
+  --db-surface-hover: #DCECE9;
+  --db-sidebar-border: rgba(255, 255, 255, 0.08);
+  --db-sidebar-text: rgba(255, 255, 255, 0.75);
+  --db-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --db-sidebar-active-bg: rgba(0, 124, 116, 0.18);
+  --db-sidebar-muted: rgba(255, 255, 255, 0.45);
+  --db-modal-overlay: rgba(7, 59, 56, 0.45);
+  --db-modal-shadow: 0 20px 25px -5px rgba(7, 59, 56, 0.12);
+  --db-focus-ring: rgba(0, 110, 103, 0.2);
+  --db-status-new: #0369A1;
+  --db-status-new-bg: rgba(2, 132, 199, 0.08);
+  --db-status-new-border: #BAE6FD;
+  --db-status-contacted: #8A641F;
+  --db-status-contacted-bg: rgba(232, 184, 91, 0.12);
+  --db-status-contacted-border: #F6E9C9;
+  --db-status-interested: #4338CA;
+  --db-status-interested-bg: rgba(99, 102, 241, 0.08);
+  --db-status-interested-border: #C7D2FE;
+  --db-status-closing: #006E67;
+  --db-status-closing-bg: rgba(0, 110, 103, 0.10);
+  --db-status-closing-border: #CFE0DD;
+  --db-status-lost: #B84B3E;
+  --db-status-lost-bg: rgba(184, 75, 62, 0.08);
+  --db-status-lost-border: #F4C9C4;
+
+  /* Fluid Responsive Typography Scale (Automatic Scaling based on viewport) */
+  --font-size-xs: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);       /* 11px - 12px */
+  --font-size-sm: clamp(0.75rem, 0.72rem + 0.2vw, 0.8125rem);        /* 12px - 13px */
+  --font-size-base: clamp(0.8125rem, 0.78rem + 0.25vw, 0.875rem);    /* 13px - 14px */
+  --font-size-md: clamp(0.875rem, 0.84rem + 0.3vw, 0.9375rem);       /* 14px - 15px */
+  --font-size-lg: clamp(0.9375rem, 0.88rem + 0.4vw, 1.0625rem);      /* 15px - 17px */
+  --font-size-xl: clamp(1.125rem, 1.05rem + 0.55vw, 1.25rem);        /* 18px - 20px */
+  --font-size-2xl: clamp(1.25rem, 1.15rem + 0.75vw, 1.5rem);         /* 20px - 24px */
+  --font-size-3xl: clamp(1.5rem, 1.35rem + 1vw, 1.875rem);           /* 24px - 30px */
+
+  /* Proportional Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+
+  /* Layout & Geometry Tokens */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 3px 0 rgba(7, 59, 56, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(7, 59, 56, 0.07), 0 2px 4px -2px rgba(7, 59, 56, 0.04);
+  --db-card-shadow: 0 4px 20px -2px rgba(7, 59, 56, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--db-font-body);
+  background-color: var(--db-page-bg);
+  color: var(--db-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.db-topbar__title,
+.db-page-header__title,
+.db-card__title,
+.db-modal-title,
+.db-stat-card__value,
+.db-sidebar__logo-text {
+  font-family: var(--db-font-heading);
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Responsive Layout Containers & Grid System */
+.db-main-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.db-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.db-page-container {
+  flex: 1;
+  padding: clamp(16px, 2.2vw, 32px);
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Responsive 2-Column Grid with automatic collapse */
+.db-grid-2col {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .db-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Asymmetric 2-Column Grid with compact right sidebar */
+.db-grid-sidebar-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .db-grid-sidebar-right {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Auto-fitting field grids for information display */
+.db-grid-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(12px, 1.4vw, 20px);
+}
+
+.db-table-wrapper {
+  width: 100%;
+}
+
+/* Responsive Form Grid (Main Content + Sidebar Meta) */
+.db-grid-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .db-grid-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Accessible Form Textarea */
+.db-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--db-border);
+  background-color: var(--db-card-bg);
+  font-family: var(--db-font-body);
+  font-size: var(--font-size-base);
+  color: var(--db-text-primary);
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.db-textarea:focus {
+  border-color: var(--db-primary-button);
+  box-shadow: 0 0 0 3px var(--db-focus-ring);
+}
+
+/* Horizontal Scrollable Tabs on Mobile */
+.db-tabs-header {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--db-border);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: 100%;
+}
+
+.db-tabs-header::-webkit-scrollbar {
+  display: none;
+}
+
+.db-tab-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  background-color: transparent;
+  color: var(--db-text-muted);
+}
+
+.db-tab-btn:hover {
+  color: var(--db-text-primary);
+  background-color: var(--db-chart-area-fill);
+}
+
+.db-tab-btn--active,
+.db-tab-btn--active:hover {
+  background-color: var(--db-primary-button);
+  color: var(--db-card-bg);
+}
+
+.db-tab-count {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+  background-color: var(--db-chart-area-fill);
+  color: var(--db-text-primary);
+  transition: all 0.15s ease;
+}
+
+.db-tab-btn--active .db-tab-count {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: var(--db-card-bg);
+}
+
+/* Standard Alert Banners */
+.db-alert {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-sm, 14px);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.db-alert--success {
+  background-color: var(--db-chart-area-fill);
+  border: 1px solid var(--db-positive);
+  color: var(--db-positive);
+}
+
+.db-alert--error {
+  background-color: var(--db-chart-area-fill);
+  border: 1px solid var(--db-negative);
+  color: var(--db-negative);
+}
+
+.db-alert--warning {
+  background-color: var(--db-chart-area-fill);
+  border: 1px solid var(--db-rating-star);
+  color: var(--db-text-primary);
+}
+
+/* Reusable Empty State Card */
+.db-empty-state-card {
+  padding: clamp(28px, 4vw, 48px) 24px;
+  text-align: center;
+  color: var(--db-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.db-empty-state-card__icon {
+  margin-bottom: 12px;
+  color: var(--db-text-muted);
+  opacity: 0.7;
+}
+
+.db-empty-state-card__title {
+  margin: 0;
+  font-size: var(--font-size-base, 15px);
+  font-weight: 600;
+  color: var(--db-text-primary);
+  font-family: var(--db-font-heading);
+}
+
+.db-empty-state-card__desc {
+  margin: 6px 0 18px;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--db-text-muted);
+  max-width: 440px;
+  line-height: 1.5;
+}
+
+/* Responsive 2-column form field grid */
+.db-grid-responsive-2col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 520px) {
+  .db-grid-responsive-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive button group toggle for mode selection (e.g. Gratis vs Berbayar) */
+.db-mode-toggle-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .db-mode-toggle-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive bank fields grid */
+.db-bank-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 520px) {
+  .db-bank-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsive form action buttons (save buttons) */
+.db-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .db-form-actions {
+    justify-content: stretch;
+  }
+  .db-form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,189 @@
+﻿/* Agen Login Page - Matches Home and Paket Screen Aesthetic */
+
+.tw-agen-login-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+}
+
+.tw-agen-login-body {
+  padding: 0 0 96px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Banner */
+.tw-agen-login-header {
+  padding: 16px 16px 14px 16px;
+  background-color: #FFFFFF;
+}
+
+.tw-agen-login-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tw-brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  display: block;
+}
+
+.tw-agen-login-title {
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.3;
+  margin: 0 0 4px 0;
+}
+
+.tw-agen-login-subtitle {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #64748B;
+  margin: 0;
+}
+
+/* Alert Banner */
+.tw-agen-login-alert {
+  margin: 0 16px 14px 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 8px);
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #DC2626;
+  font-size: 13px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Card Container */
+.tw-agen-login-card {
+  margin: 0 16px 16px 16px;
+  padding: 20px 16px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Input Fields with Icons */
+.tw-agen-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tw-agen-login-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.tw-agen-login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tw-agen-login-icon-left {
+  position: absolute;
+  left: 12px;
+  color: #94A3B8;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.tw-agen-login-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 40px 0 38px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md, 8px);
+  font-family: var(--tw-font-body, 'Roboto', sans-serif);
+  font-size: 14px;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.tw-agen-login-input:focus {
+  background-color: #FFFFFF;
+  border-color: var(--tw-brand-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tw-brand-primary) 15%, transparent);
+}
+
+.tw-agen-login-input::placeholder {
+  color: #94A3B8;
+}
+
+.tw-agen-login-toggle-pw {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  padding: 6px;
+  color: #94A3B8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.tw-agen-login-toggle-pw:hover {
+  color: #334155;
+}
+
+/* Secondary Registration CTA Card */
+.tw-agen-login-register-card {
+  margin: 0 16px 16px 16px;
+  padding: 16px;
+  background-color: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: var(--radius-md, 10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.tw-agen-login-register-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.tw-agen-login-register-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748B;
+  margin: 0;
+}
+
+/* WhatsApp Help Link */
+.tw-agen-login-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 4px;
+  text-decoration: none;
+  padding: 6px 12px;
+}
+
+.tw-agen-login-help:hover {
+  color: var(--tw-brand-primary);
+}

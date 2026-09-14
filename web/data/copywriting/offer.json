@@ -1,0 +1,1205 @@
+{
+    "id": "offer_copywriting_bank",
+    "nama": "Bank Copywriting Offer",
+    "goal": "offer",
+    "funnel": [
+        "warm",
+        "hot"
+    ],
+    "deskripsi": "Kumpulan copywriting untuk menawarkan paket umroh kepada audiens yang sudah memiliki minat, kebutuhan, atau rencana keberangkatan.",
+    "tujuan": "Mengubah perhatian, pemahaman, kepercayaan, dan keinginan audiens menjadi tindakan nyata seperti bertanya detail, meminta rekomendasi, mengecek jadwal, atau masuk ke WhatsApp.",
+    "guidelines": [
+        "Tawarkan paket kepada audiens yang relevan, bukan sekadar menyebarkan harga.",
+        "Mulai dari siapa paket ini cocok, bukan langsung dari nama paket.",
+        "Jelaskan satu atau dua alasan utama kenapa paket tersebut menarik.",
+        "Harga disampaikan dengan jelas jika memang menjadi bagian dari penawaran.",
+        "Jangan memenuhi copy dengan semua fasilitas sekaligus.",
+        "Gunakan CTA yang mudah dilakukan.",
+        "Promo harus benar-benar tersedia.",
+        "Harga harus sesuai data terbaru.",
+        "Tanggal keberangkatan harus sesuai jadwal aktual.",
+        "Ketersediaan seat hanya boleh disebut jika sudah diverifikasi.",
+        "Jangan menggunakan urgency atau scarcity palsu.",
+        "Jangan mengatakan paket terbaik tanpa menjelaskan untuk kebutuhan siapa paket tersebut cocok.",
+        "Gunakan satu offer utama dalam satu copy."
+    ],
+    "placeholders": [
+        "{{nama}}",
+        "{{travel}}",
+        "{{paket}}",
+        "{{harga}}",
+        "{{harga_promo}}",
+        "{{tanggal}}",
+        "{{bulan}}",
+        "{{tahun}}",
+        "{{kota}}",
+        "{{durasi}}",
+        "{{hotel}}",
+        "{{jarak_hotel}}",
+        "{{maskapai}}",
+        "{{rute}}",
+        "{{dp}}",
+        "{{seat}}",
+        "{{jumlah_jamaah}}",
+        "{{deadline}}",
+        "{{fasilitas_utama}}",
+        "{{bonus}}"
+    ],
+    "offer_pillars": [
+        {
+            "id": "general",
+            "nama": "Penawaran Umum",
+            "deskripsi": "Menawarkan paket kepada audiens yang sudah memiliki minat umroh."
+        },
+        {
+            "id": "budget",
+            "nama": "Budget",
+            "deskripsi": "Menawarkan paket berdasarkan kisaran harga yang dicari audiens."
+        },
+        {
+            "id": "schedule",
+            "nama": "Jadwal",
+            "deskripsi": "Menawarkan berdasarkan bulan atau tanggal keberangkatan."
+        },
+        {
+            "id": "departure_city",
+            "nama": "Kota Keberangkatan",
+            "deskripsi": "Menawarkan keberangkatan dari kota tertentu."
+        },
+        {
+            "id": "orang_tua",
+            "nama": "Orang Tua dan Lansia",
+            "deskripsi": "Menawarkan paket dengan sudut kenyamanan untuk jamaah yang membawa orang tua."
+        },
+        {
+            "id": "family",
+            "nama": "Keluarga",
+            "deskripsi": "Menawarkan paket untuk pasangan atau keluarga."
+        },
+        {
+            "id": "first_timer",
+            "nama": "Pertama Kali Umroh",
+            "deskripsi": "Menawarkan paket dengan fokus kemudahan dan pendampingan."
+        },
+        {
+            "id": "comfort",
+            "nama": "Kenyamanan",
+            "deskripsi": "Menawarkan paket berdasarkan hotel, penerbangan, layanan, atau kenyamanan perjalanan."
+        },
+        {
+            "id": "premium",
+            "nama": "Premium",
+            "deskripsi": "Menawarkan fasilitas lebih tinggi dengan penjelasan value yang jelas."
+        },
+        {
+            "id": "group",
+            "nama": "Rombongan",
+            "deskripsi": "Menawarkan keberangkatan untuk keluarga besar, komunitas, atau grup."
+        },
+        {
+            "id": "promo",
+            "nama": "Promo",
+            "deskripsi": "Menawarkan promo yang benar-benar sedang berlaku."
+        },
+        {
+            "id": "comparison",
+            "nama": "Perbandingan",
+            "deskripsi": "Membantu audiens melihat alasan memilih satu paket dibanding pilihan lain."
+        }
+    ],
+    "copies": [
+        {
+            "id": "off_general_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "general",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "short",
+            "title": "Pilihan Keberangkatan",
+            "hook": "Sedang cari umroh untuk {{bulan}}?",
+            "body": "Ada {{paket}} keberangkatan {{tanggal}} dengan {{fasilitas_utama}}. Harga {{harga}} per jamaah.",
+            "cta": "Kalau mau lihat detailnya, chat saya ya.",
+            "requires_verified_data": true,
+            "tags": [
+                "package",
+                "schedule",
+                "price"
+            ]
+        },
+        {
+            "id": "off_general_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "general",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Tidak Perlu Lihat Banyak Paket",
+            "hook": "Kalau target berangkatnya sudah ada, nggak perlu lihat terlalu banyak brosur.",
+            "body": "Untuk {{bulan}}, salah satu pilihan yang bisa dipertimbangkan adalah {{paket}} di harga {{harga}}.",
+            "cta": "Mau saya kirim detail jadwal dan fasilitasnya?",
+            "requires_verified_data": true,
+            "tags": [
+                "package",
+                "simple_offer"
+            ]
+        },
+        {
+            "id": "off_general_003",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "general",
+            "audience": [
+                "active_prospect"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "direct_offer",
+            "title": "Sudah Ada Target",
+            "hook": "Sudah punya target umroh tahun ini?",
+            "body": "{{paket}} berangkat {{tanggal}}, durasi {{durasi}}, harga {{harga}}.",
+            "cta": "Kalau tanggalnya masuk, saya bantu cek detailnya.",
+            "requires_verified_data": true,
+            "tags": [
+                "direct_offer",
+                "hot"
+            ]
+        },
+        {
+            "id": "off_budget_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "budget",
+            "audience": [
+                "budget_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Cari di Kisaran Budget",
+            "hook": "Cari paket umroh di kisaran {{harga}}?",
+            "body": "Ada {{paket}} keberangkatan {{tanggal}} dengan fasilitas utama {{fasilitas_utama}}.",
+            "cta": "Kalau kisaran ini masuk budget, saya kirim detail lengkapnya.",
+            "requires_verified_data": true,
+            "tags": [
+                "budget",
+                "price"
+            ]
+        },
+        {
+            "id": "off_budget_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "budget",
+            "audience": [
+                "budget_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Budget Tetap Dijaga",
+            "hook": "Kalau targetnya ingin umroh tanpa terlalu jauh dari budget, paket ini bisa masuk daftar pertimbangan.",
+            "body": "{{paket}} keberangkatan {{tanggal}} berada di harga {{harga}} per jamaah. Fasilitas utamanya {{fasilitas_utama}}. Cocok untuk yang lebih mengutamakan value dan tetap ingin menjaga budget.",
+            "cta": "Kalau ingin saya bantu cek apakah paket ini sesuai kebutuhan Anda, boleh chat.",
+            "requires_verified_data": true,
+            "tags": [
+                "budget",
+                "value"
+            ]
+        },
+        {
+            "id": "off_budget_003",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "budget",
+            "audience": [
+                "budget_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status"
+            ],
+            "format": "direct_offer",
+            "title": "Budget Sekian",
+            "hook": "Budget sekitar {{harga}} per orang?",
+            "body": "Ada pilihan keberangkatan {{tanggal}} yang bisa dicek.",
+            "cta": "Chat 'BUDGET' kalau mau lihat detail paketnya.",
+            "requires_verified_data": true,
+            "tags": [
+                "budget",
+                "keyword"
+            ]
+        },
+        {
+            "id": "off_schedule_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "schedule",
+            "audience": [
+                "employee",
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Keberangkatan Bulan Tertentu",
+            "hook": "Yang sedang cari keberangkatan {{bulan}}, boleh merapat.",
+            "body": "Ada {{paket}} tanggal {{tanggal}} dengan harga {{harga}}.",
+            "cta": "Kalau waktunya cocok, saya kirim detailnya.",
+            "requires_verified_data": true,
+            "tags": [
+                "schedule",
+                "month"
+            ]
+        },
+        {
+            "id": "off_schedule_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "schedule",
+            "audience": [
+                "employee"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Cocokkan dengan Cuti",
+            "hook": "Sudah tahu kapan bisa ambil cuti?",
+            "body": "Kalau periodenya sekitar {{bulan}}, ada keberangkatan {{tanggal}} yang bisa dipertimbangkan.",
+            "cta": "Kirim target tanggal cutinya, nanti saya bantu cek.",
+            "requires_verified_data": true,
+            "tags": [
+                "schedule",
+                "cuti"
+            ]
+        },
+        {
+            "id": "off_schedule_003",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "schedule",
+            "audience": [
+                "schedule_sensitive"
+            ],
+            "channel": [
+                "instagram_story",
+                "whatsapp_status"
+            ],
+            "format": "direct_offer",
+            "title": "Tanggal Spesifik",
+            "hook": "Keberangkatan {{tanggal}}",
+            "body": "{{paket}} | {{durasi}} | {{maskapai}} | {{harga}}",
+            "cta": "Mau saya cekkan untuk berapa orang?",
+            "requires_verified_data": true,
+            "tags": [
+                "fixed_date",
+                "direct_offer"
+            ]
+        },
+        {
+            "id": "off_city_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "departure_city",
+            "audience": [
+                "local"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "short",
+            "title": "Keberangkatan dari Kota",
+            "hook": "Cari umroh berangkat dari {{kota}}?",
+            "body": "Ada pilihan {{paket}} untuk keberangkatan {{tanggal}}.",
+            "cta": "Kalau mau, saya kirim jadwal dan detail biayanya.",
+            "requires_verified_data": true,
+            "tags": [
+                "departure_city",
+                "local"
+            ]
+        },
+        {
+            "id": "off_city_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "departure_city",
+            "audience": [
+                "local",
+                "family"
+            ],
+            "channel": [
+                "facebook",
+                "whatsapp_status"
+            ],
+            "format": "medium",
+            "title": "Lebih Praktis dari Kota Sendiri",
+            "hook": "Buat yang lebih nyaman memulai perjalanan dari {{kota}}, ada jadwal yang bisa dipertimbangkan.",
+            "body": "{{paket}} berangkat {{tanggal}} dengan harga {{harga}}. Cocok untuk yang ingin mengurangi tambahan perjalanan menuju kota keberangkatan lain.",
+            "cta": "Kalau ada rencana untuk keluarga, saya bantu cek kebutuhan seat-nya.",
+            "requires_verified_data": true,
+            "tags": [
+                "departure_city",
+                "comfort",
+                "family"
+            ]
+        },
+        {
+            "id": "off_parent_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua",
+                "lansia"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Bawa Orang Tua",
+            "hook": "Sedang cari paket untuk berangkat bersama Ayah atau Ibu?",
+            "body": "{{paket}} bisa dipertimbangkan karena {{fasilitas_utama}}.",
+            "cta": "Kalau boleh tahu usia orang tuanya, nanti saya bantu cek apakah cocok.",
+            "requires_verified_data": true,
+            "tags": [
+                "orang_tua",
+                "lansia",
+                "comfort"
+            ]
+        },
+        {
+            "id": "off_parent_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Fokus Kenyamanan Ibu",
+            "hook": "Kalau berangkat bersama orang tua, saya lebih suka melihat kebutuhan beliau dulu.",
+            "body": "Untuk {{paket}}, salah satu nilai plusnya ada di {{fasilitas_utama}}. Karena itu pilihan ini bisa lebih relevan untuk jamaah yang mengutamakan kenyamanan orang tua.",
+            "cta": "Kalau sedang mencari paket untuk Ayah atau Ibu, ceritakan kebutuhannya dulu. Saya bantu arahkan.",
+            "requires_verified_data": true,
+            "tags": [
+                "orang_tua",
+                "comfort",
+                "consultative"
+            ]
+        },
+        {
+            "id": "off_parent_003",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "orang_tua",
+            "audience": [
+                "lansia"
+            ],
+            "channel": [
+                "whatsapp_status"
+            ],
+            "format": "direct_offer",
+            "title": "Hotel Lebih Dekat",
+            "hook": "Cari paket untuk orang tua dengan prioritas hotel lebih dekat?",
+            "body": "{{paket}} menggunakan {{hotel}} dengan jarak sekitar {{jarak_hotel}}.",
+            "cta": "Kalau ingin saya cek detail paketnya, boleh chat.",
+            "requires_verified_data": true,
+            "tags": [
+                "lansia",
+                "hotel_dekat"
+            ]
+        },
+        {
+            "id": "off_family_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "family",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Umroh Keluarga",
+            "hook": "Ada rencana umroh sekeluarga di {{bulan}}?",
+            "body": "{{paket}} keberangkatan {{tanggal}} bisa jadi salah satu pilihan.",
+            "cta": "Sebutkan berapa orang yang akan ikut, saya bantu hitungkan.",
+            "requires_verified_data": true,
+            "tags": [
+                "family",
+                "pax"
+            ]
+        },
+        {
+            "id": "off_family_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "family",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Jangan Pilih untuk Satu Orang",
+            "hook": "Kalau yang berangkat satu keluarga, paketnya juga sebaiknya dilihat dari kebutuhan satu keluarga.",
+            "body": "{{paket}} memiliki {{fasilitas_utama}} dan keberangkatan {{tanggal}}. Bisa dipertimbangkan untuk keluarga yang sedang mencari kombinasi jadwal dan kenyamanan.",
+            "cta": "Kalau mau saya bantu cek berdasarkan jumlah dan usia jamaah, boleh chat.",
+            "requires_verified_data": true,
+            "tags": [
+                "family",
+                "comfort"
+            ]
+        },
+        {
+            "id": "off_couple_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "family",
+            "audience": [
+                "couple"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Untuk Berdua",
+            "hook": "Yang punya rencana umroh berdua dengan pasangan, sudah ada target bulan?",
+            "body": "Untuk {{bulan}} ada {{paket}} keberangkatan {{tanggal}}.",
+            "cta": "Kalau mau saya hitungkan untuk berdua, tinggal chat.",
+            "requires_verified_data": true,
+            "tags": [
+                "pasangan",
+                "pax"
+            ]
+        },
+        {
+            "id": "off_firsttimer_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "first_timer",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Pertama Kali Umroh",
+            "hook": "Pertama kali umroh dan ingin paket yang prosesnya mudah diikuti?",
+            "body": "{{paket}} bisa dipertimbangkan karena {{fasilitas_utama}}.",
+            "cta": "Kalau belum tahu mulai dari mana, saya bantu jelaskan dari awal.",
+            "requires_verified_data": true,
+            "tags": [
+                "first_timer",
+                "pendampingan"
+            ]
+        },
+        {
+            "id": "off_firsttimer_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "first_timer",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Tidak Harus Paham Semua",
+            "hook": "Kalau ini umroh pertama, Anda nggak harus paham semua istilah paket lebih dulu.",
+            "body": "Untuk {{paket}}, detail keberangkatannya {{tanggal}} dengan harga {{harga}}. Saya bisa bantu jelaskan satu per satu dari fasilitas, pembayaran, sampai persiapannya.",
+            "cta": "Kalau ingin konsultasi dulu sebelum menentukan, boleh.",
+            "requires_verified_data": true,
+            "tags": [
+                "first_timer",
+                "service"
+            ]
+        },
+        {
+            "id": "off_comfort_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "comfort",
+            "audience": [
+                "comfort_seeker"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Prioritas Kenyamanan",
+            "hook": "Kalau prioritasnya bukan cari paling murah, tapi ingin perjalanan yang lebih nyaman...",
+            "body": "{{paket}} bisa masuk pilihan karena {{fasilitas_utama}}.",
+            "cta": "Kalau mau saya jelaskan bedanya dengan paket lain, boleh chat.",
+            "requires_verified_data": true,
+            "tags": [
+                "comfort",
+                "value"
+            ]
+        },
+        {
+            "id": "off_comfort_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "comfort",
+            "audience": [
+                "comfort_seeker",
+                "lansia"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Nilai Plusnya Ada di Sini",
+            "hook": "Ada paket yang selisih harganya terasa, tapi perbedaannya juga terasa di perjalanan.",
+            "body": "Untuk {{paket}}, nilai plusnya ada pada {{fasilitas_utama}}. Jadi cocok untuk jamaah yang memang memprioritaskan kenyamanan dibanding hanya mengejar harga terendah.",
+            "cta": "Kalau ingin dibandingkan dengan pilihan yang lebih ekonomis, saya bantu jelaskan.",
+            "requires_verified_data": true,
+            "tags": [
+                "comfort",
+                "comparison",
+                "value"
+            ]
+        },
+        {
+            "id": "off_premium_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "premium",
+            "audience": [
+                "premium"
+            ],
+            "channel": [
+                "instagram",
+                "facebook",
+                "whatsapp_status"
+            ],
+            "format": "medium",
+            "title": "Kalau Ingin Lebih Nyaman",
+            "hook": "Buat yang memang mencari perjalanan dengan fasilitas lebih tinggi, ini salah satu pilihan yang bisa dipertimbangkan.",
+            "body": "{{paket}} di harga {{harga}} dengan {{fasilitas_utama}}.",
+            "cta": "Kalau ingin tahu apa yang membedakan paket ini dari pilihan reguler, saya jelaskan detailnya.",
+            "requires_verified_data": true,
+            "tags": [
+                "premium",
+                "value"
+            ]
+        },
+        {
+            "id": "off_hotel_001",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "comfort",
+            "audience": [
+                "hotel_priority",
+                "lansia"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "direct_offer",
+            "title": "Prioritas Hotel",
+            "hook": "Kalau yang dicari hotel {{hotel}}, ada paket yang bisa dicek.",
+            "body": "{{paket}} | {{tanggal}} | {{harga}}",
+            "cta": "Mau saya kirim detail hotel dan fasilitasnya?",
+            "requires_verified_data": true,
+            "tags": [
+                "hotel",
+                "direct_offer"
+            ]
+        },
+        {
+            "id": "off_group_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "group",
+            "audience": [
+                "group",
+                "community"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "facebook",
+                "instagram"
+            ],
+            "format": "medium",
+            "title": "Rencana Rombongan",
+            "hook": "Ada rencana umroh bersama keluarga besar, majelis, komunitas, atau teman kantor?",
+            "body": "Untuk rombongan, sebaiknya mulai dari jumlah jamaah dan target waktu. Dari situ baru bisa dilihat pilihan keberangkatan yang paling memungkinkan.",
+            "cta": "Kalau sudah ada perkiraan jumlah peserta, saya bantu cek pilihannya.",
+            "tags": [
+                "group",
+                "community",
+                "pax"
+            ]
+        },
+        {
+            "id": "off_group_002",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "group",
+            "audience": [
+                "group"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "facebook"
+            ],
+            "format": "direct_offer",
+            "title": "Untuk Rombongan",
+            "hook": "Sedang siapkan rombongan umroh {{bulan}}?",
+            "body": "Ada {{paket}} keberangkatan {{tanggal}} yang bisa kita cek berdasarkan jumlah peserta.",
+            "cta": "Kirim perkiraan jumlah jamaah, nanti saya bantu hitungkan.",
+            "requires_verified_data": true,
+            "tags": [
+                "group",
+                "schedule"
+            ]
+        },
+        {
+            "id": "off_promo_001",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "promo",
+            "audience": [
+                "budget_sensitive",
+                "active_prospect"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story",
+                "instagram"
+            ],
+            "format": "direct_offer",
+            "title": "Promo Aktual",
+            "hook": "Ada promo untuk {{paket}}.",
+            "body": "Harga normal {{harga}}, sekarang {{harga_promo}} sesuai ketentuan promo yang berlaku sampai {{deadline}}.",
+            "cta": "Kalau ingin saya kirim syarat dan detailnya, boleh chat.",
+            "requires_verified_data": true,
+            "tags": [
+                "promo",
+                "price",
+                "deadline"
+            ]
+        },
+        {
+            "id": "off_promo_002",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "promo",
+            "audience": [
+                "nurture",
+                "budget_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status"
+            ],
+            "format": "short",
+            "title": "Untuk yang Menunggu Harga",
+            "hook": "Buat yang kemarin menunggu pilihan di budget lebih ringan...",
+            "body": "Sekarang ada {{paket}} di harga {{harga_promo}} untuk keberangkatan {{tanggal}}.",
+            "cta": "Kalau jadwalnya cocok, saya kirim detailnya.",
+            "requires_verified_data": true,
+            "tags": [
+                "promo",
+                "reactivation"
+            ]
+        },
+        {
+            "id": "off_comparison_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "comparison",
+            "audience": [
+                "comparison"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Ekonomis atau Nyaman",
+            "hook": "Kalau sedang memilih antara paket yang lebih ekonomis dan paket yang lebih nyaman, jangan hanya lihat selisih harganya.",
+            "body": "Lihat bagian mana yang berbeda. Misalnya hotel, rute penerbangan, jadwal, atau layanan. Setelah itu baru tentukan apakah selisih tersebut memang bernilai untuk kebutuhan Anda.",
+            "cta": "Kalau punya dua pilihan yang sedang dibandingkan, saya bantu jelaskan poin bedanya.",
+            "tags": [
+                "comparison",
+                "value"
+            ]
+        },
+        {
+            "id": "off_comparison_002",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "comparison",
+            "audience": [
+                "comparison"
+            ],
+            "channel": [
+                "whatsapp_status"
+            ],
+            "format": "short",
+            "title": "Dua Pilihan",
+            "hook": "Kalau pilihannya tinggal dua, sederhanakan.",
+            "body": "Paket A lebih unggul di {{fasilitas_utama}}. Paket B lebih ringan di harga.",
+            "cta": "Anda lebih prioritas nyaman atau budget?",
+            "requires_verified_data": true,
+            "tags": [
+                "comparison",
+                "engagement"
+            ]
+        },
+        {
+            "id": "off_payment_001",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "budget",
+            "audience": [
+                "payment_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "short",
+            "title": "DP Paket",
+            "hook": "Sudah cocok paketnya tapi masih menghitung pembayaran awal?",
+            "body": "Untuk {{paket}}, DP awalnya {{dp}} sesuai ketentuan yang berlaku.",
+            "cta": "Kalau mau lihat tahapan pembayaran lengkapnya, saya kirim.",
+            "requires_verified_data": true,
+            "tags": [
+                "dp",
+                "payment"
+            ]
+        },
+        {
+            "id": "off_soft_001",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "general",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status"
+            ],
+            "format": "soft_offer",
+            "title": "Ceritakan Kebutuhannya",
+            "hook": "Paket umroh banyak. Yang cocok belum tentu banyak.",
+            "body": "Kalau sudah tahu target bulan, jumlah jamaah, dan kisaran budget, saya bisa bantu mempersempit pilihannya.",
+            "cta": "Chat saja tiga info itu, nanti saya bantu carikan.",
+            "tags": [
+                "consultation",
+                "lead_generation"
+            ]
+        },
+        {
+            "id": "off_soft_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "general",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Tidak Mau Kirim Banyak Brosur",
+            "hook": "Kalau Anda chat saya cari paket umroh, saya mungkin tidak langsung mengirim semua brosur yang ada.",
+            "body": "Saya lebih suka tahu dulu kapan targetnya, siapa yang ikut, dan apa prioritasnya. Setelah itu baru saya pilihkan yang paling mendekati.",
+            "cta": "Kalau sedang cari paket, mulai dari ceritakan kebutuhannya.",
+            "tags": [
+                "personal_branding",
+                "consultative_offer"
+            ]
+        },
+        {
+            "id": "off_keyword_001",
+            "goal": "offer",
+            "funnel": "hot",
+            "pillar": "schedule",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "keyword",
+            "title": "CTA Keyword",
+            "hook": "Mau lihat jadwal umroh {{bulan}}?",
+            "body": null,
+            "cta": "Chat: {{bulan}}",
+            "tags": [
+                "keyword",
+                "lead_generation"
+            ]
+        },
+        {
+            "id": "off_keyword_002",
+            "goal": "offer",
+            "funnel": "warm",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua"
+            ],
+            "channel": [
+                "whatsapp_status"
+            ],
+            "format": "keyword",
+            "title": "Keyword Orang Tua",
+            "hook": "Sedang carikan paket umroh untuk Ayah atau Ibu?",
+            "body": null,
+            "cta": "Chat 'ORANG TUA', nanti saya bantu arahkan pilihannya.",
+            "tags": [
+                "orang_tua",
+                "keyword"
+            ]
+        }
+    ],
+    "cta_bank": [
+        {
+            "id": "cta_off_01",
+            "type": "detail",
+            "text": "Kalau mau lihat detail paketnya, chat saya."
+        },
+        {
+            "id": "cta_off_02",
+            "type": "schedule",
+            "text": "Kalau tanggalnya cocok, saya bantu cek detail keberangkatannya."
+        },
+        {
+            "id": "cta_off_03",
+            "type": "consultation",
+            "text": "Ceritakan kebutuhan Anda, nanti saya bantu pilihkan."
+        },
+        {
+            "id": "cta_off_04",
+            "type": "pax",
+            "text": "Sebutkan berapa orang yang akan berangkat, saya bantu hitungkan."
+        },
+        {
+            "id": "cta_off_05",
+            "type": "keyword",
+            "text": "Chat 'UMROH' kalau mau lihat pilihannya."
+        },
+        {
+            "id": "cta_off_06",
+            "type": "keyword",
+            "text": "Chat '{{bulan}}' kalau mau lihat jadwal bulan itu."
+        },
+        {
+            "id": "cta_off_07",
+            "type": "comparison",
+            "text": "Kalau sedang membandingkan dua paket, saya bantu jelaskan bedanya."
+        },
+        {
+            "id": "cta_off_08",
+            "type": "budget",
+            "text": "Kasih tahu kisaran budgetnya, nanti saya cari yang paling mendekati."
+        },
+        {
+            "id": "cta_off_09",
+            "type": "family",
+            "text": "Kalau untuk keluarga, kirim jumlah jamaah dan target waktunya."
+        },
+        {
+            "id": "cta_off_10",
+            "type": "seat_check",
+            "text": "Kalau sudah cocok dengan tanggalnya, saya bantu cek ketersediaan terbaru."
+        }
+    ],
+    "content_formulas": [
+        {
+            "id": "offer_formula_01",
+            "nama": "Audience - Offer - Benefit - CTA",
+            "structure": [
+                "Sebut siapa yang cocok",
+                "Tawarkan paket",
+                "Jelaskan benefit utama",
+                "Arahkan ke tindakan"
+            ],
+            "contoh": "Untuk yang membawa orang tua → Paket A → hotel lebih dekat → chat untuk detail."
+        },
+        {
+            "id": "offer_formula_02",
+            "nama": "Need - Match - Price - CTA",
+            "structure": [
+                "Mulai dari kebutuhan",
+                "Tunjukkan paket yang sesuai",
+                "Sampaikan harga",
+                "Ajak melihat detail"
+            ]
+        },
+        {
+            "id": "offer_formula_03",
+            "nama": "Schedule - Package - Value - CTA",
+            "structure": [
+                "Sebut periode keberangkatan",
+                "Nama paket",
+                "Highlight value",
+                "Arahkan ke WhatsApp"
+            ]
+        },
+        {
+            "id": "offer_formula_04",
+            "nama": "Problem - Relevant Offer - Reason - CTA",
+            "structure": [
+                "Masalah calon jamaah",
+                "Paket yang relevan",
+                "Kenapa paket tersebut cocok",
+                "Ajak konsultasi"
+            ]
+        },
+        {
+            "id": "offer_formula_05",
+            "nama": "Price - What You Get - For Whom - CTA",
+            "structure": [
+                "Harga",
+                "Fasilitas utama",
+                "Untuk kebutuhan siapa",
+                "Ajak meminta detail"
+            ]
+        },
+        {
+            "id": "offer_formula_06",
+            "nama": "Two Options - Difference - Choice",
+            "structure": [
+                "Berikan maksimal dua pilihan",
+                "Jelaskan perbedaan utama",
+                "Tanyakan prioritas audiens"
+            ]
+        },
+        {
+            "id": "offer_formula_07",
+            "nama": "Verified Promo - Terms - CTA",
+            "structure": [
+                "Promo aktual",
+                "Syarat atau batas waktu",
+                "Arahkan ke detail"
+            ]
+        }
+    ],
+    "offer_strength": [
+        {
+            "level": "soft",
+            "use_when": "Audiens sudah tertarik tetapi belum aktif mencari paket.",
+            "style": "Ajak konsultasi dan ceritakan kebutuhan."
+        },
+        {
+            "level": "direct",
+            "use_when": "Audiens sudah mencari jadwal, harga, atau paket.",
+            "style": "Sebut paket, jadwal, harga, dan CTA."
+        },
+        {
+            "level": "strong",
+            "use_when": "Audiens memiliki buying intent tinggi atau memang sedang menunggu penawaran.",
+            "style": "Gunakan detail yang spesifik dan CTA menuju pengecekan ketersediaan atau proses berikutnya."
+        }
+    ],
+    "routing_rules": [
+        {
+            "condition": "Audiens sudah punya target bulan.",
+            "recommended_pillars": [
+                "schedule",
+                "general"
+            ]
+        },
+        {
+            "condition": "Audiens menyebut kisaran budget.",
+            "recommended_pillars": [
+                "budget"
+            ]
+        },
+        {
+            "condition": "Audiens mencari keberangkatan dari kota tertentu.",
+            "recommended_pillars": [
+                "departure_city"
+            ]
+        },
+        {
+            "condition": "Audiens ingin membawa orang tua.",
+            "recommended_pillars": [
+                "orang_tua",
+                "comfort"
+            ]
+        },
+        {
+            "condition": "Audiens akan berangkat bersama keluarga.",
+            "recommended_pillars": [
+                "family"
+            ]
+        },
+        {
+            "condition": "Audiens first timer.",
+            "recommended_pillars": [
+                "first_timer"
+            ]
+        },
+        {
+            "condition": "Audiens lebih mengutamakan kenyamanan.",
+            "recommended_pillars": [
+                "comfort",
+                "premium"
+            ]
+        },
+        {
+            "condition": "Audiens membawa rombongan.",
+            "recommended_pillars": [
+                "group"
+            ]
+        },
+        {
+            "condition": "Ada promo aktual yang relevan.",
+            "recommended_pillars": [
+                "promo"
+            ]
+        },
+        {
+            "condition": "Audiens sedang membandingkan pilihan.",
+            "recommended_pillars": [
+                "comparison"
+            ]
+        }
+    ],
+    "channel_rules": [
+        {
+            "channel": "whatsapp_status",
+            "recommendation": "Gunakan offer singkat dengan satu headline, satu benefit, dan satu CTA."
+        },
+        {
+            "channel": "instagram_story",
+            "recommendation": "Gunakan satu informasi utama per slide dan tutup dengan CTA DM atau WhatsApp."
+        },
+        {
+            "channel": "instagram",
+            "recommendation": "Mulai dari target audiens atau kebutuhan, lalu jelaskan paket."
+        },
+        {
+            "channel": "facebook",
+            "recommendation": "Boleh menggunakan penjelasan sedikit lebih panjang dan konteks kebutuhan."
+        },
+        {
+            "channel": "whatsapp_broadcast",
+            "recommendation": "Gunakan sapaan personal, alasan mengirim informasi, satu offer relevan, lalu CTA ringan."
+        }
+    ],
+    "accuracy_rules": [
+        {
+            "field": "harga",
+            "rule": "Gunakan harga terbaru dan jelaskan per jamaah atau total jika diperlukan."
+        },
+        {
+            "field": "tanggal",
+            "rule": "Pastikan keberangkatan benar-benar tersedia pada jadwal yang disebut."
+        },
+        {
+            "field": "hotel",
+            "rule": "Gunakan hotel dan informasi lokasi sesuai data aktual paket."
+        },
+        {
+            "field": "maskapai",
+            "rule": "Gunakan maskapai dan rute sesuai data aktual."
+        },
+        {
+            "field": "promo",
+            "rule": "Jangan menyebut promo jika promo belum resmi atau sudah berakhir."
+        },
+        {
+            "field": "deadline",
+            "rule": "Deadline harus benar-benar berlaku."
+        },
+        {
+            "field": "seat",
+            "rule": "Ketersediaan seat harus diverifikasi sebelum disebutkan."
+        },
+        {
+            "field": "dp",
+            "rule": "Nominal DP dan ketentuan pembayaran harus sesuai aturan paket."
+        }
+    ],
+    "do": [
+        "Mulai dari kebutuhan atau audiens yang relevan.",
+        "Tampilkan harga secara jelas jika digunakan.",
+        "Pilih satu sampai dua benefit utama.",
+        "Gunakan CTA yang mudah dilakukan.",
+        "Gunakan bahasa yang terasa seperti rekomendasi.",
+        "Gunakan data paket terbaru.",
+        "Buat beberapa angle untuk produk yang sama.",
+        "Hubungkan offer dengan konten Attraction, Education, Trust, atau Desire sebelumnya."
+    ],
+    "dont": [
+        "Mengisi setiap posting dengan daftar seluruh paket.",
+        "Mengatakan termurah tanpa data pembanding yang valid.",
+        "Mengatakan terbaik tanpa konteks.",
+        "Menggunakan harga lama.",
+        "Membuat promo palsu.",
+        "Membuat deadline palsu.",
+        "Mengatakan seat tinggal sedikit jika belum dicek.",
+        "Memenuhi copy dengan semua fasilitas.",
+        "Menggunakan terlalu banyak huruf kapital dan tanda seru.",
+        "Memaksa audiens dingin langsung melakukan DP.",
+        "Menawarkan paket mahal hanya berdasarkan asumsi kemampuan finansial audiens."
+    ],
+    "success_signals": [
+        "Audiens bertanya detail paket.",
+        "Audiens bertanya harga.",
+        "Audiens bertanya jadwal.",
+        "Audiens bertanya hotel atau maskapai.",
+        "Audiens menyebut jumlah jamaah.",
+        "Audiens menyebut target budget.",
+        "Audiens meminta rekomendasi.",
+        "Audiens meminta brosur.",
+        "Audiens masuk ke WhatsApp.",
+        "Audiens mulai masuk ke tahap Prospect Identification."
+    ],
+    "next_goal": [
+        "activation"
+    ],
+    "conversion_stage_after_inquiry": "greeting",
+    "greeting_ref": "../scripts/greeting.json",
+    "identification_ref": "../scripts/identification.json",
+    "conversion_offer_ref": "../offers.json"
+}

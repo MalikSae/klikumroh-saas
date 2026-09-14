@@ -1,0 +1,1024 @@
+{
+    "id": "trust_copywriting_bank",
+    "nama": "Bank Copywriting Trust",
+    "goal": "trust",
+    "funnel": [
+        "cold",
+        "warm",
+        "hot"
+    ],
+    "deskripsi": "Kumpulan copywriting untuk membangun kepercayaan calon jamaah melalui transparansi, bukti, edukasi, aktivitas nyata, pelayanan, dan pengalaman jamaah.",
+    "tujuan": "Membantu agen membangun rasa aman dan kredibilitas agar calon jamaah tidak hanya mengenal paket, tetapi juga mengenal siapa yang akan mendampingi perjalanan mereka.",
+    "guidelines": [
+        "Jangan hanya mengatakan travel terpercaya. Tunjukkan alasan kenapa calon jamaah bisa percaya.",
+        "Gunakan bukti yang nyata dan bisa diverifikasi.",
+        "Utamakan transparansi daripada klaim berlebihan.",
+        "Gunakan dokumentasi asli jika tersedia dan memang boleh dibagikan.",
+        "Jangan membuat testimoni palsu.",
+        "Jangan mengubah atau melebih-lebihkan isi testimoni jamaah.",
+        "Jangan menggunakan angka keberangkatan, jumlah jamaah, legalitas, atau pengalaman yang tidak dapat dibuktikan.",
+        "Jangan menjelekkan travel lain untuk terlihat lebih terpercaya.",
+        "Tunjukkan proses, bukan hanya hasil.",
+        "Personal branding agen juga menjadi bagian penting dari trust."
+    ],
+    "placeholders": [
+        "{{nama}}",
+        "{{cs_name}}",
+        "{{travel}}",
+        "{{tahun}}",
+        "{{tanggal}}",
+        "{{bulan}}",
+        "{{kota}}",
+        "{{jumlah_jamaah}}",
+        "{{nomor_izin}}",
+        "{{alamat}}",
+        "{{nama_jamaah}}",
+        "{{paket}}",
+        "{{pendamping}}",
+        "{{hotel}}",
+        "{{maskapai}}"
+    ],
+    "trust_pillars": [
+        {
+            "id": "legalitas",
+            "nama": "Legalitas dan Identitas",
+            "deskripsi": "Menunjukkan siapa travelnya, informasi resmi, alamat, dan data yang dapat diverifikasi."
+        },
+        {
+            "id": "transparency",
+            "nama": "Transparansi",
+            "deskripsi": "Menjelaskan paket, harga, fasilitas, ketentuan, dan proses secara terbuka."
+        },
+        {
+            "id": "proof",
+            "nama": "Bukti Aktivitas",
+            "deskripsi": "Menunjukkan kegiatan nyata seperti keberangkatan, manasik, pendampingan, atau persiapan jamaah."
+        },
+        {
+            "id": "testimonial",
+            "nama": "Pengalaman Jamaah",
+            "deskripsi": "Menggunakan pengalaman nyata jamaah sebagai social proof."
+        },
+        {
+            "id": "service",
+            "nama": "Pelayanan",
+            "deskripsi": "Menunjukkan bagaimana jamaah dibantu sebelum, selama, dan setelah perjalanan."
+        },
+        {
+            "id": "personal_agent",
+            "nama": "Personal Branding Agen",
+            "deskripsi": "Membuat calon jamaah mengenal orang yang akan membantu mereka."
+        },
+        {
+            "id": "process",
+            "nama": "Proses yang Jelas",
+            "deskripsi": "Menunjukkan bagaimana pendaftaran, pembayaran, persiapan, dan keberangkatan dilakukan."
+        },
+        {
+            "id": "consistency",
+            "nama": "Konsistensi",
+            "deskripsi": "Menunjukkan bahwa agen aktif, hadir, dan konsisten memberikan informasi."
+        }
+    ],
+    "copies": [
+        {
+            "id": "trust_legal_001",
+            "goal": "trust",
+            "funnel": "cold",
+            "pillar": "legalitas",
+            "audience": [
+                "general",
+                "first_timer",
+                "trust_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "short",
+            "title": "Silakan Cek",
+            "hook": "Sebelum daftar umroh, jangan hanya percaya karena sales-nya ramah.",
+            "body": "Kenali travelnya dan cek informasi yang memang bisa diverifikasi.",
+            "cta": "Kalau ada yang ingin dicek dari {{travel}}, silakan tanya.",
+            "tags": [
+                "trust",
+                "legalitas",
+                "verification"
+            ]
+        },
+        {
+            "id": "trust_legal_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "legalitas",
+            "audience": [
+                "trust_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "facebook",
+                "whatsapp_status"
+            ],
+            "format": "medium",
+            "title": "Tidak Perlu Percaya dari Omongan",
+            "hook": "Saya justru lebih senang kalau calon jamaah mau mengecek dulu sebelum daftar.",
+            "body": "Untuk perjalanan seperti umroh, wajar kalau ingin memastikan siapa travelnya, di mana alamatnya, bagaimana prosesnya, dan informasi resmi apa yang bisa diperiksa.",
+            "cta": "Jangan sungkan bertanya sebelum mengambil keputusan.",
+            "tags": [
+                "legalitas",
+                "trust",
+                "personal_branding"
+            ]
+        },
+        {
+            "id": "trust_legal_003",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "legalitas",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "checklist",
+            "title": "Yang Bisa Dicek",
+            "hook": "Kalau mau mengenal travel umroh, mulai dari informasi yang sederhana dulu.",
+            "body": "Cek identitas travel, alamat, informasi resmi, aktivitas keberangkatan, dan ketentuan paket yang ditawarkan.",
+            "cta": "Jangan hanya bergantung pada satu brosur.",
+            "tags": [
+                "legalitas",
+                "verification",
+                "checklist"
+            ]
+        },
+        {
+            "id": "trust_transparency_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "transparency",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Harga Harus Jelas",
+            "hook": "Menurut saya, calon jamaah berhak tahu dari awal apa yang dibayar dan apa yang didapat.",
+            "body": "Harga, fasilitas, tahapan pembayaran, dan ketentuan sebaiknya dijelaskan sebelum jamaah mengambil keputusan.",
+            "cta": "Kalau belum jelas, tanya dulu.",
+            "tags": [
+                "transparency",
+                "price",
+                "payment"
+            ]
+        },
+        {
+            "id": "trust_transparency_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "transparency",
+            "audience": [
+                "general",
+                "budget_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Tidak Ada yang Perlu Ditutup-tutupi",
+            "hook": "Paket umroh bukan cuma soal angka di brosur.",
+            "body": "Calon jamaah perlu tahu apa yang termasuk, apa yang belum termasuk, bagaimana tahap pembayarannya, serta ketentuan yang berlaku. Semakin jelas dari awal, semakin sedikit potensi salah paham di belakang.",
+            "cta": "Transparansi itu bagian dari pelayanan.",
+            "tags": [
+                "transparency",
+                "terms",
+                "payment"
+            ]
+        },
+        {
+            "id": "trust_transparency_003",
+            "goal": "trust",
+            "funnel": "hot",
+            "pillar": "transparency",
+            "audience": [
+                "buyer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "short",
+            "title": "Sebelum DP",
+            "hook": "Sebelum DP, pastikan 4 hal ini sudah jelas.",
+            "body": "Paketnya apa, tanggalnya kapan, nominal DP berapa, dan ketentuan pembayarannya bagaimana.",
+            "cta": "Kalau salah satu belum jelas, jangan ragu tanya.",
+            "tags": [
+                "dp",
+                "payment",
+                "trust"
+            ]
+        },
+        {
+            "id": "trust_proof_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "proof",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "activity",
+            "title": "Hari Manasik",
+            "hook": "Hari ini jamaah {{travel}} sedang mengikuti manasik sebelum keberangkatan.",
+            "body": "Buat kami, persiapan jamaah bukan hanya soal koper dan dokumen. Jamaah juga perlu memahami alur perjalanan dan apa yang akan dijalani.",
+            "cta": "Mohon doanya semoga semua proses dimudahkan.",
+            "requires_real_evidence": true,
+            "tags": [
+                "manasik",
+                "proof",
+                "activity"
+            ]
+        },
+        {
+            "id": "trust_proof_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "proof",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "activity",
+            "title": "Hari Keberangkatan",
+            "hook": "Alhamdulillah, hari ini {{jumlah_jamaah}} jamaah memulai perjalanan umroh bersama {{travel}}.",
+            "body": "Semoga perjalanannya lancar, sehat, dan seluruh rangkaian ibadah dimudahkan.",
+            "cta": "Mohon doanya untuk seluruh jamaah.",
+            "requires_real_evidence": true,
+            "tags": [
+                "departure",
+                "proof",
+                "jamaah"
+            ]
+        },
+        {
+            "id": "trust_proof_003",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "proof",
+            "audience": [
+                "trust_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Bukti Bukan Janji",
+            "hook": "Daripada terlalu banyak bilang 'kami berpengalaman', lebih baik tunjukkan proses yang benar-benar dijalankan.",
+            "body": "Manasik, persiapan dokumen, keberangkatan jamaah, pendampingan, dan aktivitas tim adalah bagian yang bisa membuat calon jamaah lebih mengenal bagaimana sebuah travel bekerja.",
+            "cta": "Kepercayaan dibangun dari hal-hal yang terlihat nyata.",
+            "tags": [
+                "proof",
+                "trust",
+                "process"
+            ]
+        },
+        {
+            "id": "trust_testimonial_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "testimonial",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "testimonial",
+            "title": "Cerita Jamaah",
+            "hook": "Salah satu bagian yang paling membuat kami senang adalah ketika jamaah pulang dan mau bercerita tentang pengalamannya.",
+            "body": "\"{{testimoni}}\"",
+            "cta": "Terima kasih sudah mempercayakan perjalanan bersama {{travel}}.",
+            "requires_real_testimonial": true,
+            "tags": [
+                "testimonial",
+                "social_proof"
+            ]
+        },
+        {
+            "id": "trust_testimonial_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "testimonial",
+            "audience": [
+                "first_timer",
+                "trust_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Testimoni yang Lebih Berguna",
+            "hook": "Testimoni yang bagus bukan sekadar 'pelayanannya mantap'.",
+            "body": "Cerita yang lebih membantu calon jamaah justru yang spesifik: bagaimana proses sebelum berangkat, bagaimana pendampingan, apa yang dirasakan, dan bagian mana yang paling membantu.",
+            "cta": "Pengalaman nyata lebih mudah dipahami daripada slogan.",
+            "tags": [
+                "testimonial",
+                "trust",
+                "education"
+            ]
+        },
+        {
+            "id": "trust_testimonial_003",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "testimonial",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "short",
+            "title": "Jangan Edit Berlebihan",
+            "hook": "Kalau jamaah memberi testimoni, saya lebih suka membagikannya apa adanya.",
+            "body": "Biar calon jamaah mendengar pengalaman langsung dari orang yang memang sudah menjalani perjalanan.",
+            "cta": null,
+            "tags": [
+                "testimonial",
+                "authenticity"
+            ]
+        },
+        {
+            "id": "trust_service_001",
+            "goal": "trust",
+            "funnel": "cold",
+            "pillar": "service",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Boleh Banyak Tanya",
+            "hook": "Kalau pertama kali umroh dan banyak pertanyaan, itu wajar.",
+            "body": "Tugas kami bukan cuma mengirim brosur, tapi membantu jamaah memahami prosesnya.",
+            "cta": "Kalau belum paham, tanya saja.",
+            "tags": [
+                "service",
+                "first_timer",
+                "personal_branding"
+            ]
+        },
+        {
+            "id": "trust_service_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "service",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Pelayanan Dimulai Sebelum Berangkat",
+            "hook": "Menurut saya, pelayanan umroh tidak dimulai ketika jamaah sampai di bandara.",
+            "body": "Pelayanan sudah dimulai saat calon jamaah bertanya, memilih paket, menyiapkan dokumen, mengikuti persiapan, sampai akhirnya siap berangkat.",
+            "cta": "Jamaah seharusnya tidak merasa sendirian menjalani prosesnya.",
+            "tags": [
+                "service",
+                "pendampingan",
+                "trust"
+            ]
+        },
+        {
+            "id": "trust_service_003",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "service",
+            "audience": [
+                "lansia",
+                "family"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Setiap Jamaah Berbeda",
+            "hook": "Jamaah muda dan jamaah lansia tentu tidak selalu punya kebutuhan yang sama.",
+            "body": "Makanya sebelum menawarkan paket, kami lebih suka tahu dulu siapa yang akan berangkat dan apa yang perlu diperhatikan.",
+            "cta": "Supaya rekomendasinya lebih masuk akal.",
+            "tags": [
+                "service",
+                "lansia",
+                "identification"
+            ]
+        },
+        {
+            "id": "trust_agent_001",
+            "goal": "trust",
+            "funnel": "cold",
+            "pillar": "personal_agent",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "personal_agent",
+            "title": "Kenalan Dulu",
+            "hook": "Kalau selama ini cuma lihat saya posting paket, kenalan dulu ya 😊",
+            "body": "Saya {{cs_name}}, bagian dari {{travel}}. Saya membantu calon jamaah mulai dari cari pilihan, menjawab pertanyaan, sampai proses pendaftaran.",
+            "cta": "Kalau ada rencana umroh, nggak harus langsung daftar. Ngobrol dulu juga boleh.",
+            "tags": [
+                "personal_branding",
+                "agent",
+                "trust"
+            ]
+        },
+        {
+            "id": "trust_agent_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "personal_agent",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "personal_agent",
+            "title": "Cara Saya Membantu",
+            "hook": "Kalau ada yang tanya, 'Kak, paket terbaik yang mana?' biasanya saya tidak langsung jawab.",
+            "body": "Saya lebih suka tahu dulu kapan mau berangkat, dengan siapa, budgetnya seperti apa, dan apa yang paling dikhawatirkan. Baru setelah itu pilih paket.",
+            "cta": "Karena paket yang bagus belum tentu cocok untuk semua orang.",
+            "tags": [
+                "personal_branding",
+                "consultative_selling",
+                "trust"
+            ]
+        },
+        {
+            "id": "trust_agent_003",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "personal_agent",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Saya Tidak Selalu Menyarankan Paket Termahal",
+            "hook": "Tugas saya bukan membuat semua calon jamaah mengambil paket paling mahal.",
+            "body": "Kalau kebutuhan jamaah sebenarnya cukup dengan pilihan yang lebih sederhana, ya itu yang sebaiknya dibahas. Yang penting paketnya sesuai kebutuhan dan calon jamaah memahami apa yang dipilih.",
+            "cta": "Saya lebih suka jamaah mantap karena paham, bukan karena tertekan.",
+            "tags": [
+                "personal_branding",
+                "trust",
+                "value"
+            ]
+        },
+        {
+            "id": "trust_process_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "process",
+            "audience": [
+                "first_timer",
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "checklist",
+            "title": "Setelah Daftar Apa?",
+            "hook": "Setelah daftar umroh, sebenarnya apa yang terjadi berikutnya?",
+            "body": "Secara umum ada proses administrasi, pembayaran sesuai ketentuan, persiapan dokumen, informasi perjalanan, manasik, lalu persiapan keberangkatan.",
+            "cta": "Detailnya tentu mengikuti paket dan proses travel yang dipilih.",
+            "tags": [
+                "process",
+                "first_timer",
+                "trust"
+            ]
+        },
+        {
+            "id": "trust_process_002",
+            "goal": "trust",
+            "funnel": "hot",
+            "pillar": "process",
+            "audience": [
+                "buyer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Jangan Sampai Bingung Setelah Bayar",
+            "hook": "Setelah jamaah membayar DP, langkah berikutnya harus tetap jelas.",
+            "body": "Jamaah perlu tahu data apa yang disiapkan, pembayaran berikutnya kapan, dan proses berikutnya apa.",
+            "cta": "Proses yang jelas membuat jamaah lebih tenang.",
+            "tags": [
+                "process",
+                "dp",
+                "payment"
+            ]
+        },
+        {
+            "id": "trust_consistency_001",
+            "goal": "trust",
+            "funnel": "cold",
+            "pillar": "consistency",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Tidak Semua Posting Harus Jualan",
+            "hook": "Akun agen umroh nggak harus setiap hari isi brosur dan harga.",
+            "body": "Kadang lebih berguna berbagi informasi, menjawab pertanyaan, menunjukkan proses, dan cerita jamaah.",
+            "cta": "Supaya orang mengenal kita sebelum suatu hari membutuhkan.",
+            "tags": [
+                "consistency",
+                "personal_branding",
+                "trust"
+            ]
+        },
+        {
+            "id": "trust_bts_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "proof",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "behind_the_scenes",
+            "title": "Behind the Scenes Persiapan",
+            "hook": "Sedikit suasana persiapan jamaah hari ini.",
+            "body": "Ada banyak hal kecil yang biasanya tidak terlihat di brosur, tapi justru penting menjelang keberangkatan.",
+            "cta": "Semoga semua proses jamaah dimudahkan.",
+            "requires_real_evidence": true,
+            "tags": [
+                "behind_the_scenes",
+                "proof",
+                "process"
+            ]
+        },
+        {
+            "id": "trust_bts_002",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "proof",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "personal_agent",
+            "title": "Pekerjaan yang Tidak Kelihatan",
+            "hook": "Yang terlihat di media sosial biasanya hari keberangkatan. Yang tidak terlihat justru banyak.",
+            "body": "Ada chat jamaah, pengecekan data, koordinasi, persiapan manasik, pengingat dokumen, dan banyak detail kecil lainnya sebelum hari keberangkatan.",
+            "cta": "Semoga setiap bagian kecil ini membuat perjalanan jamaah lebih rapi.",
+            "tags": [
+                "behind_the_scenes",
+                "service",
+                "personal_branding"
+            ]
+        },
+        {
+            "id": "trust_question_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "transparency",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "question",
+            "title": "Pertanyaan Calon Jamaah",
+            "hook": "Kalau Anda sedang memilih travel umroh, apa yang paling ingin Anda pastikan dulu?",
+            "body": "A. Legalitas\nB. Harga\nC. Hotel\nD. Pendampingan\nE. Pengalaman jamaah",
+            "cta": "Boleh pilih satu.",
+            "tags": [
+                "engagement",
+                "trust",
+                "need"
+            ]
+        },
+        {
+            "id": "trust_myth_001",
+            "goal": "trust",
+            "funnel": "cold",
+            "pillar": "legalitas",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "reels"
+            ],
+            "format": "hook",
+            "title": "Follower Banyak",
+            "hook": "Follower banyak bukan satu-satunya ukuran apakah travel cocok dipercaya.",
+            "body": "Tetap lihat informasi yang bisa diverifikasi, prosesnya, dan bagaimana mereka menjelaskan penawaran.",
+            "cta": null,
+            "tags": [
+                "trust",
+                "verification",
+                "social_media"
+            ]
+        },
+        {
+            "id": "trust_myth_002",
+            "goal": "trust",
+            "funnel": "cold",
+            "pillar": "testimonial",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "reels"
+            ],
+            "format": "hook",
+            "title": "Banyak Testimoni",
+            "hook": "Banyak testimoni memang bagus. Tapi calon jamaah tetap perlu melihat hal lain.",
+            "body": "Cek juga identitas travel, ketentuan paket, proses pembayaran, dan informasi yang bisa diverifikasi.",
+            "cta": null,
+            "tags": [
+                "testimonial",
+                "trust",
+                "verification"
+            ]
+        },
+        {
+            "id": "trust_story_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "personal_agent",
+            "audience": [
+                "trust_sensitive",
+                "first_timer"
+            ],
+            "channel": [
+                "instagram",
+                "facebook",
+                "whatsapp_status"
+            ],
+            "format": "story",
+            "title": "Calon Jamaah Takut Salah Travel",
+            "hook": "Pernah ada calon jamaah yang dari awal bilang, 'Saya takut salah pilih travel.'",
+            "body": "Saya nggak langsung menyuruh beliau daftar. Kami ngobrol dulu soal apa yang dikhawatirkan, informasi apa yang ingin dicek, dan bagaimana paketnya. Menurut saya, rasa aman memang harus dibangun sebelum bicara soal DP.",
+            "cta": "Kalau masih ragu, cek dulu sampai cukup nyaman mengambil keputusan.",
+            "tags": [
+                "story",
+                "trust",
+                "personal_branding"
+            ]
+        },
+        {
+            "id": "trust_no_pressure_001",
+            "goal": "trust",
+            "funnel": "warm",
+            "pillar": "service",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Belum Siap Nggak Apa-apa",
+            "hook": "Tanya-tanya umroh tidak berarti harus langsung daftar.",
+            "body": "Kadang calon jamaah memang baru ingin memahami harga, jadwal, atau persiapannya dulu.",
+            "cta": "Kalau belum siap, konsultasi dulu juga nggak masalah.",
+            "tags": [
+                "no_pressure",
+                "service",
+                "trust"
+            ]
+        }
+    ],
+    "cta_bank": [
+        {
+            "id": "cta_trust_01",
+            "type": "verification",
+            "text": "Kalau ada informasi yang ingin dicek, silakan tanya."
+        },
+        {
+            "id": "cta_trust_02",
+            "type": "soft",
+            "text": "Nggak harus langsung daftar. Kenalan dan konsultasi dulu juga boleh."
+        },
+        {
+            "id": "cta_trust_03",
+            "type": "consultation",
+            "text": "Kalau ada bagian paket yang belum jelas, saya bantu jelaskan."
+        },
+        {
+            "id": "cta_trust_04",
+            "type": "legalitas",
+            "text": "Kalau ingin cek informasi travel lebih dulu, saya bantu arahkan."
+        },
+        {
+            "id": "cta_trust_05",
+            "type": "question",
+            "text": "Apa yang paling ingin Anda pastikan sebelum memilih travel?"
+        },
+        {
+            "id": "cta_trust_06",
+            "type": "testimonial",
+            "text": "Kalau ingin lihat pengalaman jamaah sebelumnya, boleh tanya."
+        },
+        {
+            "id": "cta_trust_07",
+            "type": "process",
+            "text": "Kalau ingin tahu proses dari daftar sampai berangkat, saya bantu jelaskan langkahnya."
+        }
+    ],
+    "content_formulas": [
+        {
+            "id": "trust_formula_01",
+            "nama": "Claim - Proof - Invitation",
+            "structure": [
+                "Sampaikan nilai atau prinsip",
+                "Tunjukkan bukti",
+                "Persilakan calon jamaah mengecek"
+            ],
+            "contoh": "Kami mengutamakan transparansi → tunjukkan detail paket dan proses → persilakan prospek bertanya."
+        },
+        {
+            "id": "trust_formula_02",
+            "nama": "Concern - Evidence - Reassurance",
+            "structure": [
+                "Angkat kekhawatiran calon jamaah",
+                "Berikan bukti atau informasi yang relevan",
+                "Berikan rasa aman tanpa menjamin berlebihan"
+            ]
+        },
+        {
+            "id": "trust_formula_03",
+            "nama": "Behind the Scenes",
+            "structure": [
+                "Tunjukkan aktivitas",
+                "Jelaskan kenapa aktivitas itu penting",
+                "Hubungkan dengan pelayanan jamaah"
+            ]
+        },
+        {
+            "id": "trust_formula_04",
+            "nama": "Testimonial - Context - Meaning",
+            "structure": [
+                "Gunakan testimoni asli",
+                "Berikan konteks secukupnya",
+                "Tunjukkan apa yang bisa dipelajari dari pengalaman jamaah"
+            ]
+        },
+        {
+            "id": "trust_formula_05",
+            "nama": "Personal Principle - Example - Invitation",
+            "structure": [
+                "Sampaikan prinsip agen",
+                "Berikan contoh bagaimana prinsip itu diterapkan",
+                "Ajak audiens bertanya"
+            ]
+        },
+        {
+            "id": "trust_formula_06",
+            "nama": "Question - Transparency - Proof",
+            "structure": [
+                "Gunakan pertanyaan yang mungkin dipikirkan calon jamaah",
+                "Jawab secara terbuka",
+                "Tunjukkan informasi pendukung jika tersedia"
+            ]
+        }
+    ],
+    "routing_rules": [
+        {
+            "condition": "Audiens belum mengenal agen atau travel.",
+            "recommended_pillars": [
+                "personal_agent",
+                "legalitas",
+                "consistency"
+            ]
+        },
+        {
+            "condition": "Audiens takut travel bermasalah.",
+            "recommended_pillars": [
+                "legalitas",
+                "transparency",
+                "proof",
+                "process"
+            ]
+        },
+        {
+            "condition": "Audiens sudah melihat paket tetapi belum percaya.",
+            "recommended_pillars": [
+                "proof",
+                "testimonial",
+                "transparency"
+            ]
+        },
+        {
+            "condition": "Audiens first timer.",
+            "recommended_pillars": [
+                "service",
+                "process",
+                "personal_agent"
+            ]
+        },
+        {
+            "condition": "Audiens sudah dekat dengan keputusan.",
+            "recommended_pillars": [
+                "transparency",
+                "process",
+                "legalitas"
+            ]
+        },
+        {
+            "condition": "Agen ingin membangun personal branding.",
+            "recommended_pillars": [
+                "personal_agent",
+                "service",
+                "proof",
+                "consistency"
+            ]
+        },
+        {
+            "condition": "Ada aktivitas nyata jamaah hari ini.",
+            "recommended_pillars": [
+                "proof",
+                "process"
+            ]
+        },
+        {
+            "condition": "Ada testimoni asli yang boleh dibagikan.",
+            "recommended_pillars": [
+                "testimonial"
+            ]
+        }
+    ],
+    "proof_types": [
+        {
+            "id": "legal_document",
+            "nama": "Informasi Legalitas",
+            "rules": [
+                "Gunakan data yang benar.",
+                "Jangan mengedit sehingga mengubah makna.",
+                "Berikan cara verifikasi jika tersedia."
+            ]
+        },
+        {
+            "id": "departure_documentation",
+            "nama": "Dokumentasi Keberangkatan",
+            "rules": [
+                "Gunakan dokumentasi asli.",
+                "Pastikan informasi tanggal atau jumlah jamaah akurat."
+            ]
+        },
+        {
+            "id": "manasik",
+            "nama": "Dokumentasi Manasik",
+            "rules": [
+                "Gunakan aktivitas nyata.",
+                "Jelaskan konteks tanpa melebih-lebihkan."
+            ]
+        },
+        {
+            "id": "testimonial",
+            "nama": "Testimoni Jamaah",
+            "rules": [
+                "Gunakan testimoni asli.",
+                "Minta izin bila identitas jamaah ditampilkan.",
+                "Jangan membuat atau mengedit isi sehingga maknanya berubah."
+            ]
+        },
+        {
+            "id": "office",
+            "nama": "Kantor atau Lokasi",
+            "rules": [
+                "Gunakan lokasi yang benar.",
+                "Jangan memberi kesan memiliki kantor jika bukan kantor resmi."
+            ]
+        },
+        {
+            "id": "team",
+            "nama": "Tim dan Pendamping",
+            "rules": [
+                "Gunakan nama dan peran yang benar.",
+                "Hanya klaim pengalaman yang dapat dipertanggungjawabkan."
+            ]
+        },
+        {
+            "id": "process",
+            "nama": "Proses Pelayanan",
+            "rules": [
+                "Tunjukkan alur yang memang dijalankan.",
+                "Jangan menampilkan data pribadi jamaah tanpa izin."
+            ]
+        }
+    ],
+    "channel_rules": [
+        {
+            "channel": "whatsapp_status",
+            "recommendation": "Gunakan aktivitas nyata, behind the scenes, testimoni singkat, atau prinsip pelayanan."
+        },
+        {
+            "channel": "instagram_story",
+            "recommendation": "Gunakan rangkaian proses, Q&A, dokumentasi, dan bukti aktivitas."
+        },
+        {
+            "channel": "instagram",
+            "recommendation": "Gabungkan cerita, bukti, dan penjelasan singkat."
+        },
+        {
+            "channel": "reels",
+            "recommendation": "Gunakan behind the scenes, proses kerja, atau jawaban dari kekhawatiran calon jamaah."
+        },
+        {
+            "channel": "facebook",
+            "recommendation": "Gunakan cerita pengalaman dan penjelasan yang sedikit lebih panjang."
+        }
+    ],
+    "do": [
+        "Tunjukkan bukti nyata.",
+        "Perlihatkan proses pelayanan.",
+        "Kenalkan agen sebagai orang yang membantu, bukan hanya menjual.",
+        "Berikan ruang bagi calon jamaah untuk melakukan verifikasi.",
+        "Gunakan testimoni autentik.",
+        "Bagikan aktivitas travel secara konsisten.",
+        "Jelaskan kekurangan atau batasan penawaran jika memang relevan.",
+        "Hormati privasi jamaah."
+    ],
+    "dont": [
+        "Mengatakan nomor satu tanpa bukti.",
+        "Mengatakan paling terpercaya tanpa dasar.",
+        "Membuat testimoni palsu.",
+        "Menggunakan foto jamaah tanpa izin jika konteksnya membutuhkan izin.",
+        "Memalsukan dokumentasi keberangkatan.",
+        "Membuat jumlah jamaah terlihat lebih banyak dari kondisi sebenarnya.",
+        "Menjelekkan travel lain.",
+        "Menjanjikan tidak mungkin gagal berangkat.",
+        "Menjanjikan visa pasti keluar.",
+        "Menjanjikan hasil ibadah tertentu.",
+        "Menggunakan legalitas palsu atau data yang sudah tidak berlaku.",
+        "Menutupi biaya atau ketentuan penting."
+    ],
+    "success_signals": [
+        "Audiens mulai bertanya tentang travel.",
+        "Audiens meminta legalitas atau informasi verifikasi.",
+        "Audiens meminta testimoni.",
+        "Audiens menanyakan pengalaman keberangkatan sebelumnya.",
+        "Audiens mulai nyaman menceritakan rencana umrohnya.",
+        "Audiens mengatakan mendapat rekomendasi dari jamaah lain.",
+        "Audiens berpindah dari ragu menjadi mau melihat paket.",
+        "Audiens masuk ke WhatsApp untuk konsultasi."
+    ],
+    "next_goal": [
+        "desire",
+        "offer",
+        "activation"
+    ],
+    "conversion_stage_after_inquiry": "greeting",
+    "greeting_ref": "../scripts/greeting.json"
+}

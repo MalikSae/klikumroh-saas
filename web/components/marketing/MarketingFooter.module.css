@@ -1,0 +1,130 @@
+.footer {
+  background-color: var(--km-deep);
+  padding: 66px 96px 36px;
+  border-top: 1px solid var(--km-workflow-card-border);
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.footerTop {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  gap: 64px;
+}
+
+.brandColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  max-width: 380px;
+}
+
+.footerLogo {
+  height: 42px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  align-self: flex-start;
+}
+
+.description {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--km-line);
+}
+
+.linksGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.linkCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.colTitle {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--km-paper);
+}
+
+.colLinks {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.colLinks a {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 14px;
+  color: var(--km-line);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.colLinks a:hover {
+  color: var(--km-orange);
+}
+
+.footerBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 28px;
+  border-top: 1px solid var(--km-workflow-card-border);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.copyright {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 13px;
+  color: var(--km-muted);
+}
+
+.legal {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 13px;
+  color: var(--km-muted);
+}
+
+@media (max-width: 1024px) {
+  .footer {
+    padding: 56px 32px 32px;
+  }
+
+  .footerTop {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    padding: 48px 20px 24px;
+  }
+
+  .linksGrid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

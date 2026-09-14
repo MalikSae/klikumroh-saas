@@ -1,0 +1,20 @@
+CREATE TABLE prospects (
+    id              BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tenant_id       BIGINT UNSIGNED NOT NULL,
+    package_id      BIGINT UNSIGNED NULL,
+    agent_id        BIGINT UNSIGNED NULL,
+    name            VARCHAR(255) NOT NULL,
+    phone           VARCHAR(20) NOT NULL,
+    email           VARCHAR(255) NULL,
+    source_channel  ENUM('organik','paid','agen') NOT NULL,
+    status          ENUM('baru','dihubungi','tertarik','closing','tidak_lanjut') NOT NULL DEFAULT 'baru',
+    lost_reason     VARCHAR(255) NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    FOREIGN KEY (package_id) REFERENCES packages(id),
+    FOREIGN KEY (agent_id) REFERENCES agents(id),
+    INDEX idx_prospects_tenant (tenant_id),
+    INDEX idx_prospects_tenant_status (tenant_id, status),
+    INDEX idx_prospects_agent (agent_id)
+);

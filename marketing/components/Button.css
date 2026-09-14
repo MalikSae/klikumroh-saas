@@ -1,0 +1,65 @@
+.mkt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--mkt-font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.2;
+  padding: 12px 20px;
+  border-radius: var(--mkt-radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.mkt-btn--primary {
+  background-color: var(--mkt-accent);
+  color: var(--mkt-card-bg);
+  box-shadow: var(--mkt-shadow-sm);
+}
+
+.mkt-btn--primary:hover {
+  background-color: var(--mkt-accent-hover);
+}
+
+.mkt-btn--secondary {
+  background-color: var(--mkt-card-bg);
+  color: var(--mkt-text-primary);
+  border-color: var(--mkt-border-strong);
+}
+
+.mkt-btn--secondary:hover {
+  background-color: var(--mkt-page-bg-alt);
+  border-color: var(--mkt-text-muted);
+}
+
+.mkt-btn--outline-light {
+  background-color: transparent;
+  color: var(--mkt-card-bg);
+  border-color: var(--mkt-border-dark);
+}
+
+.mkt-btn--outline-light:hover {
+  background-color: var(--mkt-btn-outline-hover-bg);
+  border-color: var(--mkt-btn-outline-hover-border);
+}
+
+.mkt-btn--sm {
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: var(--mkt-radius-sm);
+}
+
+.mkt-btn--lg {
+  padding: 14px 26px;
+  font-size: 16px;
+  border-radius: var(--mkt-radius-lg);
+}
+
+.mkt-btn--block {
+  width: 100%;
+}

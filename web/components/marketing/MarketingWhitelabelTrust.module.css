@@ -1,0 +1,192 @@
+.section {
+  background-color: var(--km-paper);
+  padding: 96px 110px;
+  border-top: 1px solid var(--km-line);
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 82px;
+  align-items: center;
+}
+
+.whitelabelCopy {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--km-green-2);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.headline {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--km-ink);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.body {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--km-muted);
+  margin-bottom: 28px;
+}
+
+.trustList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trustIconBox {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: var(--km-mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trustIcon {
+  color: var(--km-green-2);
+}
+
+.trustText {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--km-ink);
+}
+
+/* Right Column */
+.previewColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.previewCaption {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--km-muted);
+  text-transform: uppercase;
+}
+
+.tenantList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tenantCard {
+  background-color: var(--km-bg);
+  border: 1px solid var(--km-line);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tenantCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--km-green-2);
+  box-shadow: var(--km-card-shadow);
+}
+
+.tenantBrand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tenantMark {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tenantMarkIcon {
+  color: var(--km-green-2);
+}
+
+.tenantInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tenantName {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--km-ink);
+}
+
+.tenantDomain {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 13px;
+  color: var(--km-muted);
+}
+
+.tenantArrow {
+  color: var(--km-muted);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.tenantCard:hover .tenantArrow {
+  color: var(--km-green-2);
+  transform: translate(2px, -2px);
+}
+
+@media (max-width: 1024px) {
+  .section {
+    padding: 72px 32px;
+  }
+
+  .container {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 20px;
+  }
+
+  .headline {
+    font-size: 26px;
+  }
+}

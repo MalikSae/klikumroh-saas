@@ -1,0 +1,123 @@
+.tw-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tw-catalog__header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.tw-catalog__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--tw-brand-primary);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.tw-catalog__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tw-text-primary);
+  margin: 0;
+  font-family: var(--tw-font-heading);
+}
+
+.tw-catalog__subtitle {
+  font-size: 13px;
+  color: var(--tw-text-primary);
+  opacity: 0.75;
+  margin-top: 4px;
+}
+
+.tw-catalog__empty {
+  background-color: var(--tw-background);
+  border-radius: var(--radius-lg);
+  padding: 36px 20px;
+  text-align: center;
+  box-shadow: var(--tw-card-shadow);
+}
+
+.tw-catalog__empty-text {
+  color: var(--tw-text-primary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.tw-catalog__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.tw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: var(--tw-modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.tw-modal-card {
+  background-color: var(--tw-background);
+  border-radius: var(--radius-lg);
+  max-width: 440px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: var(--tw-modal-shadow);
+  position: relative;
+}
+
+.tw-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tw-modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--tw-text-primary);
+  font-family: var(--tw-font-heading);
+}
+
+.tw-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--tw-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.tw-modal-selected-pkg {
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 6%, #F8F9FA);
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tw-modal-error {
+  padding: 8px 12px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-sm);
+  color: #991B1B;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

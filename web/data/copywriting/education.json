@@ -1,0 +1,985 @@
+{
+    "id": "education_copywriting_bank",
+    "nama": "Bank Copywriting Education",
+    "goal": "education",
+    "funnel": [
+        "cold",
+        "warm"
+    ],
+    "deskripsi": "Kumpulan copywriting edukasi untuk membantu calon jamaah memahami paket umroh, proses persiapan, cara membandingkan pilihan, dan hal-hal yang perlu diperhatikan sebelum mengambil keputusan.",
+    "tujuan": "Meningkatkan pemahaman calon jamaah, mengurangi kebingungan, membangun kepercayaan, dan membantu audiens bergerak lebih dekat menuju konsultasi atau penawaran.",
+    "guidelines": [
+        "Ajarkan satu hal dalam satu konten.",
+        "Gunakan bahasa sederhana dan hindari istilah teknis yang tidak perlu.",
+        "Utamakan informasi yang membantu calon jamaah mengambil keputusan.",
+        "Jangan membuat edukasi terasa seperti iklan terselubung.",
+        "Jika menyebut aturan, legalitas, kebijakan, harga, atau persyaratan, pastikan datanya aktual.",
+        "Jangan menjanjikan hasil yang tidak bisa dipastikan.",
+        "Gunakan contoh yang dekat dengan situasi calon jamaah.",
+        "Akhiri dengan CTA ringan jika memang relevan.",
+        "Untuk first timer, pecah informasi menjadi langkah kecil.",
+        "Jika topik menyangkut kesehatan, hindari memberikan diagnosis atau saran medis."
+    ],
+    "placeholders": [
+        "{{nama}}",
+        "{{travel}}",
+        "{{paket}}",
+        "{{harga}}",
+        "{{bulan}}",
+        "{{tanggal}}",
+        "{{kota}}",
+        "{{hotel}}",
+        "{{jarak_hotel}}",
+        "{{maskapai}}",
+        "{{durasi}}",
+        "{{dp}}",
+        "{{fasilitas_utama}}"
+    ],
+    "topics": [
+        {
+            "id": "choose_package",
+            "nama": "Memilih Paket"
+        },
+        {
+            "id": "compare_package",
+            "nama": "Membandingkan Paket"
+        },
+        {
+            "id": "price_value",
+            "nama": "Harga dan Value"
+        },
+        {
+            "id": "hotel",
+            "nama": "Hotel"
+        },
+        {
+            "id": "flight",
+            "nama": "Penerbangan"
+        },
+        {
+            "id": "schedule",
+            "nama": "Jadwal"
+        },
+        {
+            "id": "travel_trust",
+            "nama": "Memilih Travel"
+        },
+        {
+            "id": "documents",
+            "nama": "Dokumen"
+        },
+        {
+            "id": "payment",
+            "nama": "Pembayaran"
+        },
+        {
+            "id": "first_timer",
+            "nama": "Umroh Pertama"
+        },
+        {
+            "id": "elderly",
+            "nama": "Jamaah Lansia"
+        },
+        {
+            "id": "family",
+            "nama": "Umroh Keluarga"
+        },
+        {
+            "id": "preparation",
+            "nama": "Persiapan"
+        },
+        {
+            "id": "terms",
+            "nama": "Ketentuan Paket"
+        }
+    ],
+    "copies": [
+        {
+            "id": "edu_package_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "choose_package",
+            "audience": [
+                "general",
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Mulai dari Kebutuhan",
+            "hook": "Sebelum pilih paket umroh, jangan mulai dari brosurnya.",
+            "body": "Mulai dari 3 hal dulu: mau berangkat kapan, dengan siapa, dan apa yang paling penting buat Anda selama perjalanan.",
+            "cta": "Setelah itu pilihan paket biasanya jauh lebih mudah dipersempit.",
+            "tags": [
+                "need",
+                "package",
+                "first_timer"
+            ]
+        },
+        {
+            "id": "edu_package_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "choose_package",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Paket yang Cocok",
+            "hook": "Paket umroh yang bagus belum tentu paket yang paling cocok untuk Anda.",
+            "body": "Ada jamaah yang lebih membutuhkan hotel dekat. Ada yang prioritasnya budget. Ada yang hanya bisa berangkat pada tanggal tertentu. Karena itu pilihan sebaiknya dimulai dari kebutuhan, bukan dari mana paket yang terlihat paling mewah.",
+            "cta": "Cari yang paling sesuai, bukan sekadar yang paling ramai dipromosikan.",
+            "tags": [
+                "package",
+                "need",
+                "value"
+            ]
+        },
+        {
+            "id": "edu_compare_001",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "compare_package",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Bandingkan dengan Setara",
+            "hook": "Membandingkan paket umroh jangan cuma lihat harga.",
+            "body": "Cek juga tanggal, maskapai, rute penerbangan, hotel, durasi, tipe kamar, dan layanan yang didapat.",
+            "cta": "Harga baru terasa masuk akal kalau yang dibandingkan memang setara.",
+            "tags": [
+                "comparison",
+                "price",
+                "value"
+            ]
+        },
+        {
+            "id": "edu_compare_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "compare_package",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "reels"
+            ],
+            "format": "hook",
+            "title": "Harga Sama Belum Tentu Sama",
+            "hook": "Dua paket sama-sama Rp{{harga}} belum tentu isinya sama.",
+            "body": "Lihat detailnya sebelum menyimpulkan mana yang lebih murah.",
+            "cta": null,
+            "tags": [
+                "comparison",
+                "price"
+            ]
+        },
+        {
+            "id": "edu_compare_003",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "compare_package",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram_story",
+                "whatsapp_status"
+            ],
+            "format": "checklist",
+            "title": "Checklist Bandingkan Paket",
+            "hook": "Kalau sedang membandingkan paket, cek 7 hal ini.",
+            "body": "1. Tanggal keberangkatan\n2. Kota keberangkatan\n3. Maskapai dan rute\n4. Hotel\n5. Durasi\n6. Tipe kamar\n7. Apa saja yang termasuk dan tidak termasuk",
+            "cta": "Simpan supaya nggak cuma membandingkan dari harga.",
+            "tags": [
+                "checklist",
+                "comparison"
+            ]
+        },
+        {
+            "id": "edu_price_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "price_value",
+            "audience": [
+                "budget_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Kenapa Harga Beda",
+            "hook": "Kenapa harga paket umroh bisa berbeda cukup jauh?",
+            "body": "Biasanya dipengaruhi kombinasi hotel, maskapai, rute, durasi, jadwal, tipe kamar, dan layanan.",
+            "cta": "Jadi jangan berhenti di angka terakhirnya saja.",
+            "tags": [
+                "budget",
+                "price",
+                "education"
+            ]
+        },
+        {
+            "id": "edu_price_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "price_value",
+            "audience": [
+                "budget_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Murah dan Value",
+            "hook": "Harga murah itu bagus kalau memang sesuai kebutuhan.",
+            "body": "Yang perlu hati-hati adalah memilih hanya karena selisih harga, lalu baru sadar ternyata jadwal, hotel, atau fasilitasnya kurang sesuai. Hemat sebaiknya tetap mempertimbangkan pengalaman perjalanan secara keseluruhan.",
+            "cta": "Tentukan dulu bagian mana yang boleh dikompromikan dan mana yang tidak.",
+            "tags": [
+                "budget",
+                "value"
+            ]
+        },
+        {
+            "id": "edu_hotel_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "hotel",
+            "audience": [
+                "general",
+                "lansia"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Bintang Hotel Bukan Segalanya",
+            "hook": "Saat pilih hotel umroh, jangan hanya tanya bintangnya.",
+            "body": "Lokasi, akses, dan kebutuhan jamaah juga penting. Apalagi kalau berangkat bersama orang tua.",
+            "cta": "Tanyakan detail hotelnya sebelum memutuskan.",
+            "tags": [
+                "hotel",
+                "lansia",
+                "comfort"
+            ]
+        },
+        {
+            "id": "edu_hotel_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "hotel",
+            "audience": [
+                "comfort_seeker",
+                "lansia"
+            ],
+            "channel": [
+                "instagram",
+                "reels"
+            ],
+            "format": "medium",
+            "title": "Kenapa Jarak Hotel Penting",
+            "hook": "Jarak hotel bukan sekadar angka di brosur.",
+            "body": "Untuk jamaah yang mengutamakan kenyamanan, membawa orang tua, atau memiliki mobilitas terbatas, lokasi hotel bisa menjadi salah satu pertimbangan besar selama perjalanan.",
+            "cta": "Jadi kalau hotel penting buat Anda, tanyakan lokasi dan aksesnya secara jelas.",
+            "tags": [
+                "hotel_dekat",
+                "comfort",
+                "lansia"
+            ]
+        },
+        {
+            "id": "edu_flight_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "flight",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Jangan Cuma Lihat Nama Maskapai",
+            "hook": "Saat lihat paket umroh, jangan cuma cek nama maskapainya.",
+            "body": "Lihat juga rutenya, apakah transit atau langsung, serta jadwal penerbangannya.",
+            "cta": "Detail kecil seperti ini bisa memengaruhi kenyamanan perjalanan.",
+            "tags": [
+                "airline",
+                "route",
+                "comfort"
+            ]
+        },
+        {
+            "id": "edu_flight_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "flight",
+            "audience": [
+                "general",
+                "lansia"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Transit atau Direct",
+            "hook": "Transit atau penerbangan langsung, mana yang lebih baik?",
+            "body": "Tidak ada jawaban yang sama untuk semua orang. Pertimbangkan durasi perjalanan, kondisi jamaah, budget, serta jadwal penerbangan. Untuk sebagian jamaah, waktu perjalanan menjadi faktor yang sangat penting.",
+            "cta": "Pilih berdasarkan kebutuhan rombongan.",
+            "tags": [
+                "airline",
+                "transit",
+                "direct",
+                "comfort"
+            ]
+        },
+        {
+            "id": "edu_schedule_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "schedule",
+            "audience": [
+                "employee",
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Mulai dari Jadwal",
+            "hook": "Kalau cuti Anda terbatas, cari tanggal dulu baru cari paket.",
+            "body": "Percuma paketnya cocok kalau waktu keberangkatannya tidak mungkin diambil.",
+            "cta": "Persempit periode lebih dulu.",
+            "tags": [
+                "schedule",
+                "cuti"
+            ]
+        },
+        {
+            "id": "edu_schedule_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "schedule",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Jadwal Keluarga",
+            "hook": "Umroh sekeluarga biasanya paling sulit di bagian menyamakan waktu.",
+            "body": "Ada cuti kerja, sekolah anak, kondisi orang tua, dan agenda keluarga. Karena itu semakin banyak yang ikut, semakin baik kalau target waktu dibicarakan lebih awal.",
+            "cta": "Setelah periodenya ketemu, baru pilih paket.",
+            "tags": [
+                "family",
+                "schedule"
+            ]
+        },
+        {
+            "id": "edu_trust_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "travel_trust",
+            "audience": [
+                "general",
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "checklist",
+            "title": "Sebelum Pilih Travel",
+            "hook": "Sebelum mendaftar umroh, jangan terburu-buru transfer.",
+            "body": "Kenali travelnya, cek informasi yang bisa diverifikasi, pahami paket, tanyakan proses pembayaran, dan baca ketentuannya.",
+            "cta": "Lebih baik banyak tanya di awal daripada bingung setelah daftar.",
+            "tags": [
+                "trust",
+                "verification",
+                "legalitas"
+            ]
+        },
+        {
+            "id": "edu_trust_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "travel_trust",
+            "audience": [
+                "trust_sensitive"
+            ],
+            "channel": [
+                "instagram",
+                "reels"
+            ],
+            "format": "hook",
+            "title": "Terpercaya Bukan Sekadar Kata",
+            "hook": "Kalau sebuah travel bilang 'terpercaya', pertanyaannya: apa yang bisa calon jamaah cek?",
+            "body": "Kepercayaan lebih kuat kalau didukung informasi yang jelas dan bisa diverifikasi.",
+            "cta": null,
+            "tags": [
+                "trust",
+                "verification"
+            ]
+        },
+        {
+            "id": "edu_docs_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "documents",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Belum Punya Paspor",
+            "hook": "Belum punya paspor bukan berarti belum boleh mulai cari info umroh.",
+            "body": "Anda tetap bisa mulai menentukan target keberangkatan dan memahami persiapan yang dibutuhkan.",
+            "cta": "Yang penting jangan menunda dokumen sampai terlalu dekat dengan jadwal.",
+            "tags": [
+                "passport",
+                "document",
+                "first_timer"
+            ]
+        },
+        {
+            "id": "edu_docs_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "documents",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram_story",
+                "whatsapp_status"
+            ],
+            "format": "checklist",
+            "title": "Cek Dokumen Lebih Awal",
+            "hook": "Sudah punya target umroh? Jangan lupa cek dokumen dari awal.",
+            "body": "Cek status paspor dan dokumen lain yang memang diperlukan sesuai proses keberangkatan.",
+            "cta": "Tanyakan kebutuhan dokumen berdasarkan jadwal yang Anda pilih.",
+            "tags": [
+                "document",
+                "preparation"
+            ]
+        },
+        {
+            "id": "edu_payment_001",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "payment",
+            "audience": [
+                "general",
+                "budget_sensitive"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Jangan Hanya Tanya DP",
+            "hook": "Saat tanya pembayaran paket umroh, jangan cuma tanya DP berapa.",
+            "body": "Tanyakan juga total harga, tahapan pembayaran, batas waktunya, serta ketentuan yang berlaku.",
+            "cta": "Biar sejak awal tidak ada angka yang membuat kaget.",
+            "tags": [
+                "payment",
+                "dp",
+                "budget"
+            ]
+        },
+        {
+            "id": "edu_payment_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "payment",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Pahami Sebelum Bayar",
+            "hook": "Sebelum melakukan pembayaran, pastikan Anda tahu pembayaran tersebut untuk apa.",
+            "body": "Pahami paket yang dipilih, nominal yang dibayarkan, jadwal keberangkatan, tahapan pembayaran berikutnya, dan ketentuan yang berlaku.",
+            "cta": "Kalau ada yang belum jelas, tanyakan sebelum transfer.",
+            "tags": [
+                "payment",
+                "trust"
+            ]
+        },
+        {
+            "id": "edu_firsttimer_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "first_timer",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "checklist",
+            "title": "Mulai dari Empat Hal",
+            "hook": "Pertama kali merencanakan umroh? Mulai dari 4 hal ini.",
+            "body": "1. Target waktu\n2. Siapa yang ikut\n3. Kisaran budget\n4. Kebutuhan utama selama perjalanan",
+            "cta": "Setelah empat hal ini jelas, baru cari paket.",
+            "tags": [
+                "first_timer",
+                "planning"
+            ]
+        },
+        {
+            "id": "edu_firsttimer_002",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "first_timer",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Tidak Harus Tahu Semuanya",
+            "hook": "Pertama kali umroh, Anda tidak harus langsung paham semuanya.",
+            "body": "Mulai dari kebutuhan yang paling dekat dulu. Tentukan kira-kira kapan ingin berangkat, siapa yang ikut, dan apa yang membuat Anda nyaman. Informasi lain bisa dipelajari bertahap.",
+            "cta": "Yang penting mulai dari pertanyaan yang tepat.",
+            "tags": [
+                "first_timer",
+                "education"
+            ]
+        },
+        {
+            "id": "edu_elderly_001",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "elderly",
+            "audience": [
+                "lansia",
+                "anak_yang_membawa_orang_tua"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "checklist",
+            "title": "Bawa Orang Tua",
+            "hook": "Kalau ingin membawa orang tua umroh, ada beberapa hal yang sebaiknya ditanyakan sebelum pilih paket.",
+            "body": "Cek jarak dan akses hotel, ritme perjalanan, penerbangan, pendampingan yang tersedia, serta kebutuhan khusus beliau.",
+            "cta": "Nyaman untuk kita belum tentu nyaman untuk orang tua.",
+            "tags": [
+                "orang_tua",
+                "lansia",
+                "comfort"
+            ]
+        },
+        {
+            "id": "edu_elderly_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "elderly",
+            "audience": [
+                "lansia"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Harga Bukan Satu-satunya",
+            "hook": "Saat memilih paket untuk orang tua, harga bukan satu-satunya pertimbangan.",
+            "body": "Kenyamanan penerbangan, jarak hotel, kebutuhan mobilitas, dan pendampingan bisa menjadi faktor yang lebih penting. Kalau ada kondisi kesehatan tertentu, kesiapan medis sebaiknya dikonsultasikan dengan tenaga kesehatan.",
+            "cta": "Pilih paket berdasarkan kondisi jamaah yang benar-benar berangkat.",
+            "tags": [
+                "lansia",
+                "orang_tua",
+                "comfort",
+                "health"
+            ]
+        },
+        {
+            "id": "edu_family_001",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "family",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Jangan Hitung Orang Saja",
+            "hook": "Umroh keluarga bukan cuma soal berapa orang yang ikut.",
+            "body": "Perhatikan juga usia, kebutuhan kamar, jadwal, kondisi orang tua, dan kenyamanan anak jika ikut.",
+            "cta": "Satu rombongan bisa punya kebutuhan yang berbeda-beda.",
+            "tags": [
+                "family",
+                "pax",
+                "comfort"
+            ]
+        },
+        {
+            "id": "edu_preparation_001",
+            "goal": "education",
+            "funnel": "cold",
+            "topic": "preparation",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Persiapan Tidak Dimulai di Bandara",
+            "hook": "Perjalanan umroh sebenarnya dimulai jauh sebelum hari keberangkatan.",
+            "body": "Ada dokumen, perlengkapan, kesiapan fisik, manasik, dan hal-hal pribadi yang perlu disiapkan.",
+            "cta": "Semakin rapi persiapannya, semakin sedikit yang membuat panik mendekati hari H.",
+            "tags": [
+                "preparation",
+                "first_timer"
+            ]
+        },
+        {
+            "id": "edu_preparation_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "preparation",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram_story",
+                "whatsapp_status"
+            ],
+            "format": "checklist",
+            "title": "Sebelum Hari Keberangkatan",
+            "hook": "Jangan tunggu H-1 untuk memastikan semuanya.",
+            "body": "Cek dokumen, jadwal berkumpul, perlengkapan, obat pribadi bila diperlukan, kontak pendamping, dan informasi perjalanan dari travel.",
+            "cta": "Buat checklist pribadi supaya lebih tenang.",
+            "tags": [
+                "preparation",
+                "checklist"
+            ]
+        },
+        {
+            "id": "edu_terms_001",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "terms",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Baca yang Termasuk dan Tidak",
+            "hook": "Sebelum bilang paket A lebih murah, cek dulu apa yang termasuk di dalam harga.",
+            "body": "Kadang dua harga terlihat berbeda karena komponen paketnya memang tidak sama.",
+            "cta": "Tanyakan juga biaya yang belum termasuk.",
+            "tags": [
+                "terms",
+                "price",
+                "comparison"
+            ]
+        },
+        {
+            "id": "edu_terms_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "terms",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Jangan Lewati Ketentuan",
+            "hook": "Bagian yang jarang dibaca justru sering menjadi bagian yang penting: ketentuan paket.",
+            "body": "Sebelum mendaftar, pahami apa yang termasuk, apa yang tidak termasuk, tahapan pembayaran, serta ketentuan perubahan atau pembatalan yang berlaku pada paket tersebut.",
+            "cta": "Kalau ada kalimat yang belum dipahami, minta dijelaskan.",
+            "tags": [
+                "terms",
+                "policy",
+                "payment"
+            ]
+        },
+        {
+            "id": "edu_agent_001",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "choose_package",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "personal_agent",
+            "title": "Pertanyaan yang Sering Masuk",
+            "hook": "Salah satu pertanyaan yang paling sering masuk ke WhatsApp saya: 'Kak, paket yang bagus yang mana?'",
+            "body": "Biasanya saya tidak langsung jawab nama paket. Saya tanya dulu kapan mau berangkat, dengan siapa, dan apa yang paling penting selama perjalanan. Karena paket yang cocok untuk satu jamaah belum tentu cocok untuk jamaah lain.",
+            "cta": "Kalau sedang bingung memilih, mulai dari kebutuhan dulu.",
+            "tags": [
+                "personal_branding",
+                "education",
+                "need"
+            ]
+        },
+        {
+            "id": "edu_agent_002",
+            "goal": "education",
+            "funnel": "warm",
+            "topic": "compare_package",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "personal_agent",
+            "title": "Jangan Takut Membandingkan",
+            "hook": "Saya justru tidak keberatan kalau calon jamaah membandingkan beberapa paket.",
+            "body": "Yang penting bandingkannya dengan benar. Jangan paket dengan hotel, tanggal, maskapai, dan durasi berbeda hanya dibanding dari harga akhirnya.",
+            "cta": "Semakin jelas perbandingannya, semakin mudah mengambil keputusan.",
+            "tags": [
+                "personal_branding",
+                "comparison"
+            ]
+        }
+    ],
+    "cta_bank": [
+        {
+            "id": "cta_edu_01",
+            "type": "soft",
+            "text": "Kalau masih bingung, boleh tanya."
+        },
+        {
+            "id": "cta_edu_02",
+            "type": "consultation",
+            "text": "Kalau sedang membandingkan paket, saya bantu jelaskan bagian yang perlu dicek."
+        },
+        {
+            "id": "cta_edu_03",
+            "type": "save",
+            "text": "Simpan dulu, siapa tahu nanti dibutuhkan."
+        },
+        {
+            "id": "cta_edu_04",
+            "type": "share",
+            "text": "Boleh kirim ke keluarga yang sedang merencanakan umroh."
+        },
+        {
+            "id": "cta_edu_05",
+            "type": "question",
+            "text": "Bagian mana yang paling membuat Anda bingung saat memilih paket?"
+        },
+        {
+            "id": "cta_edu_06",
+            "type": "consultation",
+            "text": "Nggak harus langsung daftar. Kita bisa cek kebutuhannya dulu."
+        },
+        {
+            "id": "cta_edu_07",
+            "type": "comparison",
+            "text": "Kalau ada dua paket yang sedang dibandingkan, lihat dulu komponennya satu per satu."
+        }
+    ],
+    "content_formulas": [
+        {
+            "id": "edu_formula_01",
+            "nama": "Question - Explanation - Action",
+            "structure": [
+                "Pertanyaan yang sering dipikirkan calon jamaah",
+                "Penjelasan singkat",
+                "Langkah praktis"
+            ]
+        },
+        {
+            "id": "edu_formula_02",
+            "nama": "Mistake - Why - Better Way",
+            "structure": [
+                "Kesalahan umum",
+                "Kenapa bisa menjadi masalah",
+                "Cara yang lebih tepat"
+            ]
+        },
+        {
+            "id": "edu_formula_03",
+            "nama": "Checklist",
+            "structure": [
+                "Hook",
+                "Daftar hal yang perlu dicek",
+                "CTA simpan atau konsultasi"
+            ]
+        },
+        {
+            "id": "edu_formula_04",
+            "nama": "Myth - Reality - Advice",
+            "structure": [
+                "Anggapan umum",
+                "Penjelasan yang lebih lengkap",
+                "Apa yang perlu dilakukan"
+            ]
+        },
+        {
+            "id": "edu_formula_05",
+            "nama": "Experience - Lesson - Advice",
+            "structure": [
+                "Pengalaman agen atau pertanyaan jamaah",
+                "Pelajaran yang bisa diambil",
+                "Saran praktis"
+            ]
+        }
+    ],
+    "routing_rules": [
+        {
+            "condition": "Audiens baru mulai mencari paket.",
+            "recommended_topics": [
+                "choose_package",
+                "first_timer",
+                "travel_trust"
+            ]
+        },
+        {
+            "condition": "Audiens sedang membandingkan beberapa penawaran.",
+            "recommended_topics": [
+                "compare_package",
+                "price_value",
+                "terms"
+            ]
+        },
+        {
+            "condition": "Audiens sensitif terhadap harga.",
+            "recommended_topics": [
+                "price_value",
+                "compare_package",
+                "payment"
+            ]
+        },
+        {
+            "condition": "Audiens akan membawa orang tua.",
+            "recommended_topics": [
+                "elderly",
+                "hotel",
+                "flight"
+            ]
+        },
+        {
+            "condition": "Audiens adalah first timer.",
+            "recommended_topics": [
+                "first_timer",
+                "documents",
+                "preparation",
+                "travel_trust"
+            ]
+        },
+        {
+            "condition": "Audiens berangkat bersama keluarga.",
+            "recommended_topics": [
+                "family",
+                "schedule",
+                "hotel"
+            ]
+        },
+        {
+            "condition": "Audiens mulai siap mengambil keputusan.",
+            "recommended_topics": [
+                "payment",
+                "terms",
+                "travel_trust"
+            ]
+        }
+    ],
+    "channel_rules": [
+        {
+            "channel": "whatsapp_status",
+            "recommendation": "Gunakan satu insight singkat atau checklist pendek."
+        },
+        {
+            "channel": "instagram_story",
+            "recommendation": "Pecah edukasi menjadi satu poin per slide."
+        },
+        {
+            "channel": "instagram",
+            "recommendation": "Gunakan hook, penjelasan, lalu satu kesimpulan praktis."
+        },
+        {
+            "channel": "reels",
+            "recommendation": "Gunakan pertanyaan atau kesalahan umum sebagai opening."
+        },
+        {
+            "channel": "facebook",
+            "recommendation": "Gunakan penjelasan medium dan cerita pengalaman."
+        }
+    ],
+    "do": [
+        "Berikan informasi yang langsung berguna.",
+        "Gunakan contoh nyata dan sederhana.",
+        "Buat checklist bila topiknya memiliki beberapa poin.",
+        "Jelaskan alasan, bukan hanya memberi aturan.",
+        "Hubungkan edukasi dengan kebutuhan calon jamaah.",
+        "Bangun personal branding agen melalui pengalaman dan cara berpikir."
+    ],
+    "dont": [
+        "Membuat konten edukasi yang sebenarnya hanya iklan paket.",
+        "Menggunakan istilah teknis tanpa penjelasan.",
+        "Memberikan aturan atau persyaratan yang belum diverifikasi.",
+        "Membuat klaim legalitas tanpa bukti.",
+        "Memberikan saran medis kepada jamaah.",
+        "Menjelekkan travel lain dalam konten perbandingan.",
+        "Membuat semua edukasi terlalu panjang.",
+        "Mengakhiri setiap edukasi dengan hard selling."
+    ],
+    "success_signals": [
+        "Audiens menyimpan konten.",
+        "Audiens membagikan konten.",
+        "Audiens membalas dengan pertanyaan.",
+        "Audiens meminta penjelasan paket.",
+        "Audiens meminta bantuan membandingkan pilihan.",
+        "Audiens mulai menyampaikan kebutuhan umrohnya.",
+        "Audiens berpindah dari sekadar melihat konten menjadi prospek aktif."
+    ],
+    "next_goal": [
+        "trust",
+        "desire",
+        "offer"
+    ],
+    "conversion_stage_after_inquiry": "greeting",
+    "greeting_ref": "../scripts/greeting.json"
+}

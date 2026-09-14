@@ -1,0 +1,101 @@
+{
+  "source": "#007E78",
+  "source_hsl": {
+    "hue": 177.1,
+    "saturation": 100.0,
+    "lightness": 24.7
+  },
+  "primary": {
+    "50": "#F1FDFD",
+    "100": "#E3FCFB",
+    "200": "#BFF8F5",
+    "300": "#8BF9F4",
+    "400": "#51F6EE",
+    "500": "#00FFF3",
+    "600": "#00D6CC",
+    "700": "#00B2AA",
+    "800": "#038680",
+    "900": "#036D68",
+    "950": "#05423F"
+  },
+  "secondary": {
+    "50": "#FDF1F2",
+    "100": "#FCE3E5",
+    "200": "#F8BFC1",
+    "300": "#F98B90",
+    "400": "#F65158",
+    "500": "#FF000C",
+    "600": "#D6000A",
+    "700": "#B20008",
+    "800": "#86030A",
+    "900": "#6D0308",
+    "950": "#420508"
+  },
+  "neutral": {
+    "50": "#F7F8F8",
+    "100": "#F1F4F3",
+    "200": "#E3E8E8",
+    "300": "#CDD6D5",
+    "400": "#9AACAC",
+    "500": "#648785",
+    "600": "#4E6A68",
+    "700": "#3B4F4E",
+    "800": "#273534",
+    "900": "#182020",
+    "950": "#0D1211"
+  },
+  "semantic": {
+    "success": {
+      "DEFAULT": "#10B981",
+      "light": "#D1FAE5",
+      "dark": "#065F46",
+      "50": "#ECFDF5",
+      "500": "#10B981",
+      "600": "#059669",
+      "700": "#047857"
+    },
+    "warning": {
+      "DEFAULT": "#F59E0B",
+      "light": "#FEF3C7",
+      "dark": "#92400E",
+      "50": "#FFFBEB",
+      "500": "#F59E0B",
+      "600": "#D97706",
+      "700": "#B45309"
+    },
+    "error": {
+      "DEFAULT": "#EF4444",
+      "light": "#FEE2E2",
+      "dark": "#991B1B",
+      "50": "#FEF2F2",
+      "500": "#EF4444",
+      "600": "#DC2626",
+      "700": "#B91C1C"
+    },
+    "info": {
+      "DEFAULT": "#3B82F6",
+      "light": "#DBEAFE",
+      "dark": "#1E40AF",
+      "50": "#EFF6FF",
+      "500": "#3B82F6",
+      "600": "#2563EB",
+      "700": "#1D4ED8"
+    }
+  },
+  "dark_mode": {
+    "background": "#0B1413",
+    "surface": "#182524",
+    "surface_elevated": "#263635",
+    "text_primary": "#F1F4F3",
+    "text_secondary": "#B9C6C5",
+    "text_muted": "#738C8B",
+    "border": "#304140"
+  },
+  "css_variables": ":root {\n  /* Primary */\n  --color-primary-50: #F1FDFD;\n  --color-primary-100: #E3FCFB;\n  --color-primary-200: #BFF8F5;\n  --color-primary-300: #8BF9F4;\n  --color-primary-400: #51F6EE;\n  --color-primary-500: #00FFF3;\n  --color-primary-600: #00D6CC;\n  --color-primary-700: #00B2AA;\n  --color-primary-800: #038680;\n  --color-primary-900: #036D68;\n  --color-primary-950: #05423F;\n\n  /* Secondary */\n  --color-secondary-50: #FDF1F2;\n  --color-secondary-100: #FCE3E5;\n  --color-secondary-200: #F8BFC1;\n  --color-secondary-300: #F98B90;\n  --color-secondary-400: #F65158;\n  --color-secondary-500: #FF000C;\n  --color-secondary-600: #D6000A;\n  --color-secondary-700: #B20008;\n  --color-secondary-800: #86030A;\n  --color-secondary-900: #6D0308;\n  --color-secondary-950: #420508;\n\n  /* Neutral */\n  --color-neutral-50: #F7F8F8;\n  --color-neutral-100: #F1F4F3;\n  --color-neutral-200: #E3E8E8;\n  --color-neutral-300: #CDD6D5;\n  --color-neutral-400: #9AACAC;\n  --color-neutral-500: #648785;\n  --color-neutral-600: #4E6A68;\n  --color-neutral-700: #3B4F4E;\n  --color-neutral-800: #273534;\n  --color-neutral-900: #182020;\n  --color-neutral-950: #0D1211;\n\n  /* Semantic */\n  --color-success: #10B981;\n  --color-success-light: #D1FAE5;\n  --color-success-dark: #065F46;\n  --color-success-50: #ECFDF5;\n  --color-success-500: #10B981;\n  --color-success-600: #059669;\n  --color-success-700: #047857;\n  --color-warning: #F59E0B;\n  --color-warning-light: #FEF3C7;\n  --color-warning-dark: #92400E;\n  --color-warning-50: #FFFBEB;\n  --color-warning-500: #F59E0B;\n  --color-warning-600: #D97706;\n  --color-warning-700: #B45309;\n  --color-error: #EF4444;\n  --color-error-light: #FEE2E2;\n  --color-error-dark: #991B1B;\n  --color-error-50: #FEF2F2;\n  --color-error-500: #EF4444;\n  --color-error-600: #DC2626;\n  --color-error-700: #B91C1C;\n  --color-info: #3B82F6;\n  --color-info-light: #DBEAFE;\n  --color-info-dark: #1E40AF;\n  --color-info-50: #EFF6FF;\n  --color-info-500: #3B82F6;\n  --color-info-600: #2563EB;\n  --color-info-700: #1D4ED8;\n\n  /* Dark Mode (apply via [data-theme=\"dark\"]) */\n  --dark-background: #0B1413;\n  --dark-surface: #182524;\n  --dark-surface-elevated: #263635;\n  --dark-text-primary: #F1F4F3;\n  --dark-text-secondary: #B9C6C5;\n  --dark-text-muted: #738C8B;\n  --dark-border: #304140;\n}",
+  "contrast_checks": {
+    "primary_500_on_white": 1.27,
+    "primary_500_on_black": 16.6,
+    "white_on_primary_600": 1.83,
+    "white_on_primary_700": 2.64
+  }
+}

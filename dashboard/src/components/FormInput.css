@@ -1,0 +1,68 @@
+.db-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.db-form-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.db-form-label {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--db-text-primary);
+}
+
+.db-form-label__required {
+  color: var(--db-negative);
+  margin-left: 2px;
+}
+
+.db-form-input,
+.db-form-select,
+.db-form-textarea {
+  width: 100%;
+  padding: clamp(8px, 1vw, 10px) clamp(12px, 1.2vw, 14px);
+  font-size: var(--font-size-base, 14px);
+  font-family: inherit;
+  color: var(--db-text-primary);
+  background-color: var(--db-card-bg);
+  border: 1px solid var(--db-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.db-form-input:focus,
+.db-form-select:focus,
+.db-form-textarea:focus {
+  border-color: var(--db-accent-teal);
+  box-shadow: 0 0 0 3px var(--db-focus-ring);
+}
+
+.db-form-input--error,
+.db-form-select--error,
+.db-form-textarea--error {
+  border-color: var(--db-negative);
+}
+
+.db-form-textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.db-form-error {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--db-negative);
+  margin-top: 2px;
+}
+
+.db-form-hint {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--db-text-muted);
+  margin-top: 2px;
+}

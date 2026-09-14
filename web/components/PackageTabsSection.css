@@ -1,0 +1,120 @@
+.tw-pkg-tabs-section {
+  padding: 24px 0 28px 0;
+  background-color: var(--tw-background);
+}
+
+.tw-pkg-tabs-section__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 0 20px;
+}
+
+.tw-pkg-tabs-section__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tw-pkg-tabs-section__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tw-text-primary);
+  font-family: var(--tw-font-heading);
+  margin-top: 4px;
+}
+
+.tw-pkg-tabs-section__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+  text-decoration: none;
+  padding: 4px 0;
+}
+
+.tw-pkg-tabs-section__nav-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+}
+
+.tw-pkg-tabs-section__nav-wrap::-webkit-scrollbar {
+  display: none;
+}
+
+.tw-pkg-tabs-section__nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 20px;
+  width: max-content;
+}
+
+.tw-pkg-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-text-primary);
+  opacity: 0.6;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.tw-pkg-tab-pill:hover {
+  opacity: 0.9;
+  color: var(--tw-brand-primary);
+}
+
+.tw-pkg-tab-pill--active {
+  background-color: transparent;
+  color: var(--tw-brand-primary);
+  border-bottom: 2px solid var(--tw-brand-primary);
+  box-shadow: none;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.tw-pkg-tabs-section__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.tw-pkg-tabs-section__empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--tw-text-primary);
+  opacity: 0.6;
+  font-size: 14px;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 5%, #F8F9FA);
+  border-radius: var(--radius-lg);
+  margin: 0 20px;
+}
+
+.tw-pkg-tabs-section__footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}

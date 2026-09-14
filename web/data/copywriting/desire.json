@@ -1,0 +1,948 @@
+{
+    "id": "desire_copywriting_bank",
+    "nama": "Bank Copywriting Desire",
+    "goal": "desire",
+    "funnel": [
+        "cold",
+        "warm"
+    ],
+    "deskripsi": "Kumpulan copywriting untuk memperkuat keinginan calon jamaah melalui gambaran pengalaman, keluarga, orang tua, pasangan, momentum hidup, kenyamanan, dan niat yang sudah lama dimiliki.",
+    "tujuan": "Membantu audiens bergerak dari sekadar tertarik menjadi mulai membayangkan dirinya benar-benar berangkat umroh.",
+    "guidelines": [
+        "Bangun keinginan tanpa memaksa.",
+        "Gunakan pengalaman dan situasi yang dekat dengan kehidupan audiens.",
+        "Jangan membuat orang merasa berdosa atau bersalah karena belum berangkat.",
+        "Jangan mengeksploitasi hubungan dengan orang tua untuk memaksa keputusan.",
+        "Gunakan bahasa emosional secukupnya.",
+        "Jangan menjanjikan hasil spiritual tertentu.",
+        "Jangan mengatakan bahwa membeli paket tertentu akan menjamin kualitas ibadah seseorang.",
+        "Hubungkan emosi dengan langkah yang realistis seperti mulai merencanakan waktu atau mencari informasi.",
+        "Gunakan cerita yang autentik jika mengangkat pengalaman jamaah.",
+        "Pada tahap Desire, CTA sebaiknya masih ringan sampai menengah."
+    ],
+    "placeholders": [
+        "{{nama}}",
+        "{{bulan}}",
+        "{{tahun}}",
+        "{{tanggal}}",
+        "{{kota}}",
+        "{{paket}}",
+        "{{harga}}",
+        "{{hotel}}",
+        "{{travel}}",
+        "{{nama_jamaah}}"
+    ],
+    "desire_pillars": [
+        {
+            "id": "orang_tua",
+            "nama": "Berangkat Bersama Orang Tua",
+            "deskripsi": "Membangun gambaran tentang kesempatan beribadah bersama ayah atau ibu."
+        },
+        {
+            "id": "hadiah_orang_tua",
+            "nama": "Memberangkatkan Orang Tua",
+            "deskripsi": "Membahas keinginan memberikan pengalaman umroh kepada orang tua tanpa memainkan rasa bersalah."
+        },
+        {
+            "id": "pasangan",
+            "nama": "Umroh Bersama Pasangan",
+            "deskripsi": "Membangun keinginan untuk memiliki pengalaman ibadah bersama suami atau istri."
+        },
+        {
+            "id": "keluarga",
+            "nama": "Umroh Bersama Keluarga",
+            "deskripsi": "Menggambarkan pengalaman perjalanan bersama keluarga."
+        },
+        {
+            "id": "impian_lama",
+            "nama": "Impian yang Sudah Lama Ada",
+            "deskripsi": "Mengangkat keinginan umroh yang sudah lama disimpan."
+        },
+        {
+            "id": "first_time",
+            "nama": "Pengalaman Pertama",
+            "deskripsi": "Membantu first timer membayangkan pengalaman pertama kali ke Tanah Suci."
+        },
+        {
+            "id": "momentum",
+            "nama": "Momentum Kehidupan",
+            "deskripsi": "Menghubungkan rencana umroh dengan momen seperti cuti, pensiun, ulang tahun, atau waktu keluarga yang memang relevan."
+        },
+        {
+            "id": "comfort",
+            "nama": "Kenyamanan Perjalanan",
+            "deskripsi": "Membantu audiens membayangkan perjalanan yang lebih sesuai dengan kebutuhan fisik dan preferensi mereka."
+        },
+        {
+            "id": "togetherness",
+            "nama": "Kebersamaan",
+            "deskripsi": "Mengangkat nilai pengalaman bersama orang-orang terdekat."
+        },
+        {
+            "id": "planning",
+            "nama": "Dari Niat Menjadi Rencana",
+            "deskripsi": "Mengubah keinginan yang masih abstrak menjadi langkah persiapan kecil."
+        }
+    ],
+    "copies": [
+        {
+            "id": "des_parent_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua",
+                "family"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Kalau Bisa Berangkat Bersama Ibu",
+            "hook": "Kalau suatu hari bisa umroh, siapa orang pertama yang ingin Anda ajak?",
+            "body": "Buat sebagian orang, jawabannya sederhana: Ayah atau Ibu.",
+            "cta": "Semoga suatu hari rencananya benar-benar terwujud.",
+            "tags": [
+                "orang_tua",
+                "dream",
+                "family"
+            ]
+        },
+        {
+            "id": "des_parent_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Bukan Sekadar Berangkat",
+            "hook": "Buat sebagian orang, keinginan umroh bukan soal pergi sendiri.",
+            "body": "Ada yang sejak awal membayangkan bisa berjalan bersama ibunya, membantu ayahnya selama perjalanan, lalu punya cerita yang nanti terus dikenang keluarga.",
+            "cta": "Kalau rencana seperti ini ada di hati Anda, persiapannya bisa dimulai pelan-pelan.",
+            "tags": [
+                "orang_tua",
+                "togetherness",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_parent_003",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua",
+                "lansia"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "story",
+            "title": "Yang Dipikirkan Bukan Dirinya Sendiri",
+            "hook": "Ada calon jamaah yang ketika memilih paket, pertanyaan pertamanya bukan 'yang paling murah yang mana?'",
+            "body": "Yang dia tanyakan justru, 'Kalau untuk ibu saya yang sudah sepuh, mana yang lebih nyaman?' Dari situ kelihatan kalau perjalanan ini bukan cuma tentang dirinya, tapi tentang memastikan orang yang dia ajak juga merasa nyaman.",
+            "cta": "Kalau berangkat bersama orang tua, pilihlah dari kebutuhan beliau juga.",
+            "tags": [
+                "orang_tua",
+                "lansia",
+                "comfort",
+                "story"
+            ]
+        },
+        {
+            "id": "des_gift_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "hadiah_orang_tua",
+            "audience": [
+                "anak_yang_memberangkatkan_orang_tua"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Hadiah yang Berbeda",
+            "hook": "Ada hadiah yang dibuka hari ini. Ada juga hadiah yang menjadi cerita bertahun-tahun.",
+            "body": "Buat sebagian keluarga, salah satunya adalah kesempatan memberangkatkan Ayah atau Ibu umroh.",
+            "cta": "Kalau memang menjadi rencana Anda, mulailah dari mencari tahu persiapannya.",
+            "tags": [
+                "hadiah_umroh",
+                "orang_tua",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_gift_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "hadiah_orang_tua",
+            "audience": [
+                "anak_yang_memberangkatkan_orang_tua"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Kalau Belum Bisa Sekarang",
+            "hook": "Punya keinginan memberangkatkan orang tua tapi belum bisa sekarang?",
+            "body": "Tidak harus langsung memaksakan diri. Kadang langkah pertama cukup dengan menentukan target, memahami budget, lalu mulai menyiapkannya sedikit demi sedikit.",
+            "cta": "Niat besar boleh dimulai dari rencana kecil.",
+            "tags": [
+                "hadiah_umroh",
+                "orang_tua",
+                "planning",
+                "budget"
+            ]
+        },
+        {
+            "id": "des_couple_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "pasangan",
+            "audience": [
+                "couple"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Berdua",
+            "hook": "Ada yang punya wishlist: suatu hari bisa umroh berdua dengan pasangan?",
+            "body": "Pergi bersama, belajar bersama, dan punya satu perjalanan yang sama-sama dikenang.",
+            "cta": "Semoga waktunya dipertemukan.",
+            "tags": [
+                "pasangan",
+                "dream",
+                "togetherness"
+            ]
+        },
+        {
+            "id": "des_couple_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "pasangan",
+            "audience": [
+                "couple"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Bukan Liburan Biasa",
+            "hook": "Ada pasangan yang ingin punya satu perjalanan berbeda dari perjalanan-perjalanan mereka sebelumnya.",
+            "body": "Bukan hanya pergi ke tempat baru, tapi punya waktu untuk menjalani perjalanan ibadah bersama. Tantangannya kadang cuma satu: menemukan waktu yang sama-sama memungkinkan.",
+            "cta": "Kalau niatnya sudah ada, mungkin langkah pertama cukup menyamakan jadwal.",
+            "tags": [
+                "pasangan",
+                "schedule",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_family_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "keluarga",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Satu Keluarga",
+            "hook": "Bayangkan satu hari nanti nama seluruh keluarga ada dalam satu keberangkatan.",
+            "body": "Ayah, Ibu, pasangan, mungkin juga anak-anak. Satu perjalanan, banyak cerita.",
+            "cta": "Kalau itu jadi rencana keluarga, persiapannya memang lebih enak dari jauh hari.",
+            "tags": [
+                "family",
+                "togetherness",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_family_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "keluarga",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Menyamakan Satu Waktu",
+            "hook": "Kadang yang membuat umroh keluarga terasa istimewa justru karena tidak mudah menyamakan semua orang.",
+            "body": "Ada jadwal kerja, sekolah, kondisi orang tua, dan kebutuhan masing-masing. Ketika semuanya akhirnya bisa berada di satu perjalanan yang sama, ada cerita yang tidak mudah diulang.",
+            "cta": "Kalau ingin berangkat sekeluarga, mulai dari menyamakan waktunya dulu.",
+            "tags": [
+                "family",
+                "schedule",
+                "togetherness"
+            ]
+        },
+        {
+            "id": "des_dream_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "impian_lama",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram",
+                "facebook"
+            ],
+            "format": "short",
+            "title": "Sudah Berapa Lama",
+            "hook": "Sudah berapa lama keinginan umroh itu ada?",
+            "body": "Setahun? Lima tahun? Atau sebenarnya sudah lama sekali tapi belum pernah benar-benar dibuat rencananya?",
+            "cta": "Mungkin tahun ini waktunya mulai menghitung, bukan hanya membayangkan.",
+            "tags": [
+                "dream",
+                "planning"
+            ]
+        },
+        {
+            "id": "des_dream_002",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "impian_lama",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Belum Harus Daftar",
+            "hook": "Punya keinginan umroh tidak berarti harus langsung daftar hari ini.",
+            "body": "Tapi kalau niatnya memang ada, Anda sudah bisa mulai tahu berapa budgetnya, kapan targetnya, dan siapa yang ingin diajak.",
+            "cta": "Biar keinginan itu pelan-pelan berubah jadi rencana.",
+            "tags": [
+                "dream",
+                "planning",
+                "budget"
+            ]
+        },
+        {
+            "id": "des_dream_003",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "impian_lama",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Dari Nanti Menjadi Target",
+            "hook": "Ada perbedaan besar antara 'nanti saya mau umroh' dan 'saya targetkan umroh tahun depan'.",
+            "body": "Kalimat kedua membuat kita mulai berpikir tentang waktu, budget, orang yang ikut, dan apa yang perlu dipersiapkan. Tidak berarti semuanya harus langsung selesai. Tapi setidaknya rencananya mulai punya bentuk.",
+            "cta": "Keinginan lebih mudah dijalankan kalau punya target.",
+            "tags": [
+                "dream",
+                "planning",
+                "schedule"
+            ]
+        },
+        {
+            "id": "des_first_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "first_time",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Pertama Kali",
+            "hook": "Ada banyak 'pertama kali' dalam hidup. Salah satunya mungkin pertama kali melihat Ka'bah secara langsung.",
+            "body": "Kalau selama ini baru melihat dari layar, wajar kalau ada keinginan suatu hari bisa berada di sana.",
+            "cta": "Kalau belum tahu mulai dari mana, mulai saja dari mencari informasi.",
+            "tags": [
+                "first_timer",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_first_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "first_time",
+            "audience": [
+                "first_timer"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Rasa Penasaran First Timer",
+            "hook": "Calon jamaah yang pertama kali umroh biasanya punya campuran rasa: ingin, penasaran, sekaligus banyak khawatir.",
+            "body": "Bingung soal dokumen, hotel, penerbangan, sampai apa yang harus dipersiapkan. Itu normal. Semakin jelas prosesnya, biasanya keinginan yang tadinya terasa jauh mulai terasa lebih mungkin dijalankan.",
+            "cta": "Pelajari langkahnya satu per satu.",
+            "tags": [
+                "first_timer",
+                "dream",
+                "education"
+            ]
+        },
+        {
+            "id": "des_momentum_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "momentum",
+            "audience": [
+                "employee"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Kalau Cutinya Ada",
+            "hook": "Kadang niat sudah ada, dana mulai disiapkan, tinggal menunggu cuti yang cocok.",
+            "body": "Kalau ada satu periode tahun ini yang memungkinkan, mungkin itu bisa dijadikan target.",
+            "cta": "Mulai cek jadwal dari sekarang.",
+            "tags": [
+                "momentum",
+                "cuti",
+                "schedule"
+            ]
+        },
+        {
+            "id": "des_momentum_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "momentum",
+            "audience": [
+                "retiree"
+            ],
+            "channel": [
+                "facebook",
+                "whatsapp_status"
+            ],
+            "format": "medium",
+            "title": "Setelah Pensiun",
+            "hook": "Ada yang sejak masih bekerja punya rencana: nanti setelah pensiun ingin punya lebih banyak waktu untuk umroh.",
+            "body": "Ketika jadwal sudah lebih longgar, rencana yang dulu selalu tertunda bisa mulai dilihat lagi. Tinggal menyesuaikan kondisi, pendamping, waktu, dan paket yang nyaman.",
+            "cta": "Kalau sekarang waktunya sudah lebih memungkinkan, boleh mulai cari pilihan.",
+            "tags": [
+                "pensiun",
+                "momentum",
+                "planning"
+            ]
+        },
+        {
+            "id": "des_momentum_003",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "momentum",
+            "audience": [
+                "family"
+            ],
+            "channel": [
+                "instagram",
+                "whatsapp_status"
+            ],
+            "format": "short",
+            "title": "Liburan Keluarga",
+            "hook": "Kalau keluarga memang hanya bisa berkumpul di periode liburan, kenapa tidak mulai cek apakah ada jadwal umroh yang cocok?",
+            "body": "Kadang momentum terbaik bukan tanggal yang sempurna, tapi tanggal saat semua orang bisa.",
+            "cta": "Cek periodenya dulu.",
+            "tags": [
+                "family",
+                "momentum",
+                "schedule"
+            ]
+        },
+        {
+            "id": "des_comfort_001",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "comfort",
+            "audience": [
+                "comfort_seeker"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Ingin Lebih Nyaman",
+            "hook": "Ada yang tidak mencari paket paling murah. Yang dicari justru perjalanan yang lebih nyaman.",
+            "body": "Hotel, penerbangan, pendampingan, dan ritme perjalanan bisa menjadi bagian yang lebih penting.",
+            "cta": "Tidak semua orang punya prioritas yang sama.",
+            "tags": [
+                "comfort",
+                "value"
+            ]
+        },
+        {
+            "id": "des_comfort_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "comfort",
+            "audience": [
+                "lansia",
+                "family"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Bayangkan Setelah Seharian Aktivitas",
+            "hook": "Saat memilih paket, coba bayangkan bukan cuma saat berangkat, tapi juga saat tubuh sudah lelah setelah seharian aktivitas.",
+            "body": "Di saat seperti itu, jarak hotel, akses, dan ritme perjalanan mulai terasa nilainya. Terutama kalau bersama jamaah lansia.",
+            "cta": "Kenyamanan sebaiknya dipikirkan sebelum berangkat, bukan setelah sampai.",
+            "tags": [
+                "comfort",
+                "hotel_dekat",
+                "lansia"
+            ]
+        },
+        {
+            "id": "des_together_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "togetherness",
+            "audience": [
+                "general",
+                "family",
+                "couple"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Dengan Siapa",
+            "hook": "Kalau punya kesempatan umroh, pertanyaannya bukan cuma kapan. Tapi juga: dengan siapa?",
+            "body": "Ada perjalanan yang terasa lebih berarti karena kita menjalaninya bersama orang yang penting.",
+            "cta": "Kalau Anda, ingin bersama siapa?",
+            "tags": [
+                "togetherness",
+                "engagement",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_planning_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "planning",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "short",
+            "title": "Mulai dari Target",
+            "hook": "Keinginan umroh terasa jauh kalau hanya dipikirkan.",
+            "body": "Coba ubah menjadi target: ingin berangkat kapan, kira-kira butuh budget berapa, dan siapa yang ingin diajak.",
+            "cta": "Tidak harus sempurna. Yang penting mulai punya arah.",
+            "tags": [
+                "planning",
+                "dream",
+                "budget"
+            ]
+        },
+        {
+            "id": "des_planning_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "planning",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "medium",
+            "title": "Tiga Langkah Kecil",
+            "hook": "Kalau niat umroh sudah lama ada, tidak harus langsung mengambil keputusan besar.",
+            "body": "Mulai dengan tiga langkah kecil: tentukan target waktunya, cari tahu kisaran biaya, lalu lihat pilihan yang sesuai kebutuhan. Dari sana Anda bisa menilai sendiri seberapa realistis rencananya.",
+            "cta": "Rencana yang jelas lebih mudah dijalankan daripada keinginan yang terus ditunda.",
+            "tags": [
+                "planning",
+                "budget",
+                "schedule"
+            ]
+        },
+        {
+            "id": "des_story_001",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "impian_lama",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "instagram",
+                "facebook",
+                "whatsapp_status"
+            ],
+            "format": "story",
+            "title": "Awalnya Cuma Tanya Harga",
+            "hook": "Kadang percakapan umroh dimulai dari satu chat sederhana: 'Kak, umroh sekarang berapa?'",
+            "body": "Setelah ngobrol, ternyata di balik pertanyaan harga itu ada keinginan yang sudah lama disimpan. Ada yang ingin berangkat bersama ibu, ada yang ingin berdua dengan pasangan, ada juga yang memang dari dulu punya target pribadi.",
+            "cta": "Kadang sebuah rencana baru mulai terasa nyata setelah dibicarakan.",
+            "tags": [
+                "story",
+                "dream",
+                "personal_branding"
+            ]
+        },
+        {
+            "id": "des_story_002",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "orang_tua",
+            "audience": [
+                "anak_yang_membawa_orang_tua"
+            ],
+            "channel": [
+                "instagram",
+                "facebook"
+            ],
+            "format": "story",
+            "title": "Dua Seat",
+            "hook": "Kadang dua seat punya arti lebih dari sekadar dua kursi keberangkatan.",
+            "body": "Bisa jadi itu rencana seorang anak untuk berangkat bersama ibunya. Bisa jadi pasangan yang sudah lama punya keinginan yang sama. Karena itu di balik setiap pertanyaan paket biasanya ada cerita yang berbeda.",
+            "cta": "Kalau punya cerita seperti ini, mulailah dari rencana yang paling realistis.",
+            "tags": [
+                "story",
+                "orang_tua",
+                "pasangan",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_agent_001",
+            "goal": "desire",
+            "funnel": "warm",
+            "pillar": "planning",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram"
+            ],
+            "format": "personal_agent",
+            "title": "Yang Saya Suka dari Percakapan Calon Jamaah",
+            "hook": "Salah satu bagian yang saya suka saat ngobrol dengan calon jamaah adalah mengetahui alasan mereka ingin berangkat.",
+            "body": "Ada yang ingin bawa ibu. Ada yang menunggu bisa cuti bersama pasangan. Ada yang bilang sudah bertahun-tahun punya niat tapi belum berani mulai cari informasi.",
+            "cta": "Setiap orang punya alasan yang berbeda. Paketnya juga sebaiknya menyesuaikan.",
+            "tags": [
+                "personal_branding",
+                "dream",
+                "identification"
+            ]
+        },
+        {
+            "id": "des_engagement_001",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "togetherness",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "question",
+            "title": "Kalau Berangkat Besok",
+            "hook": "Kalau besok bisa berangkat umroh, siapa yang ingin Anda ajak?",
+            "body": "A. Ayah/Ibu\nB. Pasangan\nC. Anak-anak\nD. Sendiri dulu",
+            "cta": "Pilih satu 😊",
+            "tags": [
+                "engagement",
+                "family",
+                "dream"
+            ]
+        },
+        {
+            "id": "des_engagement_002",
+            "goal": "desire",
+            "funnel": "cold",
+            "pillar": "planning",
+            "audience": [
+                "general"
+            ],
+            "channel": [
+                "whatsapp_status",
+                "instagram_story"
+            ],
+            "format": "question",
+            "title": "Apa yang Menahan",
+            "hook": "Kalau niat umroh sebenarnya sudah ada, apa yang paling membuat belum berangkat?",
+            "body": "A. Budget\nB. Waktu\nC. Belum ada teman\nD. Masih bingung pilih travel",
+            "cta": "Kalau Anda, yang mana?",
+            "tags": [
+                "engagement",
+                "pain",
+                "planning"
+            ]
+        }
+    ],
+    "cta_bank": [
+        {
+            "id": "cta_des_01",
+            "type": "soft",
+            "text": "Kalau rencananya masih jauh, cari tahu dulu juga nggak apa-apa."
+        },
+        {
+            "id": "cta_des_02",
+            "type": "planning",
+            "text": "Kalau niatnya sudah ada, mulai saja dari menentukan target waktunya."
+        },
+        {
+            "id": "cta_des_03",
+            "type": "consultation",
+            "text": "Ceritakan siapa yang ingin diajak dan target waktunya, nanti saya bantu arahkan."
+        },
+        {
+            "id": "cta_des_04",
+            "type": "engagement",
+            "text": "Kalau Anda, ingin berangkat bersama siapa?"
+        },
+        {
+            "id": "cta_des_05",
+            "type": "engagement",
+            "text": "Apa yang paling membuat rencana umroh Anda masih tertunda?"
+        },
+        {
+            "id": "cta_des_06",
+            "type": "planning",
+            "text": "Nggak harus langsung daftar. Mulai dari menghitung dan merencanakan dulu."
+        },
+        {
+            "id": "cta_des_07",
+            "type": "consultation",
+            "text": "Kalau mau tahu pilihan yang sesuai kebutuhan, boleh ngobrol dulu."
+        },
+        {
+            "id": "cta_des_08",
+            "type": "transition_offer",
+            "text": "Kalau target waktunya sudah ada, saya bisa bantu carikan pilihan keberangkatannya."
+        }
+    ],
+    "content_formulas": [
+        {
+            "id": "des_formula_01",
+            "nama": "Imagine - Meaning - Small Step",
+            "structure": [
+                "Ajak audiens membayangkan sebuah pengalaman",
+                "Hubungkan dengan makna personal",
+                "Berikan langkah kecil yang realistis"
+            ]
+        },
+        {
+            "id": "des_formula_02",
+            "nama": "Dream - Barrier - Possibility",
+            "structure": [
+                "Angkat keinginan",
+                "Akui hambatan yang nyata",
+                "Tunjukkan langkah yang masih mungkin dilakukan"
+            ]
+        },
+        {
+            "id": "des_formula_03",
+            "nama": "Person - Moment - Meaning",
+            "structure": [
+                "Siapa yang ingin diajak",
+                "Momen yang ingin dijalani",
+                "Kenapa pengalaman itu berarti"
+            ]
+        },
+        {
+            "id": "des_formula_04",
+            "nama": "Story - Emotion - Reflection",
+            "structure": [
+                "Cerita singkat",
+                "Emosi yang muncul secara alami",
+                "Refleksi atau pertanyaan untuk audiens"
+            ]
+        },
+        {
+            "id": "des_formula_05",
+            "nama": "Wish - Target - Plan",
+            "structure": [
+                "Keinginan yang masih abstrak",
+                "Ubah menjadi target waktu",
+                "Arahkan ke langkah persiapan"
+            ]
+        },
+        {
+            "id": "des_formula_06",
+            "nama": "Question - Visualization - Engagement",
+            "structure": [
+                "Pertanyaan personal yang ringan",
+                "Ajak membayangkan pengalaman",
+                "Ajak audiens menjawab"
+            ]
+        }
+    ],
+    "routing_rules": [
+        {
+            "condition": "Audiens ingin membawa orang tua.",
+            "recommended_pillars": [
+                "orang_tua",
+                "hadiah_orang_tua",
+                "comfort"
+            ]
+        },
+        {
+            "condition": "Audiens ingin berangkat bersama pasangan.",
+            "recommended_pillars": [
+                "pasangan",
+                "togetherness"
+            ]
+        },
+        {
+            "condition": "Audiens ingin berangkat bersama keluarga.",
+            "recommended_pillars": [
+                "keluarga",
+                "togetherness",
+                "momentum"
+            ]
+        },
+        {
+            "condition": "Audiens sudah lama ingin umroh tetapi belum punya rencana.",
+            "recommended_pillars": [
+                "impian_lama",
+                "planning"
+            ]
+        },
+        {
+            "condition": "Audiens baru pertama kali mempertimbangkan umroh.",
+            "recommended_pillars": [
+                "first_time",
+                "planning"
+            ]
+        },
+        {
+            "condition": "Hambatan utama adalah waktu.",
+            "recommended_pillars": [
+                "momentum",
+                "planning"
+            ]
+        },
+        {
+            "condition": "Audiens mengutamakan kenyamanan.",
+            "recommended_pillars": [
+                "comfort"
+            ]
+        },
+        {
+            "condition": "Tujuan konten adalah meningkatkan engagement.",
+            "recommended_pillars": [
+                "togetherness",
+                "planning"
+            ]
+        }
+    ],
+    "emotional_intensity": [
+        {
+            "level": "light",
+            "use_when": "Audiens masih dingin.",
+            "style": "Pertanyaan, wishlist, atau gambaran sederhana tanpa ajakan membeli."
+        },
+        {
+            "level": "medium",
+            "use_when": "Audiens sudah tertarik umroh.",
+            "style": "Cerita dan pengalaman yang lebih personal dengan CTA konsultasi ringan."
+        },
+        {
+            "level": "high",
+            "use_when": "Audiens sudah aktif merencanakan.",
+            "style": "Hubungkan keinginan dengan target dan tindakan nyata tanpa tekanan emosional."
+        }
+    ],
+    "channel_rules": [
+        {
+            "channel": "whatsapp_status",
+            "recommendation": "Gunakan copy pendek, pertanyaan personal, atau satu gambaran emosional."
+        },
+        {
+            "channel": "instagram_story",
+            "recommendation": "Gunakan pertanyaan, polling, dan rangkaian visualisasi singkat."
+        },
+        {
+            "channel": "instagram",
+            "recommendation": "Gunakan story pendek, refleksi, atau visualisasi pengalaman."
+        },
+        {
+            "channel": "reels",
+            "recommendation": "Gunakan hook emosional sederhana lalu cerita atau insight."
+        },
+        {
+            "channel": "facebook",
+            "recommendation": "Gunakan storytelling medium yang terasa personal."
+        }
+    ],
+    "do": [
+        "Gunakan emosi yang dekat dengan kehidupan calon jamaah.",
+        "Ajak audiens membayangkan pengalaman.",
+        "Gunakan cerita orang tua, pasangan, dan keluarga secara wajar.",
+        "Hubungkan mimpi dengan rencana kecil yang realistis.",
+        "Gunakan pertanyaan yang mengajak audiens merefleksikan keinginannya.",
+        "Hormati bahwa setiap orang punya kondisi dan waktu yang berbeda."
+    ],
+    "dont": [
+        "Membuat orang merasa menjadi anak yang buruk karena belum memberangkatkan orang tua.",
+        "Mengatakan kesempatan bersama orang tua pasti segera hilang untuk memaksa transaksi.",
+        "Menakut-nakuti audiens dengan kematian atau musibah agar segera membeli.",
+        "Menjanjikan pahala atau hasil spiritual tertentu karena memilih paket.",
+        "Menggunakan kutipan atau cerita jamaah palsu.",
+        "Memainkan rasa bersalah karena audiens menggunakan uang untuk kebutuhan lain.",
+        "Menganggap semua orang mampu secara finansial.",
+        "Mengubah konten desire menjadi hard selling di setiap posting."
+    ],
+    "success_signals": [
+        "Audiens membalas dengan cerita tentang orang yang ingin diajak.",
+        "Audiens mengatakan sudah lama punya keinginan umroh.",
+        "Audiens mulai bertanya kapan waktu yang cocok.",
+        "Audiens mulai bertanya kisaran biaya.",
+        "Audiens mulai menyebut target bulan atau tahun.",
+        "Audiens meminta rekomendasi paket.",
+        "Audiens mulai membicarakan rencana dengan pasangan atau keluarga.",
+        "Audiens berpindah dari sekadar tertarik menjadi prospek aktif."
+    ],
+    "next_goal": [
+        "offer",
+        "activation"
+    ],
+    "conversion_stage_after_inquiry": "greeting",
+    "greeting_ref": "../scripts/greeting.json"
+}

@@ -1,0 +1,215 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--km-bg);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.headerScrolled {
+  background-color: color-mix(in srgb, var(--km-bg) 92%, var(--km-paper));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--km-nav-shadow);
+  border-bottom: 1px solid var(--km-line);
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 96px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brandImage {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+
+.navLink {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--km-ink);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.navLink:hover {
+  color: var(--km-green-2);
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.loginBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--km-ink);
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--km-line);
+  background-color: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.loginBtn:hover {
+  color: var(--km-green-2);
+  border-color: var(--km-green-2);
+  background-color: var(--km-mint);
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--km-paper);
+  background-color: var(--km-gold);
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.ctaBtn:hover {
+  background-color: var(--km-green);
+  transform: translateY(-1px);
+}
+
+.mobileToggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--km-ink);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.mobileDropdown {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 32px;
+  }
+}
+
+@media (max-width: 860px) {
+  .container {
+    padding: 0 20px;
+    height: 72px;
+  }
+
+  .brandImage {
+    height: 38px;
+  }
+
+  .navLinks,
+  .navActions {
+    display: none;
+  }
+
+  .mobileToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobileDropdown {
+    display: block;
+    background-color: var(--km-paper);
+    border-top: 1px solid var(--km-line);
+    box-shadow: var(--km-card-shadow);
+    padding: 24px 20px 32px;
+  }
+
+  .mobileNav {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .mobileNavLink {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--km-ink);
+    text-decoration: none;
+    padding: 6px 0;
+  }
+
+  .mobileActions {
+    margin-top: 12px;
+    padding-top: 18px;
+    border-top: 1px solid var(--km-line);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mobileLoginBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--km-line);
+    background-color: var(--km-paper);
+    color: var(--km-ink);
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .mobileLoginBtn:hover {
+    border-color: var(--km-green-2);
+    color: var(--km-green-2);
+  }
+
+  .mobileCtaBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: var(--km-gold);
+    color: var(--km-paper);
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+  }
+}

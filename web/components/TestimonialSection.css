@@ -1,0 +1,206 @@
+.tw-testimonials {
+  padding: 24px 0 20px 0;
+  background-color: var(--tw-background);
+  border-top: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+  overflow: hidden;
+  width: 100%;
+}
+
+.tw-testimonials__header {
+  text-align: center;
+  margin-bottom: 18px;
+  padding: 0 16px;
+}
+
+.tw-testimonials__tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tw-testimonials__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-text-primary);
+  font-family: var(--tw-font-heading);
+  margin-top: 4px;
+}
+
+.tw-testimonials__carousel {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.tw-testimonials__track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.tw-testimonials__slide {
+  width: 100%;
+  min-width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: opacity 0.35s ease;
+  opacity: 0.4;
+}
+
+.tw-testimonials__slide--active {
+  opacity: 1;
+}
+
+.tw-testi-card {
+  width: 100%;
+  padding: 18px;
+  background-color: var(--tw-background);
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--tw-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  min-height: 168px;
+  box-sizing: border-box;
+}
+
+.tw-testi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--tw-brand-primary);
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+.tw-testi-card__watermark {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--tw-brand-primary);
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.tw-testi-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.tw-testi-card__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 10%, #FFFFFF);
+  color: var(--tw-brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1.5px solid color-mix(in srgb, var(--tw-brand-primary) 18%, transparent);
+  overflow: hidden;
+}
+
+.tw-testi-card__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tw-testi-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tw-testi-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tw-testi-card__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tw-testi-card__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 10%, #FFFFFF);
+  color: var(--tw-brand-primary);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.tw-testi-card__package {
+  font-size: 11.5px;
+  color: var(--tw-text-primary);
+  opacity: 0.65;
+}
+
+.tw-testi-card__stars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--tw-brand-primary);
+  position: relative;
+  z-index: 2;
+}
+
+.tw-testi-card__quote {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--tw-text-primary);
+  opacity: 0.88;
+  margin: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.tw-testimonials__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.tw-testimonials__dot {
+  height: 5px;
+  width: 6px;
+  border-radius: var(--radius-full);
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 22%, #D1D5DB);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tw-testimonials__dot--active {
+  width: 20px;
+  background-color: var(--tw-brand-primary);
+}

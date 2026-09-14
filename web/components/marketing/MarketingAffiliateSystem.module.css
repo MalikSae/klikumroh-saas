@@ -1,0 +1,357 @@
+.section {
+  background-color: var(--km-bg);
+  padding: 88px 120px;
+  border-top: 1px solid var(--km-line);
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.showcaseWrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.haloGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  height: 360px;
+  border-radius: 9999px;
+  background-color: var(--km-gold-soft);
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.phoneMockup {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--km-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phoneHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--km-line);
+}
+
+.phoneWelcome {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  color: var(--km-muted);
+  display: block;
+}
+
+.phoneUser {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--km-ink);
+}
+
+.phoneAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background-color: var(--km-mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--km-green-2);
+}
+
+.targetCard {
+  background-color: var(--km-bg);
+  border: 1px solid var(--km-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.targetLabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.targetTitle {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--km-ink);
+}
+
+.targetValue {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--km-muted);
+}
+
+.targetTrack {
+  height: 8px;
+  background-color: var(--km-line);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.targetProgress {
+  height: 100%;
+  background-color: var(--km-green-2);
+  border-radius: 9999px;
+}
+
+.balanceCard {
+  background: linear-gradient(135deg, var(--km-mint) 0%, var(--km-paper) 100%);
+  border: 1px solid var(--km-line);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balanceLabel {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--km-green-2);
+  text-transform: uppercase;
+}
+
+.balanceValue {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--km-ink);
+}
+
+.pendingBalance {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  color: var(--km-muted);
+}
+
+.referralCard {
+  background-color: var(--km-bg);
+  border: 1px dashed var(--km-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.referralLabel {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--km-muted);
+  text-transform: uppercase;
+}
+
+.referralUrl {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--km-ink);
+}
+
+.referralActions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--km-ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtn:hover {
+  background-color: var(--km-mint);
+  border-color: var(--km-green-2);
+}
+
+.recentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--km-line);
+}
+
+.recentLabel {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--km-muted);
+  text-transform: uppercase;
+}
+
+.jamaahItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.jamaahName {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--km-ink);
+}
+
+.statusInterested {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--km-green-2);
+  background-color: var(--km-mint);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.statusContacted {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--km-orange-dark);
+  background-color: var(--km-orange-soft);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* Right Column */
+.featureCopy {
+  display: flex;
+  flex-direction: column;
+}
+
+.featureNumber {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--km-green-2);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.featureHeadline {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--km-ink);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.featureBody {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--km-muted);
+  margin-bottom: 28px;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkIconBox {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background-color: var(--km-mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkIcon {
+  color: var(--km-green-2);
+}
+
+.checkText {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--km-ink);
+}
+
+@media (max-width: 1024px) {
+  .section {
+    padding: 72px 32px;
+  }
+
+  .container {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .featureCopy {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 20px;
+  }
+
+  .featureHeadline {
+    font-size: 26px;
+  }
+}

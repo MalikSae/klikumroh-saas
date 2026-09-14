@@ -1,0 +1,22 @@
+.tw-mobile-canvas {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background-color: var(--tw-canvas-backdrop);
+}
+
+.tw-mobile-container {
+  width: 100%;
+  max-width: 428px;
+  min-height: 100vh;
+  background-color: var(--tw-background);
+  color: var(--tw-text-primary);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: clip;
+  /* Container-scoped token: soft brand-tinted background so internal elements harmonize with brand */
+  --tw-canvas-backdrop: color-mix(in srgb, var(--tw-brand-primary) 6%, #F8F9FA);
+}

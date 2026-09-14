@@ -1,0 +1,72 @@
+.db-dev-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.db-dev-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.db-dev-content {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.db-dev-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.db-dev-section__title {
+  font-size: var(--font-size-md);
+  font-weight: 700;
+  color: var(--db-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.db-dev-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.db-dev-grid--3 {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.db-dev-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.db-dev-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.db-dev-group__label {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--db-text-muted);
+}
+
+.db-dev-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+}

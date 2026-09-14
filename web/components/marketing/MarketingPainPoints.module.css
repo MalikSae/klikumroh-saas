@@ -1,0 +1,148 @@
+.section {
+  background-color: var(--km-paper);
+  padding: 92px 96px;
+  border-top: 1px solid var(--km-line);
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 48px;
+  align-items: flex-end;
+}
+
+.headingCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--km-orange-dark);
+  text-transform: uppercase;
+}
+
+.headline {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--km-ink);
+  letter-spacing: -0.01em;
+}
+
+.intro {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--km-muted);
+}
+
+.problemList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.problemCard {
+  background-color: var(--km-bg);
+  border: 1px solid var(--km-line);
+  border-radius: 12px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.problemCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--km-green-2);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cardNumber {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--km-muted);
+  letter-spacing: 0.05em;
+}
+
+.iconBox {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: var(--km-mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardIcon {
+  color: var(--km-green-2);
+}
+
+.cardTitle {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--km-ink);
+}
+
+.cardDesc {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--km-muted);
+}
+
+@media (max-width: 1024px) {
+  .section {
+    padding: 72px 32px;
+  }
+
+  .headerRow {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .problemList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 20px;
+  }
+
+  .headline {
+    font-size: 28px;
+  }
+
+  .problemList {
+    grid-template-columns: 1fr;
+  }
+}

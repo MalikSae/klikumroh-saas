@@ -1,0 +1,841 @@
+/* Package Detail Mobile UI Styles - Clean Modern OTA Layout (Consistent with Home) */
+
+.tw-pkg-detail-page {
+  background-color: #FFFFFF;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+/* 1. Mobile Top App Bar */
+.tw-pkg-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 16px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.tw-pkg-topbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: none;
+  background-color: transparent;
+  color: #0F172A;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tw-pkg-topbar-btn:hover {
+  background-color: #F1F5F9;
+}
+
+.tw-pkg-topbar-title {
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+/* 2. Hero Photo Gallery */
+.tw-pkg-gallery {
+  position: relative;
+  width: 100%;
+  background-color: #F1F5F9;
+}
+
+.tw-pkg-gallery__image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: #F1F5F9;
+}
+
+.tw-pkg-gallery__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Floating Quota Badge - Frosted Glass (Identical to Home Package Cards) */
+.tw-pkg-gallery__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  line-height: 1.2;
+  letter-spacing: 0.2px;
+}
+
+/* Floating Photo Counter */
+.tw-pkg-gallery__counter {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2.5px 7px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.tw-pkg-gallery__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0F172A;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.tw-pkg-gallery__nav:hover {
+  background-color: #FFFFFF;
+  transform: translateY(-50%) scale(1.05);
+}
+
+.tw-pkg-gallery__nav--prev {
+  left: 10px;
+}
+
+.tw-pkg-gallery__nav--next {
+  right: 10px;
+}
+
+.tw-pkg-gallery__dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  z-index: 10;
+}
+
+.tw-pkg-gallery__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tw-pkg-gallery__dot.active {
+  background-color: #FFFFFF;
+  width: 16px;
+  border-radius: 3px;
+}
+
+/* 3. Package Main Info & Content */
+.tw-pkg-content-wrap {
+  padding: 14px 16px 0 16px;
+  background-color: #FFFFFF;
+}
+
+.tw-pkg-main-info {
+  margin-bottom: 12px;
+}
+
+.tw-pkg-travel-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tw-brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.tw-pkg-title {
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #0F172A;
+  margin: 0;
+}
+
+/* Price Card: Sleek compact summary card */
+.tw-pkg-price-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.tw-pkg-price-card__left {
+  display: flex;
+  flex-direction: column;
+}
+
+.tw-pkg-price-card__label {
+  font-size: 9.5px;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tw-pkg-price-card__amount {
+  font-family: var(--tw-font-heading);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--tw-brand-primary);
+  line-height: 1.2;
+}
+
+.tw-pkg-price-card__sublabel {
+  font-size: 10.5px;
+  color: #64748B;
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.tw-pkg-price-card__badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 10%, #FFFFFF);
+  color: var(--tw-brand-primary);
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 22%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3.5px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* Quick Specs Grid (Keberangkatan & Penerbangan - Clean standalone icons) */
+.tw-pkg-specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tw-pkg-spec-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.tw-pkg-spec-icon {
+  color: var(--tw-brand-primary);
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.tw-pkg-spec-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tw-pkg-spec-label {
+  font-size: 10px;
+  color: #64748B;
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.tw-pkg-spec-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+/* Package Description Section */
+.tw-pkg-desc-section {
+  padding: 0;
+  margin-bottom: 16px;
+}
+
+.tw-pkg-desc-title {
+  font-family: var(--tw-font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 6px;
+}
+
+.tw-pkg-desc-text {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+  word-break: break-word;
+}
+
+.tw-pkg-formatted-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.tw-pkg-text-paragraph {
+  margin: 0;
+  line-height: 1.6;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* 4. Seamless Underline Tabs (Identical to Home Rekomendasi B) */
+.tw-pkg-tabs-wrapper {
+  width: 100%;
+  border-bottom: 1px solid #F1F5F9;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+}
+
+.tw-pkg-tabs-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.tw-pkg-tabs-nav {
+  display: flex;
+  gap: 18px;
+  width: max-content;
+  padding: 0;
+}
+
+.tw-pkg-tab-btn {
+  position: relative;
+  padding: 4px 2px 10px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  background-color: transparent;
+  border: none;
+  margin-bottom: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.tw-pkg-tab-btn:hover {
+  color: #0F172A;
+}
+
+.tw-pkg-tab-btn.active {
+  color: var(--tw-brand-primary);
+  font-weight: 700;
+}
+
+.tw-pkg-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background-color: var(--tw-brand-primary);
+  border-radius: 2px 2px 0 0;
+}
+
+/* 5. Tab Content Panel */
+.tw-pkg-tab-panel {
+  padding: 0 0 16px 0;
+}
+
+/* TAB 1: Facilities View */
+.tw-pkg-facilities-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tw-facility-card {
+  padding: 14px;
+  border-radius: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+
+.tw-facility-header {
+  margin-bottom: 10px;
+}
+
+.tw-facility-title {
+  font-family: var(--tw-font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.tw-facility-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tw-facility-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.tw-facility-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tw-facility-icon--inc {
+  color: var(--tw-brand-primary);
+}
+
+.tw-facility-icon--exc {
+  color: #94A3B8;
+}
+
+/* TAB 2: Accommodation View */
+.tw-pkg-accommodation-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tw-accomm-section-header {
+  font-family: var(--tw-font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 8px;
+}
+
+.tw-hotel-card,
+.tw-flight-card {
+  padding: 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tw-hotel-card__row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tw-hotel-card__divider {
+  height: 1px;
+  background-color: #F1F5F9;
+}
+
+.tw-hotel-card__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tw-hotel-card__city-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tw-hotel-card__stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tw-hotel-star-icon {
+  flex-shrink: 0;
+}
+
+.tw-hotel-star-icon--filled {
+  color: #F59E0B;
+}
+
+.tw-hotel-star-icon--empty {
+  color: #CBD5E1;
+}
+
+.tw-hotel-card__name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.35;
+}
+
+.tw-flight-card__row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tw-flight-card__label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tw-flight-card__value {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.tw-flight-card__value--airline {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.tw-flight-card__divider {
+  height: 1px;
+  background-color: #F1F5F9;
+}
+
+/* TAB 3: Itinerary View */
+.tw-itinerary-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.tw-itinerary-item {
+  display: flex;
+  gap: 12px;
+}
+
+.tw-itinerary-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.tw-itinerary-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--tw-brand-primary);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+.tw-itinerary-line {
+  width: 2px;
+  flex: 1;
+  background-color: #E2E8F0;
+  margin: 3px 0;
+}
+
+.tw-itinerary-body {
+  flex: 1;
+  padding-bottom: 16px;
+}
+
+.tw-itinerary-title {
+  font-family: var(--tw-font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.tw-itinerary-text {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.55;
+  margin-top: 3px;
+  white-space: pre-line;
+}
+
+/* TAB 4: Terms View */
+.tw-terms-card {
+  padding: 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.tw-terms-header {
+  margin-bottom: 10px;
+}
+
+.tw-terms-title {
+  font-family: var(--tw-font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.tw-terms-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tw-terms-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.tw-terms-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--tw-brand-primary);
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+
+/* Empty State Helpers */
+.tw-pkg-empty-box {
+  padding: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: #64748B;
+  background-color: #F8FAFC;
+  border-radius: 8px;
+  border: 1px dashed #CBD5E1;
+}
+
+.tw-pkg-empty-text {
+  font-size: 12.5px;
+  color: #64748B;
+  margin: 0;
+}
+
+/* 6. Trust & Security Strip */
+.tw-pkg-trust-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  margin-top: 14px;
+  margin-bottom: 20px;
+}
+
+.tw-pkg-trust-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tw-pkg-trust-icon {
+  color: var(--tw-brand-primary);
+  flex-shrink: 0;
+}
+
+.tw-pkg-trust-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tw-pkg-trust-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tw-pkg-trust-sub {
+  font-size: 10px;
+  color: #64748B;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7. Public Footer override for Detail page */
+.tw-pkg-detail-page .tw-footer {
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  padding: 24px 16px 96px 16px;
+  color: #475569;
+}
+
+/* 9. STICKY BOTTOM ACTION BAR */
+.tw-pkg-sticky-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 428px;
+  margin: 0 auto;
+  width: 100%;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid #E2E8F0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.tw-pkg-sticky-price {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.tw-pkg-sticky-price__label {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+.tw-pkg-sticky-price__row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.tw-pkg-sticky-price__amount {
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--tw-brand-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.tw-pkg-sticky-price__unit {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #64748B;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Right: Tombol Konsultasi (UTAMA) */
+.tw-pkg-sticky-consult-btn {
+  flex: 0 0 auto;
+  width: auto;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  background-color: var(--tw-brand-primary);
+  color: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.tw-pkg-sticky-consult-btn:hover {
+  opacity: 0.9;
+}

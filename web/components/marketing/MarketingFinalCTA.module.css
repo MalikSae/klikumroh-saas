@@ -1,0 +1,120 @@
+.section {
+  background-color: var(--km-gold);
+  padding: 90px 220px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.eyebrow {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--km-mint);
+  text-transform: uppercase;
+}
+
+.headline {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--km-paper);
+  letter-spacing: -0.01em;
+  max-width: 780px;
+}
+
+.body {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--km-mint);
+  max-width: 620px;
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--km-paper);
+  color: var(--km-deep);
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 14px 28px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--km-deep) 20%, transparent);
+}
+
+.primaryBtn:hover {
+  background-color: var(--km-mint);
+  transform: translateY(-1px);
+}
+
+.secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  border: 1px solid var(--km-mint);
+  color: var(--km-paper);
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.secondaryBtn:hover {
+  background-color: color-mix(in srgb, var(--km-paper) 12%, transparent);
+  border-color: var(--km-paper);
+}
+
+@media (max-width: 1024px) {
+  .section {
+    padding: 72px 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 60px 20px;
+  }
+
+  .headline {
+    font-size: 28px;
+  }
+
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}

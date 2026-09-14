@@ -1,0 +1,53 @@
+.mkt-card {
+  background-color: var(--mkt-card-bg);
+  border: 1px solid var(--mkt-border);
+  border-radius: var(--mkt-radius-lg);
+  padding: 24px;
+  box-shadow: var(--mkt-shadow-sm);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mkt-card--hoverable:hover {
+  box-shadow: var(--mkt-shadow-md);
+  border-color: var(--mkt-border-strong);
+}
+
+.mkt-card--muted {
+  background-color: var(--mkt-page-bg-alt);
+  border-color: var(--mkt-border);
+}
+
+.mkt-card--dark {
+  background-color: var(--mkt-primary-dark);
+  border-color: var(--mkt-border-dark);
+  color: var(--mkt-card-bg);
+}
+
+.mkt-card--dark .mkt-card__title {
+  color: var(--mkt-card-bg);
+}
+
+.mkt-card--dark .mkt-card__subtitle {
+  color: var(--mkt-footer-text);
+}
+
+.mkt-card--accent-top {
+  border-top: 3px solid var(--mkt-accent);
+}
+
+.mkt-card__header {
+  margin-bottom: 16px;
+}
+
+.mkt-card__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mkt-text-primary);
+  line-height: 1.35;
+}
+
+.mkt-card__subtitle {
+  font-size: 14px;
+  color: var(--mkt-text-muted);
+  margin-top: 4px;
+}

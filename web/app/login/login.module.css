@@ -1,0 +1,285 @@
+.loginPage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--km-bg);
+  padding: 32px 20px;
+  font-family: var(--tw-font-body);
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  border-radius: var(--radius-md);
+  padding: 40px 32px;
+  box-shadow: var(--km-card-shadow);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.logoWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.title {
+  font-family: var(--tw-font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--km-ink);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--km-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--km-ink);
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-family: var(--tw-font-body);
+  color: var(--km-ink);
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--km-green);
+  box-shadow: 0 0 0 3px var(--tw-focus-ring);
+}
+
+.passwordInput {
+  padding-right: 44px;
+}
+
+.togglePasswordBtn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--km-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease;
+}
+
+.togglePasswordBtn:hover {
+  color: var(--km-ink);
+}
+
+.errorBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background-color: var(--tw-badge-danger-bg);
+  border: 1px solid var(--km-line);
+  color: var(--km-danger);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 22px;
+}
+
+.pendingBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background-color: var(--km-orange-soft);
+  border: 1px solid var(--km-orange);
+  color: var(--km-orange-dark);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.pendingTitle {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.submitBtn {
+  width: 100%;
+  height: 48px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--km-green);
+  color: var(--km-paper);
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background-color: var(--km-green-2);
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.footerLinks {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--km-line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+
+.signupPrompt {
+  font-size: 13px;
+  color: var(--km-muted);
+}
+
+.signupLink {
+  color: var(--km-green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.signupLink:hover {
+  color: var(--km-green-2);
+}
+
+.backHomeLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--km-muted);
+  transition: color 0.15s ease;
+}
+
+.backHomeLink:hover {
+  color: var(--km-ink);
+}
+
+.successCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.successIconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background-color: var(--km-mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--km-green);
+}
+
+.successTitle {
+  font-family: var(--tw-font-heading);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--km-ink);
+  margin: 0;
+}
+
+.successDesc {
+  font-size: 14px;
+  color: var(--km-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.dashboardRedirectBtn {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--km-green);
+  color: var(--km-paper);
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.dashboardRedirectBtn:hover {
+  background-color: var(--km-green-2);
+}
+
+.loadingCard {
+  text-align: center;
+  padding: 60px 32px;
+}
+
+.loadingSpinner {
+  color: var(--km-green);
+  margin: 0 auto;
+  animation: spin 1s linear infinite;
+}

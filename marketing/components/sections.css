@@ -1,0 +1,494 @@
+/* ==========================================================================
+   Section Layouts & Styling (KlikUmroh Marketing B2B)
+   All colors use CSS tokens (--mkt-*) mapping to design-tokens.json
+   ========================================================================== */
+
+/* Navbar (Sticky) */
+.mkt-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: var(--mkt-nav-bg);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--mkt-border-dark);
+}
+
+.mkt-navbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.mkt-navbar__logo {
+  font-family: var(--mkt-font-heading);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--mkt-card-bg);
+  letter-spacing: -0.02em;
+}
+
+.mkt-navbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.mkt-navbar__link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mkt-footer-text);
+  transition: color 0.15s ease;
+}
+
+.mkt-navbar__link:hover {
+  color: var(--mkt-card-bg);
+}
+
+.mkt-navbar__cta {
+  display: flex;
+  align-items: center;
+}
+
+/* Mobile Nav Toggle */
+.mkt-navbar__toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--mkt-card-bg);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mkt-navbar__nav {
+    display: none;
+  }
+  .mkt-navbar__toggle {
+    display: block;
+  }
+  .mkt-navbar__nav--open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background-color: var(--mkt-primary-dark);
+    padding: 20px 24px;
+    gap: 16px;
+    border-bottom: 1px solid var(--mkt-border-dark);
+  }
+}
+
+/* Hero Section */
+.mkt-hero {
+  background-color: var(--mkt-primary);
+  color: var(--mkt-card-bg);
+  padding-top: 88px;
+  padding-bottom: 88px;
+  border-bottom: 1px solid var(--mkt-border-dark);
+}
+
+.mkt-hero__content {
+  max-width: 860px;
+}
+
+.mkt-hero__headline {
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 800;
+  color: var(--mkt-card-bg);
+  line-height: 1.2;
+  margin-bottom: 20px;
+  letter-spacing: -0.025em;
+}
+
+.mkt-hero__subheadline {
+  font-size: clamp(17px, 2vw, 20px);
+  color: var(--mkt-footer-text);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.mkt-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mkt-hero__microcopy {
+  font-size: 13px;
+  color: var(--mkt-footer-text);
+  margin-top: 12px;
+}
+
+.mkt-hero__visual {
+  margin-top: 48px;
+}
+
+/* Section Header (Centered or Left) */
+.mkt-section-header {
+  margin-bottom: 48px;
+}
+
+.mkt-section-header--centered {
+  text-align: center;
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Grids */
+.mkt-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+}
+
+.mkt-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.mkt-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .mkt-grid-2,
+  .mkt-grid-3,
+  .mkt-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Problem Section */
+.mkt-problem-intro {
+  font-size: 17px;
+  color: var(--mkt-text-secondary);
+  line-height: 1.65;
+  margin-bottom: 36px;
+}
+
+.mkt-problem-closing {
+  font-family: var(--mkt-font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--mkt-accent);
+  margin-top: 24px;
+}
+
+/* Positioning Section */
+.mkt-positioning-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .mkt-positioning-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mkt-highlight-box {
+  background-color: var(--mkt-page-bg-alt);
+  border-left: 4px solid var(--mkt-accent);
+  padding: 18px 22px;
+  border-radius: var(--mkt-radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--mkt-text-primary);
+  margin-top: 24px;
+}
+
+/* Before vs After */
+.mkt-before-after {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .mkt-before-after {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mkt-before-box {
+  background-color: var(--mkt-card-bg);
+  border: 1px solid var(--mkt-border);
+  border-top: 3px solid var(--mkt-text-muted);
+  border-radius: var(--mkt-radius-lg);
+  padding: 24px;
+}
+
+.mkt-after-box {
+  background-color: var(--mkt-card-bg);
+  border: 1px solid var(--mkt-border);
+  border-top: 3px solid var(--mkt-accent-highlight);
+  border-radius: var(--mkt-radius-lg);
+  padding: 24px;
+  box-shadow: var(--mkt-shadow-sm);
+}
+
+.mkt-flow-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.mkt-flow-label--before {
+  color: var(--mkt-text-muted);
+}
+
+.mkt-flow-label--after {
+  color: var(--mkt-accent);
+}
+
+.mkt-flow-text {
+  font-size: 15px;
+  color: var(--mkt-text-primary);
+  line-height: 1.7;
+}
+
+.mkt-supporting-text {
+  font-size: 15px;
+  color: var(--mkt-text-secondary);
+  line-height: 1.6;
+}
+
+/* Steps Timeline (Cara Kerja) */
+.mkt-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+@media (max-width: 768px) {
+  .mkt-steps-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mkt-step-item {
+  background-color: var(--mkt-card-bg);
+  border: 1px solid var(--mkt-border);
+  border-radius: var(--mkt-radius-lg);
+  padding: 24px;
+  box-shadow: var(--mkt-shadow-sm);
+}
+
+.mkt-step-title {
+  font-family: var(--mkt-font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mkt-text-primary);
+  margin-bottom: 8px;
+}
+
+.mkt-step-desc {
+  font-size: 15px;
+  color: var(--mkt-text-secondary);
+  line-height: 1.6;
+}
+
+/* Comparison Table (Section 13) */
+.mkt-comparison-wrapper {
+  overflow-x: auto;
+  border-radius: var(--mkt-radius-lg);
+  border: 1px solid var(--mkt-border);
+  box-shadow: var(--mkt-shadow-sm);
+  background-color: var(--mkt-card-bg);
+  margin-bottom: 24px;
+}
+
+.mkt-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.mkt-comparison-table th {
+  padding: 16px 20px;
+  font-family: var(--mkt-font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  background-color: var(--mkt-page-bg-alt);
+  border-bottom: 1px solid var(--mkt-border);
+}
+
+.mkt-comparison-table th:first-child {
+  width: 48%;
+  color: var(--mkt-text-muted);
+}
+
+.mkt-comparison-table th:last-child {
+  width: 52%;
+  color: var(--mkt-accent);
+  background-color: var(--mkt-badge-bg);
+}
+
+.mkt-comparison-table td {
+  padding: 14px 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--mkt-border);
+}
+
+.mkt-comparison-table td:first-child {
+  color: var(--mkt-text-secondary);
+  background-color: var(--mkt-card-bg);
+}
+
+.mkt-comparison-table td:last-child {
+  font-weight: 500;
+  color: var(--mkt-text-primary);
+  background-color: var(--mkt-table-accent-bg);
+}
+
+.mkt-comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* FAQ Item */
+.mkt-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mkt-faq-item {
+  background-color: var(--mkt-card-bg);
+  border: 1px solid var(--mkt-border);
+  border-radius: var(--mkt-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--mkt-shadow-sm);
+}
+
+.mkt-faq-item summary {
+  padding: 20px 24px;
+  font-family: var(--mkt-font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mkt-text-primary);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mkt-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.mkt-faq-item[open] summary {
+  border-bottom: 1px solid var(--mkt-border);
+  color: var(--mkt-accent);
+}
+
+.mkt-faq-answer {
+  padding: 20px 24px;
+  font-size: 15px;
+  color: var(--mkt-text-secondary);
+  line-height: 1.65;
+  text-align: left;
+}
+
+/* Final CTA */
+.mkt-final-cta {
+  background-color: var(--mkt-primary);
+  color: var(--mkt-card-bg);
+  text-align: center;
+  padding-top: 80px;
+  padding-bottom: 80px;
+  position: relative;
+}
+
+.mkt-final-cta .mkt-headline {
+  color: var(--mkt-card-bg);
+}
+
+.mkt-final-cta .mkt-subheadline {
+  color: var(--mkt-footer-text);
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 32px;
+}
+
+/* Footer (Section 19) */
+.mkt-footer {
+  background-color: var(--mkt-footer-bg);
+  color: var(--mkt-footer-text);
+  padding-top: 64px;
+  padding-bottom: 36px;
+  font-size: 14px;
+}
+
+.mkt-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 48px;
+}
+
+@media (max-width: 768px) {
+  .mkt-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+.mkt-footer-brand h3 {
+  color: var(--mkt-card-bg);
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.mkt-footer-col h4 {
+  color: var(--mkt-card-bg);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.mkt-footer-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mkt-footer-links a {
+  color: var(--mkt-footer-text);
+  transition: color 0.15s ease;
+}
+
+.mkt-footer-links a:hover {
+  color: var(--mkt-card-bg);
+}
+
+.mkt-footer-bottom {
+  border-top: 1px solid var(--mkt-border-dark);
+  padding-top: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--mkt-footer-text);
+}

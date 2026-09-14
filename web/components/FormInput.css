@@ -1,0 +1,91 @@
+.tw-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.tw-form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tw-text-primary);
+}
+
+.tw-form-label__required {
+  color: var(--tw-brand-primary);
+  margin-left: 2px;
+}
+
+.tw-form-input,
+.tw-form-select,
+.tw-form-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--tw-text-primary);
+  background-color: var(--tw-background);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tw-form-input:hover:not(:disabled),
+.tw-form-select:hover:not(:disabled),
+.tw-form-textarea:hover:not(:disabled) {
+  border-color: var(--tw-brand-primary);
+}
+
+.tw-form-input:focus,
+.tw-form-select:focus,
+.tw-form-textarea:focus {
+  border-color: var(--tw-brand-primary);
+  box-shadow: 0 0 0 3px var(--tw-focus-ring);
+}
+
+.tw-form-input--error,
+.tw-form-select--error,
+.tw-form-textarea--error {
+  border-color: var(--tw-brand-secondary);
+}
+
+.tw-form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.tw-form-error {
+  font-size: 12px;
+  color: var(--tw-brand-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.tw-form-hint {
+  font-size: 12px;
+  color: var(--tw-brand-secondary);
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.tw-terms-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style-type: decimal;
+}
+
+.tw-terms-list li {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tw-text-primary);
+  padding-left: 4px;
+}
+
+.tw-terms-list li::marker {
+  color: var(--tw-brand-primary);
+  font-weight: 600;
+}

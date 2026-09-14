@@ -1,0 +1,66 @@
+.db-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: var(--font-weight-medium, 500);
+  border-radius: var(--radius-sm, 6px);
+  line-height: 1.2;
+}
+
+/* Trend & generic indicator badges */
+.db-badge--positive {
+  background-color: var(--db-status-closing-bg);
+  color: var(--db-status-closing);
+  border: 1px solid var(--db-status-closing-border);
+}
+
+.db-badge--negative {
+  background-color: var(--db-status-lost-bg);
+  color: var(--db-status-lost);
+  border: 1px solid var(--db-status-lost-border);
+}
+
+.db-badge--neutral {
+  background-color: var(--db-surface);
+  color: var(--db-text-muted);
+  border: 1px solid var(--db-border);
+}
+
+/* Pipeline semantic statuses (Option B: Subtle Border + Soft Tint) */
+.db-badge--new {
+  background-color: var(--db-status-new-bg);
+  color: var(--db-status-new);
+  border: 1px solid var(--db-status-new-border);
+}
+
+.db-badge--contacted {
+  background-color: var(--db-status-contacted-bg);
+  color: var(--db-status-contacted);
+  border: 1px solid var(--db-status-contacted-border);
+}
+
+.db-badge--interested {
+  background-color: var(--db-status-interested-bg);
+  color: var(--db-status-interested);
+  border: 1px solid var(--db-status-interested-border);
+}
+
+.db-badge--closing {
+  background-color: var(--db-status-closing-bg);
+  color: var(--db-status-closing);
+  border: 1px solid var(--db-status-closing-border);
+}
+
+.db-badge--lost {
+  background-color: var(--db-status-lost-bg);
+  color: var(--db-status-lost);
+  border: 1px solid var(--db-status-lost-border);
+}
+
+.db-badge__icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+}
