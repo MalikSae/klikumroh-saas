@@ -140,23 +140,18 @@ cd dashboard
 npm install
 npm run dev
 ```
-Buka browser di `http://localhost:5173`.
+Buka browser di `http://localhost:5175`.
 
-### B. Web Publik Whitelabel Travel (`/web`)
+### B. Web Publik Whitelabel & Portal Utama (`/web`)
 ```bash
 cd web
 npm install
 npm run dev
 ```
-Buka browser di `http://localhost:3000`.
-
-### C. Landing Page Marketing (`/marketing`)
-```bash
-cd marketing
-npm install
-npm run dev -- -p 3001
-```
-Buka browser di `http://localhost:3001`.
+Buka browser:
+- Marketing & Landing Page: `http://localhost:3000/marketing`
+- Login Admin Travel: `http://localhost:3000/login`
+- Web Whitelabel Tenant: `http://localhost:3000` (atau via subdomain travel)
 
 ---
 

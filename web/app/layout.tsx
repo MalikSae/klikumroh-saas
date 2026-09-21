@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Nunito, Roboto } from 'next/font/google';
+import { Plus_Jakarta_Sans, Roboto } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 import '../components/FormInput.css';
 import { TravelAgencyJsonLd } from '../components/TravelAgencyJsonLd';
 
-const nunito = Nunito({
+const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--tw-font-heading',
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
@@ -157,14 +157,14 @@ export default async function RootLayout({
     : '/favicon.ico';
 
   return (
-    <html lang="id" className={`${nunito.variable} ${roboto.variable}`} style={styleObj}>
+    <html lang="id" className={`${plusJakartaSans.variable} ${roboto.variable}`} style={styleObj} suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/png" href={iconUrl} />
         <link rel="shortcut icon" href={iconUrl} />
         <link rel="apple-touch-icon" href={iconUrl} />
         <TravelAgencyJsonLd tenantInfo={tenantInfo} host={host} />
       </head>
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

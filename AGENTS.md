@@ -63,7 +63,11 @@ Aturan umum:
 
 - **Dilarang keras** memakai emoji atau simbol Unicode (▲ ▼ ✓ ✗ 🕋 📅 👥 dll) di mana pun sebagai pengganti ikon fungsional atau dekoratif — baik di dashboard maupun web publik. Ini termasuk pemakaian sebagai placeholder "sementara".
 - **Wajib** pakai `lucide-react` untuk semua kebutuhan ikon (panah indikator, kalender, jumlah orang, plus/tambah, placeholder gambar, dll). Warna ikon ikut `currentColor` atau CSS var yang relevan (`--db-positive`, `--db-negative`, dst) — bukan warna hardcoded terpisah dari ikon.
-- **Font wajib**: `Nunito` untuk heading/display text, `Roboto` untuk body text — di kedua project (dashboard dan web publik). Dimuat via `next/font/google` di `/web` dan `@fontsource` di `/dashboard` (bukan link CDN eksternal saat runtime).
+- **Font wajib**: `Plus Jakarta Sans` untuk heading/display text, `Roboto` untuk body text — di kedua project (dashboard dan web publik). Dimuat via `next/font/google` di `/web` dan `@fontsource` di `/dashboard` (bukan link CDN eksternal saat runtime).
+- **Aturan Penggunaan Font Dashboard**:
+  - `Plus Jakarta Sans`: Khusus elemen struktural & display (Judul Halaman `h1`/22px, Judul Kartu/Panel `h2`/16px, Judul Modal/18px, Angka Metrik Utama/KPI 28px bold, Wordmark Brand, dan Tombol CTA Utama).
+  - `Roboto`: Khusus teks fungsional UI & data density (seluruh cell tabel `td`, header kolom `th`, input formulir & labels, teks body/paragraf, menu navigasi sidebar, badges, tooltips, dan timestamp).
+- **Batasan Bobot (Font Weights)**: Gunakan HANYA 4 bobot standar: Regular (`400`), Medium (`500`), Semibold (`600`), dan Bold (`700`). DILARANG memakai `800` atau `900` pada seluruh elemen UI (satu-satunya pengecualian adalah teks "Klik" di logo brand sidebar).
 - Enforcement otomatis: script cek emoji/simbol (mirip `check-hardcoded-colors.js`) wajib ada dan dijalankan di CI/lint, supaya pelanggaran ketahuan sebelum merge, bukan lewat review visual manual.
 
 
@@ -130,6 +134,16 @@ Disarikan dari riset publik soal ciri-ciri desain yang gampang ketauan "asal dib
 
 **Warna:**
 - Hindari pastel di semua elemen — tint warna cuma buat elemen sekunder, bukan default di mana-mana.
+
+### 3.11 Standar Desain & UX Super Admin Dashboard (SaaS Owner Standard)
+
+Khusus modul Super Admin / Staff Portal (`/internal/*`):
+- **Card Digunakan Seperlunya (Anti-Card-Fatigue):** Card hanya digunakan jika ada kebutuhan logis pengelompokan (misal: Stat Card metrik KPI bisnis, panel spesifikasi rincian tenant, modal). Jangan membungkus SEMUA elemen menjadi kartu berhamburan. Tabel data harus menyatu langsung dalam satu kontainer data grid terpadu (*Integrated Data Panel*).
+- **UX Copy Proporsional & Tooltip untuk Konteks Panjang:** Judul halaman dan sub-judul ringkas 1 baris yang proporsional diperbolehkan untuk memberikan konteks sekilas. Namun dilarang membuat paragraf pembuka panjang yang bertele-tele di bawah judul; jika ada instruksi, istilah teknis, atau rincian yang butuh penjelasan panjang, WAJIB gunakan Tooltip interaktif agar antarmuka tetap bersih dan luas.
+- **Dilarang Seksi Redundan "Aksi Cepat":** Jangan membuat kartu atau tombol "Aksi Cepat" yang isinya hanya mengulang menu yang sudah ada di sidebar.
+- **Tipografi Brand Tanpa Logo Gambar:** Di sidebar super admin, gunakan tipografi brand teks bersih (`KlikUmroh` + badge `OWNER` / `ADMIN`), dilarang memasang logo gambar clunky di sidebar internal.
+- **Warna Hover & State Aktif 100% Kontras:** Item navigasi aktif wajib solid charcoal (`#0F172A` / `#18181B`) dengan teks putih murni (`#FFFFFF`). Saat kursor di-hover ke item aktif, dilarang ada bug warna teks memudar atau berubah jadi teks putih di atas background abu-abu terang.
+- **No-Wrap pada Data Grid:** Semua kolom data tabel super admin wajib `white-space: nowrap` dengan scrolling horizontal responsif, mencegah teks wrap bertumpuk yang merusak baris.
 
 ## 4. Struktur Folder (Acuan)
 
@@ -225,6 +239,11 @@ go run .
 | Menjalankan migrasi database saat server API cmd/api aktif | Matikan server API terlebih dahulu sebelum migrasi (lihat 5.1) |
 | Mengeksekusi DDL ALTER TABLE manual di luar script migrasi | Selalu tulis skema di folder migrations/ dan jalankan lewat runner |
 | Mengubah constraint email admin_users jadi per-tenant | Email admin_users WAJIB unik global karena login satu pintu terpusat di klikumroh.id |
+| Membungkus semua elemen menjadi kartu tanpa hierarki logis | Gunakan card seperlunya saja, satukan tabel ke integrated data panel (lihat 3.11) |
+| Menulis paragraf pembuka bertele-tele di bawah judul | Gunakan judul + sub-judul 1 baris proporsional, pakai Tooltip jika butuh penjelasan panjang (lihat 3.11) |
+| Menambah seksi "Aksi Cepat" yang menduplikasi menu sidebar | Hapus aksi cepat duplikat, biarkan navigasi lewat sidebar (lihat 3.11) |
+| Memasang logo gambar besar/clunky di sidebar super admin | Pakai tipografi brand teks bersih + badge (lihat 3.11) |
+| Mengabaikan kontras hover navigasi aktif sehingga teks memudar | Pastikan hover active tetap solid charcoal dengan teks putih murni (lihat 3.11) |
 
 ---
 

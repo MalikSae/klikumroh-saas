@@ -40,3 +40,7 @@ uploads/
 # TypeScript & Cache
 *.tsbuildinfo
 *.log
+
+# Scratch
+scratch/
+
