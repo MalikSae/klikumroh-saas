@@ -74,8 +74,27 @@ func (m *mockStaffRepo) DeleteSession(ctx context.Context, token string) error {
 	return nil
 }
 
-func (m *mockStaffRepo) ListAllTenants(ctx context.Context) ([]repository.StaffTenantItem, error) {
+func (m *mockStaffRepo) ListAllTenants(ctx context.Context, statusFilter ...string) ([]repository.StaffTenantItem, error) {
 	return m.allTenants, nil
+}
+
+func (m *mockStaffRepo) ListStaffUsers(ctx context.Context) ([]repository.StaffUser, error) {
+	list := make([]repository.StaffUser, 0, len(m.staffUsers))
+	for _, u := range m.staffUsers {
+		list = append(list, *u)
+	}
+	return list, nil
+}
+
+func (m *mockStaffRepo) Update(ctx context.Context, user *repository.StaffUser) error {
+	for k, u := range m.staffUsers {
+		if u.ID == user.ID {
+			delete(m.staffUsers, k)
+			break
+		}
+	}
+	m.staffUsers[user.Email] = user
+	return nil
 }
 
 // mockPricingPlanRepo implements repository.PricingPlanRepository for cross-auth tests.

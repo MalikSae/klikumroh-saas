@@ -27,8 +27,8 @@ func SubscriptionEnforcementMiddleware(tenantRepo repository.TenantRepository) f
 				return
 			}
 
-			// GET (as well as standard read-only methods OPTIONS, HEAD) are always allowed
-			if r.Method == http.MethodGet || r.Method == http.MethodOptions || r.Method == http.MethodHead {
+			// Pre-flight OPTIONS always passes through
+			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -47,7 +47,7 @@ func SubscriptionEnforcementMiddleware(tenantRepo repository.TenantRepository) f
 				return
 			}
 
-			// If tenant is pending, block modification requests until payment is approved
+			// If tenant is pending, block all requests (including GET) until payment is approved
 			if tenant.Status == "pending" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusPaymentRequired)
@@ -57,13 +57,19 @@ func SubscriptionEnforcementMiddleware(tenantRepo repository.TenantRepository) f
 				return
 			}
 
-			// If tenant is inactive, block modification requests
+			// If tenant is inactive, block all requests
 			if tenant.Status == "inactive" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusPaymentRequired)
 				_ = json.NewEncoder(w).Encode(map[string]string{
 					"error": "Akun travel Anda sedang tidak aktif. Hubungi tim KlikUmroh untuk mengaktifkan kembali.",
 				})
+				return
+			}
+
+			// For active tenants: GET and HEAD are always allowed (read-only access even if expired)
+			if r.Method == http.MethodGet || r.Method == http.MethodHead {
+				next.ServeHTTP(w, r)
 				return
 			}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -52,9 +53,12 @@ type StaffRepository interface {
 	FindSessionByToken(ctx context.Context, token string) (*StaffSession, *StaffUser, error)
 	DeleteSession(ctx context.Context, token string) error
 
-	// ListAllTenants retrieves all tenants with their active subscription plan details across the platform.
+	// ListAllTenants retrieves all tenants across the platform.
 	// SPECIAL EXCEPTION: Staff users legitimately have cross-tenant platform visibility.
-	ListAllTenants(ctx context.Context) ([]StaffTenantItem, error)
+	ListAllTenants(ctx context.Context, statusFilter ...string) ([]StaffTenantItem, error)
+
+	ListStaffUsers(ctx context.Context) ([]StaffUser, error)
+	Update(ctx context.Context, user *StaffUser) error
 }
 
 type mysqlStaffRepository struct {
@@ -205,7 +209,7 @@ func (r *mysqlStaffRepository) DeleteSession(ctx context.Context, token string) 
 	return err
 }
 
-func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context) ([]StaffTenantItem, error) {
+func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter ...string) ([]StaffTenantItem, error) {
 	query := `
 		SELECT 
 			t.id, 
@@ -219,7 +223,6 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context) ([]StaffTenan
 			(SELECT hostname FROM domains WHERE tenant_id = t.id AND type = 'custom' LIMIT 1) AS custom_domain
 		FROM tenants t
 		LEFT JOIN pricing_plans p ON t.current_plan_id = p.id
-		WHERE t.status != 'pending' AND t.current_plan_id IS NOT NULL
 		ORDER BY t.created_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query)
@@ -227,6 +230,11 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context) ([]StaffTenan
 		return nil, err
 	}
 	defer rows.Close()
+
+	var filter string
+	if len(statusFilter) > 0 {
+		filter = strings.TrimSpace(strings.ToLower(statusFilter[0]))
+	}
 
 	items := make([]StaffTenantItem, 0)
 	now := time.Now()
@@ -269,6 +277,10 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context) ([]StaffTenan
 		// Calculate subscription status
 		if item.Status == "pending" {
 			item.SubscriptionStatus = "pending"
+		} else if item.Status == "suspended" || item.Status == "inactive" {
+			item.SubscriptionStatus = "suspended"
+		} else if item.CurrentPlan == nil && item.PlanName == nil {
+			item.SubscriptionStatus = "no_plan"
 		} else if item.SubscriptionExpiresAt != nil && item.SubscriptionExpiresAt.Before(now) {
 			item.SubscriptionStatus = "expired"
 		} else if item.Status == "active" {
@@ -276,7 +288,22 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context) ([]StaffTenan
 		} else if item.Status != "" {
 			item.SubscriptionStatus = item.Status
 		} else {
-			item.SubscriptionStatus = "trial"
+			item.SubscriptionStatus = "pending"
+		}
+
+		// Apply optional status filter
+		if filter != "" && filter != "all" {
+			if filter == "no_plan" {
+				if item.SubscriptionStatus != "no_plan" {
+					continue
+				}
+			} else if filter == "active" {
+				if item.SubscriptionStatus != "active" {
+					continue
+				}
+			} else if item.SubscriptionStatus != filter && item.Status != filter {
+				continue
+			}
 		}
 
 		items = append(items, item)
@@ -284,3 +311,64 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context) ([]StaffTenan
 
 	return items, rows.Err()
 }
+
+func (r *mysqlStaffRepository) ListStaffUsers(ctx context.Context) ([]StaffUser, error) {
+	query := `
+		SELECT id, name, email, password_hash, status, created_at, updated_at
+		FROM staff_users
+		ORDER BY id ASC
+	`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []StaffUser
+	for rows.Next() {
+		var u StaffUser
+		if err := rows.Scan(
+			&u.ID,
+			&u.Name,
+			&u.Email,
+			&u.PasswordHash,
+			&u.Status,
+			&u.CreatedAt,
+			&u.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
+}
+
+func (r *mysqlStaffRepository) Update(ctx context.Context, user *StaffUser) error {
+	query := `
+		UPDATE staff_users
+		SET name = ?, email = ?, password_hash = ?, status = ?
+		WHERE id = ?
+	`
+	res, err := r.db.ExecContext(ctx, query,
+		user.Name,
+		user.Email,
+		user.PasswordHash,
+		user.Status,
+		user.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+

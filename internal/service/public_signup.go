@@ -9,6 +9,7 @@ import (
 	"net/mail"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -48,6 +49,16 @@ var reservedSlugs = map[string]bool{
 	"public":    true,
 	"auth":      true,
 	"login":     true,
+	"staging":   true,
+	"cdn":       true,
+	"support":   true,
+	"billing":   true,
+	"root":      true,
+	"null":      true,
+	"undefined": true,
+	"static":    true,
+	"assets":    true,
+	"help":      true,
 }
 
 // TenantSignupRequest represents input payload for new travel self-registration.
@@ -65,17 +76,38 @@ type TenantSignupRequest struct {
 // TenantSignupResult represents the output of a successful self-registration.
 type TenantSignupResult struct {
 	PaymentVerificationID uint64  `json:"payment_verification_id"`
+	PublicToken           string  `json:"public_token"`
 	FinalAmount           float64 `json:"final_amount"`
 	UniqueCode            int     `json:"unique_code"`
 	TenantID              uint64  `json:"tenant_id"`
 	TravelName            string  `json:"travel_name"`
+	TenantSlug            string  `json:"tenant_slug"`
+	IsInstantActive       bool    `json:"is_instant_active"`
+}
+
+// VerificationStatusResult holds public verification status details for onboarding payment check.
+type VerificationStatusResult struct {
+	PublicToken      string  `json:"public_token"`
+	TenantName       string  `json:"tenant_name"`
+	TenantSlug       string  `json:"tenant_slug"`
+	TenantWhatsApp   *string `json:"tenant_whatsapp,omitempty"`
+	PlanID           uint64  `json:"plan_id"`
+	PlanName         string  `json:"plan_name"`
+	PlanPeriodMonths int     `json:"plan_period_months"`
+	Amount           float64 `json:"amount"`
+	FinalAmount      float64 `json:"final_amount"`
+	UniqueCode       int     `json:"unique_code"`
+	ProofURL         *string `json:"proof_url"`
+	Status           string  `json:"status"`
+	RejectionReason  *string `json:"rejection_reason,omitempty"`
 }
 
 // PublicSignupService handles public registration, slug check, and payment proof upload.
 type PublicSignupService interface {
 	CheckSlug(ctx context.Context, slug string) (bool, string, error)
 	TenantSignup(ctx context.Context, req TenantSignupRequest) (*TenantSignupResult, error)
-	UploadProof(ctx context.Context, verificationID uint64, fileBytes []byte) (string, error)
+	UploadProof(ctx context.Context, identifier string, fileBytes []byte) (string, error)
+	GetVerificationStatus(ctx context.Context, identifier string) (*VerificationStatusResult, error)
 }
 
 type publicSignupService struct {
@@ -279,24 +311,41 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 
 	return &TenantSignupResult{
 		PaymentVerificationID: pv.ID,
+		PublicToken:           pv.PublicToken,
 		FinalAmount:           pv.FinalAmount,
 		UniqueCode:            pv.UniqueCode,
 		TenantID:              tenant.ID,
 		TravelName:            tenant.Name,
+		TenantSlug:            tenant.Slug,
+		IsInstantActive:       false,
 	}, nil
 }
 
-func (s *publicSignupService) UploadProof(ctx context.Context, verificationID uint64, fileBytes []byte) (string, error) {
+func (s *publicSignupService) UploadProof(ctx context.Context, identifier string, fileBytes []byte) (string, error) {
 	if len(fileBytes) == 0 {
 		return "", ErrEmptyProofFile
 	}
 
-	pv, err := s.pvRepo.GetByID(ctx, verificationID)
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" {
+		return "", ErrVerificationNotFound
+	}
+
+	// Cari verifikasi berdasarkan public_token aman terlebih dahulu
+	pv, err := s.pvRepo.GetByPublicToken(ctx, identifier)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return "", ErrVerificationNotFound
+			// Fallback jika berupa numeric ID (backward compatibility)
+			if numID, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
+				pv, err = s.pvRepo.GetByID(ctx, numID)
+			}
 		}
-		return "", err
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return "", ErrVerificationNotFound
+			}
+			return "", err
+		}
 	}
 
 	if pv.Status != "pending" && pv.Status != "rejected" {
@@ -322,4 +371,44 @@ func (s *publicSignupService) UploadProof(ctx context.Context, verificationID ui
 	}
 
 	return relPath, nil
+}
+
+func (s *publicSignupService) GetVerificationStatus(ctx context.Context, identifier string) (*VerificationStatusResult, error) {
+	identifier = strings.TrimSpace(identifier)
+	if identifier == "" {
+		return nil, ErrVerificationNotFound
+	}
+
+	// Cari verifikasi berdasarkan public_token aman terlebih dahulu
+	pv, err := s.pvRepo.GetByPublicToken(ctx, identifier)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			// Fallback jika berupa numeric ID (backward compatibility)
+			if numID, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
+				pv, err = s.pvRepo.GetByID(ctx, numID)
+			}
+		}
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, ErrVerificationNotFound
+			}
+			return nil, err
+		}
+	}
+
+	return &VerificationStatusResult{
+		PublicToken:      pv.PublicToken,
+		TenantName:       pv.TenantName,
+		TenantSlug:       pv.TenantSlug,
+		TenantWhatsApp:   pv.TenantWhatsApp,
+		PlanID:           pv.PlanID,
+		PlanName:         pv.PlanName,
+		PlanPeriodMonths: pv.PlanPeriodMonths,
+		Amount:           pv.Amount,
+		FinalAmount:      pv.FinalAmount,
+		UniqueCode:       pv.UniqueCode,
+		ProofURL:         pv.ProofURL,
+		Status:           pv.Status,
+		RejectionReason:  pv.RejectionReason,
+	}, nil
 }

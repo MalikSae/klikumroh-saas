@@ -151,7 +151,12 @@ func (r *mysqlPricingPlanRepository) Update(ctx context.Context, plan *PricingPl
 
 func (r *mysqlPricingPlanRepository) CountTenantsUsingPlan(ctx context.Context, id uint64) (int, error) {
 	var count int
-	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM tenants WHERE current_plan_id = ?", id).Scan(&count)
+	query := `
+		SELECT 
+			(SELECT COUNT(*) FROM tenants WHERE current_plan_id = ?) +
+			(SELECT COUNT(*) FROM payment_verifications WHERE plan_id = ?)
+	`
+	err := r.db.QueryRowContext(ctx, query, id, id).Scan(&count)
 	return count, err
 }
 

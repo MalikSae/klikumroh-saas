@@ -54,6 +54,8 @@ type SubscriptionService interface {
 	ListStaffVerifications(ctx context.Context, statusFilter string, tenantID ...uint64) ([]repository.PaymentVerification, error)
 	ApproveVerification(ctx context.Context, id uint64, staffUserID uint64) error
 	RejectVerification(ctx context.Context, id uint64, reason string, staffUserID uint64) error
+	UpdateVerificationPlan(ctx context.Context, verificationID uint64, newPlanID uint64, staffUserID uint64) (*repository.PaymentVerification, error)
+	UpdateVerificationCoupon(ctx context.Context, verificationID uint64, couponCode *string, staffUserID uint64) (*repository.PaymentVerification, error)
 	SetContentRepos(pkgRepo repository.PackageRepository, faqRepo repository.FAQRepository)
 }
 
@@ -144,8 +146,8 @@ func (s *subscriptionService) GetSubscriptionInfo(ctx context.Context, tenantID 
 			}
 		}
 	} else {
-		// If no expiry date set, consider active if status is 'active' or 'trial'
-		info.IsActive = tenant.Status == "active" || tenant.Status == "trial"
+		// If no expiry date set, consider active if status is 'active'
+		info.IsActive = tenant.Status == "active"
 		info.DaysRemaining = 0
 		info.IsSubscriptionExpired = false
 		info.GracePeriodDaysRemaining = 7
@@ -467,4 +469,121 @@ func (s *subscriptionService) RejectVerification(ctx context.Context, id uint64,
 
 	now := time.Now()
 	return s.pvRepo.UpdateStatus(ctx, pv.ID, "rejected", &trimmedReason, &staffUserID, &now)
+}
+
+func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verificationID uint64, newPlanID uint64, staffUserID uint64) (*repository.PaymentVerification, error) {
+	pv, err := s.pvRepo.GetByID(ctx, verificationID)
+	if err != nil {
+		return nil, err
+	}
+	if pv.Status != "pending" {
+		return nil, ErrVerificationAlreadyDone
+	}
+
+	newPlan, err := s.planRepo.GetByID(ctx, newPlanID)
+	if err != nil {
+		return nil, ErrPlanNotFound
+	}
+
+	baseAmount := newPlan.Price
+	discountedAmount := baseAmount
+
+	// Revalidate coupon if previously applied
+	validCouponCode := pv.CouponCode
+	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" && s.couponService != nil {
+		coupon, err := s.couponService.Validate(ctx, *pv.CouponCode, newPlan.ID)
+		if err == nil && coupon != nil {
+			discount := (coupon.DiscountPercentage / 100.0) * baseAmount
+			discountedAmount = math.Round(baseAmount - discount)
+			if discountedAmount < 0 {
+				discountedAmount = 0
+			}
+			validCouponCode = &coupon.Code
+		} else {
+			validCouponCode = nil
+			discountedAmount = baseAmount
+		}
+	}
+
+	uniqueCode := pv.UniqueCode
+	finalAmount := discountedAmount
+	if discountedAmount > 0 {
+		if uniqueCode <= 0 {
+			uniqueCode = rand.Intn(900) + 100
+		}
+		finalAmount = discountedAmount + float64(uniqueCode)
+	} else {
+		uniqueCode = 0
+		finalAmount = 0
+	}
+
+	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, newPlan.ID, validCouponCode, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
+		return nil, err
+	}
+
+	updatedPV, err := s.pvRepo.GetByID(ctx, pv.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedPV, nil
+}
+
+// UpdateVerificationCoupon allows staff to apply or remove a coupon code on a pending verification.
+// The plan stays unchanged; only the coupon and resulting final_amount are updated.
+func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, verificationID uint64, couponCode *string, staffUserID uint64) (*repository.PaymentVerification, error) {
+	pv, err := s.pvRepo.GetByID(ctx, verificationID)
+	if err != nil {
+		return nil, err
+	}
+	if pv.Status != "pending" {
+		return nil, ErrVerificationAlreadyDone
+	}
+
+	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
+	if err != nil {
+		return nil, ErrPlanNotFound
+	}
+
+	baseAmount := plan.Price
+	discountedAmount := baseAmount
+	var validCouponCode *string
+
+	// Apply coupon if provided
+	if couponCode != nil && strings.TrimSpace(*couponCode) != "" && s.couponService != nil {
+		coupon, err := s.couponService.Validate(ctx, strings.TrimSpace(*couponCode), plan.ID)
+		if err != nil {
+			return nil, err
+		}
+		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
+		discountedAmount = math.Round(baseAmount - discount)
+		if discountedAmount < 0 {
+			discountedAmount = 0
+		}
+		code := strings.TrimSpace(*couponCode)
+		validCouponCode = &code
+	}
+	// couponCode == nil means remove coupon (use full price)
+
+	uniqueCode := pv.UniqueCode
+	finalAmount := discountedAmount
+	if discountedAmount > 0 {
+		if uniqueCode <= 0 {
+			uniqueCode = rand.Intn(900) + 100
+		}
+		finalAmount = discountedAmount + float64(uniqueCode)
+	} else {
+		uniqueCode = 0
+		finalAmount = 0
+	}
+
+	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, pv.PlanID, validCouponCode, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
+		return nil, err
+	}
+
+	updatedPV, err := s.pvRepo.GetByID(ctx, pv.ID)
+	if err != nil {
+		return nil, err
+	}
+	return updatedPV, nil
 }

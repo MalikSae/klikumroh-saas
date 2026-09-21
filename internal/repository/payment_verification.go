@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 )
@@ -11,9 +13,11 @@ import (
 type PaymentVerification struct {
 	ID               uint64     `json:"id"`
 	TenantID         uint64     `json:"tenant_id"`
+	PublicToken      string     `json:"public_token"`
 	TenantName       string     `json:"tenant_name,omitempty"`
 	TenantSlug       string     `json:"tenant_slug,omitempty"`
 	TenantWhatsApp   *string    `json:"tenant_whatsapp,omitempty"`
+	TenantEmail      *string    `json:"tenant_email,omitempty"`
 	PlanID           uint64     `json:"plan_id"`
 	PlanName         string     `json:"plan_name,omitempty"`
 	PlanPeriodMonths int        `json:"plan_period_months,omitempty"`
@@ -36,6 +40,7 @@ type PaymentVerificationRepository interface {
 	ListByTenant(ctx context.Context, tenantID uint64) ([]PaymentVerification, error)
 	ListAll(ctx context.Context, statusFilter string) ([]PaymentVerification, error)
 	GetByID(ctx context.Context, id uint64) (*PaymentVerification, error)
+	GetByPublicToken(ctx context.Context, token string) (*PaymentVerification, error)
 	Create(ctx context.Context, pv *PaymentVerification) error
 	UpdateStatus(ctx context.Context, id uint64, status string, rejectionReason *string, reviewedBy *uint64, reviewedAt *time.Time) error
 	UpdateProofURL(ctx context.Context, id uint64, proofURL string) error
@@ -55,7 +60,9 @@ func NewPaymentVerificationRepository(db *sql.DB) PaymentVerificationRepository 
 func (r *mysqlPaymentVerificationRepository) ListByTenant(ctx context.Context, tenantID uint64) ([]PaymentVerification, error) {
 	query := `
 		SELECT 
-			pv.id, pv.tenant_id, t.name, t.slug, t.whatsapp_number, pv.plan_id, p.name, p.period_months,
+			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
+			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
+			pv.plan_id, p.name, p.period_months,
 			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
@@ -77,7 +84,9 @@ func (r *mysqlPaymentVerificationRepository) ListByTenant(ctx context.Context, t
 func (r *mysqlPaymentVerificationRepository) ListAll(ctx context.Context, statusFilter string) ([]PaymentVerification, error) {
 	query := `
 		SELECT 
-			pv.id, pv.tenant_id, t.name, t.slug, t.whatsapp_number, pv.plan_id, p.name, p.period_months,
+			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
+			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
+			pv.plan_id, p.name, p.period_months,
 			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
@@ -104,7 +113,9 @@ func (r *mysqlPaymentVerificationRepository) ListAll(ctx context.Context, status
 func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uint64) (*PaymentVerification, error) {
 	query := `
 		SELECT 
-			pv.id, pv.tenant_id, t.name, t.slug, t.whatsapp_number, pv.plan_id, p.name, p.period_months,
+			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
+			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
+			pv.plan_id, p.name, p.period_months,
 			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
@@ -116,12 +127,12 @@ func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uin
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var pv PaymentVerification
-	var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp sql.NullString
+	var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp, tenantEmail sql.NullString
 	var reviewedBy sql.NullInt64
 	var reviewedAt sql.NullTime
 
 	err := row.Scan(
-		&pv.ID, &pv.TenantID, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
+		&pv.ID, &pv.TenantID, &pv.PublicToken, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &tenantEmail, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
 		&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &pv.Status,
 		&rejectionReason, &reviewedBy, &reviewedByName, &reviewedAt, &pv.CreatedAt, &pv.UpdatedAt,
 	)
@@ -134,6 +145,71 @@ func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uin
 
 	if tenantWhatsApp.Valid && tenantWhatsApp.String != "" {
 		pv.TenantWhatsApp = &tenantWhatsApp.String
+	}
+	if tenantEmail.Valid && tenantEmail.String != "" {
+		pv.TenantEmail = &tenantEmail.String
+	}
+	if couponCode.Valid {
+		pv.CouponCode = &couponCode.String
+	}
+	if proofURL.Valid {
+		pv.ProofURL = &proofURL.String
+	}
+	if rejectionReason.Valid {
+		pv.RejectionReason = &rejectionReason.String
+	}
+	if reviewedBy.Valid {
+		val := uint64(reviewedBy.Int64)
+		pv.ReviewedBy = &val
+	}
+	if reviewedByName.Valid {
+		pv.ReviewedByName = &reviewedByName.String
+	}
+	if reviewedAt.Valid {
+		pv.ReviewedAt = &reviewedAt.Time
+	}
+
+	return &pv, nil
+}
+
+func (r *mysqlPaymentVerificationRepository) GetByPublicToken(ctx context.Context, token string) (*PaymentVerification, error) {
+	query := `
+		SELECT 
+			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
+			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
+			pv.plan_id, p.name, p.period_months,
+			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
+			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
+		FROM payment_verifications pv
+		JOIN tenants t ON pv.tenant_id = t.id
+		JOIN pricing_plans p ON pv.plan_id = p.id
+		LEFT JOIN staff_users su ON pv.reviewed_by = su.id
+		WHERE pv.public_token = ?
+	`
+	row := r.db.QueryRowContext(ctx, query, token)
+
+	var pv PaymentVerification
+	var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp, tenantEmail sql.NullString
+	var reviewedBy sql.NullInt64
+	var reviewedAt sql.NullTime
+
+	err := row.Scan(
+		&pv.ID, &pv.TenantID, &pv.PublicToken, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &tenantEmail, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
+		&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &pv.Status,
+		&rejectionReason, &reviewedBy, &reviewedByName, &reviewedAt, &pv.CreatedAt, &pv.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	if tenantWhatsApp.Valid && tenantWhatsApp.String != "" {
+		pv.TenantWhatsApp = &tenantWhatsApp.String
+	}
+	if tenantEmail.Valid && tenantEmail.String != "" {
+		pv.TenantEmail = &tenantEmail.String
 	}
 	if couponCode.Valid {
 		pv.CouponCode = &couponCode.String
@@ -159,10 +235,16 @@ func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uin
 }
 
 func (r *mysqlPaymentVerificationRepository) Create(ctx context.Context, pv *PaymentVerification) error {
+	if pv.PublicToken == "" {
+		b := make([]byte, 32)
+		_, _ = rand.Read(b)
+		pv.PublicToken = hex.EncodeToString(b)
+	}
+
 	query := `
 		INSERT INTO payment_verifications (
-			tenant_id, plan_id, coupon_code, amount, final_amount, unique_code, proof_url, status, rejection_reason, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+			tenant_id, public_token, plan_id, coupon_code, amount, final_amount, unique_code, proof_url, status, rejection_reason, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
 	`
 	status := pv.Status
 	if status == "" {
@@ -171,6 +253,7 @@ func (r *mysqlPaymentVerificationRepository) Create(ctx context.Context, pv *Pay
 
 	res, err := r.db.ExecContext(ctx, query,
 		pv.TenantID,
+		pv.PublicToken,
 		pv.PlanID,
 		pv.CouponCode,
 		pv.Amount,
@@ -299,12 +382,12 @@ func (r *mysqlPaymentVerificationRepository) scanList(rows *sql.Rows) ([]Payment
 	var list []PaymentVerification
 	for rows.Next() {
 		var pv PaymentVerification
-		var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp sql.NullString
+		var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp, tenantEmail sql.NullString
 		var reviewedBy sql.NullInt64
 		var reviewedAt sql.NullTime
 
 		if err := rows.Scan(
-			&pv.ID, &pv.TenantID, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
+			&pv.ID, &pv.TenantID, &pv.PublicToken, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &tenantEmail, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
 			&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &pv.Status,
 			&rejectionReason, &reviewedBy, &reviewedByName, &reviewedAt, &pv.CreatedAt, &pv.UpdatedAt,
 		); err != nil {
@@ -313,6 +396,9 @@ func (r *mysqlPaymentVerificationRepository) scanList(rows *sql.Rows) ([]Payment
 
 		if tenantWhatsApp.Valid && tenantWhatsApp.String != "" {
 			pv.TenantWhatsApp = &tenantWhatsApp.String
+		}
+		if tenantEmail.Valid && tenantEmail.String != "" {
+			pv.TenantEmail = &tenantEmail.String
 		}
 
 		if couponCode.Valid {

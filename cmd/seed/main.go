@@ -65,9 +65,8 @@ func main() {
 		}
 		fmt.Printf("Created Staff User: %s (ID: %d)\n", staff.Email, staff.ID)
 	} else {
-		existingStaff.PasswordHash = string(staffHash)
-		existingStaff.Status = "active"
-		fmt.Printf("Staff User already exists: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
+		_, _ = db.ExecContext(ctx, "UPDATE staff_users SET password_hash = ?, status = 'active' WHERE id = ?", string(staffHash), existingStaff.ID)
+		fmt.Printf("Staff User updated/synced: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
 	}
 
 	// Seed Sample Pricing Plans if empty
@@ -75,8 +74,8 @@ func main() {
 	if len(existingPlans) == 0 {
 		samplePlans := []repository.PricingPlan{
 			{Name: "3 Bulan", PeriodMonths: 3, Price: 1500000},
-			{Name: "6 Bulan", PeriodMonths: 6, Price: 2700000},
-			{Name: "12 Bulan", PeriodMonths: 12, Price: 4800000},
+			{Name: "6 Bulan", PeriodMonths: 6, Price: 2000000},
+			{Name: "12 Bulan", PeriodMonths: 12, Price: 3500000},
 		}
 		for _, sp := range samplePlans {
 			plan := sp

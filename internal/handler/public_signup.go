@@ -10,9 +10,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"klikumroh/internal/middleware"
 	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
 	"klikumroh/internal/util"
+	"time"
 )
 
 type validateCouponRequest struct {
@@ -42,10 +44,15 @@ func NewPublicSignupHandler(
 
 // RegisterPublicRoutes mounts public signup endpoints onto the chi router.
 func (h *PublicSignupHandler) RegisterPublicRoutes(r chi.Router) {
+	slugLimiter := middleware.NewIPRateLimiter(30, time.Minute)
+	signupLimiter := middleware.NewIPRateLimiter(10, time.Minute)
+
 	r.Get("/api/public/pricing-plans", h.ListPricingPlans)
-	r.Get("/api/public/check-slug", h.CheckSlug)
+	r.With(slugLimiter).Get("/api/public/check-slug", h.CheckSlug)
 	r.Post("/api/public/coupons/validate", h.ValidateCoupon)
-	r.Post("/api/public/tenant-signup", h.TenantSignup)
+	r.With(signupLimiter).Post("/api/public/tenant-signup", h.TenantSignup)
+	r.Get("/api/public/tenant-signup/{token}/status", h.GetVerificationStatus)
+	r.Post("/api/public/tenant-signup/{token}/proof", h.UploadProof)
 	r.Post("/api/public/tenant-signup/{verification_id}/proof", h.UploadProof)
 }
 
@@ -177,12 +184,14 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 	respondJSON(w, http.StatusCreated, res)
 }
 
-// UploadProof handles POST /api/public/tenant-signup/{verification_id}/proof.
+// UploadProof handles POST /api/public/tenant-signup/{token}/proof.
 func (h *PublicSignupHandler) UploadProof(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "verification_id")
-	verificationID, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ID verifikasi tidak valid"})
+	token := strings.TrimSpace(chi.URLParam(r, "token"))
+	if token == "" {
+		token = strings.TrimSpace(chi.URLParam(r, "verification_id"))
+	}
+	if token == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Token verifikasi tidak valid"})
 		return
 	}
 
@@ -206,7 +215,7 @@ func (h *PublicSignupHandler) UploadProof(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	proofURL, err := h.publicSignupService.UploadProof(r.Context(), verificationID, fileBytes)
+	proofURL, err := h.publicSignupService.UploadProof(r.Context(), token, fileBytes)
 	if err != nil {
 		if errors.Is(err, service.ErrVerificationNotFound) ||
 			errors.Is(err, service.ErrVerificationNotPending) ||
@@ -225,4 +234,25 @@ func (h *PublicSignupHandler) UploadProof(w http.ResponseWriter, r *http.Request
 		"message":   "Bukti transfer berhasil diunggah",
 		"proof_url": proofURL,
 	})
+}
+
+// GetVerificationStatus handles GET /api/public/tenant-signup/{token}/status.
+func (h *PublicSignupHandler) GetVerificationStatus(w http.ResponseWriter, r *http.Request) {
+	token := strings.TrimSpace(chi.URLParam(r, "token"))
+	if token == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Token verifikasi tidak valid"})
+		return
+	}
+
+	res, err := h.publicSignupService.GetVerificationStatus(r.Context(), token)
+	if err != nil {
+		if errors.Is(err, service.ErrVerificationNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data verifikasi tidak ditemukan"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memuat status pendaftaran"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, res)
 }

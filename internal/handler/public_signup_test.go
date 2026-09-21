@@ -676,3 +676,65 @@ func TestPublicSignup_DuplicateWhatsApp(t *testing.T) {
 		t.Errorf("expected error message to mention WhatsApp, got %s", resp["error"])
 	}
 }
+
+func TestGetVerificationStatus(t *testing.T) {
+	tenantRepo, _, planRepo, _, pvRepo, _, r := setupPublicSignupEnv()
+
+	planRepo.plans[1] = &repository.PricingPlan{
+		ID:           1,
+		Name:         "Standard 1 Bulan",
+		PeriodMonths: 1,
+		Price:        500000,
+	}
+
+	tenantRepo.tenants[99] = &repository.Tenant{
+		ID:     99,
+		Name:   "Status Check Travel",
+		Slug:   "status-check",
+		Status: "pending",
+	}
+
+	pv := &repository.PaymentVerification{
+		TenantID:    99,
+		PublicToken: "tok-status-test",
+		PlanID:      1,
+		Amount:      500000,
+		FinalAmount: 500123,
+		UniqueCode:  123,
+		Status:      "pending",
+	}
+	_ = pvRepo.Create(context.Background(), pv)
+
+	// 1. Success fetch by public token
+	req := httptest.NewRequest(http.MethodGet, "/api/public/tenant-signup/tok-status-test/status", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var res map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if res["public_token"] != "tok-status-test" {
+		t.Errorf("expected public_token tok-status-test, got %v", res["public_token"])
+	}
+	if res["status"] != "pending" {
+		t.Errorf("expected status pending, got %v", res["status"])
+	}
+	if res["final_amount"].(float64) != 500123 {
+		t.Errorf("expected final_amount 500123, got %v", res["final_amount"])
+	}
+
+	// 2. Not found token
+	reqNotFound := httptest.NewRequest(http.MethodGet, "/api/public/tenant-signup/non-existent-token/status", nil)
+	wNotFound := httptest.NewRecorder()
+	r.ServeHTTP(wNotFound, reqNotFound)
+
+	if wNotFound.Code != http.StatusNotFound {
+		t.Errorf("expected status 404 for unknown token, got %d", wNotFound.Code)
+	}
+}
+

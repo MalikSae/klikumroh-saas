@@ -84,6 +84,7 @@ func main() {
 	notifService := service.NewNotificationService(notifRepo)
 	tenantService := service.NewTenantService(tenantRepo)
 	authService := service.NewAuthService(adminUserRepo, sessionRepo, tenantRepo)
+	authService.SetPaymentVerificationRepo(pvRepo)
 	packageService := service.NewPackageService(packageRepo, packagePhotoRepo)
 	packagePhotoService := service.NewPackagePhotoService(packagePhotoRepo, packageRepo)
 	contentService := service.NewContentService(bannerRepo, testiRepo, faqRepo)
@@ -123,6 +124,8 @@ func main() {
 		prospectRepo,
 		agentRepo,
 		adminUserRepo,
+		sessionRepo,
+		pvRepo,
 	)
 	pricingPlanService := service.NewPricingPlanService(pricingPlanRepo)
 	couponService := service.NewCouponService(couponRepo)
@@ -192,9 +195,18 @@ func main() {
 		staffProtected.Use(appMiddleware.StaffAuthMiddleware(staffRepo, sessionRepo))
 
 		staffProtected.Get("/api/staff/me", staffHandler.Me)
+		staffProtected.Get("/api/staff/overview", staffHandler.GetOverview)
 		staffProtected.Get("/api/staff/tenants", staffHandler.ListTenants)
 		staffProtected.Get("/api/staff/tenants/{id}", staffHandler.GetTenantDetail)
+		staffProtected.Post("/api/staff/tenants/{id}/impersonate", staffHandler.ImpersonateTenant)
+		staffProtected.Patch("/api/staff/tenants/{id}/subscription", staffHandler.UpdateTenantSubscription)
 		staffProtected.Patch("/api/staff/tenants/{id}/admin-users/{admin_user_id}/reset-password", staffHandler.ResetTenantAdminPassword)
+
+		// Staff Users Management
+		staffProtected.Get("/api/staff/users", staffHandler.ListStaffUsers)
+		staffProtected.Post("/api/staff/users", staffHandler.CreateStaffUser)
+		staffProtected.Put("/api/staff/users/{id}", staffHandler.UpdateStaffUser)
+
 		staffProtected.Get("/api/staff/pricing-plans", pricingPlanHandler.List)
 		staffProtected.Post("/api/staff/pricing-plans", pricingPlanHandler.Create)
 		staffProtected.Put("/api/staff/pricing-plans/{id}", pricingPlanHandler.Update)
@@ -209,6 +221,8 @@ func main() {
 		staffProtected.Get("/api/staff/payment-verifications", pvHandler.List)
 		staffProtected.Patch("/api/staff/payment-verifications/{id}/approve", pvHandler.Approve)
 		staffProtected.Patch("/api/staff/payment-verifications/{id}/reject", pvHandler.Reject)
+		staffProtected.Patch("/api/staff/payment-verifications/{id}/plan", pvHandler.UpdatePlan)
+		staffProtected.Patch("/api/staff/payment-verifications/{id}/coupon", pvHandler.ApplyCoupon)
 
 		// Staff Platform Settings
 		staffProtected.Get("/api/staff/platform-settings", platformSettingsHandler.GetStaff)

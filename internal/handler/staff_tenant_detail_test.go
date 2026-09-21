@@ -342,7 +342,7 @@ func setupStaffTenantDetailEnv() *testEnv {
 		ID:        78,
 		Name:      "Nur Iman Travel",
 		Slug:      "nuriman",
-		Status:    "trial",
+		Status:    "pending",
 		CreatedAt: time.Now().Add(-10 * 24 * time.Hour),
 	}
 

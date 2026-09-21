@@ -139,9 +139,21 @@ func (m *mockPVRepo) GetByID(ctx context.Context, id uint64) (*repository.Paymen
 	return nil, repository.ErrNotFound
 }
 
+func (m *mockPVRepo) GetByPublicToken(ctx context.Context, token string) (*repository.PaymentVerification, error) {
+	for _, pv := range m.verifications {
+		if pv.PublicToken == token {
+			return pv, nil
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+
 func (m *mockPVRepo) Create(ctx context.Context, pv *repository.PaymentVerification) error {
 	pv.ID = m.nextID
 	m.nextID++
+	if pv.PublicToken == "" {
+		pv.PublicToken = fmt.Sprintf("mock-token-%d", pv.ID)
+	}
 	m.verifications[pv.ID] = pv
 	return nil
 }
@@ -381,7 +393,7 @@ func setupSubTestEnv() (
 		ID:     53,
 		Name:   "Al-Barakah Travel",
 		Slug:   "albarakah",
-		Status: "trial",
+		Status: "pending",
 	}
 	tenantRepo.tenants[78] = &repository.Tenant{
 		ID:     78,
@@ -440,6 +452,8 @@ func setupSubTestEnv() (
 		staffProtected.Get("/api/staff/payment-verifications", pvHandler.List)
 		staffProtected.Patch("/api/staff/payment-verifications/{id}/approve", pvHandler.Approve)
 		staffProtected.Patch("/api/staff/payment-verifications/{id}/reject", pvHandler.Reject)
+		staffProtected.Patch("/api/staff/payment-verifications/{id}/plan", pvHandler.UpdatePlan)
+		staffProtected.Patch("/api/staff/payment-verifications/{id}/coupon", pvHandler.ApplyCoupon)
 	})
 
 	// Tenant Protected
@@ -1104,3 +1118,88 @@ func TestSubscription_RenewalRequest_Deduplication(t *testing.T) {
 		t.Errorf("expected exactly 1 verification record in repo, got %d", len(list))
 	}
 }
+
+func TestUpdateVerificationPlan_StaffUpsell(t *testing.T) {
+	_, pvRepo, _, tenantRepo, _, _, r := setupSubTestEnv()
+
+	tenantRepo.tenants[88] = &repository.Tenant{
+		ID:     88,
+		Name:   "Travel Upsell Test",
+		Slug:   "travel-upsell",
+		Status: "pending",
+	}
+
+	// Create initial pending verification for Plan 1
+	pv := &repository.PaymentVerification{
+		TenantID:    88,
+		PlanID:      1,
+		Amount:      1500000,
+		FinalAmount: 1500321,
+		UniqueCode:  321,
+		Status:      "pending",
+	}
+	if err := pvRepo.Create(context.Background(), pv); err != nil {
+		t.Fatalf("failed to create pv: %v", err)
+	}
+
+	// 1. Staff changes plan to Plan 2 (6 months upsell)
+	body, _ := json.Marshal(map[string]interface{}{
+		"plan_id": 2,
+	})
+	req := httptest.NewRequest("PATCH", fmt.Sprintf("/api/staff/payment-verifications/%d/plan", pv.ID), bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer valid-staff-token")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200 on plan update, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Verify in repo that plan_id is 2, amount is 2.700.000, unique_code is 321, final_amount is 2.700.321
+	updated, err := pvRepo.GetByID(context.Background(), pv.ID)
+	if err != nil {
+		t.Fatalf("failed to get updated pv: %v", err)
+	}
+	if updated.PlanID != 2 {
+		t.Errorf("expected PlanID 2, got %d", updated.PlanID)
+	}
+	if updated.Amount != 2700000 {
+		t.Errorf("expected Amount 2700000, got %v", updated.Amount)
+	}
+	if updated.UniqueCode != 321 {
+		t.Errorf("expected UniqueCode 321 preserved, got %d", updated.UniqueCode)
+	}
+	if updated.FinalAmount != 2700321 {
+		t.Errorf("expected FinalAmount 2700321, got %v", updated.FinalAmount)
+	}
+
+	// 2. Staff approves the payment verification
+	appReq := httptest.NewRequest("PATCH", fmt.Sprintf("/api/staff/payment-verifications/%d/approve", pv.ID), nil)
+	appReq.Header.Set("Authorization", "Bearer valid-staff-token")
+	appW := httptest.NewRecorder()
+	r.ServeHTTP(appW, appReq)
+
+	if appW.Code != http.StatusOK {
+		t.Fatalf("expected status 200 on approve, got %d: %s", appW.Code, appW.Body.String())
+	}
+
+	// Tenant should now be active and current plan should be 2
+	tenant := tenantRepo.tenants[88]
+	if tenant.Status != "active" {
+		t.Errorf("expected tenant status active, got %s", tenant.Status)
+	}
+	if tenant.CurrentPlanID == nil || *tenant.CurrentPlanID != 2 {
+		t.Errorf("expected tenant current plan 2, got %v", tenant.CurrentPlanID)
+	}
+
+	// 3. Attempting to change plan after approval must fail (400)
+	failReq := httptest.NewRequest("PATCH", fmt.Sprintf("/api/staff/payment-verifications/%d/plan", pv.ID), bytes.NewReader(body))
+	failReq.Header.Set("Authorization", "Bearer valid-staff-token")
+	failW := httptest.NewRecorder()
+	r.ServeHTTP(failW, failReq)
+
+	if failW.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 when changing plan of approved pv, got %d", failW.Code)
+	}
+}
+
