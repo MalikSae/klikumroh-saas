@@ -14,8 +14,6 @@ import {
   type TenantSubscriptionInfo,
 } from '../services/api';
 import './Sidebar.css';
-import klikumrohLogoWhite from '../assets/klikumroh-logo-white.png';
-import klikumrohIconWhite from '../assets/klikumroh-icon-white.png';
 
 export interface MenuItem {
   id?: string;
@@ -149,16 +147,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
       <aside className={`db-sidebar ${isMobileOpen ? 'db-sidebar--mobile-open' : ''} ${className}`}>
         <div className="db-sidebar__logo-area">
-          <img
-            src={klikumrohLogoWhite}
-            alt={brandName}
-            className="db-sidebar__logo-full"
-          />
-          <img
-            src={klikumrohIconWhite}
-            alt={brandName}
-            className="db-sidebar__logo-compact"
-          />
+          <NavLink to="/" className="db-sidebar__brand-link" aria-label={brandName}>
+            <div className="db-sidebar__brand-icon-frame">
+              <img
+                src="/icon-klikumroh.svg"
+                alt={brandName}
+                className="db-sidebar__brand-icon"
+              />
+            </div>
+            <div className="db-sidebar__brand-text">
+              <span className="db-sidebar__brand-name">
+                <span className="db-sidebar__brand-bold">Klik</span>
+                <span className="db-sidebar__brand-muted">Umroh</span>
+              </span>
+              <span className="db-sidebar__brand-badge">.id</span>
+            </div>
+          </NavLink>
           <button
             type="button"
             className="db-sidebar__close-btn"
@@ -380,7 +384,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div
                   className="db-sidebar__sub-progress-bar"
                   style={{
-                    width: `${Math.min(100, Math.max(5, (subInfo.days_remaining / 365) * 100))}%`,
+                    width: `${Math.min(
+                      100,
+                      Math.max(
+                        5,
+                        (subInfo.days_remaining /
+                          Math.max(1, (subInfo.current_plan_period_months ?? 1) * 30)) *
+                          100
+                      )
+                    )}%`,
                   }}
                 />
               </div>

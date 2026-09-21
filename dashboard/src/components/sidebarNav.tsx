@@ -31,14 +31,14 @@ export const getStandardMenuItems = (activeId?: string): MenuItem[] => {
     },
     {
       id: 'prospects',
-      label: 'Data Prospek',
+      label: 'Prospek',
       to: '/prospects',
       icon: <Users size={18} />,
       active: activeId === 'prospects',
     },
     {
       id: 'packages',
-      label: 'Katalog Paket',
+      label: 'Paket Umroh',
       to: '/packages',
       icon: <PackageIcon size={18} />,
       active: activeId === 'packages',
@@ -51,7 +51,7 @@ export const getStandardMenuItems = (activeId?: string): MenuItem[] => {
       children: [
         {
           id: 'agents-pending',
-          label: 'Antrean Persetujuan',
+          label: 'Persetujuan Agen',
           to: '/agents/pending',
           icon: <Clock size={15} />,
           active: activeId === 'agents-pending',
@@ -81,7 +81,7 @@ export const getStandardMenuItems = (activeId?: string): MenuItem[] => {
     },
     {
       id: 'website-content',
-      label: 'Konten Beranda',
+      label: 'Konten Web',
       icon: <Globe size={18} />,
       active: activeId?.startsWith('content') || false,
       children: [
@@ -165,7 +165,7 @@ export const getStandardMenuItems = (activeId?: string): MenuItem[] => {
         },
         {
           id: 'settings-subscription',
-          label: 'Langganan & Tagihan',
+          label: 'Langganan',
           to: '/settings/subscription',
           icon: <CreditCard size={15} />,
           active: activeId === 'settings-subscription',

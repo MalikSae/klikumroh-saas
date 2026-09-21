@@ -16,6 +16,11 @@ import {
   Clock,
   Calendar,
   Layers,
+  Rocket,
+  ChevronDown,
+  ChevronUp,
+  X,
+  BarChart2,
 } from 'lucide-react';
 import { Sidebar, Topbar, PageHeader, Button, getStandardMenuItems } from '../components';
 import {
@@ -99,14 +104,54 @@ interface PriorityAlertsBarProps {
   uncontactedCount: number;
   pendingPayoutsCount: number;
   pendingPayoutsTotal: number;
+  totalProspects: number;
 }
 
 const PriorityAlertsBar: React.FC<PriorityAlertsBarProps> = ({
   uncontactedCount,
   pendingPayoutsCount,
   pendingPayoutsTotal,
+  totalProspects,
 }) => {
   const navigate = useNavigate();
+  const hasUrgentAction = uncontactedCount > 0 || pendingPayoutsCount > 0;
+  const hasAnyData = totalProspects > 0;
+
+  if (!hasUrgentAction) {
+    // STATE KOSONG: belum ada prospek masuk sama sekali
+    if (!hasAnyData) {
+      return (
+        <section className="db-priority-alerts-bar db-priority-alerts-bar--empty" aria-label="Status Data Awal">
+          <div className="db-priority-alerts__calm-content">
+            <div className="db-priority-alerts__calm-icon-wrap db-priority-alerts__calm-icon-wrap--empty">
+              <Activity size={16} className="db-priority-alerts__calm-icon" />
+            </div>
+            <span className="db-priority-alerts__calm-title">Belum ada prospek masuk</span>
+            <span className="db-priority-alerts__calm-dot">•</span>
+            <span className="db-priority-alerts__calm-desc">
+              Bagikan link website atau referral agen untuk mulai mengumpulkan minat jamaah.
+            </span>
+          </div>
+        </section>
+      );
+    }
+
+    // STATE BERSIH: ada data, tidak ada yang perlu ditindaklanjuti
+    return (
+      <section className="db-priority-alerts-bar db-priority-alerts-bar--calm" aria-label="Status Antrean Operasional">
+        <div className="db-priority-alerts__calm-content">
+          <div className="db-priority-alerts__calm-icon-wrap">
+            <CheckCircle2 size={16} className="db-priority-alerts__calm-icon" />
+          </div>
+          <span className="db-priority-alerts__calm-title">Antrean bersih</span>
+          <span className="db-priority-alerts__calm-dot">•</span>
+          <span className="db-priority-alerts__calm-desc">
+            Semua prospek sudah ditindaklanjuti. Tidak ada pengajuan pencairan yang menunggu.
+          </span>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="db-priority-alerts-bar" aria-label="Notifikasi Tindakan Mendesak">
@@ -118,43 +163,47 @@ const PriorityAlertsBar: React.FC<PriorityAlertsBarProps> = ({
         </div>
       </div>
 
-      <div className="db-priority-alerts__item db-priority-alerts__item--prospects">
-        <MessageCircle size={18} className="db-priority-alerts__item-icon db-priority-alerts__item-icon--danger" />
-        <div className="db-priority-alerts__item-info">
-          <span className="db-priority-alerts__item-title">
-            {uncontactedCount} prospek belum dihubungi
-          </span>
-          <span className="db-priority-alerts__item-desc">
-            Prospek baru lebih dari 24 jam
-          </span>
+      {uncontactedCount > 0 && (
+        <div className="db-priority-alerts__item db-priority-alerts__item--prospects">
+          <MessageCircle size={18} className="db-priority-alerts__item-icon db-priority-alerts__item-icon--danger" />
+          <div className="db-priority-alerts__item-info">
+            <span className="db-priority-alerts__item-title">
+              {uncontactedCount} prospek menunggu dihubungi
+            </span>
+            <span className="db-priority-alerts__item-desc">
+              Menunggu follow-up tim lebih dari 24 jam
+            </span>
+          </div>
+          <button
+            type="button"
+            className="db-priority-alerts__item-action"
+            onClick={() => navigate('/prospects?status=baru')}
+          >
+            Hubungi Sekarang
+          </button>
         </div>
-        <button
-          type="button"
-          className="db-priority-alerts__item-action"
-          onClick={() => navigate('/prospects?status=baru')}
-        >
-          Buka prospek
-        </button>
-      </div>
+      )}
 
-      <div className="db-priority-alerts__item db-priority-alerts__item--payouts">
-        <Wallet size={18} className="db-priority-alerts__item-icon db-priority-alerts__item-icon--warning" />
-        <div className="db-priority-alerts__item-info">
-          <span className="db-priority-alerts__item-title">
-            {pendingPayoutsCount} pengajuan pencairan
-          </span>
-          <span className="db-priority-alerts__item-desc">
-            Total Rp{formatRupiah(pendingPayoutsTotal)} menunggu review
-          </span>
+      {pendingPayoutsCount > 0 && (
+        <div className="db-priority-alerts__item db-priority-alerts__item--payouts">
+          <Wallet size={18} className="db-priority-alerts__item-icon db-priority-alerts__item-icon--warning" />
+          <div className="db-priority-alerts__item-info">
+            <span className="db-priority-alerts__item-title">
+              {pendingPayoutsCount} pengajuan pencairan komisi
+            </span>
+            <span className="db-priority-alerts__item-desc">
+              Total Rp{formatRupiah(pendingPayoutsTotal)} menunggu persetujuan
+            </span>
+          </div>
+          <button
+            type="button"
+            className="db-priority-alerts__item-action"
+            onClick={() => navigate('/agents/payouts')}
+          >
+            Tinjau Pencairan
+          </button>
         </div>
-        <button
-          type="button"
-          className="db-priority-alerts__item-action"
-          onClick={() => navigate('/agents/payouts')}
-        >
-          Periksa
-        </button>
-      </div>
+      )}
     </section>
   );
 };
@@ -171,6 +220,11 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ trends }) => {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const displayData = range === '7' ? trends.slice(-7) : trends.slice(-14);
+
+  const totalInRange = displayData.reduce(
+    (sum, d) => sum + (d.organik || 0) + (d.meta_ads || 0) + (d.agent || 0),
+    0
+  );
 
   // Maximum single channel bar value for relative scaling (at least 5)
   const maxVal = Math.max(
@@ -196,10 +250,10 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ trends }) => {
         <div className="db-grouped-chart__title-group">
           <div className="db-grouped-chart__title-row">
             <Activity size={16} className="db-grouped-chart__title-icon" />
-            <h3 className="db-grouped-chart__title">Tren prospek masuk</h3>
+            <h3 className="db-grouped-chart__title">Tren Pertumbuhan Prospek</h3>
           </div>
           <p className="db-grouped-chart__desc">
-            Perbandingan sumber prospek dalam {range} hari terakhir
+            Aktivitas prospek masuk dalam {range} hari terakhir
           </p>
         </div>
 
@@ -211,7 +265,7 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ trends }) => {
             </div>
             <div className="db-grouped-chart__legend-item">
               <span className="db-grouped-chart__dot db-grouped-chart__dot--meta" />
-              <span>Meta Ads</span>
+              <span>Iklan</span>
             </div>
             <div className="db-grouped-chart__legend-item">
               <span className="db-grouped-chart__dot db-grouped-chart__dot--agen" />
@@ -238,76 +292,85 @@ const GroupedBarChart: React.FC<GroupedBarChartProps> = ({ trends }) => {
         </div>
       </div>
 
-      {/* Grouped Bars Area */}
-      <div className="db-grouped-chart__bars-area">
-        {displayData.map((item, idx) => {
-          const organikH = Math.max(4, Math.round((item.organik / maxVal) * maxHeightPx));
-          const metaH = Math.max(4, Math.round((item.meta_ads / maxVal) * maxHeightPx));
-          const agentH = Math.max(4, Math.round((item.agent / maxVal) * maxHeightPx));
-          const dayName = getDayAbbr(item.date);
+      {totalInRange === 0 ? (
+        <div className="db-grouped-chart__empty-area">
+          <BarChart2 size={28} className="db-grouped-chart__empty-icon" />
+          <p className="db-grouped-chart__empty-title">Belum ada aktivitas prospek pada rentang ini</p>
+          <span className="db-grouped-chart__empty-desc">
+            Grafik akan terisi otomatis saat calon jamaah mendaftar melalui web atau tautan referral agen.
+          </span>
+        </div>
+      ) : (
+        <div className="db-grouped-chart__bars-area">
+          {displayData.map((item, idx) => {
+            const organikH = Math.max(item.organik > 0 ? 6 : 0, Math.round((item.organik / maxVal) * maxHeightPx));
+            const metaH = Math.max(item.meta_ads > 0 ? 6 : 0, Math.round((item.meta_ads / maxVal) * maxHeightPx));
+            const agentH = Math.max(item.agent > 0 ? 6 : 0, Math.round((item.agent / maxVal) * maxHeightPx));
+            const dayName = getDayAbbr(item.date);
 
-          return (
-            <div
-              key={item.date || idx}
-              className="db-grouped-chart__col"
-              onMouseEnter={() => setHoverIdx(idx)}
-              onMouseLeave={() => setHoverIdx(null)}
-            >
-              {hoverIdx === idx && (
-                <div className="db-grouped-chart__tooltip">
-                  <div className="db-grouped-chart__tooltip-title">{item.label}</div>
-                  <div className="db-grouped-chart__tooltip-row">
-                    <span className="db-grouped-chart__dot db-grouped-chart__dot--organik" />
-                    <span>Organik:</span>
-                    <strong>{item.organik}</strong>
+            return (
+              <div
+                key={item.date || idx}
+                className="db-grouped-chart__col"
+                onMouseEnter={() => setHoverIdx(idx)}
+                onMouseLeave={() => setHoverIdx(null)}
+              >
+                {hoverIdx === idx && (
+                  <div className="db-grouped-chart__tooltip">
+                    <div className="db-grouped-chart__tooltip-title">{item.label}</div>
+                    <div className="db-grouped-chart__tooltip-row">
+                      <span className="db-grouped-chart__dot db-grouped-chart__dot--organik" />
+                      <span>Organik:</span>
+                      <strong>{item.organik}</strong>
+                    </div>
+                    <div className="db-grouped-chart__tooltip-row">
+                      <span className="db-grouped-chart__dot db-grouped-chart__dot--meta" />
+                      <span>Iklan:</span>
+                      <strong>{item.meta_ads}</strong>
+                    </div>
+                    <div className="db-grouped-chart__tooltip-row">
+                      <span className="db-grouped-chart__dot db-grouped-chart__dot--agen" />
+                      <span>Agen:</span>
+                      <strong>{item.agent}</strong>
+                    </div>
+                    <div className="db-grouped-chart__tooltip-total">
+                      Total: {item.total} prospek
+                    </div>
                   </div>
-                  <div className="db-grouped-chart__tooltip-row">
-                    <span className="db-grouped-chart__dot db-grouped-chart__dot--meta" />
-                    <span>Meta Ads:</span>
-                    <strong>{item.meta_ads}</strong>
-                  </div>
-                  <div className="db-grouped-chart__tooltip-row">
-                    <span className="db-grouped-chart__dot db-grouped-chart__dot--agen" />
-                    <span>Agen:</span>
-                    <strong>{item.agent}</strong>
-                  </div>
-                  <div className="db-grouped-chart__tooltip-total">
-                    Total: {item.total} prospek
-                  </div>
+                )}
+
+                <div className="db-grouped-chart__bars-wrapper">
+                  <div
+                    className="db-grouped-chart__bar db-grouped-chart__bar--organik"
+                    style={{ height: `${organikH}px` }}
+                    title={`Organik: ${item.organik}`}
+                  />
+                  <div
+                    className="db-grouped-chart__bar db-grouped-chart__bar--meta"
+                    style={{ height: `${metaH}px` }}
+                    title={`Iklan: ${item.meta_ads}`}
+                  />
+                  <div
+                    className="db-grouped-chart__bar db-grouped-chart__bar--agen"
+                    style={{ height: `${agentH}px` }}
+                    title={`Agen: ${item.agent}`}
+                  />
                 </div>
-              )}
 
-              <div className="db-grouped-chart__bars-wrapper">
-                <div
-                  className="db-grouped-chart__bar db-grouped-chart__bar--organik"
-                  style={{ height: `${organikH}px` }}
-                  title={`Organik: ${item.organik}`}
-                />
-                <div
-                  className="db-grouped-chart__bar db-grouped-chart__bar--meta"
-                  style={{ height: `${metaH}px` }}
-                  title={`Meta Ads: ${item.meta_ads}`}
-                />
-                <div
-                  className="db-grouped-chart__bar db-grouped-chart__bar--agen"
-                  style={{ height: `${agentH}px` }}
-                  title={`Agen: ${item.agent}`}
-                />
+                <div className="db-grouped-chart__label">
+                  <span className="db-grouped-chart__day">{dayName}</span>
+                </div>
               </div>
-
-              <div className="db-grouped-chart__label">
-                <span className="db-grouped-chart__day">{dayName}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
 
 /* ==========================================================================
-   ACTIVE SALES PIPELINE CARD (DARK TEAL CONTAINER)
+   ACTIVE SALES PIPELINE CARD (CALM WHITE INTEGRATED CONTAINER)
    ========================================================================== */
 interface ActiveSalesPipelineCardProps {
   pipeline: PendingPipelineData;
@@ -317,32 +380,32 @@ const ActiveSalesPipelineCard: React.FC<ActiveSalesPipelineCardProps> = ({ pipel
   const navigate = useNavigate();
 
   return (
-    <div className="db-pipeline-dark-card">
-      <div className="db-pipeline-dark__header">
-        <div className="db-pipeline-dark__title-copy">
-          <div className="db-pipeline-dark__title">Nilai pipeline aktif</div>
-          <div className="db-pipeline-dark__desc">Estimasi paket dari prospek berjalan</div>
+    <div className="db-pipeline-card">
+      <div className="db-pipeline__header">
+        <div className="db-pipeline__title-copy">
+          <div className="db-pipeline__title">Potensi Nilai Pipeline</div>
+          <div className="db-pipeline__desc">Estimasi nilai paket dalam negosiasi</div>
         </div>
-        <div className="db-pipeline-dark__badge">
+        <div className="db-pipeline__badge">
           <span>{pipeline.total_prospects} PROSPEK</span>
         </div>
       </div>
 
-      <div className="db-pipeline-dark__hero">
-        <div className="db-pipeline-dark__amount">
+      <div className="db-pipeline__hero">
+        <div className="db-pipeline__amount">
           Rp{formatRupiah(pipeline.total_value)}
         </div>
-        <div className="db-pipeline-dark__pax">
-          {pipeline.total_pax} pax jamaah potensial
+        <div className="db-pipeline__pax">
+          {pipeline.total_pax} calon jamaah potensial
         </div>
       </div>
 
-      <div className="db-pipeline-dark__stages">
+      <div className="db-pipeline__stages">
         {pipeline.stages && pipeline.stages.length > 0 ? (
           pipeline.stages.map((st) => (
-            <div key={st.status} className="db-pipeline-dark__stage-row">
-              <span className={`db-pipeline-dark__stage-dot db-pipeline-dark__stage-dot--${st.status}`} />
-              <span className="db-pipeline-dark__stage-label">
+            <div key={st.status} className="db-pipeline__stage-row">
+              <span className={`db-pipeline__stage-dot db-pipeline__stage-dot--${st.status}`} />
+              <span className="db-pipeline__stage-label">
                 {st.status === 'baru' || st.label === 'Prospek Baru'
                   ? 'Baru'
                   : st.status === 'tertarik' || st.label === 'Tahap Negosiasi'
@@ -351,25 +414,25 @@ const ActiveSalesPipelineCard: React.FC<ActiveSalesPipelineCardProps> = ({ pipel
                   ? 'Dihubungi'
                   : st.label}
               </span>
-              <span className="db-pipeline-dark__stage-count">
+              <span className="db-pipeline__stage-count">
                 {st.prospect_count} prospek ({st.total_pax} pax)
               </span>
-              <span className="db-pipeline-dark__stage-val">
+              <span className="db-pipeline__stage-val">
                 Rp{formatShortRupiah(st.total_value)}
               </span>
             </div>
           ))
         ) : (
-          <div className="db-pipeline-dark__empty">Tidak ada prospek aktif tertunda.</div>
+          <div className="db-pipeline__empty">Tidak ada prospek aktif tertunda.</div>
         )}
       </div>
 
       <button
         type="button"
-        className="db-pipeline-dark__action-btn"
+        className="db-pipeline__action-btn"
         onClick={() => navigate('/prospects')}
       >
-        <span>Tindak lanjuti prospek</span>
+        <span>Kelola Prospek</span>
         <ArrowRight size={14} />
       </button>
     </div>
@@ -384,9 +447,18 @@ export const DashboardOverviewPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeProspectTab, setActiveProspectTab] = useState<'baru' | 'tertarik'>('baru');
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    return localStorage.getItem('klikumroh_hide_onboarding') !== 'true';
+  });
+  const [onboardingCollapsed, setOnboardingCollapsed] = useState<boolean>(false);
 
   const currentUser = getStoredUser();
   const menuItems = getStandardMenuItems('dashboard');
+
+  const handleDismissOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('klikumroh_hide_onboarding', 'true');
+  };
 
   const loadData = async () => {
     try {
@@ -433,7 +505,7 @@ export const DashboardOverviewPage: React.FC = () => {
         <main className="db-page-container">
           <PageHeader
             title={`Selamat datang, ${currentUser?.name?.split(' ')[0] || 'Admin'}`}
-            subtitle="Pantau prospek, jaringan agen, dan peluang closing dalam satu tampilan terpadu."
+            subtitle="Ringkasan operasional prospek jamaah dan jaringan keagenan travel Anda."
           />
 
           {error && (
@@ -460,74 +532,169 @@ export const DashboardOverviewPage: React.FC = () => {
 
           {data && (
             <div className="db-overview">
+              {/* ONBOARDING SETUP CHECKLIST (Tampil bagi travel baru yang prospeknya masih 0 dan belum ditutup) */}
+              {showOnboarding && data.kpis.total_prospects === 0 && (
+                <section className="db-onboarding-card" aria-label="Panduan Awal Setup Travel">
+                  <div className="db-onboarding-card__header">
+                    <div className="db-onboarding-card__header-left">
+                      <div className="db-onboarding-card__icon-wrap">
+                        <Rocket size={16} className="db-onboarding-card__icon" />
+                      </div>
+                      <div className="db-onboarding-card__title-wrap">
+                        <div className="db-onboarding-card__title-row">
+                          <h2 className="db-onboarding-card__title">Panduan Awal Setup Travel</h2>
+                          <span className="db-onboarding-card__badge">0/4 Langkah</span>
+                        </div>
+                        <p className="db-onboarding-card__desc">
+                          Selesaikan 4 langkah berikut agar website dan sistem pendaftaran agen travel Anda siap beroperasi.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="db-onboarding-card__header-actions">
+                      <button
+                        type="button"
+                        className="db-onboarding-card__action-btn"
+                        onClick={() => setOnboardingCollapsed(!onboardingCollapsed)}
+                        title={onboardingCollapsed ? 'Buka panduan' : 'Ciutkan panduan'}
+                      >
+                        {onboardingCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+                      </button>
+                      <button
+                        type="button"
+                        className="db-onboarding-card__action-btn"
+                        onClick={handleDismissOnboarding}
+                        title="Tutup panduan"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {!onboardingCollapsed && (
+                    <div className="db-onboarding-card__grid">
+                      <Link to="/settings/profile" className="db-onboarding-step">
+                        <div className="db-onboarding-step__num">1</div>
+                        <div className="db-onboarding-step__body">
+                          <div className="db-onboarding-step__title-row">
+                            <span className="db-onboarding-step__title">Profil & Legalitas</span>
+                            <ArrowRight size={13} className="db-onboarding-step__arrow" />
+                          </div>
+                          <span className="db-onboarding-step__desc">
+                            Lengkapi logo resmi, nomor WhatsApp, dan data PPIU.
+                          </span>
+                        </div>
+                      </Link>
+
+                      <Link to="/packages" className="db-onboarding-step">
+                        <div className="db-onboarding-step__num">2</div>
+                        <div className="db-onboarding-step__body">
+                          <div className="db-onboarding-step__title-row">
+                            <span className="db-onboarding-step__title">Paket Umroh</span>
+                            <ArrowRight size={13} className="db-onboarding-step__arrow" />
+                          </div>
+                          <span className="db-onboarding-step__desc">
+                            Aktifkan paket umroh agar tampil di website travel.
+                          </span>
+                        </div>
+                      </Link>
+
+                      <Link to="/agents/all" className="db-onboarding-step">
+                        <div className="db-onboarding-step__num">3</div>
+                        <div className="db-onboarding-step__body">
+                          <div className="db-onboarding-step__title-row">
+                            <span className="db-onboarding-step__title">Jaringan Agen</span>
+                            <ArrowRight size={13} className="db-onboarding-step__arrow" />
+                          </div>
+                          <span className="db-onboarding-step__desc">
+                            Bagikan link pendaftaran mitra agen ke jaringan Anda.
+                          </span>
+                        </div>
+                      </Link>
+
+                      <Link to="/website-content/banners" className="db-onboarding-step">
+                        <div className="db-onboarding-step__num">4</div>
+                        <div className="db-onboarding-step__body">
+                          <div className="db-onboarding-step__title-row">
+                            <span className="db-onboarding-step__title">Tampilan Web</span>
+                            <ArrowRight size={13} className="db-onboarding-step__arrow" />
+                          </div>
+                          <span className="db-onboarding-step__desc">
+                            Atur banner promo, testimoni, dan FAQ di beranda.
+                          </span>
+                        </div>
+                      </Link>
+                    </div>
+                  )}
+                </section>
+              )}
+
               {/* PRIORITY ALERTS BAR */}
               <PriorityAlertsBar
                 uncontactedCount={data.urgent_alerts?.uncontacted_prospects_count || 0}
                 pendingPayoutsCount={data.urgent_alerts?.pending_payouts_count || 0}
                 pendingPayoutsTotal={data.urgent_alerts?.pending_payouts_total || 0}
+                totalProspects={data.kpis?.total_prospects || 0}
               />
 
-              {/* ZONA 1: 4 KPI METRIC CARDS */}
+              {/* ZONA 1: 4 KPI METRIC CARDS (CLEAN & BALANCED) */}
               <section className="db-overview__kpi-grid" aria-label="Ringkasan Indikator Kinerja Utama">
                 <div className="db-overview__kpi-card">
                   <div className="db-overview__kpi-header">
-                    <span className="db-overview__kpi-label">Total prospek masuk</span>
-                    <Users size={17} className="db-overview__kpi-icon" />
+                    <span className="db-overview__kpi-label">Total Prospek</span>
+                    <Users size={16} className="db-overview__kpi-icon" />
                   </div>
                   <div className="db-overview__kpi-body">
                     <div className="db-overview__kpi-val-row">
                       <span className="db-overview__kpi-value">{data.kpis.total_prospects}</span>
                       <span className="db-overview__kpi-unit">prospek</span>
                     </div>
-                    <div className="db-overview__kpi-sub">Semua sumber akuisisi</div>
-                  </div>
-                </div>
-
-                <div className="db-overview__kpi-card db-overview__kpi-card--highlight">
-                  <div className="db-overview__kpi-header">
-                    <span className="db-overview__kpi-label">Jamaah closing</span>
-                    <CheckCircle2 size={17} className="db-overview__kpi-icon db-overview__kpi-icon--positive" />
-                  </div>
-                  <div className="db-overview__kpi-body">
-                    <div className="db-overview__kpi-val-row">
-                      <span className="db-overview__kpi-value db-overview__kpi-value--positive">
-                        {data.kpis.total_closing_jamaah}
-                      </span>
-                      <span className="db-overview__kpi-unit">pax</span>
-                    </div>
-                    <div className="db-overview__kpi-sub">Tervalidasi oleh travel</div>
+                    <div className="db-overview__kpi-sub">Akumulasi semua kanal</div>
                   </div>
                 </div>
 
                 <div className="db-overview__kpi-card">
                   <div className="db-overview__kpi-header">
-                    <span className="db-overview__kpi-label">Closing rate</span>
-                    <TrendingUp size={17} className="db-overview__kpi-icon" />
+                    <span className="db-overview__kpi-label">Jamaah Closing</span>
+                    <CheckCircle2 size={16} className="db-overview__kpi-icon db-overview__kpi-icon--positive" />
+                  </div>
+                  <div className="db-overview__kpi-body">
+                    <div className="db-overview__kpi-val-row">
+                      <span className="db-overview__kpi-value">
+                        {data.kpis.total_closing_jamaah}
+                      </span>
+                      <span className="db-overview__kpi-unit">pax</span>
+                    </div>
+                    <div className="db-overview__kpi-sub">Pendaftaran terkonfirmasi</div>
+                  </div>
+                </div>
+
+                <div className="db-overview__kpi-card">
+                  <div className="db-overview__kpi-header">
+                    <span className="db-overview__kpi-label">Konversi Closing</span>
+                    <TrendingUp size={16} className="db-overview__kpi-icon" />
                   </div>
                   <div className="db-overview__kpi-body">
                     <div className="db-overview__kpi-val-row">
                       <span className="db-overview__kpi-value">{data.kpis.closing_rate}</span>
                       <span className="db-overview__kpi-unit">%</span>
                     </div>
-                    <div className="db-overview__kpi-sub">Rasio closing per prospek</div>
+                    <div className="db-overview__kpi-sub">Rasio prospek jadi jamaah</div>
                   </div>
                 </div>
 
                 <div className="db-overview__kpi-card">
                   <div className="db-overview__kpi-header">
-                    <span className="db-overview__kpi-label">Kontribusi agen</span>
-                    <Share2 size={17} className="db-overview__kpi-icon db-overview__kpi-icon--indigo" />
+                    <span className="db-overview__kpi-label">Kontribusi Agen</span>
+                    <Share2 size={16} className="db-overview__kpi-icon db-overview__kpi-icon--indigo" />
                   </div>
                   <div className="db-overview__kpi-body">
                     <div className="db-overview__kpi-val-row">
-                      <span className="db-overview__kpi-value db-overview__kpi-value--indigo">
+                      <span className="db-overview__kpi-value">
                         {data.kpis.agent_contribution_percentage}
                       </span>
                       <span className="db-overview__kpi-unit">%</span>
                     </div>
-                    <div className="db-overview__kpi-sub">
-                      {Math.round((data.kpis.agent_contribution_percentage / 100) * (data.kpis.total_prospects || 1))} prospek dari referral agen
-                    </div>
+                    <div className="db-overview__kpi-sub">Porsi dari jaringan referral</div>
                   </div>
                 </div>
               </section>
@@ -554,9 +721,9 @@ export const DashboardOverviewPage: React.FC = () => {
                 <div className="db-prospects-panel">
                   <div className="db-prospects-panel__header">
                     <div className="db-prospects-panel__title-copy">
-                      <h3 className="db-prospects-panel__title">Perlu dihubungi</h3>
+                      <h3 className="db-prospects-panel__title">Antrean Follow-up</h3>
                       <p className="db-prospects-panel__subtitle">
-                        Dahulukan yang paling lama menunggu untuk konversi maksimal.
+                        Daftar prospek prioritas berdasarkan waktu respon.
                       </p>
                     </div>
                     <Link to="/prospects" className="db-prospects-panel__view-all">
@@ -677,13 +844,13 @@ export const DashboardOverviewPage: React.FC = () => {
                         <CheckCircle2 size={24} className="db-prospects-panel__empty-icon" />
                         <p className="db-prospects-panel__empty-title">
                           {activeProspectTab === 'baru'
-                            ? 'Semua prospek baru sudah dihubungi'
-                            : 'Belum ada prospek di tahap siap closing'}
+                            ? 'Tidak ada antrean prospek baru'
+                            : 'Belum ada prospek di tahap negosiasi'}
                         </p>
                         <p className="db-prospects-panel__empty-desc">
                           {activeProspectTab === 'baru'
-                            ? 'Tidak ada antrean follow-up prospek baru saat ini.'
-                            : 'Tindak lanjuti prospek yang sedang berjalan untuk mendorong ke tahap ini.'}
+                            ? 'Semua calon jamaah baru telah dihubungi oleh tim Anda.'
+                            : 'Prospek yang sedang negosiasi dan siap booking paket akan tampil di sini.'}
                         </p>
                       </div>
                     )}
@@ -692,10 +859,10 @@ export const DashboardOverviewPage: React.FC = () => {
 
                 {/* Kolom Kanan: Sales Intelligence Panel */}
                 <div className="db-sales-intel-panel">
-                  {/* Card 1: Sumber Akuisisi */}
+                  {/* Card 1: Kanal Pendaftaran */}
                   <div className="db-intel-card">
                     <div className="db-intel-card__header">
-                      <span className="db-intel-card__title">Sumber akuisisi</span>
+                      <span className="db-intel-card__title">Kanal Pendaftaran</span>
                       <span className="db-intel-card__total">{data.kpis.total_prospects} prospek</span>
                     </div>
 
@@ -709,7 +876,7 @@ export const DashboardOverviewPage: React.FC = () => {
                           ch.channel === 'agent' || ch.label.toLowerCase().includes('agen')
                             ? 'Agen'
                             : ch.channel === 'paid_ads' || ch.label.toLowerCase().includes('ads')
-                            ? 'Meta Ads'
+                            ? 'Iklan'
                             : ch.channel === 'organik' || ch.label.toLowerCase().includes('organik')
                             ? 'Organik'
                             : ch.label;
@@ -733,10 +900,10 @@ export const DashboardOverviewPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Card 2: Agen Teratas */}
+                  {/* Card 2: Performa Agen Referral */}
                   <div className="db-intel-card db-intel-card--grow">
                     <div className="db-intel-card__header">
-                      <span className="db-intel-card__title">Agen teratas</span>
+                      <span className="db-intel-card__title">Performa Agen Referral</span>
                       <Link to="/agents" className="db-intel-card__action">
                         Kelola agen
                       </Link>
@@ -779,7 +946,7 @@ export const DashboardOverviewPage: React.FC = () => {
                         ))
                       ) : (
                         <div className="db-overview__empty" style={{ padding: '16px 0' }}>
-                          Belum ada aktivitas agen terdata.
+                          Belum ada transaksi agen tercatat periode ini.
                         </div>
                       )}
                     </div>

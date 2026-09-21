@@ -30,19 +30,62 @@
   box-sizing: border-box;
 }
 
-.db-sidebar__logo-full {
-  height: 32px;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  display: block;
+.db-sidebar__brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--db-sidebar-text-white);
 }
 
-.db-sidebar__logo-compact {
-  display: none;
-  height: 32px;
-  width: auto;
+.db-sidebar__brand-icon-frame {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.db-sidebar__brand-icon {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  border-radius: 0;
+}
+
+.db-sidebar__brand-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.db-sidebar__brand-name {
+  font-family: var(--db-font-heading);
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.db-sidebar__brand-bold {
+  font-weight: 800;
+  color: var(--db-sidebar-text-white);
+}
+
+.db-sidebar__brand-muted {
+  font-weight: 600;
+  color: var(--db-sidebar-text-muted);
+}
+
+.db-sidebar__brand-badge {
+  font-family: var(--db-font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--db-sidebar-text-muted);
+  background: var(--db-sidebar-badge-bg);
+  border: 1px solid var(--db-sidebar-badge-border);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .db-sidebar__close-btn {
@@ -82,8 +125,10 @@
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   color: var(--db-sidebar-text);
-  font-size: var(--font-size-base);
-  font-weight: 500;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-medium, 500);
+  line-height: var(--db-leading-normal, 1.5);
   text-decoration: none;
   cursor: pointer;
   border: none;
@@ -100,17 +145,16 @@
 
 .db-sidebar__item--active {
   background-color: var(--db-sidebar-active-bg);
-  color: var(--db-card-bg);
-  font-weight: 700;
-  box-shadow: inset 3px 0 0 var(--db-accent-teal);
+  color: var(--db-sidebar-text-white);
+  font-weight: var(--db-weight-semibold, 600);
 }
 
 .db-sidebar__item--active .db-sidebar__item-icon {
-  color: var(--db-card-bg);
+  color: var(--db-sidebar-text-white);
 }
 
 .db-sidebar__item-icon {
-  font-size: var(--font-size-xl);
+  font-size: var(--db-text-xl, 18px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -144,21 +188,21 @@
 }
 
 .db-sidebar__item:hover .db-sidebar__chevron {
-  color: var(--db-card-bg);
+  color: var(--db-sidebar-text-white);
 }
 
 .db-sidebar__item--parent-active .db-sidebar__chevron {
-  color: var(--db-card-bg);
+  color: var(--db-sidebar-text-white);
 }
 
 .db-sidebar__item--parent-active {
-  color: var(--db-card-bg);
+  color: var(--db-sidebar-text-white);
 }
 
 .db-sidebar__travel-card {
   margin: 12px 12px 4px 12px;
-  background-color: color-mix(in srgb, var(--db-card-bg) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--db-card-bg) 12%, transparent);
+  background-color: var(--db-sidebar-travel-card-bg);
+  border: 1px solid var(--db-sidebar-travel-card-border);
   border-radius: var(--radius-sm, 8px);
   padding: 10px 12px;
   display: flex;
@@ -170,8 +214,9 @@
 .db-sidebar__travel-mark {
   width: 34px;
   height: 34px;
-  border-radius: 7px;
-  background-color: color-mix(in srgb, var(--db-positive) 15%, transparent);
+  border-radius: 6px;
+  background-color: var(--db-sidebar-travel-mark-bg);
+  border: 1px solid var(--db-sidebar-travel-mark-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,11 +224,11 @@
 }
 
 .db-sidebar__travel-initial {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  font-size: var(--font-size-base);
-  color: var(--db-positive);
-  line-height: 1;
+  font-family: var(--db-font-heading);
+  font-weight: var(--db-weight-bold, 700);
+  font-size: var(--db-text-base, 14px);
+  color: var(--db-sidebar-text-white);
+  line-height: var(--db-leading-none, 1);
 }
 
 .db-sidebar__travel-info {
@@ -195,19 +240,19 @@
 }
 
 .db-sidebar__travel-name {
-  font-family: 'Nunito', sans-serif;
-  font-size: var(--font-size-base);
-  font-weight: 800;
-  color: var(--db-card-bg);
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-semibold, 600);
+  color: var(--db-sidebar-text-white);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
+  line-height: var(--db-leading-tight, 1.25);
 }
 
 .db-sidebar__travel-plan {
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs, 12px);
   color: var(--db-sidebar-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -234,10 +279,10 @@
 }
 
 .db-sidebar__section-label {
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-2xs, 11px);
+  font-weight: var(--db-weight-semibold, 600);
+  letter-spacing: 0.08em;
   color: var(--db-sidebar-muted);
   padding: 8px 12px 4px 12px;
   text-transform: uppercase;
@@ -249,14 +294,14 @@
 }
 
 .db-sidebar__badge {
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-2xs, 11px);
+  font-weight: var(--db-weight-semibold, 600);
   padding: 2px 6px;
   border-radius: 4px;
   background-color: color-mix(in srgb, var(--db-card-bg) 10%, transparent);
   color: var(--db-card-bg);
-  line-height: 1.2;
+  line-height: var(--db-leading-none, 1);
   flex-shrink: 0;
 }
 
@@ -286,9 +331,10 @@
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   color: var(--db-sidebar-text);
-  font-size: var(--font-size-base);
-  font-weight: 400;
-  line-height: 1.4;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-regular, 400);
+  line-height: var(--db-leading-normal, 1.5);
   text-decoration: none;
   cursor: pointer;
   border: none;
@@ -306,7 +352,7 @@
 .db-sidebar__subitem--active {
   background-color: var(--db-sidebar-active-bg);
   color: var(--db-card-bg);
-  font-weight: 700;
+  font-weight: var(--db-weight-semibold, 600);
   box-shadow: inset 2.5px 0 0 var(--db-accent-teal);
 }
 
@@ -370,7 +416,7 @@
 .db-sidebar__sub-days {
   font-family: 'Roboto', sans-serif;
   color: var(--db-rating-star);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
 }
 
 .db-sidebar__sub-progress-track {

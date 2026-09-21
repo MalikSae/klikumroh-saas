@@ -19,6 +19,9 @@ export interface FormInputProps {
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  min?: number;
+  max?: number;
+  step?: number;
   error?: string;
   hint?: string;
   tooltip?: string;
@@ -39,6 +42,9 @@ export const FormInput: React.FC<FormInputProps> = ({
   placeholder,
   required = false,
   disabled = false,
+  min,
+  max,
+  step,
   error,
   hint,
   tooltip,
@@ -96,6 +102,9 @@ export const FormInput: React.FC<FormInputProps> = ({
           onChange={onChange}
           placeholder={placeholder}
           disabled={disabled}
+          min={min}
+          max={max}
+          step={step}
           className={`db-form-input ${error ? 'db-form-input--error' : ''}`}
         />
       )}

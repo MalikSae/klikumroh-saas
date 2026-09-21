@@ -59,9 +59,10 @@
 
 .pkg-header-title {
   color: var(--db-text-primary);
-  font-family: 'Nunito', sans-serif;
-  font-size: var(--font-size-2xl);
-  font-weight: 900;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-2xl, 22px);
+  font-weight: var(--db-weight-bold, 700);
+  line-height: var(--db-leading-tight, 1.25);
   margin: 0;
 }
 
@@ -87,9 +88,9 @@
   height: 36px;
   padding: 0 12px;
   border-radius: 6px;
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 800;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-xs, 12px);
+  font-weight: var(--db-weight-semibold, 600);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -99,84 +100,103 @@
   cursor: not-allowed;
 }
 
-.pkg-btn-cancel {
-  background-color: var(--db-card-bg);
-  border: 1px solid var(--db-border);
-  color: var(--db-text-primary);
-}
-
-.pkg-btn-cancel:hover:not(:disabled) {
-  background-color: var(--db-border);
-}
-
-.pkg-btn-draft {
-  background-color: var(--db-card-bg);
-  border: 1px solid var(--db-border);
-  color: var(--db-text-primary);
-}
-
-.pkg-btn-draft:hover:not(:disabled) {
-  background-color: var(--db-border);
-}
-
-.pkg-btn-publish {
-  background-color: var(--db-primary-button);
+.pkg-action-btn--primary {
+  background: var(--db-primary-button);
   border: 1px solid var(--db-primary-button);
-  color: #FFFFFF;
+  color: var(--db-card-bg);
 }
 
-.pkg-btn-publish:hover:not(:disabled) {
-  background-color: var(--db-accent-teal);
+.pkg-action-btn--primary:hover:not(:disabled) {
+  background: var(--db-button-primary-hover);
+  border-color: var(--db-button-primary-hover);
 }
 
-/* Stepper */
-.pkg-stepper {
+.pkg-action-btn--secondary {
+  background: var(--db-card-bg);
+  border: 1px solid var(--db-border);
+  color: var(--db-text-primary);
+}
+
+.pkg-action-btn--secondary:hover:not(:disabled) {
+  background: var(--db-page-bg);
+  border-color: var(--db-accent-teal);
+}
+
+.pkg-action-btn--ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--db-text-muted);
+}
+
+.pkg-action-btn--ghost:hover:not(:disabled) {
+  background: var(--db-page-bg);
+  color: var(--db-text-primary);
+}
+
+/* Steps Indicator */
+.pkg-steps-bar {
   display: flex;
   flex-direction: row;
-  align-items: center;
-  background-color: var(--db-card-bg);
+  background: var(--db-card-bg);
   border: 1px solid var(--db-border);
-  border-radius: 8px;
-  padding: 0 14px;
-  height: 62px;
-  gap: 4px;
-  width: 100%;
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pkg-steps-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .pkg-step {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  height: 42px;
-  padding: 0 10px;
-  flex: 1;
+  gap: 9px;
+  padding: 8px 14px;
   border-radius: 6px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  flex: 1;
+  min-width: 140px;
+  transition: all 0.15s ease;
+  text-align: left;
 }
 
-.pkg-step:hover {
-  background-color: var(--db-page-bg);
+.pkg-step:hover:not(.active) {
+  background: var(--db-page-bg);
 }
 
 .pkg-step.active {
-  background-color: #112E27; /* From Design */
+  background: var(--db-accent-teal);
 }
 
-.pkg-step-icon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #F1F5F9;
+.pkg-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--db-page-bg);
   color: var(--db-text-muted);
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-xs, 12px);
+  font-weight: var(--db-weight-semibold, 600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
 }
 
-.pkg-step.active .pkg-step-icon {
-  background-color: rgba(16, 185, 129, 0.15); /* var(--db-positive)26 */
+.pkg-step.active .pkg-step-num {
+  background: var(--db-card-bg);
+  color: var(--db-primary-button);
+}
+
+.pkg-step.completed .pkg-step-num {
+  background: var(--db-page-bg);
   color: var(--db-positive);
 }
 
@@ -188,9 +208,9 @@
 
 .pkg-step-title {
   color: var(--db-text-primary);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 900;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs, 12px);
+  font-weight: var(--db-weight-semibold, 600);
 }
 
 .pkg-step.active .pkg-step-title {
@@ -263,15 +283,16 @@
 
 .pkg-card-title {
   color: var(--db-text-primary);
-  font-family: 'Nunito', sans-serif;
-  font-size: var(--font-size-base);
-  font-weight: 900;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-lg, 16px);
+  font-weight: var(--db-weight-semibold, 600);
+  line-height: var(--db-leading-tight, 1.25);
 }
 
 .pkg-card-subtitle {
   color: var(--db-text-muted);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs, 12px);
 }
 
 .pkg-card-body {
@@ -298,15 +319,15 @@
 
 .pkg-label {
   color: var(--db-text-primary);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 800;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-medium, 500);
 }
 
 .pkg-hint {
   color: var(--db-text-muted);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs, 12px);
 }
 
 .pkg-input-wrapper {
@@ -318,58 +339,80 @@
   border-radius: 6px;
   padding: 10px 12px;
   gap: 8px;
-  transition: border-color 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .pkg-input-wrapper:focus-within {
   border-color: var(--db-primary-button);
+  box-shadow: 0 0 0 2px var(--db-focus-ring);
+}
+
+.pkg-input-wrapper--error {
+  border-color: var(--db-negative);
+  background-color: color-mix(in srgb, var(--db-negative) 4%, transparent);
+}
+
+.pkg-input-wrapper--error:focus-within {
+  border-color: var(--db-negative);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--db-negative) 15%, transparent);
 }
 
 .pkg-input-prefix {
-  font-size: var(--font-size-sm);
   color: var(--db-text-muted);
-  font-weight: 600;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-semibold, 600);
 }
 
 .pkg-input {
-  flex: 1;
-  background: transparent;
   border: none;
-  outline: none;
+  background: transparent;
+  width: 100%;
   color: var(--db-text-primary);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-sm);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  outline: none;
 }
 
 .pkg-input::placeholder {
   color: var(--db-text-muted);
-  opacity: 0.7;
 }
 
 .pkg-textarea {
-  resize: vertical;
-  min-height: 100%;
-  line-height: 1.5;
-}
-
-.pkg-input-simple {
+  border: none;
+  background: transparent;
   width: 100%;
-  background-color: var(--db-card-bg);
-  border: 1px solid var(--db-border);
-  border-radius: 6px;
-  padding: 10px 12px;
   color: var(--db-text-primary);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-sm);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
   outline: none;
-  transition: border-color 0.2s ease;
+  resize: vertical;
+  min-height: 72px;
 }
 
-.pkg-input-simple:focus {
-  border-color: var(--db-primary-button);
+.pkg-textarea::placeholder {
+  color: var(--db-text-muted);
 }
 
-/* Hotel Repeated Fields */
+.pkg-select {
+  border: none;
+  background: transparent;
+  width: 100%;
+  color: var(--db-text-primary);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  outline: none;
+  cursor: pointer;
+}
+
+.pkg-error-text {
+  color: var(--db-negative);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs, 12px);
+  margin-top: 2px;
+}
+
+/* Hotel Section Header */
 .pkg-hotels-header {
   display: flex;
   flex-direction: row;
@@ -379,8 +422,9 @@
 }
 
 .pkg-hotels-title {
-  font-size: var(--font-size-xs);
-  font-weight: 800;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-text-primary);
 }
 

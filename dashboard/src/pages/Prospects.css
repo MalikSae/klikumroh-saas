@@ -95,11 +95,11 @@
 }
 
 .db-pipeline-segment__count {
-  font-family: 'Nunito', sans-serif;
-  font-size: var(--font-size-xl);
-  font-weight: 900;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-xl, 18px);
+  font-weight: var(--db-weight-bold, 700);
   color: var(--db-text-primary);
-  line-height: 1.1;
+  line-height: var(--db-leading-tight, 1.25);
 }
 
 .db-pipeline-segment--active .db-pipeline-segment__count {
@@ -107,9 +107,9 @@
 }
 
 .db-pipeline-segment__label {
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs, 12px);
+  font-weight: var(--db-weight-medium, 500);
   color: var(--db-text-muted);
   white-space: nowrap;
 }
@@ -164,9 +164,9 @@
   background-color: var(--db-card-bg);
   border: 1px solid color-mix(in srgb, var(--db-status-contacted) 40%, transparent);
   color: var(--db-primary-button);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 800;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-xs, 12px);
+  font-weight: var(--db-weight-semibold, 600);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -234,9 +234,9 @@
   border-radius: 16px;
   background-color: var(--db-surface);
   color: var(--db-primary-button);
-  font-family: 'Nunito', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 900;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-xs, 12px);
+  font-weight: var(--db-weight-semibold, 600);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,9 +306,10 @@
   padding: 4px 9px;
   border-radius: 5px;
   background-color: var(--db-surface);
-  font-family: 'Roboto', sans-serif;
-  font-size: var(--font-size-xs);
-  font-weight: 800;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-2xs, 11px);
+  font-weight: var(--db-weight-semibold, 600);
+  line-height: var(--db-leading-none, 1);
   white-space: nowrap;
 }
 

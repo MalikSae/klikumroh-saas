@@ -10,6 +10,6 @@ export * from './Sidebar';
 export * from './Topbar';
 export * from './PageHeader';
 export * from './Tooltip';
-export * from './StaffLayout';
 export * from './sidebarNav';
 export * from './AgentActivityFeed';
+export * from './OfficialReceiptModal';

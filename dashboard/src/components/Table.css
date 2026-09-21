@@ -117,17 +117,19 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: var(--font-size-base, 14px);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
 }
 
 .db-table__th {
   padding: clamp(10px, 1.2vw, 12px) clamp(12px, 1.5vw, 16px);
   background-color: var(--db-chart-area-fill);
   color: var(--db-text-muted);
-  font-weight: var(--font-weight-medium, 500);
-  font-size: var(--font-size-xs, 12px);
+  font-family: var(--db-font-body);
+  font-weight: var(--db-weight-semibold, 600);
+  font-size: var(--db-text-xs, 12px);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
   border-bottom: 1px solid var(--db-border);
   white-space: nowrap;
 }
@@ -135,8 +137,58 @@
 .db-table__td {
   padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.5vw, 16px);
   color: var(--db-text-primary);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm, 13px);
+  font-weight: var(--db-weight-regular, 400);
+  line-height: var(--db-leading-normal, 1.5);
   border-bottom: 1px solid var(--db-border);
   vertical-align: middle;
+  white-space: nowrap; /* Wajib 1 baris di mobile */
+}
+
+/* Monochrome Overrides for Staff Portal */
+.db-main-layout--staff .db-table-container {
+  background-color: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.db-main-layout--staff .db-table__th {
+  background-color: var(--staff-surface-hover);
+  color: var(--staff-text-muted);
+  font-family: 'Roboto', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--staff-border);
+  white-space: nowrap;
+}
+
+.db-main-layout--staff .db-table__td {
+  color: var(--staff-text-primary);
+  border-bottom: 1px solid var(--staff-border-subtle);
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.db-main-layout--staff .db-table__row:hover td {
+  background-color: var(--db-page-bg);
+}
+
+.db-main-layout--staff .db-table-search__input {
+  background-color: var(--staff-surface);
+  border: 1px solid var(--staff-border);
+  border-radius: 6px;
+  color: var(--staff-text-primary);
+  font-family: 'Roboto', sans-serif;
+}
+
+.db-main-layout--staff .db-table-search__input:focus {
+  border-color: var(--staff-primary);
+  box-shadow: 0 0 0 2px var(--db-focus-ring);
 }
 
 .db-table__row:last-child .db-table__td {

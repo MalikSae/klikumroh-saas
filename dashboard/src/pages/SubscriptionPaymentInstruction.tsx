@@ -11,6 +11,7 @@ import {
   FileText,
   RefreshCw,
   Clock,
+  RotateCcw,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -513,16 +514,31 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {verification.proof_url && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setPreviewProofURL(`${API_BASE}${verification.proof_url}`)}
-                      style={{ fontSize: '12px', padding: '6px 14px' }}
-                    >
-                      Lihat Bukti Terlampir
-                    </Button>
-                  )}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {verification.proof_url && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setPreviewProofURL(`${API_BASE}${verification.proof_url}`)}
+                        style={{ fontSize: '12px', padding: '6px 14px' }}
+                      >
+                        Lihat Bukti Terlampir
+                      </Button>
+                    )}
+
+                    {/* Tombol Ganti Paket — hanya tampil jika bukti belum diunggah */}
+                    {verification.status === 'pending' && !verification.proof_url && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => navigate('/settings/subscription/checkout')}
+                        style={{ fontSize: '12px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <RotateCcw size={13} />
+                        <span>Ganti Paket</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Form Upload Bukti */}

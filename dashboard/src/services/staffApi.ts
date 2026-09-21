@@ -5,8 +5,16 @@ export interface StaffUser {
   id: number;
   email: string;
   name: string;
-  role: string;
+  role?: string;
   status: string;
+  created_at?: string;
+}
+
+export interface StaffUserInput {
+  name: string;
+  email: string;
+  password?: string;
+  status?: string;
 }
 
 export interface StaffTenantItem {
@@ -111,8 +119,9 @@ export const fetchStaffMe = async (): Promise<StaffUser> => {
   return json.staff || json.user;
 };
 
-export const fetchStaffTenants = async (): Promise<StaffTenantItem[]> => {
-  const res = await fetch(`${API_BASE}/api/staff/tenants`, {
+export const fetchStaffTenants = async (status?: string): Promise<StaffTenantItem[]> => {
+  const query = status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : '';
+  const res = await fetch(`${API_BASE}/api/staff/tenants${query}`, {
     headers: {
       ...getStaffAuthHeader(),
     },
@@ -234,6 +243,7 @@ export interface PaymentVerificationItem {
   tenant_name?: string;
   tenant_slug?: string;
   tenant_whatsapp?: string | null;
+  tenant_email?: string | null;
   plan_id: number;
   plan_name?: string;
   plan_period_months?: number;
@@ -368,6 +378,55 @@ export const rejectPaymentVerification = async (id: number, rejectionReason: str
     throw new Error(json.error || 'Gagal menolak verifikasi');
   }
 };
+
+export const updatePaymentVerificationPlan = async (
+  id: number,
+  planId: number
+): Promise<PaymentVerificationItem> => {
+  const res = await fetch(`${API_BASE}/api/staff/payment-verifications/${id}/plan`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getStaffAuthHeader(),
+    },
+    body: JSON.stringify({ plan_id: planId }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal mengubah paket pembayaran');
+  }
+
+  return json.payment_verification;
+};
+
+export const updatePaymentVerificationCoupon = async (
+  id: number,
+  couponCode: string | null // null = remove coupon
+): Promise<PaymentVerificationItem> => {
+  const res = await fetch(`${API_BASE}/api/staff/payment-verifications/${id}/coupon`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getStaffAuthHeader(),
+    },
+    body: JSON.stringify({ coupon_code: couponCode }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal menerapkan kupon');
+  }
+
+  return json.payment_verification;
+};
+
 
 export interface StaffTenantDomainInfo {
   subdomain: string;
@@ -512,4 +571,168 @@ export const updatePlatformSettingsStaff = async (input: PlatformSettingsInput):
 
   return json.settings || json;
 };
+
+export interface PlatformOverviewMetrics {
+  total_tenants: number;
+  active_tenants: number;
+  pending_tenants: number;
+  expired_tenants: number;
+  suspended_tenants: number;
+  no_plan_tenants?: number;
+  estimated_mrr: number;
+  estimated_arr: number;
+  upcoming_renewals_7d: number;
+  upcoming_renewals_30d: number;
+  pending_verifications_count: number;
+  pending_verifications_total: number;
+  total_packages: number;
+  total_prospects: number;
+  total_active_agents: number;
+}
+
+export const fetchStaffOverview = async (): Promise<PlatformOverviewMetrics> => {
+  const res = await fetch(`${API_BASE}/api/staff/overview`, {
+    headers: {
+      ...getStaffAuthHeader(),
+    },
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal memuat ringkasan platform');
+  }
+
+  return json.overview;
+};
+
+export interface ImpersonationResult {
+  token: string;
+  expires_at: string;
+  tenant_id: number;
+  tenant: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  admin_user: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+export const impersonateTenant = async (tenantId: number): Promise<ImpersonationResult> => {
+  const res = await fetch(`${API_BASE}/api/staff/tenants/${tenantId}/impersonate`, {
+    method: 'POST',
+    headers: {
+      ...getStaffAuthHeader(),
+    },
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal melakukan impersonasi travel');
+  }
+
+  return json;
+};
+
+export const updateTenantSubscription = async (
+  tenantId: number,
+  planId: number,
+  periodMonths?: number
+): Promise<{ message: string }> => {
+  const res = await fetch(`${API_BASE}/api/staff/tenants/${tenantId}/subscription`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getStaffAuthHeader(),
+    },
+    body: JSON.stringify({
+      plan_id: planId,
+      period_months: periodMonths,
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal memperbarui paket langganan');
+  }
+
+  return json;
+};
+
+export const fetchStaffUsers = async (): Promise<StaffUser[]> => {
+  const res = await fetch(`${API_BASE}/api/staff/users`, {
+    headers: {
+      ...getStaffAuthHeader(),
+    },
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal memuat data staf');
+  }
+
+  if (Array.isArray(json)) {
+    return json;
+  }
+  return json.users || [];
+};
+
+export const createStaffUser = async (data: StaffUserInput): Promise<StaffUser> => {
+  const res = await fetch(`${API_BASE}/api/staff/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getStaffAuthHeader(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal menambahkan staf');
+  }
+
+  return json;
+};
+
+export const updateStaffUser = async (id: number, data: StaffUserInput): Promise<StaffUser> => {
+  const res = await fetch(`${API_BASE}/api/staff/users/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getStaffAuthHeader(),
+    },
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal memperbarui data staf');
+  }
+
+  return json;
+};
+
+
 

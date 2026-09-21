@@ -276,7 +276,6 @@ export const SettingsPage: React.FC = () => {
       setErrorMessage(null);
 
       const [brandingData, profileData, contactData, trustData, commData, agentData, targetData, seoData, domainsData, teamData] = await Promise.all([
-      const [brandingData, profileData, contactData, trustData, commData, agentData, seoData, domainsData, teamData] = await Promise.all([
         fetchTenantBranding().catch(() => ({ brand_primary_color: '#16A34A' })),
         fetchTenantProfile().catch(() => ({ name: '', brand_logo_url: null, brand_icon_url: null, tagline: null, about_summary: null })),
         fetchTenantContactLegal().catch(() => ({
@@ -915,51 +914,41 @@ export const SettingsPage: React.FC = () => {
         return {
           title: 'Pengaturan Profil & Branding',
           subtitle: 'Konfigurasi identitas visual, logo resmi, ikon 1:1, slogan, dan narasi profil travel Anda.',
-          subtitle: 'Atur identitas, logo, slogan, dan profil travel Anda.',
         };
       case 'contact':
         return {
           title: 'Pengaturan Kontak & Legalitas',
           subtitle: 'Kelola alamat kantor, nomor WhatsApp resmi, nomor izin PPIU Kemenag, dan tautan media sosial.',
-          subtitle: 'Kelola legalitas izin PPIU, kontak resmi, dan akun media sosial travel.',
         };
       case 'trust':
         return {
           title: 'Badge Kepercayaan (Trust Metrics)',
           subtitle: 'Kredibilitas travel seperti rating kepuasan jamaah, jumlah alumni, dan jaminan keberangkatan.',
-          title: 'Badge Kepercayaan',
-          subtitle: 'Tampilkan bukti kredibilitas seperti rating, jumlah alumni, dan garansi keberangkatan.',
         };
       case 'seo':
         return {
           title: 'Pengaturan SEO & GEO Google',
           subtitle: 'Optimasi mesin pencari Google, meta description, kata kunci, dan penargetan wilayah travel.',
-          subtitle: 'Atur meta tag dan target wilayah agar travel mudah ditemukan di Google.',
         };
       case 'agent':
         return {
           title: 'Sistem & Komisi Agen',
           subtitle: 'Konfigurasi skema kemitraan, biaya pendaftaran agen, rekening penampung, dan target bulanan.',
-          subtitle: 'Atur skema kemitraan, biaya pendaftaran, komisi, dan target agen.',
         };
       case 'domain':
         return {
           title: 'Domain & Custom Domain',
           subtitle: 'Kelola subdomain default dan hubungkan alamat domain situs travel milik Anda sendiri.',
-          subtitle: 'Kelola subdomain bawaan dan hubungkan domain kustom travel Anda.',
         };
       case 'team':
         return {
           title: 'Tim & Staf Administrator',
           subtitle: 'Kelola akun staf operasional travel dengan hak akses dashboard admin KlikUmroh.',
-          title: 'Tim & Staf Admin',
-          subtitle: 'Kelola akun staf dan hak akses dashboard admin travel.',
         };
       case 'subscription':
         return {
           title: 'Langganan & Tagihan',
           subtitle: 'Status paket langganan KlikUmroh, perpanjangan masa aktif, kupon diskon, dan riwayat tagihan.',
-          subtitle: 'Pantau status masa aktif, perpanjangan paket, dan riwayat tagihan.',
         };
     }
   };
@@ -1037,11 +1026,9 @@ export const SettingsPage: React.FC = () => {
                           }}
                         >
                           Icon Travel (Rasio 1:1)
-                          Ikon Travel (Favicon)
                         </label>
                         <p style={{ fontSize: '13px', color: 'var(--db-text-muted)', margin: '0 0 12px 0' }}>
                           Digunakan sebagai favicon tab browser dan icon fallback. Format PNG otomatis dipotong persegi 1:1 dan dikompresi (maks 5MB).
-                          Digunakan untuk favicon browser dan ikon web. Format PNG/JPG rasio 1:1 (maks. 5 MB).
                         </p>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
@@ -1065,14 +1052,12 @@ export const SettingsPage: React.FC = () => {
                                 key={brandIconURL}
                                 src={getFullImageUrl(brandIconURL)}
                                 alt="Icon Travel"
-                                alt="Ikon Travel"
                                 style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
                               />
                             ) : (
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', color: 'var(--db-text-muted)', textAlign: 'center' }}>
                                 <ImageIcon size={22} />
                                 <span style={{ fontSize: '10px', fontWeight: 500 }}>1:1 Icon</span>
-                                <span style={{ fontSize: '10px', fontWeight: 500 }}>1:1 Ikon</span>
                               </div>
                             )}
                           </div>
@@ -1095,7 +1080,6 @@ export const SettingsPage: React.FC = () => {
                             >
                               <Upload size={15} />
                               <span>{uploadingIcon ? 'Mengunggah...' : brandIconURL ? 'Ganti Icon (1:1)' : 'Pilih Icon (1:1)'}</span>
-                              <span>{uploadingIcon ? 'Mengunggah...' : brandIconURL ? 'Ganti Ikon' : 'Pilih Ikon'}</span>
                               <input
                                 type="file"
                                 accept="image/png,image/jpeg,image/webp"
@@ -1133,11 +1117,9 @@ export const SettingsPage: React.FC = () => {
                           }}
                         >
                           Logo Resmi (Horizontal)
-                          Logo Resmi
                         </label>
                         <p style={{ fontSize: '13px', color: 'var(--db-text-muted)', margin: '0 0 12px 0' }}>
                           Ditampilkan pada header situs publik. Format PNG transparan (maks 5MB). Jika belum diunggah, header otomatis menampilkan icon + nama travel.
-                          Tampil di header website publik. Format PNG transparan horizontal (maks. 5 MB).
                         </p>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
@@ -1216,7 +1198,6 @@ export const SettingsPage: React.FC = () => {
 
                       <FormInput
                         label="Slogan / Tagline Travel (Opsional)"
-                        label="Tagline Travel (Opsional)"
                         placeholder="Contoh: Sahabat Ibadah Menuju Baitullah yang Mabrur"
                         value={tagline}
                         onChange={(e) => setTagline(e.target.value)}
@@ -1224,15 +1205,12 @@ export const SettingsPage: React.FC = () => {
 
                       <FormInput
                         label="Narasi Profil Singkat (Tentang Kami)"
-                        label="Tentang Kami"
                         type="textarea"
                         rows={4}
                         placeholder="Tuliskan 1-2 paragraf mengenai izin resmi, bimbingan muthawif, dan komitmen pelayanan travel Anda..."
-                        placeholder="Jelaskan profil, komitmen layanan, dan keunggulan travel Anda..."
                         value={aboutSummary}
                         onChange={(e) => setAboutSummary(e.target.value)}
                         tooltip="Teks ini akan tampil pada kartu section 'Tentang Kami' di halaman depan web publik."
-                        tooltip="Tampil pada bagian 'Tentang Kami' di halaman utama website."
                       />
 
                       <div>
@@ -1261,7 +1239,6 @@ export const SettingsPage: React.FC = () => {
                               onChange={handleColorChange}
                               error={colorError || undefined}
                               hint="Kode HEX warna primer untuk tombol, tab, dan aksen website publik."
-                              hint="Warna tombol dan aksen utama pada website publik."
                             />
                           </div>
                         </div>
@@ -1271,7 +1248,6 @@ export const SettingsPage: React.FC = () => {
                         <Button variant="primary" type="submit" disabled={submitting}>
                           <Save size={16} />
                           <span>{submitting ? 'Menyimpan...' : 'Simpan Profil & Branding'}</span>
-                          <span>{submitting ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
                         </Button>
                       </div>
                     </div>
@@ -1288,17 +1264,14 @@ export const SettingsPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       <FormInput
                         label="Nomor SK Izin PPIU Kemenag RI"
-                        label="Nomor Izin PPIU Kemenag"
                         placeholder="Contoh: No. 891/2020 atau No. U.123 Tahun 2023"
                         value={ppiuNumber}
                         onChange={(e) => setPpiuNumber(e.target.value)}
                         tooltip="Nomor SK izin resmi PPIU Kemenag RI. Ditampilkan otomatis pada badge legalitas di web publik dan metadata SEO."
-                        tooltip="Tampil pada badge legalitas website dan metadata mesin pencari."
                       />
 
                       <FormInput
                         label="Alamat Kantor Fisik"
-                        label="Alamat Kantor"
                         type="textarea"
                         rows={2}
                         placeholder="Contoh: Jl. TB Simatupang No. 18, Cilandak, Jakarta Selatan"
@@ -1308,7 +1281,6 @@ export const SettingsPage: React.FC = () => {
 
                       <FormInput
                         label="Email Resmi Travel"
-                        label="Email Resmi"
                         type="email"
                         placeholder="info@travelumroh.com"
                         value={email}
@@ -1317,37 +1289,31 @@ export const SettingsPage: React.FC = () => {
 
                       <FormInput
                         label="Nomor WhatsApp Customer Service"
-                        label="Nomor WhatsApp Layanan"
                         placeholder="Contoh: 081234567890 atau 6281234567890"
                         value={whatsappNumber}
                         onChange={(e) => setWhatsappNumber(e.target.value)}
                         tooltip="Nomor ini digunakan untuk tombol floating Chat WhatsApp di navigasi bawah web publik."
-                        tooltip="Untuk tombol chat WhatsApp di website publik."
                       />
 
                       <div style={{ borderTop: '1px solid var(--db-border)', paddingTop: '16px', marginTop: '4px' }}>
                         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--db-text-muted)', display: 'block', marginBottom: '12px' }}>
                           AKUN MEDIA SOSIAL RESMI (OPSIONAL)
-                          Media Sosial (Opsional)
                         </span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <FormInput
                             label="Instagram URL"
-                            label="Instagram"
                             placeholder="https://instagram.com/travelumroh"
                             value={socialInstagram}
                             onChange={(e) => setSocialInstagram(e.target.value)}
                           />
                           <FormInput
                             label="Facebook URL"
-                            label="Facebook"
                             placeholder="https://facebook.com/travelumroh"
                             value={socialFacebook}
                             onChange={(e) => setSocialFacebook(e.target.value)}
                           />
                           <FormInput
                             label="YouTube URL"
-                            label="YouTube"
                             placeholder="https://youtube.com/@travelumroh"
                             value={socialYoutube}
                             onChange={(e) => setSocialYoutube(e.target.value)}
@@ -1359,7 +1325,6 @@ export const SettingsPage: React.FC = () => {
                         <Button variant="primary" type="submit" disabled={submitting}>
                           <Save size={16} />
                           <span>{submitting ? 'Menyimpan...' : 'Simpan Kontak & Legalitas'}</span>
-                          <span>{submitting ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
                         </Button>
                       </div>
                     </div>
@@ -1376,39 +1341,32 @@ export const SettingsPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       <FormInput
                         label="Rating Kepuasan Jamaah"
-                        label="Rating Jamaah"
                         placeholder="Contoh: 4.9"
                         value={trustRating}
                         onChange={(e) => setTrustRating(e.target.value)}
                         tooltip="Skor rating kepuasan yang ditampilkan pada badge rating (skala 5.0)."
-                        tooltip="Skor kepuasan jamaah (skala 1.0 – 5.0)."
                       />
 
                       <FormInput
                         label="Total Alumni Jamaah yang Telah Diberangkatkan"
-                        label="Jumlah Alumni Jamaah"
                         placeholder="Contoh: 1.000+ Jamaah"
                         value={trustAlumniCount}
                         onChange={(e) => setTrustAlumniCount(e.target.value)}
                         tooltip="Jumlah alumni jamaah untuk menonjolkan jam terbang travel Anda."
-                        tooltip="Estimasi total jamaah yang telah diberangkatkan."
                       />
 
                       <FormInput
                         label="Slogan Garansi / Komitmen Keberangkatan"
-                        label="Garansi Keberangkatan"
                         placeholder="Contoh: 100% Berangkat, Jadwal Pasti"
                         value={trustGuarantee}
                         onChange={(e) => setTrustGuarantee(e.target.value)}
                         tooltip="Format: '[Garansi], [Keterangan]'. Contoh: '100% Berangkat, Jadwal Pasti'. Otomatis terbagi rapi menjadi judul dan subjudul badge di web publik."
-                        tooltip="Gunakan koma untuk memisahkan judul dan keterangan (contoh: 100% Berangkat, Jadwal Pasti)."
                       />
 
                       <div className="db-form-actions">
                         <Button variant="primary" type="submit" disabled={submitting}>
                           <Save size={16} />
                           <span>{submitting ? 'Menyimpan...' : 'Simpan Badge Kepercayaan'}</span>
-                          <span>{submitting ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
                         </Button>
                       </div>
                     </div>
@@ -3200,15 +3158,32 @@ export const SettingsPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="primary"
-                        onClick={() => navigate(`/settings/subscription/payment/${subInfo.pending_verification!.id}`)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                      >
-                        <span>Lihat Instruksi Pembayaran</span>
-                        <ArrowRight size={16} />
-                      </Button>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {/* Tombol Ganti Paket — hanya saat bukti belum diunggah */}
+                        {!subInfo.pending_verification.proof_url && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => navigate('/settings/subscription/checkout')}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                          >
+                            <span>Ganti Paket</span>
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={() => navigate(`/settings/subscription/payment/${subInfo.pending_verification!.id}`)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <span>
+                            {subInfo.pending_verification.proof_url
+                              ? 'Lihat Status Verifikasi'
+                              : 'Lihat Instruksi Pembayaran'}
+                          </span>
+                          <ArrowRight size={16} />
+                        </Button>
+                      </div>
                     </div>
                   )}
 

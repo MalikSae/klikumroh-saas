@@ -185,7 +185,10 @@ export const clearAuthSession = () => {
   localStorage.removeItem(TRAVEL_NAME_KEY);
 };
 
-export const loginAdmin = async (email: string, password: string): Promise<{ token: string; user: AdminUser; tenant_status?: string }> => {
+export const loginAdmin = async (
+  email: string,
+  password: string
+): Promise<{ token: string; user: AdminUser; tenant_status?: string; public_token?: string }> => {
   const res = await dashboardFetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -198,7 +201,11 @@ export const loginAdmin = async (email: string, password: string): Promise<{ tok
   }
 
   const data = await res.json();
-  setAuthSession(data.token, data.user);
+  if (data.tenant_status === 'active') {
+    setAuthSession(data.token, data.user);
+  } else {
+    clearAuthSession();
+  }
   return data;
 };
 
@@ -1140,6 +1147,31 @@ export interface TenantTargetSettings {
   target_period_start: string | null;
   target_period_end: string | null;
   target_jamaah: number | null;
+}
+
+export const fetchTenantTargetSettings = async (): Promise<TenantTargetSettings> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/target-settings`, { headers });
+  if (!res.ok) {
+    throw new Error('Gagal memuat pengaturan target bulanan');
+  }
+  return await res.json();
+};
+
+export const updateTenantTargetSettings = async (settings: TenantTargetSettings): Promise<TenantTargetSettings> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/target-settings`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(settings),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal menyimpan pengaturan target bulanan' }));
+    throw new Error(err.error || 'Gagal menyimpan pengaturan target bulanan');
+  }
+  return await res.json();
+};
+
 export interface AgentTarget {
   id: number;
   tenant_id: number;
@@ -1155,7 +1187,6 @@ export interface AgentTarget {
   updated_at: string;
 }
 
-export const fetchTenantTargetSettings = async (): Promise<TenantTargetSettings> => {
 export interface AgentTargetProgressRow {
   agent_id: number;
   agent_name: string;
@@ -1203,7 +1234,6 @@ export interface UpdateTargetInput {
 
 export const fetchTargets = async (status?: 'active' | 'closed'): Promise<AgentTarget[]> => {
   const headers = await getAuthHeaders();
-  const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/target-settings`, {
   const url = status
     ? `${API_BASE}/api/dashboard/tenant/targets?status=${status}`
     : `${API_BASE}/api/dashboard/tenant/targets`;
@@ -1223,26 +1253,20 @@ export const createTarget = async (input: CreateTargetInput): Promise<AgentTarge
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    throw new Error('Gagal memuat pengaturan target bulanan');
     const err = await res.json().catch(() => ({ error: 'Gagal membuat target baru' }));
     throw new Error(err.error || 'Gagal membuat target baru');
   }
   return await res.json();
 };
 
-export const updateTenantTargetSettings = async (settings: TenantTargetSettings): Promise<TenantTargetSettings> => {
 export const updateTarget = async (id: number, input: UpdateTargetInput): Promise<AgentTarget> => {
   const headers = await getAuthHeaders();
-  const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/target-settings`, {
   const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/targets/${id}`, {
     method: 'PUT',
     headers,
-    body: JSON.stringify(settings),
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Gagal menyimpan pengaturan target bulanan' }));
-    throw new Error(err.error || 'Gagal menyimpan pengaturan target bulanan');
     const err = await res.json().catch(() => ({ error: 'Gagal memperbarui target' }));
     throw new Error(err.error || 'Gagal memperbarui target');
   }

@@ -16,24 +16,42 @@ import { AgentDetailPage } from './pages/AgentDetail';
 import { AgentCommissionsPage } from './pages/AgentCommissions';
 import { AgentTargetsPage } from './pages/AgentTargets';
 import { ProfilSayaPage } from './pages/ProfilSaya';
-import { StaffLoginPage } from './pages/StaffLogin';
-import { StaffTenantsPage } from './pages/StaffTenants';
-import { StaffPricingPlansPage } from './pages/StaffPricingPlans';
-import { StaffCouponsPage } from './pages/StaffCoupons';
-import { StaffPaymentVerificationsPage } from './pages/StaffPaymentVerifications';
-import { StaffTenantDetailPage } from './pages/StaffTenantDetail';
-import { StaffSettingsPage } from './pages/StaffSettings';
 
-import { AdminLoginPage } from './pages/AdminLogin';
+import {
+  AdminLoginView,
+  AdminDashboardView,
+  AdminTenantsView,
+  AdminTenantDetailView,
+  AdminPaymentsView,
+  AdminPlansView,
+  AdminCouponsView,
+  AdminSettingsView,
+  AdminStaffView,
+  AdminAuthGuard,
+} from './modules/superadmin';
+
 import { SidebarProvider } from './components/SidebarContext';
 import { RequireAuth } from './components/RequireAuth';
+
+const LoginRedirect: React.FC = () => {
+  React.useEffect(() => {
+    const isLocal =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1');
+    const loginUrl = isLocal ? 'http://localhost:3000/login' : '/login';
+    window.location.href = loginUrl;
+  }, []);
+
+  return null;
+};
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <SidebarProvider>
         <Routes>
-        <Route path="/login" element={<AdminLoginPage />} />
+        <Route path="/login" element={<LoginRedirect />} />
 
         {/* Travel admin dashboard — requires a valid session so the
             dashboard always reflects the tenant that just logged in */}
@@ -63,15 +81,32 @@ export const App: React.FC = () => {
 
         <Route path="/dev/components" element={<DevComponentsPage />} />
 
-        {/* KlikUmroh Internal Staff Portal */}
-        <Route path="/internal/login" element={<StaffLoginPage />} />
-        <Route path="/internal/tenants" element={<StaffTenantsPage />} />
-        <Route path="/internal/tenants/:id" element={<StaffTenantDetailPage />} />
-        <Route path="/internal/pricing-plans" element={<StaffPricingPlansPage />} />
-        <Route path="/internal/coupons" element={<StaffCouponsPage />} />
-        <Route path="/internal/payment-verifications" element={<StaffPaymentVerificationsPage />} />
-        <Route path="/internal/settings" element={<StaffSettingsPage />} />
-        <Route path="/internal" element={<Navigate to="/internal/tenants" replace />} />
+        {/* KlikUmroh Master Super Admin Portal */}
+        <Route path="/internal/login" element={<AdminLoginView />} />
+        <Route element={<AdminAuthGuard />}>
+          <Route path="/internal/dashboard" element={<AdminDashboardView />} />
+          <Route path="/internal/tenants" element={<AdminTenantsView />} />
+          <Route path="/internal/tenants/:id" element={<AdminTenantDetailView />} />
+          <Route path="/internal/pricing-plans" element={<AdminPlansView />} />
+          <Route path="/internal/coupons" element={<AdminCouponsView />} />
+          <Route path="/internal/payment-verifications" element={<AdminPaymentsView />} />
+          <Route path="/internal/staff" element={<AdminStaffView />} />
+          <Route path="/internal/settings" element={<AdminSettingsView />} />
+          <Route path="/internal" element={<Navigate to="/internal/dashboard" replace />} />
+        </Route>
+
+        {/* Legacy Alias /staff/* -> /internal/* */}
+        <Route path="/staff/login" element={<AdminLoginView />} />
+        <Route path="/staff/dashboard" element={<Navigate to="/internal/dashboard" replace />} />
+        <Route path="/staff/tenants" element={<Navigate to="/internal/tenants" replace />} />
+        <Route path="/staff/pricing-plans" element={<Navigate to="/internal/pricing-plans" replace />} />
+        <Route path="/staff/coupons" element={<Navigate to="/internal/coupons" replace />} />
+        <Route path="/staff/payment-verifications" element={<Navigate to="/internal/payment-verifications" replace />} />
+        <Route path="/staff/staff" element={<Navigate to="/internal/staff" replace />} />
+        <Route path="/staff/users" element={<Navigate to="/internal/staff" replace />} />
+        <Route path="/staff/settings" element={<Navigate to="/internal/settings" replace />} />
+        <Route path="/staff" element={<Navigate to="/internal/dashboard" replace />} />
+        <Route path="/staff/*" element={<Navigate to="/internal/login" replace />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

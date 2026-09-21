@@ -3,37 +3,40 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: inherit;
-  font-weight: var(--font-weight-medium, 500);
+  font-family: var(--db-font-heading);
+  font-weight: var(--db-weight-semibold, 600);
+  line-height: var(--db-leading-none, 1);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   border: 1px solid transparent;
   outline: none;
 }
 
 .db-button--sm {
   padding: 6px 12px;
-  font-size: var(--font-size-sm, 13px);
+  font-size: var(--db-text-xs, 12px);
 }
 
 .db-button--md {
-  padding: 9px 18px;
-  font-size: var(--font-size-base, 14px);
+  padding: 8px 16px;
+  font-size: var(--db-text-sm, 13px);
 }
 
 .db-button--lg {
-  padding: 12px 24px;
-  font-size: var(--font-size-lg, 16px);
+  padding: 10px 20px;
+  font-size: var(--db-text-base, 14px);
 }
 
 .db-button--primary {
   background-color: var(--db-primary-button);
   color: var(--db-card-bg);
+  border-color: var(--db-primary-button);
 }
 
 .db-button--primary:hover:not(:disabled) {
-  opacity: 0.92;
+  background-color: var(--db-button-primary-hover);
+  border-color: var(--db-button-primary-hover);
   transform: translateY(-1px);
 }
 
@@ -44,9 +47,9 @@
 }
 
 .db-button--secondary:hover:not(:disabled) {
-  background-color: var(--db-chart-area-fill);
-  border-color: var(--db-accent-teal);
-  color: var(--db-accent-teal);
+  background-color: var(--db-surface);
+  border-color: var(--db-border);
+  color: var(--db-text-primary);
 }
 
 .db-button:disabled {

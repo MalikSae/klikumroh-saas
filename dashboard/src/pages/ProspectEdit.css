@@ -39,7 +39,7 @@
 .db-prospect-edit-title {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-2xl, 22px);
-  font-weight: 900;
+  font-weight: var(--db-weight-bold, 700);
   color: var(--db-text-primary);
   margin: 0;
   line-height: 1.2;
@@ -117,7 +117,7 @@
   color: #FFFFFF;
   font-family: var(--db-font-body);
   font-size: var(--font-size-sm);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -169,7 +169,7 @@
   border-radius: 4px;
   font-family: var(--db-font-body);
   font-size: var(--font-size-xs);
-  font-weight: 900;
+  font-weight: var(--db-weight-bold, 700);
   color: var(--db-text-muted);
   letter-spacing: 0.4px;
   white-space: nowrap;
@@ -203,7 +203,7 @@
 .db-edit-closing-warning__title {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-base);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-status-contacted);
 }
 
@@ -265,7 +265,7 @@
 .db-edit-form-card__title {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-md);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-text-primary);
   margin: 0;
 }
@@ -300,7 +300,7 @@
   gap: 7px;
   font-family: var(--db-font-heading);
   font-size: var(--font-size-base);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-text-primary);
 }
 
@@ -469,7 +469,7 @@
 .db-edit-stepper__value {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-xl);
-  font-weight: 900;
+  font-weight: var(--db-weight-bold, 700);
   color: var(--db-text-primary);
 }
 
@@ -519,7 +519,7 @@
 .db-edit-financial-stat__value {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-xl);
-  font-weight: 900;
+  font-weight: var(--db-weight-bold, 700);
   color: #FFFFFF;
 }
 
@@ -565,7 +565,7 @@
 .db-edit-sidebar-card__title {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-base);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-text-primary);
   margin: 0;
 }
@@ -653,7 +653,7 @@
   justify-content: center;
   font-family: var(--db-font-heading);
   font-size: var(--font-size-base);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   flex-shrink: 0;
 }
 
@@ -688,7 +688,7 @@
 .db-edit-sidebar-identity__name {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-base);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -799,7 +799,7 @@
 .db-edit-checklist__title {
   font-family: var(--db-font-heading);
   font-size: var(--font-size-base);
-  font-weight: 800;
+  font-weight: var(--db-weight-semibold, 600);
   color: var(--db-text-primary);
   margin: 0;
 }

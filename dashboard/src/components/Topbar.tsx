@@ -158,7 +158,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             <Search size={14} className="db-topbar__search-icon" aria-hidden="true" />
             <input
               type="text"
-              placeholder="Cari prospek atau agen"
+              placeholder="Cari prospek, agen, atau paket..."
               className="db-topbar__search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

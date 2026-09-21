@@ -1,77 +1,111 @@
 :root {
-  /* Typography Tokens (Global standard: Nunito heading, Roboto body) */
-  --db-font-heading: 'Nunito', sans-serif;
-  --db-font-body: 'Roboto', sans-serif;
+  /* Typography Tokens (Global standard: Plus Jakarta Sans heading, Roboto body) */
+  --db-font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --db-font-body: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  /* Dashboard Design Tokens (Fixed - KlikUmroh Admin - Synced with Marketing Palette) */
-  --db-sidebar-bg: #052F2C;
-  --db-sidebar-active-highlight: #007C74;
-  --db-primary-button: #006E67;
-  --db-accent-teal: #007C74;
-  --db-accent: #007C74;
-  --db-page-bg: #F3F8F7;
+  /* Dashboard Design Tokens (Modern Monochrome B2B SaaS Architecture) */
+  --db-sidebar-bg: #09090B;
+  --db-sidebar-active-highlight: #18181B;
+  --db-primary-button: #09090B;
+  --db-accent-teal: #18181B;
+  --db-accent: #09090B;
+  --db-page-bg: #FAFAFA;
   --db-card-bg: #FFFFFF;
-  --db-chart-area-fill: #E4F2F0;
-  --db-positive: #007C74;
-  --db-negative: #B84B3E;
-  --db-rating-star: #E8B85B;
-  --db-text-primary: #073B38;
-  --db-text-muted: #5D7471;
-  --db-border: #CFE0DD;
+  --db-chart-area-fill: rgba(9, 9, 11, 0.04);
+  --db-positive: #10B981;
+  --db-negative: #EF4444;
+  --db-rating-star: #F59E0B;
+  --db-text-primary: #09090B;
+  --db-text-muted: #71717A;
+  --db-border: #E4E4E7;
 
   /* Dashboard Compound & Utility Tokens */
-  --db-surface: #EAF3F1;
-  --db-surface-hover: #DCECE9;
+  --db-button-primary-hover: #27272A;
+  --db-surface: #F4F4F5;
+  --db-surface-hover: #E4E4E7;
   --db-sidebar-border: rgba(255, 255, 255, 0.08);
-  --db-sidebar-text: rgba(255, 255, 255, 0.75);
+  --db-sidebar-text: rgba(255, 255, 255, 0.70);
+  --db-sidebar-text-white: #FFFFFF;
+  --db-sidebar-text-muted: #A1A1AA;
   --db-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --db-sidebar-active-bg: rgba(0, 124, 116, 0.18);
+  --db-sidebar-active-bg: #18181B;
+  --db-sidebar-active-border: #FFFFFF;
   --db-sidebar-muted: rgba(255, 255, 255, 0.45);
-  --db-modal-overlay: rgba(7, 59, 56, 0.45);
-  --db-modal-shadow: 0 20px 25px -5px rgba(7, 59, 56, 0.12);
-  --db-focus-ring: rgba(0, 110, 103, 0.2);
-  --db-status-new: #0369A1;
+  --db-sidebar-badge-bg: rgba(255, 255, 255, 0.08);
+  --db-sidebar-badge-border: rgba(255, 255, 255, 0.14);
+  --db-sidebar-travel-card-bg: #18181B;
+  --db-sidebar-travel-card-border: rgba(255, 255, 255, 0.10);
+  --db-sidebar-travel-mark-bg: #27272A;
+  --db-sidebar-travel-mark-border: rgba(255, 255, 255, 0.12);
+  --db-modal-overlay: rgba(9, 9, 11, 0.50);
+  --db-modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  --db-focus-ring: rgba(9, 9, 11, 0.08);
+  --db-status-new: #0284C7;
   --db-status-new-bg: rgba(2, 132, 199, 0.08);
   --db-status-new-border: #BAE6FD;
-  --db-status-contacted: #8A641F;
-  --db-status-contacted-bg: rgba(232, 184, 91, 0.12);
-  --db-status-contacted-border: #F6E9C9;
-  --db-status-interested: #4338CA;
-  --db-status-interested-bg: rgba(99, 102, 241, 0.08);
+  --db-status-contacted: #D97706;
+  --db-status-contacted-bg: rgba(217, 119, 6, 0.08);
+  --db-status-contacted-border: #FDE68A;
+  --db-status-interested: #4F46E5;
+  --db-status-interested-bg: rgba(79, 70, 229, 0.08);
   --db-status-interested-border: #C7D2FE;
-  --db-status-closing: #006E67;
-  --db-status-closing-bg: rgba(0, 110, 103, 0.10);
-  --db-status-closing-border: #CFE0DD;
-  --db-status-lost: #B84B3E;
-  --db-status-lost-bg: rgba(184, 75, 62, 0.08);
-  --db-status-lost-border: #F4C9C4;
+  --db-status-closing: #059669;
+  --db-status-closing-bg: rgba(5, 150, 105, 0.08);
+  --db-status-closing-border: #A7F3D0;
+  --db-status-lost: #DC2626;
+  --db-status-lost-bg: rgba(220, 38, 38, 0.08);
+  --db-status-lost-border: #FECACA;
 
-  /* Fluid Responsive Typography Scale (Automatic Scaling based on viewport) */
-  --font-size-xs: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);       /* 11px - 12px */
-  --font-size-sm: clamp(0.75rem, 0.72rem + 0.2vw, 0.8125rem);        /* 12px - 13px */
-  --font-size-base: clamp(0.8125rem, 0.78rem + 0.25vw, 0.875rem);    /* 13px - 14px */
-  --font-size-md: clamp(0.875rem, 0.84rem + 0.3vw, 0.9375rem);       /* 14px - 15px */
-  --font-size-lg: clamp(0.9375rem, 0.88rem + 0.4vw, 1.0625rem);      /* 15px - 17px */
-  --font-size-xl: clamp(1.125rem, 1.05rem + 0.55vw, 1.25rem);        /* 18px - 20px */
-  --font-size-2xl: clamp(1.25rem, 1.15rem + 0.75vw, 1.5rem);         /* 20px - 24px */
-  --font-size-3xl: clamp(1.5rem, 1.35rem + 1vw, 1.875rem);           /* 24px - 30px */
+  /* Canonical Integer Typography Scale (Standard Desktop & Tablet B2B SaaS) */
+  --db-text-2xs: 11px;  /* Micro: status badge, pill tags, timestamp halus */
+  --db-text-xs: 12px;   /* Caption: table column headers, helper text, subtitle, tooltip */
+  --db-text-sm: 13px;   /* UI Compact: table cell data, form labels, nav items, small button */
+  --db-text-base: 14px; /* UI Standard: body text default, form input text, default button */
+  --db-text-md: 15px;   /* Emphasized: list title, compact card heading */
+  --db-text-lg: 16px;   /* Card Title: standard card header, panel heading */
+  --db-text-xl: 18px;   /* Section Title: sub-headline, modal sub-heading */
+  --db-text-2xl: 22px;  /* Page Title: h1, topbar title, main modal title */
+  --db-text-3xl: 28px;  /* Hero KPI Metric: nominal kpi stat cards */
 
-  /* Proportional Font Weights */
+  /* Legacy Scale Aliases (Integer Mapped - No Fractional Clamps) */
+  --font-size-xs: var(--db-text-xs);
+  --font-size-sm: var(--db-text-sm);
+  --font-size-base: var(--db-text-base);
+  --font-size-md: var(--db-text-md);
+  --font-size-lg: var(--db-text-lg);
+  --font-size-xl: var(--db-text-xl);
+  --font-size-2xl: var(--db-text-2xl);
+  --font-size-3xl: var(--db-text-3xl);
+
+  /* Strict Font Weights (4 Standard Tiers) */
+  --db-weight-regular: 400;  /* Standard reading text & table cells */
+  --db-weight-medium: 500;   /* Form labels, nav items, interactive links */
+  --db-weight-semibold: 600; /* Section headers, card titles, column headers, badges, buttons */
+  --db-weight-bold: 700;     /* Page titles, modal titles, large KPI numbers */
+
+  /* Legacy Weight Aliases (Redirect wild 800/900 to strict bold) */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-  --font-weight-black: 900;
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
+
+  /* Line Heights */
+  --db-leading-none: 1;     /* KPI numbers, avatar initials, single-line pill */
+  --db-leading-tight: 1.25; /* Page titles, card titles, modal titles */
+  --db-leading-snug: 1.35;  /* Subtitles, list items, alert copy */
+  --db-leading-normal: 1.5; /* Body text umum, table cells, form inputs */
+  --db-leading-relaxed: 1.6;/* Long reading text / operational guides */
 
   /* Layout & Geometry Tokens */
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 3px 0 rgba(7, 59, 56, 0.04);
-  --shadow-md: 0 4px 12px -2px rgba(7, 59, 56, 0.07), 0 2px 4px -2px rgba(7, 59, 56, 0.04);
-  --db-card-shadow: 0 4px 20px -2px rgba(7, 59, 56, 0.06);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --db-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px -4px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -82,6 +116,9 @@
 
 body {
   font-family: var(--db-font-body);
+  font-size: var(--db-text-base);
+  font-weight: var(--db-weight-regular);
+  line-height: var(--db-leading-normal);
   background-color: var(--db-page-bg);
   color: var(--db-text-primary);
   min-height: 100vh;
@@ -89,12 +126,41 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
+h1 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-2xl);
+  font-weight: var(--db-weight-bold);
+  line-height: var(--db-leading-tight);
+}
+
+h2 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-lg);
+  font-weight: var(--db-weight-semibold);
+  line-height: var(--db-leading-tight);
+}
+
+h3 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-md);
+  font-weight: var(--db-weight-semibold);
+  line-height: var(--db-leading-tight);
+}
+
+h4, h5, h6 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-base);
+  font-weight: var(--db-weight-semibold);
+  line-height: var(--db-leading-tight);
+}
+
+p {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-base);
+  font-weight: var(--db-weight-regular);
+  line-height: var(--db-leading-normal);
+}
+
 .db-topbar__title,
 .db-page-header__title,
 .db-card__title,
@@ -112,9 +178,75 @@ textarea {
   font-family: inherit;
 }
 
+/* Semantic Typography Utility Classes */
+.db-type-h1 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-2xl);
+  font-weight: var(--db-weight-bold);
+  line-height: var(--db-leading-tight);
+}
+
+.db-type-h2 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-lg);
+  font-weight: var(--db-weight-semibold);
+  line-height: var(--db-leading-tight);
+}
+
+.db-type-h3 {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-md);
+  font-weight: var(--db-weight-semibold);
+  line-height: var(--db-leading-tight);
+}
+
+.db-type-kpi {
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-3xl);
+  font-weight: var(--db-weight-bold);
+  line-height: var(--db-leading-none);
+}
+
+.db-type-body {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-base);
+  font-weight: var(--db-weight-regular);
+  line-height: var(--db-leading-normal);
+}
+
+.db-type-body-sm {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  font-weight: var(--db-weight-regular);
+  line-height: var(--db-leading-normal);
+}
+
+.db-type-caption {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs);
+  font-weight: var(--db-weight-regular);
+  line-height: var(--db-leading-snug);
+}
+
+.db-type-label {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  font-weight: var(--db-weight-medium);
+  line-height: var(--db-leading-none);
+}
+
+.db-type-badge {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-2xs);
+  font-weight: var(--db-weight-semibold);
+  line-height: var(--db-leading-none);
+}
+
 #root {
   min-height: 100vh;
+  width: 100%;
   display: flex;
+  flex-direction: column;
 }
 
 /* Responsive Layout Containers & Grid System */
