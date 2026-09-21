@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Check,
   Clock3,
@@ -17,6 +16,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import styles from './PaymentInstructionView.module.css';
 
 export interface PlatformSettings {
@@ -176,14 +176,7 @@ Mohon dicek dan diaktifkan akun travel kami. Terima kasih.`;
       <header className={styles.navbar}>
         <div className={styles.navInner}>
           <Link href="/marketing" className={styles.navBrand} aria-label="KlikUmroh Beranda">
-            <Image
-              src="/klikumroh-logo.png"
-              alt="KlikUmroh.id"
-              width={190}
-              height={55}
-              className={styles.logoImage}
-              priority
-            />
+            <KlikUmrohBrand theme="light" iconSize={26} />
           </Link>
           <div className={styles.navStatus}>
             <span className={styles.statusDot} />
@@ -309,54 +302,60 @@ Mohon dicek dan diaktifkan akun travel kami. Terima kasih.`;
                       <span className={styles.breakdownLabel}>Kode Unik Transfer</span>
                       <span className={styles.breakdownUniqueCode}>+Rp{uniqueCode}</span>
                     </div>
-                    <div className={styles.breakdownRow} style={{ paddingTop: 8, borderTop: '1px solid var(--km-line)' }}>
+                    <div className={styles.breakdownRow} style={{ paddingTop: 8, borderTop: '1px solid #E4E4E7' }}>
                       <span className={styles.paymentRowLabel}>Total harus ditransfer</span>
-                      <div className={styles.paymentRowContent}>
-                        <span className={styles.amountValue}>{formattedAmount}</span>
-                        <button
-                          type="button"
-                          className={styles.copyButton}
-                          onClick={handleCopyAmount}
-                          aria-label="Salin jumlah pembayaran"
-                        >
-                          {copiedAmount ? (
-                            <>
-                              <Check size={14} className={styles.copyIcon} />
-                              <span className={styles.copyText}>Tersalin!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={14} className={styles.copyIcon} />
-                              <span className={styles.copyText}>Salin</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
                     </div>
-                    <p className={styles.uniqueCodeNotice}>
-                      *PENTING: Mohon transfer tepat hingga 3 digit terakhir <strong>(Rp{uniqueCode})</strong> agar pembayaran Anda dapat diverifikasi secara instan.
-                    </p>
-                  </div>
-                ) : (
-                  <div className={styles.paymentRowGroup}>
-                    <span className={styles.paymentRowLabel}>Jumlah yang harus dibayar</span>
-                    <div className={styles.paymentRowContent}>
-                      <span className={styles.amountValue}>{formattedAmount}</span>
+                    <div className={styles.amountBox}>
+                      <div className={styles.amountBoxLeft}>
+                        <span className={styles.amountBoxLabel}>Total transfer</span>
+                        <span className={styles.amountValue}>{formattedAmount}</span>
+                      </div>
                       <button
                         type="button"
-                        className={styles.copyButton}
+                        className={styles.copyButtonWhite}
                         onClick={handleCopyAmount}
                         aria-label="Salin jumlah pembayaran"
                       >
                         {copiedAmount ? (
                           <>
-                            <Check size={14} className={styles.copyIcon} />
-                            <span className={styles.copyText}>Tersalin!</span>
+                            <Check size={14} className={styles.copyIconWhite} />
+                            <span className={styles.copyTextWhite}>Tersalin!</span>
                           </>
                         ) : (
                           <>
-                            <Copy size={14} className={styles.copyIcon} />
-                            <span className={styles.copyText}>Salin</span>
+                            <Copy size={14} className={styles.copyIconWhite} />
+                            <span className={styles.copyTextWhite}>Salin</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <p className={styles.uniqueCodeNotice}>
+                      *PENTING: Transfer tepat termasuk 3 digit kode unik <strong>(Rp{uniqueCode})</strong> untuk verifikasi instan.
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.paymentRowGroup}>
+                    <span className={styles.paymentRowLabel}>Jumlah yang harus dibayar</span>
+                    <div className={styles.amountBox}>
+                      <div className={styles.amountBoxLeft}>
+                        <span className={styles.amountBoxLabel}>Total transfer</span>
+                        <span className={styles.amountValue}>{formattedAmount}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.copyButtonWhite}
+                        onClick={handleCopyAmount}
+                        aria-label="Salin jumlah pembayaran"
+                      >
+                        {copiedAmount ? (
+                          <>
+                            <Check size={14} className={styles.copyIconWhite} />
+                            <span className={styles.copyTextWhite}>Tersalin!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} className={styles.copyIconWhite} />
+                            <span className={styles.copyTextWhite}>Salin</span>
                           </>
                         )}
                       </button>
@@ -481,7 +480,7 @@ Mohon dicek dan diaktifkan akun travel kami. Terima kasih.`;
                 {discountAmount !== undefined && discountAmount > 0 && (
                   <div className={styles.detailRow}>
                     <span className={styles.detailLabel}>Diskon Kupon</span>
-                    <span className={styles.detailValue} style={{ color: 'var(--km-green)' }}>
+                    <span className={styles.detailValue}>
                       -Rp{discountAmount.toLocaleString('id-ID')}
                     </span>
                   </div>
@@ -490,7 +489,7 @@ Mohon dicek dan diaktifkan akun travel kami. Terima kasih.`;
                 {uniqueCode !== undefined && uniqueCode > 0 && (
                   <div className={styles.detailRow}>
                     <span className={styles.detailLabel}>Kode Unik Transfer</span>
-                    <span className={styles.detailValue} style={{ color: 'var(--km-orange)' }}>
+                    <span className={styles.detailValue}>
                       +Rp{uniqueCode}
                     </span>
                   </div>

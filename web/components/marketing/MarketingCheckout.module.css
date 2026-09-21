@@ -83,8 +83,9 @@
 }
 
 .stepBadge {
-  background-color: var(--km-mint);
-  color: var(--km-green-2);
+  background-color: #F4F4F5;
+  color: #09090B;
+  border: 1px solid #E4E4E7;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -115,12 +116,12 @@
 }
 
 .planOption:hover {
-  border-color: var(--km-green-2);
+  border-color: #09090B;
 }
 
 .planOptionSelected {
-  border-color: var(--km-green-2);
-  background-color: var(--km-mint);
+  border-color: #09090B;
+  background-color: #F4F4F5;
 }
 
 .planInfo {
@@ -141,14 +142,14 @@
 }
 
 .planOptionSelected .radioCircle {
-  border-color: var(--km-green-2);
+  border-color: #09090B;
 }
 
 .radioDot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: var(--km-green-2);
+  background-color: #09090B;
   transform: scale(0);
   transition: transform 0.2s ease;
 }
@@ -167,8 +168,8 @@
 }
 
 .discountBadge {
-  background-color: var(--km-green-2);
-  color: var(--km-paper);
+  background-color: #09090B;
+  color: #FFFFFF;
   font-size: 12px;
   font-weight: 600;
   padding: 2px 8px;
@@ -231,8 +232,8 @@
 }
 
 .input:focus {
-  border-color: var(--km-green-2);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-green-2) 15%, transparent);
+  border-color: #09090B;
+  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
 }
 
 .subdomainInputBox {
@@ -246,8 +247,8 @@
 }
 
 .subdomainInputBox:focus-within {
-  border-color: var(--km-green-2);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-green-2) 15%, transparent);
+  border-color: #09090B;
+  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
 }
 
 .inputSubdomain {
@@ -351,8 +352,8 @@
 .submitBtn {
   margin-top: 32px;
   width: 100%;
-  background-color: var(--km-green-2);
-  color: var(--km-paper);
+  background-color: #09090B;
+  color: #FFFFFF;
   border: none;
   padding: 16px;
   border-radius: 8px;
@@ -364,10 +365,11 @@
   justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(9, 9, 11, 0.2);
 }
 
 .submitBtn:hover:not(:disabled) {
-  background-color: var(--km-green);
+  background-color: #27272A;
   transform: translateY(-1px);
 }
 
@@ -424,7 +426,7 @@
 }
 
 .successIcon {
-  color: var(--km-green-2);
+  color: #09090B;
   margin: 0 auto 24px;
 }
 
@@ -484,8 +486,8 @@
 
 .loginModalBtn {
   display: inline-block;
-  background-color: var(--km-green-2);
-  color: var(--km-paper);
+  background-color: #09090B;
+  color: #FFFFFF;
   text-decoration: none;
   padding: 14px 28px;
   border-radius: 8px;
@@ -495,7 +497,7 @@
 }
 
 .loginModalBtn:hover {
-  background-color: var(--km-green);
+  background-color: #27272A;
 }
 
 @media (max-width: 900px) {

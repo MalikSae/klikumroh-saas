@@ -1,10 +1,11 @@
 .section {
-  background-color: var(--km-gold);
-  padding: 90px 220px;
+  background-color: #09090B;
+  padding: 96px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .container {
-  max-width: 1000px;
+  max-width: 860px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -16,9 +17,9 @@
 .eyebrow {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-mint);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #A1A1AA;
   text-transform: uppercase;
 }
 
@@ -27,8 +28,8 @@
   font-size: 38px;
   font-weight: 800;
   line-height: 1.25;
-  color: var(--km-paper);
-  letter-spacing: -0.01em;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
   max-width: 780px;
 }
 
@@ -37,7 +38,7 @@
   font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
-  color: var(--km-mint);
+  color: #A1A1AA;
   max-width: 620px;
   margin-bottom: 12px;
 }
@@ -54,8 +55,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--km-paper);
-  color: var(--km-deep);
+  background-color: #FFFFFF;
+  color: #09090B;
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -63,11 +64,11 @@
   border-radius: 8px;
   text-decoration: none;
   transition: transform 0.15s ease, background-color 0.15s ease;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--km-deep) 20%, transparent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .primaryBtn:hover {
-  background-color: var(--km-mint);
+  background-color: #F4F4F5;
   transform: translateY(-1px);
 }
 
@@ -76,8 +77,8 @@
   align-items: center;
   gap: 8px;
   background-color: transparent;
-  border: 1px solid var(--km-mint);
-  color: var(--km-paper);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -88,8 +89,8 @@
 }
 
 .secondaryBtn:hover {
-  background-color: color-mix(in srgb, var(--km-paper) 12%, transparent);
-  border-color: var(--km-paper);
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 @media (max-width: 1024px) {

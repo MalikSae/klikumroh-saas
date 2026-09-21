@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ArrowRight, Play, Check, Bell, Share2 } from 'lucide-react';
+import { ArrowRight, MessageCircle, Check, Bell, Share2 } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 import styles from './MarketingHero.module.css';
 
 export const MarketingHero: React.FC = () => {
@@ -9,54 +10,59 @@ export const MarketingHero: React.FC = () => {
     <section className={styles.heroSection}>
       <div className={styles.container}>
         {/* Left: Hero Copy */}
-        <div className={styles.heroCopy}>
+        <ScrollReveal as="div" className={styles.heroCopy} animation="fade-up" delay={40}>
           <div className={styles.eyebrow}>
             <span className={styles.eyebrowDot} />
             <span className={styles.eyebrowText}>
-              PLATFORM AGEN & AFFILIATE TRAVEL UMROH
+              SOFTWARE AKUISISI JAMAAH & AKTIVASI AGEN
             </span>
           </div>
 
           <h1 className={styles.headline}>
-            Bangun Pasukan Agen Umroh.{' '}
             <span className={styles.headlineHighlight}>
-              Lipatgandakan Closing Jamaah.
-            </span>
+              Bangun Pasukan Agen Umroh.
+            </span>{' '}
+            Lipatgandakan Closing Jamaah.
           </h1>
 
           <p className={styles.subheadline}>
-            Rekrut dan aktifkan agen dengan tools jualan siap pakai. Pantau setiap prospek bersama hingga closing, lalu bayar komisi saat ada hasil.
+            Biro travel Anda mendapatkan website whitelabel resmi, ratusan amunisi konten & script WA siap pakai untuk agen, serta pipeline prospek transparan tanpa takut database tercecer.
           </p>
 
           <div className={styles.actions}>
-            <a href="#demo" className={styles.primaryBtn}>
-              <span>Lihat demo</span>
+            <a href="#harga" className={styles.primaryBtn}>
+              <span>Lihat pilihan paket</span>
               <ArrowRight size={16} />
             </a>
-            <a href="#cara-kerja" className={styles.secondaryBtn}>
-              <Play size={15} className={styles.playIcon} />
-              <span>Cara kerjanya</span>
+            <a
+              href="https://wa.me/6281234567890?text=Halo%20KlikUmroh,%20saya%20owner%20travel%20ingin%20konsultasi%20sistem%20agen%20dan%20demo%20platform"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.secondaryBtn}
+            >
+              <MessageCircle size={16} className={styles.playIcon} />
+              <span>Konsultasi Gratis</span>
             </a>
           </div>
 
           <div className={styles.proofNotes}>
             <div className={styles.proofItem}>
               <Check size={16} className={styles.proofCheck} />
-              <span>Khusus travel umroh</span>
+              <span>100% Whitelabel (Brand & Domain Sendiri)</span>
             </div>
             <div className={styles.proofItem}>
               <Check size={16} className={styles.proofCheck} />
-              <span>Berbrand travel Anda</span>
+              <span>Database Jamaah Terenkripsi & Milik Travel</span>
             </div>
             <div className={styles.proofItem}>
               <Check size={16} className={styles.proofCheck} />
-              <span>Nyaman dipakai dari HP</span>
+              <span>Siap Pakai 15 Menit Tanpa Instalasi</span>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Right: Connected Product Preview */}
-        <div className={styles.previewContainer}>
+        <ScrollReveal as="div" className={styles.previewContainer} animation="scale-up" delay={120}>
           {/* Dashboard Preview Card */}
           <div className={styles.dashboardCard}>
             <div className={styles.dashboardTopBar}>
@@ -142,7 +148,7 @@ export const MarketingHero: React.FC = () => {
             <div className={styles.agentReferralBox}>
               <span className={styles.referralLabel}>LINK REFERRAL ANDA</span>
               <span className={styles.referralUrl}>umroh.travelanda.id/ref/NISA27</span>
-              <button type="button" className={styles.shareBtn}>
+              <button type="button" className={styles.shareBtn} aria-label="Bagikan link referral agen">
                 <Share2 size={13} />
                 <span>Bagikan link</span>
               </button>
@@ -165,7 +171,7 @@ export const MarketingHero: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );

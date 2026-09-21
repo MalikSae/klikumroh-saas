@@ -28,9 +28,9 @@
 .eyebrow {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717A;
   text-transform: uppercase;
 }
 
@@ -40,7 +40,7 @@
   font-weight: 800;
   line-height: 1.25;
   color: var(--km-ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .intro {
@@ -62,9 +62,9 @@
 .scriptCard {
   background-color: var(--km-paper);
   border: 1px solid var(--km-line);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 28px;
-  box-shadow: var(--km-card-shadow);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -88,12 +88,13 @@
   display: inline-block;
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--km-green-2);
-  background-color: var(--km-mint);
+  color: #09090B;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
   padding: 4px 10px;
-  border-radius: 9999px;
+  border-radius: 4px;
   width: fit-content;
 }
 
@@ -103,13 +104,14 @@
   font-weight: 800;
   line-height: 1.3;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .scriptIconBox {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background-color: var(--km-mint);
+  border-radius: 8px;
+  background-color: #09090B;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,19 +119,58 @@
 }
 
 .scriptHeaderIcon {
-  color: var(--km-green-2);
+  color: #FFFFFF;
+}
+
+.scenarioTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.scenarioTab {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717A;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scenarioTab:hover {
+  background-color: #E4E4E7;
+  color: #09090B;
+  transform: translateY(-1px);
+}
+
+.scenarioTabActive {
+  background-color: #09090B;
+  color: #FFFFFF;
+  border-color: #09090B;
+}
+
+.scenarioTabActive:hover {
+  background-color: #27272A;
+  color: #FFFFFF;
 }
 
 .chatFlow {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  animation: fadeInUp 0.28s ease-out;
 }
 
 .questionBubble {
   background-color: var(--km-bg);
   border: 1px solid var(--km-line);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -137,9 +178,9 @@
 }
 
 .answerBubble {
-  background-color: var(--km-mint);
-  border: 1px solid color-mix(in srgb, var(--km-green-2) 25%, transparent);
-  border-radius: 12px;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
+  border-radius: 8px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -160,7 +201,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  color: #09090B;
   text-transform: uppercase;
 }
 
@@ -176,8 +217,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: var(--km-green-2);
-  color: var(--km-paper);
+  background-color: #09090B;
+  color: #FFFFFF;
   border: none;
   border-radius: 8px;
   padding: 12px 20px;
@@ -189,7 +230,7 @@
 }
 
 .copyBtn:hover {
-  background-color: var(--km-green);
+  background-color: #27272A;
 }
 
 /* Tools Grid */
@@ -202,17 +243,18 @@
 .toolCard {
   background-color: var(--km-paper);
   border: 1px solid var(--km-line);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .toolCard:hover {
   transform: translateY(-2px);
-  border-color: var(--km-green-2);
+  border-color: #09090B;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
 }
 
 .toolCardTop {
@@ -225,25 +267,26 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background-color: var(--km-mint);
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .toolIcon {
-  color: var(--km-green-2);
+  color: #09090B;
 }
 
 .toolBadge {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: var(--km-green-2);
-  background-color: var(--km-bg);
+  color: #71717A;
+  background-color: #F4F4F5;
   padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--km-line);
+  border-radius: 4px;
+  border: 1px solid #E4E4E7;
 }
 
 .toolTitle {
@@ -251,6 +294,7 @@
   font-size: 18px;
   font-weight: 800;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .toolDesc {

@@ -1,4 +1,8 @@
 :root {
+  /* Global Font Aliases */
+  --font-heading: var(--tw-font-heading, 'Plus Jakarta Sans', sans-serif);
+  --font-body: var(--tw-font-body, 'Roboto', sans-serif);
+
   /* Tenant Whitelabel Design Tokens (Fallback/Default - overridden dynamically at runtime per tenant) */
   --tw-brand-primary: #16A34A;
   --tw-brand-secondary: #0F172A;
@@ -32,27 +36,20 @@
   --tw-badge-danger-bg: rgba(220, 38, 38, 0.08);
   --tw-badge-danger-text: #DC2626;
 
-  /* KlikUmroh Marketing Tokens ($km-*) from design-tokens.json */
-  --km-bg: #F3F8F7;
+  /* KlikUmroh Marketing Monochrome Tokens ($km-*) */
+  --km-bg: #FAFAFA;
   --km-paper: #FFFFFF;
-  --km-ink: #073B38;
-  --km-muted: #5D7471;
-  --km-green: #006E67;
-  --km-green-2: #007C74;
-  --km-deep: #052F2C;
-  --km-gold: #007C74;
-  --km-gold-soft: #D9F3F0;
-  --km-mint: #E4F2F0;
-  --km-line: #CFE0DD;
-  --km-danger: #B84B3E;
-  --km-orange: #E8B85B;
-  --km-orange-dark: #8A641F;
-  --km-orange-soft: #F6E9C9;
-  --km-workflow-card-bg: rgba(255, 255, 255, 0.05);
-  --km-workflow-card-border: rgba(255, 255, 255, 0.12);
-  --km-halo-glow: rgba(0, 124, 116, 0.08);
-  --km-card-shadow: 0 4px 20px -2px rgba(7, 59, 56, 0.06);
-  --km-nav-shadow: 0 4px 20px -2px rgba(7, 59, 56, 0.05);
+  --km-ink: #09090B;
+  --km-muted: #71717A;
+  --km-line: #E4E4E7;
+  --km-deep: #09090B;
+  --km-surface-subtle: #F4F4F5;
+  --km-danger: #EF4444;
+  --km-workflow-card-bg: rgba(255, 255, 255, 0.04);
+  --km-workflow-card-border: rgba(255, 255, 255, 0.10);
+  --km-halo-glow: rgba(0, 0, 0, 0.04);
+  --km-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 24px -6px rgba(0, 0, 0, 0.04);
+  --km-nav-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -95,5 +92,49 @@ a {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes gentleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(9, 9, 11, 0.4);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(9, 9, 11, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(9, 9, 11, 0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

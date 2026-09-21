@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ArrowLeft,
   Lock,
@@ -14,9 +13,13 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  Database,
+  Zap,
+  ChevronDown,
 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PaymentInstructionView } from './PaymentInstructionView';
+import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import styles from './CheckoutView.module.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -194,6 +197,8 @@ function validateForm(
 
 interface OrderSummaryProps {
   selectedPlan: PricingPlan;
+  plans: PricingPlan[];
+  onPlanChange: (plan: PricingPlan) => void;
   coupon: CouponResult | null;
   couponCode: string;
   onCouponCodeChange: (val: string) => void;
@@ -204,6 +209,8 @@ interface OrderSummaryProps {
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
   selectedPlan,
+  plans,
+  onPlanChange,
   coupon,
   couponCode,
   onCouponCodeChange,
@@ -211,6 +218,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   couponLoading,
   couponError,
 }) => {
+  const [isPlanAccordionOpen, setIsPlanAccordionOpen] = useState(false);
   const discount = coupon
     ? Math.round((selectedPlan.price * coupon.discount_percentage) / 100)
     : 0;
@@ -218,32 +226,103 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
   return (
     <aside className={styles.summaryColumn} aria-label="Ringkasan Pesanan">
-      {/* Order Summary Card (Dark Forest Green) */}
+      {/* Order Summary Card */}
       <div className={styles.summaryCard}>
         {/* Header */}
         <div className={styles.summaryHeader}>
           <div className={styles.summaryTitleGroup}>
             <span className={styles.summaryEyebrow}>RINGKASAN PESANAN</span>
-            <h2 className={styles.selectedPlanTitle}>{selectedPlan.name}</h2>
-          </div>
-          {selectedPlan.popular && (
-            <div className={styles.popularBadge}>
-              <span className={styles.popularBadgeText}>PALING POPULER</span>
+            <div className={styles.planTitleRow}>
+              <h2 className={styles.selectedPlanTitle}>{selectedPlan.name}</h2>
+              {selectedPlan.popular && (
+                <div className={styles.popularBadge}>
+                  <span className={styles.popularBadgeText}>PALING POPULER</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Selected Plan Price */}
+        {/* Selected Plan Price with Ubah Paket Button */}
         <div className={styles.priceBlock}>
           <div className={styles.priceRow}>
-            <span className={styles.monthlyPrice}>
-              Rp{selectedPlan.monthly_equivalent.toLocaleString('id-ID')}
-            </span>
-            <span className={styles.perMonth}>/bln</span>
+            <div className={styles.priceMain}>
+              <span className={styles.monthlyPrice}>
+                Rp{selectedPlan.monthly_equivalent.toLocaleString('id-ID')}
+              </span>
+              <span className={styles.perMonth}>/bln</span>
+            </div>
+
+            {plans.length > 1 && (
+              <button
+                type="button"
+                id="change-plan-toggle-btn"
+                className={styles.changePlanBtn}
+                onClick={() => setIsPlanAccordionOpen((prev) => !prev)}
+                aria-expanded={isPlanAccordionOpen}
+                aria-controls="plan-accordion-options"
+              >
+                <span>Ubah Paket</span>
+                <ChevronDown
+                  size={14}
+                  className={`${styles.changePlanChevron} ${
+                    isPlanAccordionOpen ? styles.changePlanChevronOpen : ''
+                  }`}
+                />
+              </button>
+            )}
           </div>
           <span className={styles.billingNote}>
             Dibayar satu kali untuk masa aktif {selectedPlan.period_months} bulan
           </span>
+
+          {/* Accordion: Opsi Pilihan Paket */}
+          {isPlanAccordionOpen && plans.length > 1 && (
+            <div id="plan-accordion-options" className={styles.planAccordion}>
+              <div className={styles.planAccordionList}>
+                {plans.map((plan) => {
+                  const isSelected = plan.id === selectedPlan.id;
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      className={`${styles.planAccordionOption} ${
+                        isSelected ? styles.planAccordionOptionSelected : ''
+                      }`}
+                      onClick={() => {
+                        onPlanChange(plan);
+                        setIsPlanAccordionOpen(false);
+                      }}
+                      aria-pressed={isSelected}
+                    >
+                      <div className={styles.planOptionRadioCircle}>
+                        {isSelected && <div className={styles.planOptionRadioDot} />}
+                      </div>
+                      <div className={styles.planOptionInfo}>
+                        <div className={styles.planOptionTop}>
+                          <span className={styles.planOptionTitle}>{plan.name}</span>
+                          {plan.popular && (
+                            <span className={styles.planOptionPopularTag}>Paling Populer</span>
+                          )}
+                          {plan.discount_badge && !plan.popular && (
+                            <span className={styles.planOptionDiscountTag}>
+                              {plan.discount_badge}
+                            </span>
+                          )}
+                        </div>
+                        <div className={styles.planOptionPrice}>
+                          <span>Rp{plan.monthly_equivalent.toLocaleString('id-ID')}/bln</span>
+                          <span className={styles.planOptionTotal}>
+                            (Total Rp{plan.price.toLocaleString('id-ID')})
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={styles.summaryDivider} />
@@ -353,11 +432,54 @@ export const CheckoutView: React.FC = () => {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('ku_pending_signup');
-      if (stored) {
-        setPendingSession(JSON.parse(stored));
+      // Banner hanya boleh muncul jika user sedang dalam keadaan login
+      const token = localStorage.getItem('klikumroh_token');
+      const userStr = localStorage.getItem('klikumroh_user');
+
+      if (!token || !userStr) {
+        // User belum login -> banner tidak boleh muncul
+        setPendingSession(null);
+        return;
       }
-    } catch {}
+
+      const currentUser = JSON.parse(userStr);
+      const stored = localStorage.getItem('ku_pending_signup');
+
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const isSameAccount =
+          !parsed.adminEmail ||
+          !currentUser.email ||
+          parsed.adminEmail.toLowerCase() === currentUser.email.toLowerCase() ||
+          (parsed.travelName && parsed.travelName === currentUser.tenant_name);
+
+        if (isSameAccount) {
+          setPendingSession(parsed);
+          return;
+        }
+      }
+
+      if (currentUser.tenant_status === 'pending') {
+        setPendingSession({
+          travelName: currentUser.tenant_name || 'Travel Anda',
+          orderNumber: '',
+          slug: '',
+          planName: '',
+          baseAmount: '',
+          discountAmount: '',
+          uniqueCode: '',
+          finalAmount: '',
+          verificationId: currentUser.public_token || '',
+          adminEmail: currentUser.email || '',
+          adminWhatsApp: '',
+        });
+        return;
+      }
+
+      setPendingSession(null);
+    } catch {
+      setPendingSession(null);
+    }
   }, []);
 
   const [plans, setPlans] = useState<PricingPlan[]>([
@@ -373,20 +495,20 @@ export const CheckoutView: React.FC = () => {
       id: 2,
       name: 'Paket 6 Bulan',
       period_months: 6,
-      price: 2700000,
-      monthly_equivalent: 450000,
+      price: 2000000,
+      monthly_equivalent: 333333,
       discount_label: 'PALING POPULER',
-      discount_badge: 'Hemat 10%',
+      discount_badge: 'Hemat 25%',
       popular: true,
     },
     {
       id: 3,
       name: 'Paket 12 Bulan',
       period_months: 12,
-      price: 4800000,
-      monthly_equivalent: 400000,
+      price: 3500000,
+      monthly_equivalent: 291667,
       discount_label: 'PALING HEMAT',
-      discount_badge: 'Hemat 20%',
+      discount_badge: 'Hemat 42%',
     },
   ]);
 
@@ -433,16 +555,33 @@ export const CheckoutView: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+
   const selectedPlanId = useMemo(() => {
+    if (activePlanId !== null && plans.some((p) => p.id === activePlanId)) {
+      return activePlanId;
+    }
     if (!planIdParam) return 2; // default 6 Bulan as in design
     const id = parseInt(planIdParam, 10);
     return isNaN(id) || !plans.some((p) => p.id === id) ? 2 : id;
-  }, [planIdParam, plans]);
+  }, [activePlanId, planIdParam, plans]);
 
   const selectedPlan = useMemo(
-    () => plans.find((p) => p.id === selectedPlanId) ?? plans[1],
+    () => plans.find((p) => p.id === selectedPlanId) ?? plans[1] ?? plans[0],
     [plans, selectedPlanId]
   );
+
+  const handlePlanChange = (plan: PricingPlan) => {
+    setActivePlanId(plan.id);
+    setCoupon(null);
+    setCouponCode('');
+    setCouponError(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('plan_id', String(plan.id));
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   // Form State
   const [travelName, setTravelName] = useState('');
@@ -749,21 +888,14 @@ export const CheckoutView: React.FC = () => {
   // ─── Main Checkout View ───
   return (
     <div className={styles.page}>
-      {/* Checkout Navigation (Height: 84px) */}
+      {/* Checkout Navigation */}
       <header className={styles.navbar}>
         <div className={styles.navInner}>
           <Link href="/marketing" className={styles.navBrand}>
-            <Image
-              src="/klikumroh-logo.png"
-              alt="KlikUmroh.id"
-              width={190}
-              height={55}
-              className={styles.logoImage}
-              priority
-            />
+            <KlikUmrohBrand theme="light" iconSize={26} />
           </Link>
           <div className={styles.navSecure}>
-            <Lock size={16} className={styles.navSecureIcon} />
+            <Lock size={14} className={styles.navSecureIcon} />
             <span className={styles.navSecureText}>Checkout aman</span>
           </div>
         </div>
@@ -782,37 +914,16 @@ export const CheckoutView: React.FC = () => {
 
             {/* Pending Session Banner */}
             {pendingSession && (
-              <div
-                style={{
-                  backgroundColor: 'var(--km-mint)',
-                  border: '1px solid var(--km-line)',
-                  borderRadius: '8px',
-                  padding: '14px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  fontSize: '13px',
-                  color: 'var(--km-ink)',
-                }}
-              >
+              <div className={styles.pendingBanner}>
                 <div>
-                  <strong>Pemberitahuan:</strong> Anda memiliki pendaftaran untuk <em>{pendingSession.travelName}</em> yang menunggu pembayaran.
+                  <strong>Pemberitahuan:</strong> Pendaftaran <em>{pendingSession.travelName}</em> menunggu pembayaran.
                 </div>
                 <Link
                   href={`/checkout/payment?order=${pendingSession.orderNumber}&travel_name=${encodeURIComponent(pendingSession.travelName || '')}&slug=${encodeURIComponent(pendingSession.slug || '')}&plan=${encodeURIComponent(pendingSession.planName || '')}&base_amount=${pendingSession.baseAmount || ''}&discount_amount=${pendingSession.discountAmount || ''}&unique_code=${pendingSession.uniqueCode || ''}&final_amount=${pendingSession.finalAmount || ''}&verification_id=${pendingSession.verificationId || ''}&email=${encodeURIComponent(pendingSession.adminEmail || '')}&whatsapp=${encodeURIComponent(pendingSession.adminWhatsApp || '')}`}
-                  style={{
-                    fontWeight: 700,
-                    color: 'var(--km-green)',
-                    textDecoration: 'underline',
-                    whiteSpace: 'nowrap',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
+                  className={styles.pendingBannerLink}
                 >
-                  Lihat Instruksi Pembayaran
-                  <ArrowRight size={14} />
+                  Lihat Instruksi
+                  <ArrowRight size={13} />
                 </Link>
               </div>
             )}
@@ -1043,6 +1154,22 @@ export const CheckoutView: React.FC = () => {
                     )}
                   </button>
 
+                  {/* Trust Points */}
+                  <div className={styles.trustPoints}>
+                    <div className={styles.trustItem}>
+                      <Zap size={13} className={styles.trustIcon} />
+                      <span className={styles.trustText}>Aktivasi akun travel instan setelah verifikasi</span>
+                    </div>
+                    <div className={styles.trustItem}>
+                      <Database size={13} className={styles.trustIcon} />
+                      <span className={styles.trustText}>Data travel terisolasi aman per akun</span>
+                    </div>
+                    <div className={styles.trustItem}>
+                      <ShieldCheck size={13} className={styles.trustIcon} />
+                      <span className={styles.trustText}>Didampingi tim KlikUmroh sampai aktif</span>
+                    </div>
+                  </div>
+
                   {/* Existing Account Prompt */}
                   <div className={styles.existingAccountPrompt}>
                     <span className={styles.existingAccountText}>Sudah punya akun?</span>{' '}
@@ -1058,6 +1185,8 @@ export const CheckoutView: React.FC = () => {
           {/* ── Right: Order Summary Column (fill_container) ── */}
           <OrderSummary
             selectedPlan={selectedPlan}
+            plans={plans}
+            onPlanChange={handlePlanChange}
             coupon={coupon}
             couponCode={couponCode}
             onCouponCodeChange={(val) => {

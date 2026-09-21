@@ -49,13 +49,13 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 500;
-  color: var(--km-ink);
+  color: var(--km-muted);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .navLink:hover {
-  color: var(--km-green-2);
+  color: var(--km-ink);
 }
 
 .navActions {
@@ -81,9 +81,9 @@
 }
 
 .loginBtn:hover {
-  color: var(--km-green-2);
-  border-color: var(--km-green-2);
-  background-color: var(--km-mint);
+  color: #09090B;
+  border-color: #09090B;
+  background-color: #F4F4F5;
 }
 
 .ctaBtn {
@@ -93,16 +93,17 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 700;
-  color: var(--km-paper);
-  background-color: var(--km-gold);
+  color: #FFFFFF;
+  background-color: #09090B;
   text-decoration: none;
   padding: 12px 20px;
   border-radius: 8px;
   transition: background-color 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .ctaBtn:hover {
-  background-color: var(--km-green);
+  background-color: #27272A;
   transform: translateY(-1px);
 }
 
@@ -195,8 +196,9 @@
   }
 
   .mobileLoginBtn:hover {
-    border-color: var(--km-green-2);
-    color: var(--km-green-2);
+    border-color: #09090B;
+    color: #09090B;
+    background-color: #F4F4F5;
   }
 
   .mobileCtaBtn {
@@ -206,8 +208,8 @@
     gap: 8px;
     padding: 12px;
     border-radius: 8px;
-    background-color: var(--km-gold);
-    color: var(--km-paper);
+    background-color: #09090B;
+    color: #FFFFFF;
     font-weight: 700;
     font-size: 15px;
     text-decoration: none;

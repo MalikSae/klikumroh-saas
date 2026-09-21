@@ -1,6 +1,7 @@
 import React from 'react';
 import { MarketingNavbar } from './MarketingNavbar';
 import { MarketingHero } from './MarketingHero';
+import { MarketingEcosystemBar } from './MarketingEcosystemBar';
 import { MarketingPainPoints } from './MarketingPainPoints';
 import { MarketingWorkflow } from './MarketingWorkflow';
 import { MarketingAffiliateSystem } from './MarketingAffiliateSystem';
@@ -19,6 +20,7 @@ export const MarketingLandingView: React.FC = () => {
       <MarketingNavbar />
       <main>
         <MarketingHero />
+        <MarketingEcosystemBar />
         <MarketingPainPoints />
         <MarketingWorkflow />
         <MarketingAffiliateSystem />

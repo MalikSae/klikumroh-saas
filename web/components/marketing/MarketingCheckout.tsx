@@ -1,11 +1,10 @@
-'use client';
-
 import React, { useState, useMemo, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { ArrowRight, Loader2, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import styles from './MarketingCheckout.module.css';
 import { PLANS, PlanTier } from './MarketingPricing';
+import { KlikUmrohBrand } from './KlikUmrohBrand';
 
 interface SignupResult {
   travel_name: string;
@@ -125,12 +124,12 @@ const CheckoutForm = () => {
           Silakan simpan bukti transfer Anda dan login ke dashboard admin untuk mengunggah bukti bayar.
         </p>
         
-        <a
-          href="http://localhost:5173/login"
+        <Link
+          href="/login"
           className={styles.loginModalBtn}
         >
           Masuk ke Dashboard Admin
-        </a>
+        </Link>
       </div>
     );
   }
@@ -192,8 +191,9 @@ const CheckoutForm = () => {
 
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label className={styles.label}>Nama Biro Travel *</label>
+                <label htmlFor="checkout-travel-name" className={styles.label}>Nama Biro Travel *</label>
                 <input
+                  id="checkout-travel-name"
                   type="text"
                   className={styles.input}
                   placeholder="Contoh: Al-Barakah Tour & Travel"
@@ -204,9 +204,10 @@ const CheckoutForm = () => {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.label}>Subdomain Website *</label>
+                <label htmlFor="checkout-slug" className={styles.label}>Subdomain Website *</label>
                 <div className={styles.subdomainInputBox}>
                   <input
+                    id="checkout-slug"
                     type="text"
                     className={styles.inputSubdomain}
                     placeholder="albarakah"
@@ -221,8 +222,9 @@ const CheckoutForm = () => {
 
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label className={styles.label}>Nama Penanggung Jawab *</label>
+                <label htmlFor="checkout-admin-name" className={styles.label}>Nama Penanggung Jawab *</label>
                 <input
+                  id="checkout-admin-name"
                   type="text"
                   className={styles.input}
                   placeholder="Contoh: H. Ahmad Subardjo"
@@ -233,8 +235,9 @@ const CheckoutForm = () => {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.label}>Nomor WhatsApp Aktif *</label>
+                <label htmlFor="checkout-admin-whatsapp" className={styles.label}>Nomor WhatsApp Aktif *</label>
                 <input
+                  id="checkout-admin-whatsapp"
                   type="tel"
                   className={styles.input}
                   placeholder="Contoh: 081234567890"
@@ -247,8 +250,9 @@ const CheckoutForm = () => {
 
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label className={styles.label}>Email Login Admin *</label>
+                <label htmlFor="checkout-admin-email" className={styles.label}>Email Login Admin *</label>
                 <input
+                  id="checkout-admin-email"
                   type="email"
                   className={styles.input}
                   placeholder="admin@travelanda.com"
@@ -259,8 +263,9 @@ const CheckoutForm = () => {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.label}>Kata Sandi (Min 8 Karakter) *</label>
+                <label htmlFor="checkout-admin-password" className={styles.label}>Kata Sandi (Min 8 Karakter) *</label>
                 <input
+                  id="checkout-admin-password"
                   type="password"
                   className={styles.input}
                   placeholder="••••••••"
@@ -273,8 +278,9 @@ const CheckoutForm = () => {
             </div>
             
             <div className={styles.formGroup}>
-              <label className={styles.label}>Kode Kupon / Promo (Opsional)</label>
+              <label htmlFor="checkout-coupon-code" className={styles.label}>Kode Kupon / Promo (Opsional)</label>
               <input
+                id="checkout-coupon-code"
                 type="text"
                 className={styles.input}
                 placeholder="Masukkan kode voucher jika ada"
@@ -351,19 +357,13 @@ export const MarketingCheckout: React.FC = () => {
       <header className={styles.header}>
         <div className={styles.headerContainer}>
           <a href="/marketing" className={styles.brand}>
-            <Image
-              src="/klikumroh-logo.png"
-              alt="KlikUmroh Logo"
-              width={190}
-              height={55}
-              className={styles.brandImage}
-            />
+            <KlikUmrohBrand theme="light" iconSize={28} />
           </a>
         </div>
       </header>
 
       {/* CHECKOUT CONTENT */}
-      <Suspense fallback={<div style={{ textAlign: 'center', padding: '100px' }}><Loader2 size={32} className={styles.spinner} style={{margin: '0 auto', color: 'var(--km-green-2)'}}/></div>}>
+      <Suspense fallback={<div style={{ textAlign: 'center', padding: '100px' }}><Loader2 size={32} className={styles.spinner} style={{margin: '0 auto', color: '#09090B'}}/></div>}>
         <CheckoutForm />
       </Suspense>
     </div>

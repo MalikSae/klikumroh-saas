@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Plus, ChevronDown, ArrowRight } from 'lucide-react';
+import { ArrowRight, Plus, ChevronDown, MessageSquare } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 import styles from './MarketingProspectFeature.module.css';
 
 const PROSPECTS = [
@@ -40,11 +41,23 @@ const PROSPECTS = [
 ];
 
 export const MarketingProspectFeature: React.FC = () => {
+  const [activeFilter, setActiveFilter] = React.useState<string>('semua');
+  const [showToast, setShowToast] = React.useState<boolean>(false);
+
+  const filteredProspects = activeFilter === 'semua'
+    ? PROSPECTS
+    : PROSPECTS.filter((p) => p.status === activeFilter);
+
+  const handleAddProspectClick = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3500);
+  };
+
   return (
     <section className={styles.section}>
       <div className={styles.container}>
         {/* Left: Copy */}
-        <div className={styles.featureCopy}>
+        <ScrollReveal as="div" className={styles.featureCopy} animation="fade-up">
           <span className={styles.featureNumber}>02  —  MANAJEMEN PROSPEK</span>
           <h2 className={styles.featureHeadline}>
             Agen dan tim travel menangani prospek dalam pipeline yang sama.
@@ -54,35 +67,82 @@ export const MarketingProspectFeature: React.FC = () => {
           </p>
 
           <div className={styles.pipelinePills}>
-            <span className={styles.pillBaru}>Baru</span>
+            <button
+              type="button"
+              className={`${styles.pillBtn} ${activeFilter === 'semua' ? styles.pillActive : ''}`}
+              onClick={() => setActiveFilter('semua')}
+            >
+              Semua ({PROSPECTS.length})
+            </button>
+            <button
+              type="button"
+              className={`${styles.pillBtn} ${activeFilter === 'baru' ? styles.pillActive : ''}`}
+              onClick={() => setActiveFilter('baru')}
+            >
+              Baru (1)
+            </button>
             <ArrowRight size={14} className={styles.pillArrow} />
-            <span className={styles.pillDihubungi}>Dihubungi</span>
+            <button
+              type="button"
+              className={`${styles.pillBtn} ${activeFilter === 'dihubungi' ? styles.pillActive : ''}`}
+              onClick={() => setActiveFilter('dihubungi')}
+            >
+              Dihubungi (1)
+            </button>
             <ArrowRight size={14} className={styles.pillArrow} />
-            <span className={styles.pillTertarik}>Tertarik</span>
+            <button
+              type="button"
+              className={`${styles.pillBtn} ${activeFilter === 'tertarik' ? styles.pillActive : ''}`}
+              onClick={() => setActiveFilter('tertarik')}
+            >
+              Tertarik (1)
+            </button>
             <ArrowRight size={14} className={styles.pillArrow} />
-            <span className={styles.pillClosing}>Closing</span>
+            <button
+              type="button"
+              className={`${styles.pillBtn} ${activeFilter === 'closing' ? styles.pillActiveClosing : ''}`}
+              onClick={() => setActiveFilter('closing')}
+            >
+              Closing (1)
+            </button>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Right: Prospect Dashboard Table Preview */}
-        <div className={styles.tableWrapper}>
+        <ScrollReveal as="div" className={styles.tableWrapper} animation="scale-up" delay={120}>
           <div className={styles.tableCard}>
             {/* Header */}
             <div className={styles.tableHeader}>
               <div className={styles.titleGroup}>
                 <h3 className={styles.tableTitle}>Prospek</h3>
-                <span className={styles.tableCaption}>Data contoh • 48 calon jamaah</span>
+                <span className={styles.tableCaption}>
+                  {activeFilter === 'semua' ? 'Menampilkan semua prospek' : `Filter: ${activeFilter.toUpperCase()}`} • 48 calon jamaah
+                </span>
               </div>
-              <button type="button" className={styles.addBtn}>
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={handleAddProspectClick}
+              >
                 <Plus size={15} />
                 <span>Tambah prospek</span>
               </button>
             </div>
 
+            {/* Interactive Feedback Banner */}
+            {showToast && (
+              <div className={styles.toastBanner}>
+                <span>Alur Otomatis: Prospek dari form web agen langsung tersinkron ke dashboard & notifikasi WhatsApp tim travel!</span>
+              </div>
+            )}
+
             {/* Filters */}
             <div className={styles.filtersRow}>
-              <div className={styles.filterBtn}>
-                <span>Semua status</span>
+              <div
+                className={`${styles.filterBtn} ${activeFilter !== 'semua' ? styles.filterBtnActive : ''}`}
+                onClick={() => setActiveFilter('semua')}
+              >
+                <span>Filter: {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</span>
                 <ChevronDown size={14} />
               </div>
               <div className={styles.filterBtn}>
@@ -108,8 +168,8 @@ export const MarketingProspectFeature: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {PROSPECTS.map((row, idx) => (
-                    <tr key={idx}>
+                  {filteredProspects.map((row, idx) => (
+                    <tr key={idx} className={styles.tableRowAnimated}>
                       <td className={styles.cellName}>{row.name}</td>
                       <td className={styles.cellMuted}>{row.package}</td>
                       <td className={styles.cellMuted}>{row.source}</td>
@@ -125,7 +185,7 @@ export const MarketingProspectFeature: React.FC = () => {
               </table>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );

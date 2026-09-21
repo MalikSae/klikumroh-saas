@@ -23,7 +23,7 @@ export default function CheckoutPaymentRoute() {
         >
           <Loader2
             size={32}
-            style={{ color: 'var(--km-green-2)', animation: 'spin 1s linear infinite' }}
+            style={{ color: '#09090B', animation: 'spin 1s linear infinite' }}
           />
         </div>
       }

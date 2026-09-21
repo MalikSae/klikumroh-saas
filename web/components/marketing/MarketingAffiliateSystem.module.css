@@ -27,7 +27,7 @@
   width: 360px;
   height: 360px;
   border-radius: 9999px;
-  background-color: var(--km-gold-soft);
+  background-color: rgba(0, 0, 0, 0.03);
   filter: blur(40px);
   z-index: 0;
 }
@@ -39,9 +39,9 @@
   max-width: 360px;
   background-color: var(--km-paper);
   border: 1px solid var(--km-line);
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 24px;
-  box-shadow: var(--km-card-shadow);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -67,26 +67,27 @@
   font-size: 17px;
   font-weight: 800;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .phoneAvatar {
   width: 36px;
   height: 36px;
   border-radius: 9999px;
-  background-color: var(--km-mint);
+  background-color: #09090B;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 13px;
-  font-weight: 800;
-  color: var(--km-green-2);
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
 .targetCard {
   background-color: var(--km-bg);
   border: 1px solid var(--km-line);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -122,14 +123,14 @@
 
 .targetProgress {
   height: 100%;
-  background-color: var(--km-green-2);
+  background-color: #09090B;
   border-radius: 9999px;
 }
 
 .balanceCard {
-  background: linear-gradient(135deg, var(--km-mint) 0%, var(--km-paper) 100%);
-  border: 1px solid var(--km-line);
-  border-radius: 12px;
+  background: #F4F4F5;
+  border: 1px solid #E4E4E7;
+  border-radius: 8px;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -141,7 +142,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  color: #71717A;
   text-transform: uppercase;
 }
 
@@ -150,6 +151,7 @@
   font-size: 24px;
   font-weight: 800;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .pendingBalance {
@@ -161,7 +163,7 @@
 .referralCard {
   background-color: var(--km-bg);
   border: 1px dashed var(--km-line);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -208,8 +210,8 @@
 }
 
 .actionBtn:hover {
-  background-color: var(--km-mint);
-  border-color: var(--km-green-2);
+  background-color: #F4F4F5;
+  border-color: #09090B;
 }
 
 .recentSection {
@@ -247,20 +249,22 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: var(--km-green-2);
-  background-color: var(--km-mint);
+  color: #09090B;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: 4px;
 }
 
 .statusContacted {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: var(--km-orange-dark);
-  background-color: var(--km-orange-soft);
+  color: #71717A;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: 4px;
 }
 
 /* Right Column */
@@ -272,9 +276,9 @@
 .featureNumber {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717A;
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -286,7 +290,7 @@
   line-height: 1.25;
   color: var(--km-ink);
   margin-bottom: 16px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .featureBody {
@@ -311,17 +315,18 @@
 }
 
 .checkIconBox {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 9999px;
-  background-color: var(--km-mint);
+  background-color: #09090B;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .checkIcon {
-  color: var(--km-green-2);
+  color: #FFFFFF;
 }
 
 .checkText {

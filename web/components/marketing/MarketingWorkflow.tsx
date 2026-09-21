@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Search, Share2, UserPlus, MessagesSquare, BadgeDollarSign } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 import styles from './MarketingWorkflow.module.css';
 
 const STEPS = [
@@ -46,23 +47,28 @@ export const MarketingWorkflow: React.FC = () => {
   return (
     <section id="cara-kerja" className={styles.section}>
       <div className={styles.container}>
-        <div className={styles.heading}>
-          <span className={styles.eyebrow}>CARA KERJANYA</span>
-          <h2 className={styles.headline}>
-            Agen mulai promosi. Setiap prospek yang masuk bisa dipantau bersama.
-          </h2>
-          <p className={styles.description}>
-            Agen dan travel melihat status, catatan, dan tindak lanjut yang sama.
-          </p>
-        </div>
+        <ScrollReveal animation="fade-up">
+          <div className={styles.heading}>
+            <span className={styles.eyebrow}>CARA KERJANYA</span>
+            <h2 className={styles.headline}>
+              Agen mulai promosi. Setiap prospek yang masuk bisa dipantau bersama.
+            </h2>
+            <p className={styles.description}>
+              Agen dan travel melihat status, catatan, dan tindak lanjut yang sama.
+            </p>
+          </div>
+        </ScrollReveal>
 
         <div className={styles.stepsGrid}>
-          {STEPS.map((step) => {
+          {STEPS.map((step, index) => {
             const IconComponent = step.icon;
             return (
-              <div
+              <ScrollReveal
                 key={step.num}
+                as="div"
                 className={`${styles.stepCard} ${step.highlighted ? styles.stepCardHighlighted : ''}`}
+                animation="fade-up"
+                delay={index * 90}
               >
                 <div className={styles.stepTop}>
                   <span className={`${styles.stepNum} ${step.highlighted ? styles.stepNumHighlighted : ''}`}>
@@ -81,7 +87,7 @@ export const MarketingWorkflow: React.FC = () => {
                     {step.desc}
                   </p>
                 </div>
-              </div>
+              </ScrollReveal>
             );
           })}
         </div>

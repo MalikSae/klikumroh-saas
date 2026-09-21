@@ -1,7 +1,7 @@
 .footer {
-  background-color: var(--km-deep);
+  background-color: #09090B;
   padding: 66px 96px 36px;
-  border-top: 1px solid var(--km-workflow-card-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .container {
@@ -26,20 +26,11 @@
   max-width: 380px;
 }
 
-.footerLogo {
-  height: 42px;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  object-position: left center;
-  align-self: flex-start;
-}
-
 .description {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  color: var(--km-line);
+  color: #A1A1AA;
 }
 
 .linksGrid {
@@ -56,9 +47,10 @@
 
 .colTitle {
   font-family: var(--tw-font-heading), sans-serif;
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--km-paper);
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 
 .colLinks {
@@ -66,18 +58,20 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 0;
+  margin: 0;
 }
 
 .colLinks a {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 14px;
-  color: var(--km-line);
+  color: #A1A1AA;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .colLinks a:hover {
-  color: var(--km-orange);
+  color: #FFFFFF;
 }
 
 .footerBottom {
@@ -85,7 +79,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 28px;
-  border-top: 1px solid var(--km-workflow-card-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -93,13 +87,13 @@
 .copyright {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 13px;
-  color: var(--km-muted);
+  color: #71717A;
 }
 
 .legal {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 13px;
-  color: var(--km-muted);
+  color: #71717A;
 }
 
 @media (max-width: 1024px) {

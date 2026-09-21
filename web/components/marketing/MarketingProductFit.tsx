@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Users, UserPlus, ArrowRight } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 import styles from './MarketingProductFit.module.css';
 
 export const MarketingProductFit: React.FC = () => {
@@ -9,22 +10,24 @@ export const MarketingProductFit: React.FC = () => {
     <section className={styles.section}>
       <div className={styles.container}>
         {/* Heading */}
-        <div className={styles.headingRow}>
-          <div className={styles.headingCopy}>
-            <span className={styles.eyebrow}>UNTUK DUA KONDISI TRAVEL</span>
-            <h2 className={styles.headline}>
-              Pakai untuk jaringan yang sudah berjalan atau mulai merekrut agen baru.
-            </h2>
+        <ScrollReveal animation="fade-up">
+          <div className={styles.headingRow}>
+            <div className={styles.headingCopy}>
+              <span className={styles.eyebrow}>UNTUK DUA KONDISI TRAVEL</span>
+              <h2 className={styles.headline}>
+                Pakai untuk jaringan yang sudah berjalan atau mulai merekrut agen baru.
+              </h2>
+            </div>
+            <p className={styles.erpCompatibility}>
+              KlikUmroh menangani channel agen dan prospek. Sistem operasional travel yang sudah Anda gunakan tetap berjalan seperti biasa.
+            </p>
           </div>
-          <p className={styles.erpCompatibility}>
-            KlikUmroh menangani channel agen dan prospek. Sistem operasional travel yang sudah Anda gunakan tetap berjalan seperti biasa.
-          </p>
-        </div>
+        </ScrollReveal>
 
         {/* 2 Cards */}
         <div className={styles.cardsGrid}>
           {/* Card 1: Sudah punya agen */}
-          <div className={styles.fitCard}>
+          <ScrollReveal as="div" className={styles.fitCard} animation="fade-up" delay={0}>
             <div className={styles.cardTop}>
               <span className={styles.cardLabel}>SUDAH PUNYA AGEN</span>
               <div className={styles.iconBox}>
@@ -39,10 +42,10 @@ export const MarketingProductFit: React.FC = () => {
               <span>Rapikan jaringan agen</span>
               <ArrowRight size={16} />
             </a>
-          </div>
+          </ScrollReveal>
 
           {/* Card 2: Baru mau memulai */}
-          <div className={styles.fitCard}>
+          <ScrollReveal as="div" className={styles.fitCard} animation="fade-up" delay={150}>
             <div className={styles.cardTop}>
               <span className={styles.cardLabel}>BARU MAU MEMULAI</span>
               <div className={styles.iconBox}>
@@ -57,7 +60,7 @@ export const MarketingProductFit: React.FC = () => {
               <span>Bangun channel agen</span>
               <ArrowRight size={16} />
             </a>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
     </section>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { MessageCircle, Plus, Minus } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 import styles from './MarketingFAQ.module.css';
 
 interface FAQItem {
@@ -15,24 +16,24 @@ const FAQS: FAQItem[] = [
     a: 'Tidak. KlikUmroh fokus pada agen, referral, prospek, komisi, dan tools marketing. Sistem dokumen, visa, keuangan, dan keberangkatan tetap dapat digunakan seperti biasa.',
   },
   {
-    q: 'Apakah cocok untuk travel yang belum punya agen?',
-    a: 'Sangat cocok. KlikUmroh menyediakan tools marketing siap pakai (sumber jamaah, bank caption, script WhatsApp) sehingga Anda bisa mulai merekrut dan membekali agen baru dari nol dengan sistem yang sudah siap.',
+    q: 'Apakah data jamaah kami aman dan tidak akan bocor ke travel lain?',
+    a: 'Sangat aman. KlikUmroh menggunakan arsitektur isolasi multi-tenant ketat dan terenkripsi. Seluruh database prospek, daftar jamaah, dan omzet adalah hak milik eksklusif biro travel Anda. Kami tidak pernah mengakses, mengontak, atau membagikan kontak jamaah Anda kepada pihak ketiga mana pun.',
   },
   {
-    q: 'Bagaimana sistem mengetahui jamaah berasal dari agen mana?',
-    a: 'Setiap agen memiliki link referral unik. Saat prospek mengisi form minat, sumber dan nama agen otomatis terkunci di database dan masuk ke pipeline prospek bersama.',
+    q: 'Bagaimana agen mulai bergerak setelah mendaftar?',
+    a: 'Agen langsung melihat materi promosi, script chat WhatsApp, ide sumber jamaah, serta link referral mereka sendiri. Semuanya sudah siap digunakan dari HP.',
   },
   {
-    q: 'Apakah agen perlu menggunakan laptop?',
-    a: 'Tidak perlu. Portal agen dirancang nyaman dan ringan diakses langsung dari browser HP (mobile-friendly), tanpa perlu instalasi aplikasi rumit.',
+    q: 'Apakah website publik dan portal agen menggunakan nama travel kami?',
+    a: 'Ya. KlikUmroh adalah sistem whitelabel. Nama, logo, warna identitas, dan domain menggunakan milik travel Anda.',
   },
   {
-    q: 'Apakah jumlah agen dibatasi?',
-    a: 'Tidak dibatasi. Semua paket langganan KlikUmroh mendukung penambahan agen tanpa batas (unlimited agents) tanpa biaya tambahan per agen.',
+    q: 'Berapa lama proses setup awal sampai sistem bisa digunakan?',
+    a: 'Setelah verifikasi transfer langganan, dashboard Anda langsung aktif. Pengaturan nama, logo, paket umroh, dan komisi agen rata-rata selesai dalam 30–60 menit.',
   },
   {
-    q: 'Apakah website dapat memakai brand travel kami?',
-    a: 'Ya. KlikUmroh bekerja di belakang layar secara whitelabel. Website publik dan portal agen menggunakan nama, logo, warna identitas, serta custom domain resmi travel Anda.',
+    q: 'Apakah data prospek dan agen kami aman dan tidak dibagikan?',
+    a: 'Ya, 100% aman. Data travel Anda terisolasi secara multi-tenant murni, terenkripsi, dan tidak pernah diakses atau dibagikan ke pihak mana pun. Anda dapat mengekspornya ke format Excel/CSV kapan saja.',
   },
 ];
 
@@ -47,7 +48,7 @@ export const MarketingFAQ: React.FC = () => {
     <section id="faq" className={styles.section}>
       <div className={styles.container}>
         {/* Left: Introduction */}
-        <div className={styles.faqIntro}>
+        <ScrollReveal as="div" className={styles.faqIntro} animation="fade-up">
           <span className={styles.eyebrow}>SEBELUM ANDA MEMUTUSKAN</span>
           <h2 className={styles.headline}>
             Pertanyaan yang biasanya muncul dari owner travel.
@@ -64,14 +65,20 @@ export const MarketingFAQ: React.FC = () => {
             <MessageCircle size={18} />
             <span>Tanya lewat WhatsApp</span>
           </a>
-        </div>
+        </ScrollReveal>
 
         {/* Right: FAQ Accordion */}
         <div className={styles.faqList}>
           {FAQS.map((faq, idx) => {
             const isOpen = openIndex === idx;
             return (
-              <div key={idx} className={styles.faqItem}>
+              <ScrollReveal
+                key={idx}
+                as="div"
+                className={styles.faqItem}
+                animation="fade-up"
+                delay={idx * 60}
+              >
                 <button
                   type="button"
                   className={styles.questionBtn}
@@ -93,7 +100,7 @@ export const MarketingFAQ: React.FC = () => {
                     <p className={styles.answerText}>{faq.a}</p>
                   </div>
                 )}
-              </div>
+              </ScrollReveal>
             );
           })}
         </div>

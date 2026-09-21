@@ -23,9 +23,9 @@
 .eyebrow {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717A;
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -37,7 +37,7 @@
   line-height: 1.25;
   color: var(--km-ink);
   margin-bottom: 16px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .body {
@@ -67,9 +67,9 @@
 }
 
 .whatsappBtn:hover {
-  background-color: var(--km-mint);
-  border-color: var(--km-green-2);
-  color: var(--km-green-2);
+  background-color: #F4F4F5;
+  border-color: #09090B;
+  color: #09090B;
 }
 
 /* FAQ List */
@@ -98,9 +98,10 @@
 .questionText {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .toggleIcon {
@@ -112,7 +113,7 @@
 
 .minusIcon,
 .plusIcon {
-  color: var(--km-green-2);
+  color: #09090B;
 }
 
 .answerBox {

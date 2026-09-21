@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Menu, X, ArrowRight, LogIn } from 'lucide-react';
+import { KlikUmrohBrand } from './KlikUmrohBrand';
 import styles from './MarketingNavbar.module.css';
 
 export const MarketingNavbar: React.FC = () => {
@@ -23,14 +23,7 @@ export const MarketingNavbar: React.FC = () => {
       <div className={styles.container}>
         {/* KlikUmroh Brand */}
         <Link href="/marketing" className={styles.brand}>
-          <Image
-            src="/klikumroh-logo.png"
-            alt="KlikUmroh.id"
-            width={190}
-            height={55}
-            priority
-            className={styles.brandImage}
-          />
+          <KlikUmrohBrand theme="light" iconSize={30} />
         </Link>
 
         {/* Navigation Links */}
@@ -47,8 +40,8 @@ export const MarketingNavbar: React.FC = () => {
             <LogIn size={16} />
             <span>Login</span>
           </Link>
-          <a href="#demo" className={styles.ctaBtn}>
-            <span>Lihat demo</span>
+          <a href="#harga" className={styles.ctaBtn}>
+            <span>Lihat Harga</span>
             <ArrowRight size={16} />
           </a>
         </div>
@@ -106,11 +99,11 @@ export const MarketingNavbar: React.FC = () => {
                 <span>Login</span>
               </Link>
               <a
-                href="#demo"
+                href="#harga"
                 className={styles.mobileCtaBtn}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <span>Lihat demo</span>
+                <span>Lihat Harga</span>
                 <ArrowRight size={16} />
               </a>
             </div>

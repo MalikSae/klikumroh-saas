@@ -1,8 +1,6 @@
-'use client';
-
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { KlikUmrohBrand } from './KlikUmrohBrand';
 import styles from './MarketingFooter.module.css';
 
 export const MarketingFooter: React.FC = () => {
@@ -13,13 +11,7 @@ export const MarketingFooter: React.FC = () => {
         <div className={styles.footerTop}>
           {/* Brand Column */}
           <div className={styles.brandColumn}>
-            <Image
-              src="/klikumroh-logo-white.png"
-              alt="KlikUmroh.id"
-              width={180}
-              height={50}
-              className={styles.footerLogo}
-            />
+            <KlikUmrohBrand theme="dark" iconSize={28} />
             <p className={styles.description}>
               Platform agen dan affiliate dengan manajemen prospek serta tools marketing siap pakai untuk travel umroh Indonesia.
             </p>

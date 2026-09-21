@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080" width="1080" height="1080">
+ <g className="page" style="">
+  <rect x="0" y="0" width="1080" height="1080" fill="white">
+  </rect>
+  <g className="element" id="_Ovrz5qOef" opacity="1" style="transform-origin:top left; filter:;">
+   <g style="transform-origin:top left;">
+    <g className="element" id="6n8XK2stuT" transform="translate(129.48246899999998, 114.27811500000001) rotate(0)" opacity="1" style="transform-origin:top left; filter:;">
+     <g>
+      <g>
+       <defs>
+        <clipPath id="clip-6n8XK2stuT">
+         <rect x="0" y="0" width="821.035062" height="851.44377">
+         </rect>
+        </clipPath>
+       </defs>
+       <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSJyZ2IoMCwgMCwgMCkiIGZpbGwtcnVsZT0iZXZlbm9kZCIgY29sb3I9InJnYigyNTUsIDI1NSwgMjU1KSIgd2lkdGg9IjIxNiIgaGVpZ2h0PSIyMjQiIHZpZXdCb3g9IjUyIDQ4IDIxNiAyMjQiPjxwYXRoIGQ9Ik01MiA0OEgyNjhWMjcySDUyVjQ4Wk01MiA5M0gyNjhWMTEzSDUyVjkzWiIgZmlsbD0iIzAwMDAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiB0cmFuc2Zvcm09IiIvPjwvc3ZnPg==" x="0" y="0" width="821.035062" height="851.44377" preserveAspectRatio="none" clip-path="url(#clip-6n8XK2stuT)">
+       </image>
+      </g>
+     </g>
+    </g>
+    <g className="element" id="HXBQuZGnNW" transform="translate(394.155468, 471.24921) rotate(0)" opacity="1" style="transform-origin:top left; filter:;">
+     <g>
+      <g>
+       <defs>
+        <clipPath id="clip-HXBQuZGnNW">
+         <rect x="0" y="0" width="291.689061" height="401.816567">
+         </rect>
+        </clipPath>
+       </defs>
+       <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBmaWxsPSJyZ2IoMjU1LCAyNTUsIDI1NSkiIGNvbG9yPSJyZ2IoMjU1LCAyNTUsIDI1NSkiIHdpZHRoPSI5OCIgaGVpZ2h0PSIxMzUiIHZpZXdCb3g9IjEyNCAxMzIgOTggMTM1Ij48cGF0aCBkPSJNMTI0IDEzMlYyNDFMMTUzIDIxM0wxNzcgMjY3TDIwNyAyNTNMMTgxIDIwMUgyMjJMMTI0IDEzMloiIGZpbGw9IiNGRkZGRkYiIHRyYW5zZm9ybT0iIi8+PC9zdmc+" x="0" y="0" width="291.689061" height="401.816567" preserveAspectRatio="none" clip-path="url(#clip-HXBQuZGnNW)">
+       </image>
+      </g>
+     </g>
+    </g>
+   </g>
+  </g>
+ </g>
+</svg>

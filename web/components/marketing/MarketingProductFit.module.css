@@ -1,6 +1,7 @@
 .section {
-  background-color: var(--km-deep);
+  background-color: #09090B;
   padding: 96px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .container {
@@ -27,9 +28,9 @@
 .eyebrow {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-orange);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #A1A1AA;
   text-transform: uppercase;
 }
 
@@ -38,8 +39,8 @@
   font-size: 36px;
   font-weight: 800;
   line-height: 1.25;
-  color: var(--km-paper);
-  letter-spacing: -0.01em;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
 }
 
 .erpCompatibility {
@@ -47,7 +48,7 @@
   font-size: 15px;
   font-weight: 400;
   line-height: 1.6;
-  color: var(--km-line);
+  color: #A1A1AA;
 }
 
 .cardsGrid {
@@ -57,9 +58,9 @@
 }
 
 .fitCard {
-  background-color: var(--km-workflow-card-bg);
-  border: 1px solid var(--km-workflow-card-border);
-  border-radius: 16px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   padding: 36px 32px;
   display: flex;
   flex-direction: column;
@@ -70,8 +71,8 @@
 
 .fitCard:hover {
   transform: translateY(-2px);
-  background-color: color-mix(in srgb, var(--km-paper) 8%, transparent);
-  border-color: var(--km-orange);
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .cardTop {
@@ -83,24 +84,24 @@
 .cardLabel {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-orange);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #A1A1AA;
   text-transform: uppercase;
 }
 
 .iconBox {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background-color: color-mix(in srgb, var(--km-orange) 20%, transparent);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .cardIcon {
-  color: var(--km-orange);
+  color: #FFFFFF;
 }
 
 .cardTitle {
@@ -108,14 +109,15 @@
   font-size: 24px;
   font-weight: 800;
   line-height: 1.3;
-  color: var(--km-paper);
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
 }
 
 .cardDesc {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   line-height: 1.6;
-  color: var(--km-line);
+  color: #A1A1AA;
   margin-bottom: 8px;
 }
 
@@ -125,8 +127,8 @@
   gap: 8px;
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
-  font-weight: 700;
-  color: var(--km-orange);
+  font-weight: 600;
+  color: #FFFFFF;
   text-decoration: none;
   width: fit-content;
   transition: gap 0.15s ease;

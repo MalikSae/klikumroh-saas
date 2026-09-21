@@ -28,9 +28,9 @@
 .eyebrow {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--km-orange-dark);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717A;
   text-transform: uppercase;
 }
 
@@ -40,7 +40,7 @@
   font-weight: 800;
   line-height: 1.25;
   color: var(--km-ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .intro {
@@ -60,17 +60,18 @@
 .problemCard {
   background-color: var(--km-bg);
   border: 1px solid var(--km-line);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .problemCard:hover {
   transform: translateY(-2px);
-  border-color: var(--km-green-2);
+  border-color: #09090B;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
 }
 
 .cardTop {
@@ -82,9 +83,9 @@
 
 .cardNumber {
   font-family: var(--tw-font-heading), sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--km-muted);
+  font-size: 13px;
+  font-weight: 700;
+  color: #A1A1AA;
   letter-spacing: 0.05em;
 }
 
@@ -92,22 +93,24 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background-color: var(--km-mint);
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .cardIcon {
-  color: var(--km-green-2);
+  color: #09090B;
 }
 
 .cardTitle {
   font-family: var(--tw-font-heading), sans-serif;
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 19px;
+  font-weight: 700;
   line-height: 1.3;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .cardDesc {

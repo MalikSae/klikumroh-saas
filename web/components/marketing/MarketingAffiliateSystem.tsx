@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Copy, Share2, Check } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 import styles from './MarketingAffiliateSystem.module.css';
 
 const CHECKLIST = [
@@ -24,7 +25,7 @@ export const MarketingAffiliateSystem: React.FC = () => {
     <section id="fitur" className={styles.section}>
       <div className={styles.container}>
         {/* Left: Agent Portal Showcase Phone Mockup */}
-        <div className={styles.showcaseWrapper}>
+        <ScrollReveal as="div" className={styles.showcaseWrapper} animation="scale-up" delay={100}>
           <div className={styles.haloGlow} />
 
           <div className={styles.phoneMockup}>
@@ -66,7 +67,7 @@ export const MarketingAffiliateSystem: React.FC = () => {
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                   <span>{copied ? 'Tersalin' : 'Salin'}</span>
                 </button>
-                <button type="button" className={styles.actionBtn}>
+                <button type="button" className={styles.actionBtn} aria-label="Bagikan link referral agen">
                   <Share2 size={14} />
                   <span>Bagikan</span>
                 </button>
@@ -86,13 +87,13 @@ export const MarketingAffiliateSystem: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Right: Feature Copy */}
-        <div className={styles.featureCopy}>
+        <ScrollReveal as="div" className={styles.featureCopy} animation="fade-up" delay={50}>
           <span className={styles.featureNumber}>01  —  AGEN & AFFILIATE</span>
           <h2 className={styles.featureHeadline}>
-            Setiap agen punya link, jamaah, dan catatan komisinya sendiri.
+            Setiap agen punya link, daftar jamaah, dan catatan komisinya sendiri.
           </h2>
           <p className={styles.featureBody}>
             Agen dapat membagikan referral dari HP, melihat jamaah yang mereka bawa, dan mengikuti progres komisi tanpa harus menunggu rekap admin.
@@ -108,7 +109,7 @@ export const MarketingAffiliateSystem: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );

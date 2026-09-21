@@ -1,4 +1,4 @@
-﻿.tw-suspended-wrapper {
+.tw-suspended-wrapper {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -29,7 +29,7 @@
 }
 
 .tw-suspended-brand-name {
-  font-family: var(--font-heading, 'Nunito', sans-serif);
+  font-family: var(--tw-font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 20px;
   font-weight: 800;
   color: var(--km-ink, #073B38);
@@ -62,7 +62,7 @@
 }
 
 .tw-suspended-title {
-  font-family: var(--font-heading, 'Nunito', sans-serif);
+  font-family: var(--tw-font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 20px;
   font-weight: 800;
   color: var(--km-ink, #073B38);

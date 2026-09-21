@@ -12,7 +12,7 @@ export default function CheckoutPage() {
     <Suspense
       fallback={
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--km-bg)' }}>
-          <Loader2 size={32} style={{ color: 'var(--km-green-2)', animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={32} style={{ color: '#09090B', animation: 'spin 1s linear infinite' }} />
         </div>
       }
     >

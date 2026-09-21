@@ -441,11 +441,6 @@ export default function AgenDashboardPage() {
     },
   ];
 
-  const target = summary.target_bulanan;
-  const targetPct = target && target.target_jamaah > 0
-    ? Math.min(100, Math.max(0, Math.round((target.progress_jamaah / target.target_jamaah) * 100)))
-    : 0;
-  const remainingTarget = target ? Math.max(0, target.target_jamaah - target.progress_jamaah) : 0;
   const targets = summary.targets || [];
 
   return (
@@ -845,24 +840,6 @@ export default function AgenDashboardPage() {
           </div>
         </section>
 
-        {/* Target Habit Banner (Jika Ada Target) */}
-        {target && (
-          <section
-            aria-label="Target Bulanan"
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '16px',
-              padding: '14px 16px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Target size={15} color="var(--tw-brand-primary)" />
-                <span
         {/* Target & Reward Section (Jika Ada Target Aktif) */}
         {targets.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -879,9 +856,6 @@ export default function AgenDashboardPage() {
                   key={t.id}
                   aria-label={t.title || t.metric_label}
                   style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
                     borderRadius: '16px',
                     padding: '14px 16px',
@@ -891,19 +865,6 @@ export default function AgenDashboardPage() {
                     gap: '10px',
                   }}
                 >
-                  Target Closing ({target.period_label})
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: 'var(--tw-brand-primary)',
-                }}
-              >
-                {target.progress_jamaah} / {target.target_jamaah} ({targetPct}%)
-              </span>
-            </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Target size={15} color="var(--tw-brand-primary)" />
@@ -928,26 +889,6 @@ export default function AgenDashboardPage() {
                     </span>
                   </div>
 
-            {/* Clean Progress Bar */}
-            <div
-              style={{
-                width: '100%',
-                height: '7px',
-                borderRadius: '4px',
-                backgroundColor: 'color-mix(in srgb, var(--tw-border) 60%, var(--tw-background))',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${targetPct}%`,
-                  height: '100%',
-                  borderRadius: '4px',
-                  backgroundColor: 'var(--tw-brand-primary)',
-                  transition: 'width 0.4s ease',
-                }}
-              />
-            </div>
                   {/* Clean Progress Bar */}
                   <div
                     style={{
@@ -968,19 +909,6 @@ export default function AgenDashboardPage() {
                       }}
                     />
                   </div>
-
-            <span
-              style={{
-                fontSize: '11px',
-                color: 'var(--tw-text-muted)',
-                lineHeight: 1.3,
-              }}
-            >
-              {target.progress_jamaah >= target.target_jamaah
-                ? 'Target bulan ini tercapai! Terus pertahankan ritme promosi.'
-                : `${remainingTarget} jamaah lagi untuk mencapai target reward.`}
-            </span>
-          </section>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                     <span
                       style={{

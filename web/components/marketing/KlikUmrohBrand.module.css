@@ -1,0 +1,96 @@
+.brandWrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  user-select: none;
+}
+
+.iconFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.brandLight .iconFrame {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.brandDark .iconFrame {
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+
+.iconImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.textGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.wordmark {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.brandLight .wordmarkBold {
+  font-weight: 800;
+  color: #09090B;
+}
+
+.brandLight .wordmarkMuted {
+  font-weight: 600;
+  color: #52525B;
+  margin-left: 1px;
+}
+
+.brandDark .wordmarkBold {
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.brandDark .wordmarkMuted {
+  font-weight: 600;
+  color: #A1A1AA;
+  margin-left: 1px;
+}
+
+.badge {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: center;
+}
+
+.brandLight .badge {
+  background-color: #F4F4F5;
+  color: #71717A;
+  border: 1px solid #E4E4E7;
+}
+
+.brandDark .badge {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #A1A1AA;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}

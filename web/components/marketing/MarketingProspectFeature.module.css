@@ -21,9 +21,9 @@
 .featureNumber {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717A;
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -35,7 +35,7 @@
   line-height: 1.25;
   color: var(--km-ink);
   margin-bottom: 16px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .featureBody {
@@ -54,50 +54,68 @@
   flex-wrap: wrap;
 }
 
-.pillBaru {
+.pillBtn {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 12px;
-  font-weight: 700;
-  color: var(--km-ink);
-  background-color: var(--km-bg);
-  border: 1px solid var(--km-line);
+  font-weight: 600;
+  color: #52525B;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
   padding: 6px 14px;
-  border-radius: 9999px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.pillDihubungi {
-  font-family: var(--tw-font-body), sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--km-orange-dark);
-  background-color: var(--km-orange-soft);
-  padding: 6px 14px;
-  border-radius: 9999px;
+.pillBtn:hover {
+  background-color: #E4E4E7;
+  color: #09090B;
+  transform: translateY(-1px);
 }
 
-.pillTertarik {
-  font-family: var(--tw-font-body), sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--km-green-2);
-  background-color: var(--km-mint);
-  padding: 6px 14px;
-  border-radius: 9999px;
+.pillActive {
+  background-color: #09090B;
+  color: #FFFFFF;
+  border-color: #09090B;
 }
 
-.pillClosing {
-  font-family: var(--tw-font-body), sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--km-paper);
-  background-color: var(--km-green-2);
-  padding: 6px 14px;
-  border-radius: 9999px;
+.pillActive:hover {
+  background-color: #27272A;
+  color: #FFFFFF;
+}
+
+.pillActiveClosing {
+  background-color: #09090B;
+  color: #FFFFFF;
+  border-color: #09090B;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .pillArrow {
-  color: var(--km-muted);
+  color: #A1A1AA;
   font-weight: 700;
+}
+
+.toastBanner {
+  background-color: #09090B;
+  color: #FFFFFF;
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  animation: fadeInUp 0.25s ease-out;
+}
+
+.filterBtnActive {
+  background-color: #09090B !important;
+  color: #FFFFFF !important;
+  border-color: #09090B !important;
+}
+
+.tableRowAnimated {
+  animation: fadeInUp 0.25s ease-out;
 }
 
 /* Right Column Table */
@@ -108,9 +126,9 @@
 .tableCard {
   background-color: var(--km-paper);
   border: 1px solid var(--km-line);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 24px;
-  box-shadow: var(--km-card-shadow);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -135,6 +153,7 @@
   font-size: 18px;
   font-weight: 800;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .tableCaption {
@@ -147,8 +166,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: var(--km-green-2);
-  color: var(--km-paper);
+  background-color: #09090B;
+  color: #FFFFFF;
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
@@ -160,7 +179,7 @@
 }
 
 .addBtn:hover {
-  background-color: var(--km-green);
+  background-color: #27272A;
 }
 
 .filtersRow {
@@ -182,6 +201,11 @@
   font-weight: 500;
   color: var(--km-ink);
   cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.filterBtn:hover {
+  border-color: #09090B;
 }
 
 .tableResponsive {
@@ -226,28 +250,30 @@
   font-size: 11px;
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 9999px;
+  border-radius: 4px;
 }
 
 .status_baru {
-  background-color: var(--km-bg);
-  color: var(--km-ink);
-  border: 1px solid var(--km-line);
+  background-color: #F4F4F5;
+  color: #52525B;
+  border: 1px solid #E4E4E7;
 }
 
 .status_dihubungi {
-  background-color: var(--km-orange-soft);
-  color: var(--km-orange-dark);
+  background-color: #F4F4F5;
+  color: #52525B;
+  border: 1px solid #E4E4E7;
 }
 
 .status_tertarik {
-  background-color: var(--km-mint);
-  color: var(--km-green-2);
+  background-color: #F4F4F5;
+  color: #18181B;
+  border: 1px solid #D4D4D8;
 }
 
 .status_closing {
-  background-color: var(--km-green-2);
-  color: var(--km-paper);
+  background-color: #09090B;
+  color: #FFFFFF;
 }
 
 @media (max-width: 1024px) {

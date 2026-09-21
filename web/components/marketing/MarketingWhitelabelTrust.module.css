@@ -21,9 +21,9 @@
 .eyebrow {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: var(--km-green-2);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #71717A;
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -35,7 +35,7 @@
   line-height: 1.25;
   color: var(--km-ink);
   margin-bottom: 16px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .body {
@@ -60,10 +60,10 @@
 }
 
 .trustIconBox {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background-color: var(--km-mint);
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background-color: #09090B;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -71,7 +71,7 @@
 }
 
 .trustIcon {
-  color: var(--km-green-2);
+  color: #FFFFFF;
 }
 
 .trustText {
@@ -81,11 +81,153 @@
   color: var(--km-ink);
 }
 
+.securityCallout {
+  margin-top: 24px;
+  background-color: #F4F4F5;
+  border: 1px solid #E4E4E7;
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.securityIcon {
+  color: #09090B;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.securityTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.securityTitle {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--km-ink);
+}
+
+.securityDesc {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--km-muted);
+}
+
 /* Right Column */
 .previewColumn {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+.simulatorCard {
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--km-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.simulatorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.simulatorBadge {
+  font-family: var(--tw-font-heading), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #FFFFFF;
+  background-color: #09090B;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.simulatorHint {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  color: var(--km-muted);
+}
+
+.simulatorInput {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--km-ink);
+  background-color: var(--km-bg);
+  border: 1px solid var(--km-line);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.simulatorInput:focus {
+  border-color: #09090B;
+  box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.1);
+  background-color: #FFFFFF;
+}
+
+.domainPreviewBox {
+  background-color: var(--km-bg);
+  border: 1px dashed var(--km-line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.domainRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.domainType {
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--km-muted);
+}
+
+.domainBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--tw-font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--km-ink);
+}
+
+.sslIcon {
+  color: #09090B;
+}
+
+.domainUrl {
+  color: var(--km-ink);
+  font-family: monospace;
 }
 
 .previewCaption {
@@ -106,7 +248,7 @@
 .tenantCard {
   background-color: var(--km-bg);
   border: 1px solid var(--km-line);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px 20px;
   display: flex;
   align-items: center;
@@ -116,8 +258,8 @@
 
 .tenantCard:hover {
   transform: translateY(-2px);
-  border-color: var(--km-green-2);
-  box-shadow: var(--km-card-shadow);
+  border-color: #09090B;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
 }
 
 .tenantBrand {
@@ -127,18 +269,18 @@
 }
 
 .tenantMark {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background-color: var(--km-paper);
-  border: 1px solid var(--km-line);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  border: 1px solid #E4E4E7;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .tenantMarkIcon {
-  color: var(--km-green-2);
+  color: #09090B;
 }
 
 .tenantInfo {
@@ -150,8 +292,9 @@
 .tenantName {
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--km-ink);
+  letter-spacing: -0.01em;
 }
 
 .tenantDomain {
@@ -166,7 +309,7 @@
 }
 
 .tenantCard:hover .tenantArrow {
-  color: var(--km-green-2);
+  color: #09090B;
   transform: translate(2px, -2px);
 }
 
