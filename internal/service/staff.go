@@ -29,6 +29,18 @@ var ErrStaffCannotDeactivateSelf = errors.New("tidak dapat menonaktifkan akun se
 // ErrStaffNotFound is returned when a requested staff user does not exist.
 var ErrStaffNotFound = errors.New("data staf tidak ditemukan")
 
+// ErrAccessReasonInvalid is returned when staff impersonates a tenant without a sufficiently descriptive reason.
+var ErrAccessReasonInvalid = errors.New("alasan akses wajib diisi minimal 10 karakter dan maksimal 255 karakter")
+
+// ErrAccessLogNotConfigured is returned when a staff action on tenant data cannot be audited.
+// Staff access to tenant data is always rejected without an audit record (fail closed).
+var ErrAccessLogNotConfigured = errors.New("pencatatan akses staf belum terkonfigurasi")
+
+const (
+	minAccessReasonLength = 10
+	maxAccessReasonLength = 255
+)
+
 // StaffUserInfo holds safe, non-sensitive staff user details.
 type StaffUserInfo struct {
 	ID        uint64    `json:"id"`
@@ -143,11 +155,11 @@ type StaffService interface {
 	Logout(ctx context.Context, token string) error
 	GetProfile(ctx context.Context, staffUserID uint64) (*StaffUserInfo, error)
 	ListTenants(ctx context.Context, statusFilter ...string) ([]repository.StaffTenantItem, error)
-	GetTenantDetail(ctx context.Context, tenantID uint64) (*StaffTenantDetail, error)
-	ResetTenantAdminPassword(ctx context.Context, tenantID uint64, adminUserID uint64, newPassword string) error
+	GetTenantDetail(ctx context.Context, tenantID uint64, staffUserID uint64) (*StaffTenantDetail, error)
+	ResetTenantAdminPassword(ctx context.Context, tenantID uint64, adminUserID uint64, newPassword string, staffUserID uint64) error
 	GetPlatformOverview(ctx context.Context) (*PlatformOverviewMetrics, error)
-	ImpersonateTenant(ctx context.Context, tenantID uint64, staffUserID uint64) (*TenantImpersonationResult, error)
-	UpdateTenantSubscription(ctx context.Context, tenantID uint64, planID uint64, customPeriodMonths ...int) error
+	ImpersonateTenant(ctx context.Context, tenantID uint64, staffUserID uint64, reason string) (*TenantImpersonationResult, error)
+	UpdateTenantSubscription(ctx context.Context, tenantID uint64, planID uint64, staffUserID uint64, customPeriodMonths ...int) error
 	ListStaffUsers(ctx context.Context) ([]StaffUserInfo, error)
 	CreateStaffUser(ctx context.Context, name, email, password, status string) (*StaffUserInfo, error)
 	UpdateStaffUser(ctx context.Context, id uint64, name, email string, password *string, status string, currentStaffUserID uint64) (*StaffUserInfo, error)
@@ -164,6 +176,7 @@ type staffService struct {
 	adminUserRepo repository.AdminUserRepository
 	sessionRepo   repository.SessionRepository
 	pvRepo        repository.PaymentVerificationRepository
+	accessLogRepo repository.AccessLogRepository
 }
 
 // NewStaffService creates a new StaffService instance with required repository dependencies.
@@ -194,9 +207,25 @@ func NewStaffService(
 			s.sessionRepo = repo
 		case repository.PaymentVerificationRepository:
 			s.pvRepo = repo
+		case repository.AccessLogRepository:
+			s.accessLogRepo = repo
 		}
 	}
 	return s
+}
+
+// logTenantAccess writes an audit record of a staff action on tenant data. Callers must abort the action
+// when it returns an error, so no staff access happens without a matching access_logs row.
+func (s *staffService) logTenantAccess(ctx context.Context, tenantID, staffUserID uint64, action, reason string, sessionID *uint64) error {
+	if s.accessLogRepo == nil {
+		return ErrAccessLogNotConfigured
+	}
+	return s.accessLogRepo.Create(ctx, tenantID, &repository.AccessLog{
+		StaffID:   staffUserID,
+		Action:    action,
+		SessionID: sessionID,
+		Reason:    &reason,
+	})
 }
 
 func (s *staffService) Login(ctx context.Context, email, password string) (*StaffLoginResult, error) {
@@ -269,13 +298,18 @@ func (s *staffService) ListTenants(ctx context.Context, statusFilter ...string) 
 	return s.staffRepo.ListAllTenants(ctx, statusFilter...)
 }
 
-func (s *staffService) GetTenantDetail(ctx context.Context, tenantID uint64) (*StaffTenantDetail, error) {
+func (s *staffService) GetTenantDetail(ctx context.Context, tenantID uint64, staffUserID uint64) (*StaffTenantDetail, error) {
 	if s.tenantRepo == nil {
 		return nil, errors.New("tenant repository not configured")
 	}
 
 	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := s.logTenantAccess(ctx, tenantID, staffUserID, repository.AccessActionViewTenantDetail,
+		"Melihat detail travel dari panel internal", nil); err != nil {
 		return nil, err
 	}
 
@@ -373,7 +407,7 @@ func (s *staffService) GetTenantDetail(ctx context.Context, tenantID uint64) (*S
 	return detail, nil
 }
 
-func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID uint64, adminUserID uint64, newPassword string) error {
+func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID uint64, adminUserID uint64, newPassword string, staffUserID uint64) error {
 	if s.adminUserRepo == nil {
 		return errors.New("admin user repository not configured")
 	}
@@ -387,6 +421,11 @@ func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID ui
 	adminUser, err := s.adminUserRepo.GetByID(ctx, tenantID, adminUserID)
 	if err != nil {
 		return err // ErrNotFound if not belongs to tenant
+	}
+
+	if err := s.logTenantAccess(ctx, tenantID, staffUserID, repository.AccessActionResetAdminPassword,
+		fmt.Sprintf("Reset password admin travel %s", adminUser.Email), nil); err != nil {
+		return err
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(trimmed), bcrypt.DefaultCost)
@@ -478,9 +517,17 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 	return metrics, nil
 }
 
-func (s *staffService) ImpersonateTenant(ctx context.Context, tenantID uint64, staffUserID uint64) (*TenantImpersonationResult, error) {
+func (s *staffService) ImpersonateTenant(ctx context.Context, tenantID uint64, staffUserID uint64, reason string) (*TenantImpersonationResult, error) {
 	if s.tenantRepo == nil || s.adminUserRepo == nil || s.sessionRepo == nil {
 		return nil, errors.New("layanan impersonasi belum terkonfigurasi")
+	}
+	if s.accessLogRepo == nil {
+		return nil, ErrAccessLogNotConfigured
+	}
+
+	reason = strings.TrimSpace(reason)
+	if reasonLen := len([]rune(reason)); reasonLen < minAccessReasonLength || reasonLen > maxAccessReasonLength {
+		return nil, ErrAccessReasonInvalid
 	}
 
 	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
@@ -516,14 +563,24 @@ func (s *staffService) ImpersonateTenant(ctx context.Context, tenantID uint64, s
 	token := hex.EncodeToString(tokenBytes)
 	expiresAt := time.Now().Add(4 * time.Hour) // 4-hour impersonation session
 
+	impersonatingStaffID := staffUserID
 	session := &repository.Session{
-		Token:       token,
-		AdminUserID: targetAdmin.ID,
-		TenantID:    tenantID,
-		ExpiresAt:   expiresAt,
+		Token:                 token,
+		AdminUserID:           targetAdmin.ID,
+		TenantID:              tenantID,
+		ExpiresAt:             expiresAt,
+		ImpersonatedByStaffID: &impersonatingStaffID,
+		ImpersonationReason:   &reason,
 	}
 
 	if err := s.sessionRepo.Create(ctx, tenantID, session); err != nil {
+		return nil, err
+	}
+
+	sessionID := session.ID
+	if err := s.logTenantAccess(ctx, tenantID, staffUserID, repository.AccessActionImpersonateStart, reason, &sessionID); err != nil {
+		// Never hand out an impersonation token that has no audit record.
+		_ = s.sessionRepo.DeleteByToken(ctx, token)
 		return nil, err
 	}
 
@@ -542,7 +599,7 @@ func (s *staffService) ImpersonateTenant(ctx context.Context, tenantID uint64, s
 	}, nil
 }
 
-func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID uint64, planID uint64, customPeriodMonths ...int) error {
+func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID uint64, planID uint64, staffUserID uint64, customPeriodMonths ...int) error {
 	if s.tenantRepo == nil || s.planRepo == nil {
 		return errors.New("repository not configured")
 	}
@@ -566,6 +623,11 @@ func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID ui
 		baseTime = *tenant.SubscriptionExpiresAt
 	}
 	expiresAt := baseTime.AddDate(0, months, 0)
+
+	if err := s.logTenantAccess(ctx, tenantID, staffUserID, repository.AccessActionUpdateSubscription,
+		fmt.Sprintf("Mengubah langganan ke paket %s (%d bulan)", plan.Name, months), nil); err != nil {
+		return err
+	}
 
 	if err := s.tenantRepo.UpdateSubscription(ctx, tenantID, planID, expiresAt, "active"); err != nil {
 		return err

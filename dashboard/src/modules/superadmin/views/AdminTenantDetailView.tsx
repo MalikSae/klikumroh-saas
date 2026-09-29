@@ -13,6 +13,7 @@ import {
   Package,
 } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
+import { Modal, FormInput, Button } from '../../../components';
 import {
   fetchStaffTenantDetail,
   fetchPricingPlans,
@@ -45,6 +46,12 @@ export const AdminTenantDetailView: React.FC = () => {
   const [selectedAdminId, setSelectedAdminId] = useState<number>(0);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
+
+  // Impersonate Modal (alasan akses wajib, tercatat di riwayat akses travel)
+  const [showImpersonateModal, setShowImpersonateModal] = useState(false);
+  const [impersonateReason, setImpersonateReason] = useState('');
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
+  const [impersonating, setImpersonating] = useState(false);
 
   const loadDetail = async () => {
     if (!id) return;
@@ -95,19 +102,33 @@ export const AdminTenantDetailView: React.FC = () => {
     return digits;
   };
 
-  const handleImpersonate = async () => {
+  const MIN_REASON_LENGTH = 10;
+  const trimmedReason = impersonateReason.trim();
+
+  const openImpersonateModal = () => {
+    setImpersonateReason('');
+    setImpersonateError(null);
+    setShowImpersonateModal(true);
+  };
+
+  const handleImpersonateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!tenant) return;
-    const confirm = window.confirm(`Masuk ke dashboard sebagai admin ${tenant.name}?`);
-    if (!confirm) return;
+    if (trimmedReason.length < MIN_REASON_LENGTH) {
+      setImpersonateError(`Alasan akses minimal ${MIN_REASON_LENGTH} karakter`);
+      return;
+    }
 
     try {
-      setLoading(true);
-      await impersonateTenant(tenant.id);
-      window.open('/', '_blank');
+      setImpersonating(true);
+      setImpersonateError(null);
+      const res = await impersonateTenant(tenant.id, trimmedReason);
+      setShowImpersonateModal(false);
+      window.open(`/?impersonate_token=${encodeURIComponent(res.token)}`, '_blank');
     } catch (err: any) {
-      alert('Gagal impersonasi travel: ' + err.message);
+      setImpersonateError(err.message || 'Gagal impersonasi travel');
     } finally {
-      setLoading(false);
+      setImpersonating(false);
     }
   };
 
@@ -238,7 +259,7 @@ export const AdminTenantDetailView: React.FC = () => {
           <button
             type="button"
             className="sa-action-btn"
-            onClick={handleImpersonate}
+            onClick={openImpersonateModal}
             title="Buka sesi dashboard sebagai travel ini"
           >
             <LogIn size={13} />
@@ -525,6 +546,48 @@ export const AdminTenantDetailView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* MODAL ALASAN IMPERSONASI */}
+      <Modal
+        isOpen={showImpersonateModal}
+        onClose={() => !impersonating && setShowImpersonateModal(false)}
+        title={`Masuk Sebagai ${tenant.name}`}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowImpersonateModal(false)}
+              disabled={impersonating}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="impersonate-reason-form"
+              variant="primary"
+              disabled={impersonating || trimmedReason.length < MIN_REASON_LENGTH}
+            >
+              <LogIn size={16} />
+              <span>{impersonating ? 'Membuka Sesi...' : 'Masuk Dashboard'}</span>
+            </Button>
+          </>
+        }
+      >
+        <form id="impersonate-reason-form" onSubmit={handleImpersonateSubmit}>
+          <FormInput
+            type="textarea"
+            label="Alasan Akses *"
+            rows={3}
+            placeholder="Contoh: Membantu admin travel memeriksa prospek yang tidak muncul di pipeline"
+            value={impersonateReason}
+            onChange={(e) => setImpersonateReason(e.target.value)}
+            error={impersonateError || undefined}
+            hint={`${trimmedReason.length}/${MIN_REASON_LENGTH} karakter minimum`}
+            tooltip="Alasan ini dan setiap halaman yang dibuka selama sesi 4 jam tercatat di Riwayat Akses Staf milik travel, dan dapat dibaca langsung oleh admin travel."
+          />
+        </form>
+      </Modal>
 
       {/* MODAL PERPANJANG LANGGANAN */}
       {showExtendModal && (

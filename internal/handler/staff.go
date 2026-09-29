@@ -23,6 +23,10 @@ type resetAdminPasswordRequest struct {
 	NewPassword string `json:"new_password"`
 }
 
+type impersonateTenantRequest struct {
+	Reason string `json:"reason"`
+}
+
 // StaffHandler handles staff authentication and cross-tenant platform queries.
 type StaffHandler struct {
 	staffService service.StaffService
@@ -105,7 +109,7 @@ func (h *StaffHandler) ListTenants(w http.ResponseWriter, r *http.Request) {
 
 // GetTenantDetail handles GET /api/staff/tenants/{id}.
 func (h *StaffHandler) GetTenantDetail(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetStaffUserID(r.Context())
+	staffUserID, ok := middleware.GetStaffUserID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -118,7 +122,7 @@ func (h *StaffHandler) GetTenantDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	detail, err := h.staffService.GetTenantDetail(r.Context(), tenantID)
+	detail, err := h.staffService.GetTenantDetail(r.Context(), tenantID, staffUserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Tenant tidak ditemukan"})
@@ -135,7 +139,7 @@ func (h *StaffHandler) GetTenantDetail(w http.ResponseWriter, r *http.Request) {
 
 // ResetTenantAdminPassword handles PATCH /api/staff/tenants/{id}/admin-users/{admin_user_id}/reset-password.
 func (h *StaffHandler) ResetTenantAdminPassword(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetStaffUserID(r.Context())
+	staffUserID, ok := middleware.GetStaffUserID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -167,7 +171,7 @@ func (h *StaffHandler) ResetTenantAdminPassword(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.staffService.ResetTenantAdminPassword(r.Context(), tenantID, adminUserID, trimmedPassword); err != nil {
+	if err := h.staffService.ResetTenantAdminPassword(r.Context(), tenantID, adminUserID, trimmedPassword, staffUserID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Admin user tidak ditemukan pada tenant ini"})
 			return
@@ -216,10 +220,24 @@ func (h *StaffHandler) ImpersonateTenant(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	res, err := h.staffService.ImpersonateTenant(r.Context(), tenantID, staffUserID)
+	var req impersonateTenantRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Alasan akses wajib diisi"})
+		return
+	}
+
+	res, err := h.staffService.ImpersonateTenant(r.Context(), tenantID, staffUserID, req.Reason)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Tenant tidak ditemukan"})
+			return
+		}
+		if errors.Is(err, service.ErrAccessReasonInvalid) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, service.ErrAccessLogNotConfigured) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -236,7 +254,7 @@ type updateTenantSubscriptionRequest struct {
 
 // UpdateTenantSubscription handles PATCH /api/staff/tenants/{id}/subscription.
 func (h *StaffHandler) UpdateTenantSubscription(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetStaffUserID(r.Context())
+	staffUserID, ok := middleware.GetStaffUserID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -259,7 +277,7 @@ func (h *StaffHandler) UpdateTenantSubscription(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.staffService.UpdateTenantSubscription(r.Context(), tenantID, req.PlanID, req.PeriodMonths); err != nil {
+	if err := h.staffService.UpdateTenantSubscription(r.Context(), tenantID, req.PlanID, staffUserID, req.PeriodMonths); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui langganan: " + err.Error()})
 		return
 	}

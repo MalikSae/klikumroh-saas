@@ -15,6 +15,11 @@ type Session struct {
 	TenantID    uint64    `json:"tenant_id"`
 	ExpiresAt   time.Time `json:"expires_at"`
 	CreatedAt   time.Time `json:"created_at"`
+
+	// ImpersonatedByStaffID is set when this session was created by KlikUmroh staff via impersonation.
+	// AuthMiddleware uses it to record every request of the session into access_logs.
+	ImpersonatedByStaffID *uint64 `json:"impersonated_by_staff_id,omitempty"`
+	ImpersonationReason   *string `json:"impersonation_reason,omitempty"`
 }
 
 // SessionRepository defines access methods for sessions records.
@@ -45,8 +50,8 @@ func NewSessionRepository(db *sql.DB) SessionRepository {
 func (r *mysqlSessionRepository) Create(ctx context.Context, tenantID uint64, session *Session) error {
 	query := `
 		INSERT INTO sessions (
-			token, admin_user_id, tenant_id, expires_at
-		) VALUES (?, ?, ?, ?)
+			token, admin_user_id, tenant_id, expires_at, impersonated_by_staff_id, impersonation_reason
+		) VALUES (?, ?, ?, ?, ?, ?)
 	`
 	session.TenantID = tenantID
 
@@ -55,6 +60,8 @@ func (r *mysqlSessionRepository) Create(ctx context.Context, tenantID uint64, se
 		session.AdminUserID,
 		tenantID,
 		session.ExpiresAt,
+		session.ImpersonatedByStaffID,
+		session.ImpersonationReason,
 	)
 	if err != nil {
 		return err
@@ -70,7 +77,7 @@ func (r *mysqlSessionRepository) Create(ctx context.Context, tenantID uint64, se
 
 func (r *mysqlSessionRepository) GetByID(ctx context.Context, tenantID uint64, id uint64) (*Session, error) {
 	query := `
-		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at
+		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at, impersonated_by_staff_id, impersonation_reason
 		FROM sessions
 		WHERE id = ? AND tenant_id = ?
 	`
@@ -80,7 +87,7 @@ func (r *mysqlSessionRepository) GetByID(ctx context.Context, tenantID uint64, i
 
 func (r *mysqlSessionRepository) ListByAdminUser(ctx context.Context, tenantID uint64, adminUserID uint64) ([]Session, error) {
 	query := `
-		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at
+		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at, impersonated_by_staff_id, impersonation_reason
 		FROM sessions
 		WHERE tenant_id = ? AND admin_user_id = ?
 		ORDER BY created_at DESC
@@ -101,6 +108,8 @@ func (r *mysqlSessionRepository) ListByAdminUser(ctx context.Context, tenantID u
 			&s.TenantID,
 			&s.ExpiresAt,
 			&s.CreatedAt,
+			&s.ImpersonatedByStaffID,
+			&s.ImpersonationReason,
 		); err != nil {
 			return nil, err
 		}
@@ -148,7 +157,7 @@ func (r *mysqlSessionRepository) DeleteByToken(ctx context.Context, token string
 func (r *mysqlSessionRepository) FindByToken(ctx context.Context, token string) (*Session, error) {
 	// SPECIAL EXCEPTION: Used by AuthMiddleware to authenticate request token across all tenants.
 	query := `
-		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at
+		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at, impersonated_by_staff_id, impersonation_reason
 		FROM sessions
 		WHERE token = ?
 	`
@@ -165,6 +174,8 @@ func (r *mysqlSessionRepository) scanSession(row *sql.Row) (*Session, error) {
 		&s.TenantID,
 		&s.ExpiresAt,
 		&s.CreatedAt,
+		&s.ImpersonatedByStaffID,
+		&s.ImpersonationReason,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

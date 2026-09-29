@@ -293,6 +293,7 @@ type testEnv struct {
 	adminUserRepo *mockDetailAdminUserRepo
 	pvRepo        *mockPVRepo
 	couponRepo    *mockCouponRepo
+	accessLogRepo *mockAccessLogRepo
 	authService   service.AuthService
 	router        *chi.Mux
 }
@@ -309,6 +310,7 @@ func setupStaffTenantDetailEnv() *testEnv {
 	adminUserRepo := &mockDetailAdminUserRepo{users: make(map[uint64]*repository.AdminUser)}
 	pvRepo := newMockPVRepo()
 	couponRepo := newMockCouponRepo()
+	accessLogRepo := &mockAccessLogRepo{}
 
 	// Seed Staff
 	staffRepo.staffUsers["staff@klikumroh.id"] = &repository.StaffUser{
@@ -373,6 +375,8 @@ func setupStaffTenantDetailEnv() *testEnv {
 		prospectRepo,
 		agentRepo,
 		adminUserRepo,
+		sessionRepo,
+		accessLogRepo,
 	)
 	couponService := service.NewCouponService(couponRepo)
 	subscriptionService := service.NewSubscriptionService(pvRepo, couponRepo, couponService, planRepo, tenantRepo)
@@ -380,13 +384,19 @@ func setupStaffTenantDetailEnv() *testEnv {
 
 	staffHandler := handler.NewStaffHandler(staffService)
 	pvHandler := handler.NewPaymentVerificationHandler(subscriptionService)
+	accessLogHandler := handler.NewAccessLogHandler(service.NewAccessLogService(accessLogRepo))
 
 	r := chi.NewRouter()
 	r.Group(func(staffProtected chi.Router) {
 		staffProtected.Use(middleware.StaffAuthMiddleware(staffRepo, sessionRepo))
 		staffProtected.Get("/api/staff/tenants/{id}", staffHandler.GetTenantDetail)
+		staffProtected.Post("/api/staff/tenants/{id}/impersonate", staffHandler.ImpersonateTenant)
 		staffProtected.Patch("/api/staff/tenants/{id}/admin-users/{admin_user_id}/reset-password", staffHandler.ResetTenantAdminPassword)
 		staffProtected.Get("/api/staff/payment-verifications", pvHandler.List)
+	})
+	r.Group(func(protected chi.Router) {
+		protected.Use(middleware.AuthMiddleware(sessionRepo, accessLogRepo))
+		accessLogHandler.RegisterDashboardRoutes(protected)
 	})
 
 	return &testEnv{
@@ -401,6 +411,7 @@ func setupStaffTenantDetailEnv() *testEnv {
 		adminUserRepo: adminUserRepo,
 		pvRepo:        pvRepo,
 		couponRepo:    couponRepo,
+		accessLogRepo: accessLogRepo,
 		authService:   authService,
 		router:        r,
 	}
@@ -699,4 +710,26 @@ func TestStaffTenantDetail_UsageStatsAndFullPayload(t *testing.T) {
 			t.Errorf("admin user item missing name/email: %+v", admin)
 		}
 	}
+}
+
+func (m *mockDetailProspectRepo) CountWithFilter(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) (int, error) {
+	return 0, nil
+}
+func (m *mockDetailProspectRepo) StatusSummary(ctx context.Context, tenantID uint64) (*repository.ProspectStatusSummary, error) {
+	return &repository.ProspectStatusSummary{}, nil
+}
+func (m *mockDetailProspectRepo) FindOpenByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*repository.Prospect, error) {
+	return nil, repository.ErrNotFound
+}
+func (m *mockDetailProspectRepo) TransitionStatus(ctx context.Context, tenantID uint64, id uint64, fromStatus, toStatus string, lostReason, lostReasonCategory *string) error {
+	return nil
+}
+func (m *mockDetailProspectRepo) MarkPaidOff(ctx context.Context, tenantID uint64, id uint64) error {
+	return nil
+}
+func (m *mockDetailProspectRepo) FindLatestClosingByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*repository.Prospect, error) {
+	return nil, repository.ErrNotFound
+}
+func (m *mockDetailProspectRepo) ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, limit, offset int) ([]repository.AgentProspectItem, int, error) {
+	return nil, 0, nil
 }

@@ -524,6 +524,10 @@ export interface PlatformSettings {
   bank_name: string;
   bank_account_number: string;
   bank_account_holder: string;
+  terms_url: string;
+  privacy_url: string;
+  /** Keys that are still empty (not configured) — shown as a warning in Pengaturan. */
+  missing_fields: string[];
 }
 
 export interface PlatformSettingsInput {
@@ -531,6 +535,8 @@ export interface PlatformSettingsInput {
   bank_name: string;
   bank_account_number: string;
   bank_account_holder: string;
+  terms_url: string;
+  privacy_url: string;
 }
 
 export const fetchPlatformSettingsStaff = async (): Promise<PlatformSettings> => {
@@ -624,12 +630,14 @@ export interface ImpersonationResult {
   };
 }
 
-export const impersonateTenant = async (tenantId: number): Promise<ImpersonationResult> => {
+export const impersonateTenant = async (tenantId: number, reason: string): Promise<ImpersonationResult> => {
   const res = await fetch(`${API_BASE}/api/staff/tenants/${tenantId}/impersonate`, {
     method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       ...getStaffAuthHeader(),
     },
+    body: JSON.stringify({ reason }),
   });
 
   const json = await res.json();

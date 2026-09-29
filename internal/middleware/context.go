@@ -15,7 +15,24 @@ const (
 	AgentIDKey contextKey = "klikumroh.agent_id"
 	// StaffUserIDKey is the context key for storing the authenticated staff user ID.
 	StaffUserIDKey contextKey = "klikumroh.staff_user_id"
+	// ImpersonatingStaffIDKey is the context key for the staff user ID behind an impersonation session.
+	ImpersonatingStaffIDKey contextKey = "klikumroh.impersonating_staff_id"
 )
+
+// WithImpersonatingStaffID returns a new context marking the request as made by staff via impersonation.
+func WithImpersonatingStaffID(ctx context.Context, staffUserID uint64) context.Context {
+	return context.WithValue(ctx, ImpersonatingStaffIDKey, staffUserID)
+}
+
+// GetImpersonatingStaffID retrieves the impersonating staff user ID from the context if present.
+func GetImpersonatingStaffID(ctx context.Context) (uint64, bool) {
+	val := ctx.Value(ImpersonatingStaffIDKey)
+	if val == nil {
+		return 0, false
+	}
+	id, ok := val.(uint64)
+	return id, ok
+}
 
 // WithTenantID returns a new context with the given tenant ID.
 func WithTenantID(ctx context.Context, tenantID uint64) context.Context {
