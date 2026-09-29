@@ -11,6 +11,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
+
+	"klikumroh/internal/repository"
 )
 
 type tenantInfo struct {
@@ -45,9 +47,7 @@ func main() {
 		dbPort = "3306"
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		dbUser, dbPassword, dbHost, dbPort, dbName,
-	)
+	dsn := repository.MySQLDSN(dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {

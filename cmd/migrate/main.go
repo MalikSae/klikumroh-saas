@@ -12,6 +12,8 @@ import (
 	mysqlMigrate "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
+
+	"klikumroh/internal/repository"
 )
 
 func main() {
@@ -48,9 +50,7 @@ func main() {
 		log.Fatalf("Error creating database %s: %v", dbName, err)
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true",
-		dbUser, dbPassword, dbHost, dbPort, dbName,
-	)
+	dsn := repository.MySQLDSN(dbUser, dbPassword, dbHost, dbPort, dbName, "multiStatements=true")
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
