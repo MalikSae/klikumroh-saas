@@ -36,6 +36,26 @@
   --tw-badge-danger-bg: rgba(220, 38, 38, 0.08);
   --tw-badge-danger-text: #DC2626;
 
+  /* Neutral lines/surfaces, text on brand color, and pipeline status colors (agent pages) */
+  --tw-on-brand: #FFFFFF;
+  --tw-on-brand-subtle: rgba(255, 255, 255, 0.2);
+  --tw-status-new: #3B82F6;
+  --tw-status-new-text: #1D4ED8;
+  --tw-status-contacted: #F59E0B;
+  --tw-status-contacted-text: #B45309;
+  --tw-status-closing: #22C55E;
+  --tw-status-closing-text: #16A34A;
+  --tw-danger: #EF4444;
+  --tw-danger-strong: #DC2626;
+  --tw-danger-text: #991B1B;
+  --tw-danger-bg: #FEF2F2;
+  --tw-danger-border: #FEE2E2;
+  --tw-hairline-faint: rgba(0, 0, 0, 0.02);
+  --tw-surface-tint: rgba(0, 0, 0, 0.04);
+  --tw-hairline: rgba(0, 0, 0, 0.06);
+  --tw-divider: rgba(0, 0, 0, 0.1);
+  --tw-divider-strong: rgba(0, 0, 0, 0.12);
+
   /* KlikUmroh Marketing Monochrome Tokens ($km-*) */
   --km-bg: #FAFAFA;
   --km-paper: #FFFFFF;

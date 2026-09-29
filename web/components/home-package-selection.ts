@@ -1,4 +1,4 @@
-import type { PublicPackage } from './PublicCatalog';
+import type { PublicPackage } from './publicPackage';
 
 export type PackageOrder = 'default' | 'departure' | 'price';
 

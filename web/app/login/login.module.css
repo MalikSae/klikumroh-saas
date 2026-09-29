@@ -26,57 +26,6 @@
   pointer-events: none;
 }
 
-/* ─── Top Navigation Bar ─────────────────────────────────────────────────── */
-
-.topBar {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 24px 24px 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 10;
-}
-
-.backHomeLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #71717A;
-  text-decoration: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  background-color: rgba(255, 255, 255, 0.6);
-  border: 1px solid #E4E4E7;
-}
-
-.backHomeLink:hover {
-  color: #09090B;
-  background-color: #FFFFFF;
-  border-color: #D4D4D8;
-}
-
-.topBarHelp {
-  font-size: 13px;
-  color: #71717A;
-}
-
-.topBarHelpLink {
-  color: #09090B;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-left: 4px;
-}
-
-.topBarHelpLink:hover {
-  color: #27272A;
-}
-
 /* ─── Content Wrapper ────────────────────────────────────────────────────── */
 
 .contentWrapper {
@@ -302,36 +251,6 @@
   font-size: 13px;
   line-height: 1.45;
   margin-bottom: 20px;
-}
-
-.pendingBanner {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 8px;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
-  color: #18181B;
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.pendingIcon {
-  flex-shrink: 0;
-  color: #71717A;
-  margin-top: 2px;
-}
-
-.pendingTitle {
-  font-weight: 700;
-  color: #09090B;
-  margin-bottom: 3px;
-}
-
-.pendingText {
-  color: #52525B;
 }
 
 /* ─── Success State ──────────────────────────────────────────────────────── */

@@ -4,6 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Package, MessageCircle, User } from 'lucide-react';
+import { whatsappLink } from '../lib/usePlatformSettings';
+import { trackMetaEvent } from '../lib/metaPixel';
 import './BottomNavbar.css';
 
 export interface BottomNavbarProps {
@@ -15,13 +17,14 @@ export interface BottomNavbarProps {
 
 export const BottomNavbar: React.FC<BottomNavbarProps> = ({
   onOpenMenu,
-  waNumber = '6281234567890',
+  waNumber,
   loginHref = '/agen/login',
 }) => {
   const pathname = usePathname();
 
   // TODO: logic kondisional referral vs default menyusul
-  const waUrl = `https://wa.me/${waNumber}?text=Halo%20Admin%2C%20saya%20ingin%20tanya%20paket%20umroh`;
+  // No travel WhatsApp number -> no Chat item (never route jamaah to a placeholder number).
+  const waUrl = whatsappLink(waNumber, 'Halo Admin, saya ingin tanya paket umroh');
 
   return (
     <div className="tw-bottom-nav-wrap">
@@ -46,17 +49,20 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
           <span className="tw-bottom-nav__label">Paket</span>
         </Link>
 
-        <a
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="tw-bottom-nav__item"
-        >
-          <span className="tw-bottom-nav__icon">
-            <MessageCircle size={20} />
-          </span>
-          <span className="tw-bottom-nav__label">Chat</span>
-        </a>
+        {waUrl && (
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tw-bottom-nav__item"
+            onClick={() => trackMetaEvent('Contact', { content_category: 'umroh' })}
+          >
+            <span className="tw-bottom-nav__icon">
+              <MessageCircle size={20} />
+            </span>
+            <span className="tw-bottom-nav__label">Chat</span>
+          </a>
+        )}
 
         <Link
           href={loginHref}

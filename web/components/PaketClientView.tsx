@@ -11,7 +11,7 @@ import { BottomNavbar } from './BottomNavbar';
 import { MenuBottomSheet } from './MenuBottomSheet';
 import { ProspectModal } from './ProspectModal';
 import { Button } from './Button';
-import type { PublicPackage } from './PublicCatalog';
+import type { PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { selectHomePackages, type PackageOrder } from './home-package-selection';
 import designTokens from '../../design-tokens.json';
@@ -282,6 +282,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
 
       {/* 8. Prospect / Consultation Modal */}
       <ProspectModal
+        tenantName={tenantInfo?.name}
         isOpen={isProspectModalOpen}
         onClose={() => setIsProspectModalOpen(false)}
         selectedPackage={

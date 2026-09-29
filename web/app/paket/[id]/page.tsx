@@ -2,7 +2,7 @@ import React from 'react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { PackageDetailClientView } from '../../../components/PackageDetailClientView';
-import type { PublicPackage } from '../../../components/PublicCatalog';
+import type { PublicPackage } from '../../../components/publicPackage';
 import type { PublicTenantInfo } from '../../page';
 
 export const dynamic = 'force-dynamic';
@@ -56,6 +56,7 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null> {
 }
 
 import { SuspendedView } from '../../../components/SuspendedView';
+import { SiteUnavailableView } from '../../../components/SiteUnavailableView';
 
 export default async function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const headerList = await headers();
@@ -68,7 +69,11 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
     getTenantInfo(host),
   ]);
 
-  if (tenantInfo?.is_suspended) {
+  if (!tenantInfo) {
+    return <SiteUnavailableView />;
+  }
+
+  if (tenantInfo.is_suspended) {
     return <SuspendedView tenantInfo={tenantInfo} />;
   }
 

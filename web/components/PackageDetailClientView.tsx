@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { trackMetaEvent } from '../lib/metaPixel';
 import {
   ArrowLeft,
   Share2,
@@ -15,7 +16,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import type { PublicPackage } from './PublicCatalog';
+import type { PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { MobileContainer } from './MobileContainer';
 import { PublicFooter } from './PublicFooter';
@@ -46,6 +47,18 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'facilities' | 'accommodation' | 'itinerary' | 'terms'>('facilities');
   const [isProspectModalOpen, setIsProspectModalOpen] = useState(false);
+
+  // Meta standard event: a visitor viewed this package.
+  useEffect(() => {
+    trackMetaEvent('ViewContent', {
+      content_ids: [String(pkg.id)],
+      content_name: pkg.name,
+      content_type: 'product',
+      content_category: 'umroh',
+      currency: 'IDR',
+      value: pkg.price || 0,
+    });
+  }, [pkg.id, pkg.name, pkg.price]);
 
   const photos = pkg.photos && pkg.photos.length > 0
     ? pkg.photos
@@ -652,6 +665,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
           isOpen={isProspectModalOpen}
           onClose={() => setIsProspectModalOpen(false)}
           selectedPackage={{ id: pkg.id, name: pkg.name }}
+          tenantName={tenantInfo?.name}
         />
       </MobileContainer>
     </div>

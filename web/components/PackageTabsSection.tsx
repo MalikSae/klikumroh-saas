@@ -6,7 +6,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { PackageCard } from './PackageCard';
 
 import { Button } from './Button';
-import type { PublicPackage } from './PublicCatalog';
+import type { PublicPackage } from './publicPackage';
 import { selectHomePackages, type PackageOrder } from './home-package-selection';
 import './PackageTabsSection.css';
 

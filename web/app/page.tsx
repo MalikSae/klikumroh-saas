@@ -1,7 +1,8 @@
 import React from 'react';
 import { headers } from 'next/headers';
 import { HomeClientView } from '../components/HomeClientView';
-import type { PublicPackage } from '../components/PublicCatalog';
+import { SiteUnavailableView } from '../components/SiteUnavailableView';
+import type { PublicPackage } from '../components/publicPackage';
 import type { PublicBannerItem } from '../components/HeroCarousel';
 import type { PublicTestimonialItem } from '../components/TestimonialSection';
 import type { PublicFAQItem } from '../components/FAQAccordion';
@@ -157,6 +158,7 @@ async function getPublishedFaqs(host: string): Promise<PublicFAQItem[]> {
 
 import { MarketingLandingView } from '../components/marketing/MarketingLandingView';
 import { SuspendedView } from '../components/SuspendedView';
+import { fetchPricingPlans, toPlanTiers } from '../lib/pricingPlans';
 
 export default async function HomePage() {
   const headerList = await headers();
@@ -172,7 +174,8 @@ export default async function HomePage() {
 
   // If visiting the apex marketing domain directly, render marketing landing page
   if (isApexMarketingHost) {
-    return <MarketingLandingView />;
+    const plans = toPlanTiers(await fetchPricingPlans());
+    return <MarketingLandingView plans={plans} />;
   }
 
   // Otherwise, fetch tenant-specific data for whitelabel website
@@ -184,9 +187,10 @@ export default async function HomePage() {
     getPublishedFaqs(host),
   ]);
 
-  // If no tenant found for this hostname, fallback to marketing landing page
+  // No active tenant for this hostname (unknown subdomain or tenant not yet active):
+  // show a neutral notice, never the KlikUmroh sales page.
   if (!tenantInfo) {
-    return <MarketingLandingView />;
+    return <SiteUnavailableView />;
   }
 
   // If tenant subscription is suspended (past grace period), render suspended notice

@@ -1,7 +1,7 @@
 import React from 'react';
 import { headers } from 'next/headers';
 import { PaketClientView } from '../../components/PaketClientView';
-import type { PublicPackage } from '../../components/PublicCatalog';
+import type { PublicPackage } from '../../components/publicPackage';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +59,7 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null> {
 }
 
 import { SuspendedView } from '../../components/SuspendedView';
+import { SiteUnavailableView } from '../../components/SiteUnavailableView';
 
 export default async function PaketPage() {
   const headerList = await headers();
@@ -69,7 +70,11 @@ export default async function PaketPage() {
     getTenantInfo(host),
   ]);
 
-  if (tenantInfo?.is_suspended) {
+  if (!tenantInfo) {
+    return <SiteUnavailableView />;
+  }
+
+  if (tenantInfo.is_suspended) {
     return <SuspendedView tenantInfo={tenantInfo} />;
   }
 

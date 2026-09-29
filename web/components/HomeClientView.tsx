@@ -16,7 +16,7 @@ import { PublicFooter } from './PublicFooter';
 import { BottomNavbar } from './BottomNavbar';
 import { MenuBottomSheet } from './MenuBottomSheet';
 import { ProspectModal } from './ProspectModal';
-import type { PublicPackage } from './PublicCatalog';
+import type { PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import designTokens from '../../design-tokens.json';
 import './HomeClientView.css';
@@ -111,7 +111,7 @@ export const HomeClientView: React.FC<HomeClientViewProps> = ({ packages, tenant
       </MobileContainer>
       <BottomNavbar onOpenMenu={() => setIsMenuSheetOpen(true)} waNumber={tenantInfo?.whatsapp_number || undefined} />
       <MenuBottomSheet isOpen={isMenuSheetOpen} onClose={() => setIsMenuSheetOpen(false)} />
-      <ProspectModal isOpen={isProspectModalOpen} onClose={() => setIsProspectModalOpen(false)} selectedPackage={null} />
+      <ProspectModal isOpen={isProspectModalOpen} onClose={() => setIsProspectModalOpen(false)} selectedPackage={null} tenantName={tenantInfo?.name} />
     </div>
   );
 };
