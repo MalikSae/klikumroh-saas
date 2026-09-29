@@ -79,6 +79,11 @@ func NewIPRateLimiter(maxReqs int, window time.Duration) func(http.Handler) http
 	}
 }
 
+// ClientIP returns the visitor IP as used by the rate limiter (first X-Forwarded-For entry set by the proxy).
+func ClientIP(r *http.Request) string {
+	return getClientIP(r)
+}
+
 func getClientIP(r *http.Request) string {
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff != "" {

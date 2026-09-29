@@ -9,4 +9,7 @@ var (
 	ErrDuplicate = errors.New("duplicate entry")
 	// ErrForeignKeyViolation is returned when an operation violates a foreign key constraint.
 	ErrForeignKeyViolation = errors.New("foreign key constraint violation")
+	// ErrStatusConflict is returned when a conditional status transition finds the record in a different
+	// status than expected (e.g. another request already approved it).
+	ErrStatusConflict = errors.New("record status changed concurrently")
 )

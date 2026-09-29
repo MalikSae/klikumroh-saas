@@ -16,6 +16,7 @@ import (
 	appMiddleware "klikumroh/internal/middleware"
 	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
+	"klikumroh/internal/util"
 )
 
 func main() {
@@ -38,9 +39,7 @@ func main() {
 		log.Fatalf("Error: Database configuration is incomplete. Please configure DB_HOST, DB_USER, and DB_NAME in .env")
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true&clientFoundRows=true",
-		dbUser, dbPassword, dbHost, dbPort, dbName,
-	)
+	dsn := repository.MySQLDSN(dbUser, dbPassword, dbHost, dbPort, dbName, "multiStatements=true", "clientFoundRows=true")
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -79,16 +78,21 @@ func main() {
 	platformSettingsRepo := repository.NewPlatformSettingsRepository(db)
 	notifRepo := repository.NewNotificationRepository(db)
 	agentTargetRepo := repository.NewAgentTargetRepository(db)
+	accessLogRepo := repository.NewAccessLogRepository(db)
 
 	// Initialize services
 	notifService := service.NewNotificationService(notifRepo)
 	tenantService := service.NewTenantService(tenantRepo)
 	authService := service.NewAuthService(adminUserRepo, sessionRepo, tenantRepo)
-	authService.SetPaymentVerificationRepo(pvRepo)
 	packageService := service.NewPackageService(packageRepo, packagePhotoRepo)
 	packagePhotoService := service.NewPackagePhotoService(packagePhotoRepo, packageRepo)
 	contentService := service.NewContentService(bannerRepo, testiRepo, faqRepo)
 	agentTargetService := service.NewAgentTargetService(agentTargetRepo, agentRepo)
+	if guard, ok := agentTargetService.(interface {
+		SetPayoffGuard(repository.TargetPayoffRepository, repository.CommissionPolicyRepository)
+	}); ok {
+		guard.SetPayoffGuard(repository.NewTargetPayoffRepository(db), repository.NewCommissionPolicyRepository(db))
+	}
 	agentService := service.NewAgentService(
 		agentRepo,
 		agentSessionRepo,
@@ -126,7 +130,9 @@ func main() {
 		adminUserRepo,
 		sessionRepo,
 		pvRepo,
+		accessLogRepo,
 	)
+	accessLogService := service.NewAccessLogService(accessLogRepo)
 	pricingPlanService := service.NewPricingPlanService(pricingPlanRepo)
 	couponService := service.NewCouponService(couponRepo)
 	subscriptionService := service.NewSubscriptionService(pvRepo, couponRepo, couponService, pricingPlanRepo, tenantRepo, domainRepo)
@@ -137,6 +143,18 @@ func main() {
 	tenantHandler := handler.NewTenantHandler(tenantService)
 	authHandler := handler.NewAuthHandler(authService)
 	packageHandler := handler.NewPackageHandler(packageService, packagePhotoService)
+	prospectService.SetCommissionPolicyRepo(repository.NewCommissionPolicyRepository(db))
+
+	// Meta Pixel + Conversions API per travel. Without APP_ENCRYPTION_KEY the CAPI token cannot be stored
+	// (it is never kept in plain text), so only the browser pixel works.
+	secretBox, boxErr := util.NewSecretBox(os.Getenv("APP_ENCRYPTION_KEY"))
+	if boxErr != nil {
+		log.Printf("[Meta] Conversions API disabled: %v", boxErr)
+		secretBox = nil
+	}
+	metaService := service.NewMetaService(repository.NewMetaIntegrationRepository(db), secretBox)
+	prospectService.SetMetaTracker(metaService)
+	metaIntegrationHandler := handler.NewMetaIntegrationHandler(metaService)
 	prospectHandler := handler.NewProspectHandler(prospectService)
 	contentHandler := handler.NewContentHandler(contentService)
 	agentHandler := handler.NewAgentHandler(agentService)
@@ -146,6 +164,7 @@ func main() {
 	teamHandler := handler.NewTeamHandler(teamService)
 	dashboardOverviewHandler := handler.NewDashboardOverviewHandler(dashboardOverviewService)
 	staffHandler := handler.NewStaffHandler(staffService)
+	accessLogHandler := handler.NewAccessLogHandler(accessLogService)
 	pricingPlanHandler := handler.NewPricingPlanHandler(pricingPlanService)
 	couponHandler := handler.NewCouponHandler(couponService)
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionService, pricingPlanService)
@@ -154,6 +173,7 @@ func main() {
 	platformSettingsHandler := handler.NewPlatformSettingsHandler(platformSettingsService)
 
 	publicSignupService := service.NewPublicSignupService(tenantRepo, adminUserRepo, pricingPlanRepo, couponService, pvRepo, domainRepo)
+	publicSignupService.SetPlatformSettingsRepo(platformSettingsRepo)
 	publicSignupHandler := handler.NewPublicSignupHandler(publicSignupService, pricingPlanService, couponService)
 
 	port := os.Getenv("PORT")
@@ -234,7 +254,7 @@ func main() {
 
 	// Protected Admin Dashboard API Routes
 	r.Group(func(protected chi.Router) {
-		protected.Use(appMiddleware.AuthMiddleware(sessionRepo))
+		protected.Use(appMiddleware.AuthMiddleware(sessionRepo, accessLogRepo))
 		protected.Use(appMiddleware.SubscriptionEnforcementMiddleware(tenantRepo))
 
 		// Subscription & Renewal Routes
@@ -252,11 +272,13 @@ func main() {
 		tenantHandler.RegisterDashboardRoutes(protected)
 		packageHandler.RegisterDashboardRoutes(protected)
 		prospectHandler.RegisterDashboardRoutes(protected)
+		metaIntegrationHandler.RegisterDashboardRoutes(protected)
 		contentHandler.RegisterDashboardRoutes(protected)
 		agentHandler.RegisterDashboardRoutes(protected)
 		agentTargetHandler.RegisterDashboardRoutes(protected)
 		domainHandler.RegisterDashboardRoutes(protected)
 		notifHandler.RegisterDashboardRoutes(protected)
+		accessLogHandler.RegisterDashboardRoutes(protected)
 	})
 
 	// Protected Agent API Group
@@ -269,7 +291,7 @@ func main() {
 
 	// Public Web Whitelabel Subdomain Routes
 	r.Group(func(public chi.Router) {
-		public.Use(appMiddleware.TenantResolutionMiddleware(domainRepo))
+		public.Use(appMiddleware.TenantResolutionMiddleware(domainRepo, tenantRepo))
 
 		public.Get("/api/public/tenant", func(w http.ResponseWriter, req *http.Request) {
 			tenantID, _ := appMiddleware.GetTenantID(req.Context())
@@ -282,6 +304,7 @@ func main() {
 		tenantHandler.RegisterPublicRoutes(public)
 		packageHandler.RegisterPublicRoutes(public)
 		prospectHandler.RegisterPublicRoutes(public)
+		metaIntegrationHandler.RegisterPublicRoutes(public)
 		contentHandler.RegisterPublicRoutes(public)
 		agentHandler.RegisterPublicRoutes(public)
 	})

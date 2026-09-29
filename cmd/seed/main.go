@@ -30,9 +30,7 @@ func main() {
 		dbPort = "3306"
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		dbUser, dbPassword, dbHost, dbPort, dbName,
-	)
+	dsn := repository.MySQLDSN(dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -48,25 +46,38 @@ func main() {
 	staffRepo := repository.NewStaffRepository(db)
 	pricingPlanRepo := repository.NewPricingPlanRepository(db)
 
+	// Passwords are never hardcoded in this repo (audit finding #8). They come from env vars, and existing
+	// accounts keep their password unless SEED_RESET_PASSWORDS=true is set explicitly.
+	resetPasswords := os.Getenv("SEED_RESET_PASSWORDS") == "true"
+	staffPass := seedPassword("SEED_STAFF_PASSWORD")
+	demoAdminPass := seedPassword("SEED_DEMO_ADMIN_PASSWORD")
+
 	// Seed Master Admin / Staff User
 	staffEmail := "staff@klikumroh.id"
-	staffPass := "KlikUmrohStaff2026!"
 	existingStaff, err := staffRepo.FindByEmail(ctx, staffEmail)
-	staffHash, _ := bcrypt.GenerateFromPassword([]byte(staffPass), bcrypt.DefaultCost)
-	if err != nil {
+	switch {
+	case err != nil && staffPass == "":
+		fmt.Println("SKIP staff user: set SEED_STAFF_PASSWORD (min 12 characters) to create it")
+	case err != nil:
 		staff := &repository.StaffUser{
 			Name:         "Master Admin KlikUmroh",
 			Email:        staffEmail,
-			PasswordHash: string(staffHash),
+			PasswordHash: mustHash(staffPass),
 			Status:       "active",
 		}
 		if err := staffRepo.Create(ctx, staff); err != nil {
 			log.Fatalf("Failed to seed staff user: %v", err)
 		}
 		fmt.Printf("Created Staff User: %s (ID: %d)\n", staff.Email, staff.ID)
-	} else {
-		_, _ = db.ExecContext(ctx, "UPDATE staff_users SET password_hash = ?, status = 'active' WHERE id = ?", string(staffHash), existingStaff.ID)
-		fmt.Printf("Staff User updated/synced: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
+	case resetPasswords && staffPass != "":
+		existingStaff.PasswordHash = mustHash(staffPass)
+		existingStaff.Status = "active"
+		if err := staffRepo.Update(ctx, existingStaff); err != nil {
+			log.Fatalf("Failed to reset staff password: %v", err)
+		}
+		fmt.Printf("Staff User password reset: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
+	default:
+		fmt.Printf("Staff User exists, password unchanged: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
 	}
 
 	// Seed Sample Pricing Plans if empty
@@ -89,7 +100,7 @@ func main() {
 	}
 
 	// Seed Tenant A: Al-Barakah
-	seedTenant(ctx, tenantRepo, domainRepo, adminUserRepo, packageRepo, tenantSeedData{
+	seedTenant(ctx, tenantRepo, domainRepo, adminUserRepo, packageRepo, demoAdminPass, resetPasswords, tenantSeedData{
 		name:              "Al-Barakah Travel",
 		slug:              "albarakah",
 		brandPrimaryColor: "#16A34A",
@@ -128,7 +139,7 @@ func main() {
 	})
 
 	// Seed Tenant B: Nur Iman
-	seedTenant(ctx, tenantRepo, domainRepo, adminUserRepo, packageRepo, tenantSeedData{
+	seedTenant(ctx, tenantRepo, domainRepo, adminUserRepo, packageRepo, demoAdminPass, resetPasswords, tenantSeedData{
 		name:              "Nur Iman Travel",
 		slug:              "nuriman",
 		brandPrimaryColor: "#2563EB",
@@ -194,6 +205,8 @@ func seedTenant(
 	domainRepo repository.DomainRepository,
 	adminUserRepo repository.AdminUserRepository,
 	packageRepo repository.PackageRepository,
+	demoAdminPass string,
+	resetPasswords bool,
 	data tenantSeedData,
 ) {
 	tenant, err := tenantRepo.GetBySlug(ctx, data.slug)
@@ -231,15 +244,13 @@ func seedTenant(
 	}
 
 	adminUser, err := adminUserRepo.FindByEmail(ctx, data.adminEmail)
-	hash, errHash := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	if errHash != nil {
-		log.Fatalf("Failed to hash password: %v", errHash)
-	}
-
-	if err != nil {
+	switch {
+	case err != nil && demoAdminPass == "":
+		fmt.Printf("SKIP admin user %s: set SEED_DEMO_ADMIN_PASSWORD (min 12 characters) to create it\n", data.adminEmail)
+	case err != nil:
 		adminUser = &repository.AdminUser{
 			Email:        data.adminEmail,
-			PasswordHash: string(hash),
+			PasswordHash: mustHash(demoAdminPass),
 			Name:         data.adminName,
 			Status:       "active",
 		}
@@ -247,11 +258,13 @@ func seedTenant(
 			log.Fatalf("Failed to create admin user %s: %v", data.adminEmail, err)
 		}
 		fmt.Printf("Created Admin User: %s (ID: %d)\n", adminUser.Email, adminUser.ID)
-	} else {
-		adminUser.PasswordHash = string(hash)
+	case resetPasswords && demoAdminPass != "":
+		adminUser.PasswordHash = mustHash(demoAdminPass)
 		adminUser.Status = "active"
 		_ = adminUserRepo.Update(ctx, tenant.ID, adminUser)
-		fmt.Printf("Admin User updated: %s (ID: %d)\n", adminUser.Email, adminUser.ID)
+		fmt.Printf("Admin User password reset: %s (ID: %d)\n", adminUser.Email, adminUser.ID)
+	default:
+		fmt.Printf("Admin User exists, password unchanged: %s (ID: %d)\n", adminUser.Email, adminUser.ID)
 	}
 
 	existingPackages, _ := packageRepo.List(ctx, tenant.ID, nil)
@@ -276,4 +289,22 @@ func seedTenant(
 			fmt.Printf("Created Package [%s]: %s (ID: %d, Tenant: %d)\n", pkg.Status, pkg.Name, pkg.ID, tenant.ID)
 		}
 	}
+}
+
+// seedPassword returns the password from the given env var, or "" when it is missing or shorter than
+// 12 characters (the related account is then not created). The seed never contains a default password.
+func seedPassword(envKey string) string {
+	v := os.Getenv(envKey)
+	if len(v) < 12 {
+		return ""
+	}
+	return v
+}
+
+func mustHash(password string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Failed to hash password: %v", err)
+	}
+	return string(hash)
 }

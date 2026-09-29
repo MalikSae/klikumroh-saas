@@ -40,9 +40,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Skip("Skipping test: Database configuration not found in .env")
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		dbUser, dbPassword, dbHost, dbPort, dbName,
-	)
+	dsn := repository.MySQLDSN(dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -808,7 +806,7 @@ func TestCrossTenant_TenantBranding(t *testing.T) {
 	tAFinal, err := tenantRepo.GetByID(ctx, tenantA.ID)
 	if err != nil {
 		t.Fatalf("Failed to fetch tenant A: %v", err)
-			t.Errorf("Expected tenant A color to remain #2563EB, got %v", tAFinal.BrandPrimaryColor)
+		t.Errorf("Expected tenant A color to remain #2563EB, got %v", tAFinal.BrandPrimaryColor)
 	}
 }
 
@@ -848,7 +846,7 @@ func TestPackagePhotoIsolation(t *testing.T) {
 
 	// 3. Insert Photo for Tenant A's Package
 	photoRepo := repository.NewPackagePhotoRepository(db)
-	
+
 	photoA := &repository.PackagePhoto{
 		PackageID: pkgA.ID,
 		FilePath:  "/uploads/a/test.webp",
@@ -1507,7 +1505,3 @@ func TestRecordReferralClick_CrossTenantIsolation(t *testing.T) {
 		t.Errorf("CRITICAL SECURITY VIOLATION: Tenant B saw %d clicks for Tenant A's agent", countCross)
 	}
 }
-
-
-
-

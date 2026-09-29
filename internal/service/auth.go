@@ -31,7 +31,6 @@ type LoginResult struct {
 	Token        string        `json:"token"`
 	ExpiresAt    time.Time     `json:"expires_at"`
 	TenantStatus string        `json:"tenant_status"`
-	PublicToken  string        `json:"public_token,omitempty"`
 	User         AdminUserInfo `json:"user"`
 }
 
@@ -39,14 +38,12 @@ type LoginResult struct {
 type AuthService interface {
 	Login(ctx context.Context, email, password string) (*LoginResult, error)
 	Logout(ctx context.Context, token string) error
-	SetPaymentVerificationRepo(pvRepo repository.PaymentVerificationRepository)
 }
 
 type authService struct {
 	adminUserRepo repository.AdminUserRepository
 	sessionRepo   repository.SessionRepository
 	tenantRepo    repository.TenantRepository
-	pvRepo        repository.PaymentVerificationRepository
 }
 
 // NewAuthService creates a new AuthService instance.
@@ -64,10 +61,6 @@ func NewAuthService(
 		sessionRepo:   sessionRepo,
 		tenantRepo:    tr,
 	}
-}
-
-func (s *authService) SetPaymentVerificationRepo(pvRepo repository.PaymentVerificationRepository) {
-	s.pvRepo = pvRepo
 }
 
 func (s *authService) Login(ctx context.Context, email, password string) (*LoginResult, error) {
@@ -120,19 +113,10 @@ func (s *authService) Login(ctx context.Context, email, password string) (*Login
 		}
 	}
 
-	var publicToken string
-	if tenantStatus == "pending" && s.pvRepo != nil {
-		verifications, err := s.pvRepo.ListByTenant(ctx, user.TenantID)
-		if err == nil && len(verifications) > 0 {
-			publicToken = verifications[0].PublicToken
-		}
-	}
-
 	return &LoginResult{
 		Token:        token,
 		ExpiresAt:    expiresAt,
 		TenantStatus: tenantStatus,
-		PublicToken:  publicToken,
 		User: AdminUserInfo{
 			ID:         user.ID,
 			TenantID:   user.TenantID,

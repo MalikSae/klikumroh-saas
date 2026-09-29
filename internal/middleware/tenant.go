@@ -12,7 +12,15 @@ import (
 // TenantResolutionMiddleware resolves the tenant_id from the incoming Host header
 // using DomainRepository.FindByHostname (reusing the Sprint 1 domain lookup) and injects
 // tenant_id into the request context. Unregistered or inactive domains return 404.
-func TenantResolutionMiddleware(domainRepo repository.DomainRepository) func(http.Handler) http.Handler {
+//
+// When a TenantRepository is passed, a travel whose account is still 'pending' (signed up but the
+// first subscription payment is not approved yet) is treated as not found: its public site, catalog
+// and interest form stay offline until the travel has paid.
+func TenantResolutionMiddleware(domainRepo repository.DomainRepository, tenantRepos ...repository.TenantRepository) func(http.Handler) http.Handler {
+	var tenantRepo repository.TenantRepository
+	if len(tenantRepos) > 0 {
+		tenantRepo = tenantRepos[0]
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			host := r.Header.Get("X-Forwarded-Host")
@@ -40,6 +48,14 @@ func TenantResolutionMiddleware(domainRepo repository.DomainRepository) func(htt
 			if domain.Status != "active" {
 				respondTenantNotFound(w)
 				return
+			}
+
+			if tenantRepo != nil {
+				tenant, err := tenantRepo.GetByID(r.Context(), domain.TenantID)
+				if err != nil || tenant == nil || tenant.Status == "pending" {
+					respondTenantNotFound(w)
+					return
+				}
 			}
 
 			ctx := WithTenantID(r.Context(), domain.TenantID)
