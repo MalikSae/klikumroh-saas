@@ -28,6 +28,7 @@ import {
   User,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
 import { Button } from '../../../components/Button';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { initAudioUnlock, playNotificationSound } from '../../../lib/notificationSound';
@@ -71,6 +72,8 @@ interface AgentDashboardSummary {
   leaderboard_preview: LeaderboardPreview;
   photo_url?: string | null;
   total_clicks?: number;
+  // The travel's subscription is suspended: the portal is read-only.
+  travel_suspended?: boolean;
 }
 
 export default function AgenDashboardPage() {
@@ -507,6 +510,8 @@ export default function AgenDashboardPage() {
           )}
         </button>
       </header>
+
+      {summary.travel_suspended && <AgentTravelSuspendedNotice />}
 
       {/* Main Canvas */}
       <div

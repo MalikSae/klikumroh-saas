@@ -99,6 +99,7 @@ export default function AgenJamaahDetailPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [tenantName, setTenantName] = useState<string>('Portal Mitra Agen');
+  const [travelSuspended, setTravelSuspended] = useState<boolean>(false);
 
   // Status Change Modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
@@ -132,6 +133,7 @@ export default function AgenJamaahDetailPage() {
         if (meRes.ok) {
           const meJson = await meRes.json();
           if (meJson.tenant_name) setTenantName(meJson.tenant_name);
+          setTravelSuspended(Boolean(meJson.travel_suspended));
         }
       } catch {
         // Soft fail
@@ -462,6 +464,8 @@ export default function AgenJamaahDetailPage() {
   const statusBadge = getStatusBadge(prospect.status);
   const isClosing = prospect.status === 'closing';
   const isAnonymized = !!prospect.anonymized_at;
+  // Status and notes cannot change while the data is anonymized or the travel is suspended.
+  const isReadOnly = isAnonymized || travelSuspended;
 
   return (
     <MobileContainer>
@@ -684,7 +688,7 @@ export default function AgenJamaahDetailPage() {
               </span>
             </div>
 
-            {!isClosing && !isAnonymized ? (
+            {!isClosing && !isReadOnly ? (
               <button
                 type="button"
                 onClick={handleOpenStatusModal}
@@ -709,6 +713,8 @@ export default function AgenJamaahDetailPage() {
             <span className={styles.detailspan46}>
               {isAnonymized
                 ? 'Data pribadi jamaah ini sudah dihapus atas permintaannya (UU PDP). Riwayat dan komisi tetap tersimpan.'
+                : travelSuspended
+                ? 'Layanan travel sedang ditangguhkan. Status dan catatan bisa diubah lagi setelah travel memperpanjang langganan.'
                 : isClosing
                 ? 'Status prospek ini sudah Closing dan bersifat final.'
                 : 'Status Closing akan ditetapkan oleh admin travel setelah verifikasi pembayaran.'}
@@ -782,7 +788,7 @@ export default function AgenJamaahDetailPage() {
           </span>
 
           {/* Form Tambah Catatan */}
-          {!isAnonymized && (
+          {!isReadOnly && (
           <form onSubmit={handleAddNote} className={styles.detailform57}>
             {noteError && (
               <span className={styles.detailspan58}>
@@ -849,7 +855,7 @@ export default function AgenJamaahDetailPage() {
       </div>
 
       {/* Modal Ubah Status (TIDAK ADA OPSI CLOSING) */}
-      {!isClosing && !isAnonymized && isStatusModalOpen && (
+      {!isClosing && !isReadOnly && isStatusModalOpen && (
         <div
           role="dialog"
           aria-modal="true"

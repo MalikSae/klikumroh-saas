@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
 import styles from './page.module.css';
 
 const PAGE_SIZE = 20;
@@ -85,6 +86,8 @@ export default function AgenJamaahListPage() {
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   // Only the latest request may fill the list (typing fast must not show stale results).
   const requestSeq = useRef(0);
+  // The travel's subscription is suspended: the portal is read-only, so adding jamaah is not offered.
+  const [travelSuspended, setTravelSuspended] = useState<boolean>(false);
   // Paged list: the API returns PAGE_SIZE jamaah at a time; "Muat lebih banyak" appends the next page.
   const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
@@ -186,6 +189,14 @@ export default function AgenJamaahListPage() {
 
   useEffect(() => {
     fetchPackages();
+    const token = localStorage.getItem('agent_token');
+    if (!token) return;
+    fetch('/api/agent/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((me) => setTravelSuspended(Boolean(me?.travel_suspended)))
+      .catch(() => {
+        // The backend still refuses writes while suspended.
+      });
   }, []);
 
   const handleOpenModal = () => {
@@ -382,15 +393,19 @@ export default function AgenJamaahListPage() {
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenModal}
-          className={styles.listbutton6}
-        >
-          <Plus size={15} />
-          <span>Tambah</span>
-        </button>
+        {!travelSuspended && (
+          <button
+            type="button"
+            onClick={handleOpenModal}
+            className={styles.listbutton6}
+          >
+            <Plus size={15} />
+            <span>Tambah</span>
+          </button>
+        )}
       </header>
+
+      {travelSuspended && <AgentTravelSuspendedNotice />}
 
       {/* Main Canvas */}
       <div
@@ -510,14 +525,16 @@ export default function AgenJamaahListPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleOpenModal}
-              className={styles.listbutton31}
-            >
-              <Plus size={15} />
-              <span>Tambah Jamaah Manual</span>
-            </button>
+            {!travelSuspended && (
+              <button
+                type="button"
+                onClick={handleOpenModal}
+                className={styles.listbutton31}
+              >
+                <Plus size={15} />
+                <span>Tambah Jamaah Manual</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className={styles.listdiv32}>
