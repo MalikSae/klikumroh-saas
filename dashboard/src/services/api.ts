@@ -2288,6 +2288,10 @@ export interface MetaIntegrationSettings {
   test_event_code: string;
   /** False when the server cannot encrypt tokens yet (APP_ENCRYPTION_KEY missing). */
   encryption_ready: boolean;
+  /** Delivery status of the server (Conversions API) events. */
+  last_success_at: string | null;
+  last_error: string;
+  last_error_at: string | null;
 }
 
 export const fetchMetaIntegration = async (): Promise<MetaIntegrationSettings> => {

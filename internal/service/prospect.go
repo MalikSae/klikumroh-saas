@@ -103,6 +103,9 @@ type PublicProspectInput struct {
 	Website string `json:"website"`
 	// Meta holds the visitor's Meta browser identifiers for Conversions API matching (optional).
 	Meta *PublicMetaContext `json:"meta"`
+	// ConsentMeta: the consent text the visitor accepted mentioned that their data (hashed) is sent to
+	// Meta. Without it nothing about this jamaah is sent to Meta's Conversions API.
+	ConsentMeta bool `json:"consent_meta"`
 	// ClientIP and UserAgent are set by the handler from the request, never from the JSON body.
 	ClientIP  string `json:"-"`
 	UserAgent string `json:"-"`
@@ -331,7 +334,7 @@ func (s *prospectService) withPhoneLock(ctx context.Context, tenantID uint64, ph
 
 // Optional repository capabilities implemented by the MySQL prospect repository.
 type prospectDetailFiller interface {
-	FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt *time.Time) error
+	FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt, metaDisclosedAt *time.Time) error
 }
 
 type prospectAnonymizer interface {
@@ -513,6 +516,9 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 		Fbclid:          truncatedPtr(attribution.Fbclid, 255),
 		Status:          "baru", // Force initial status to 'baru' server-side
 	}
+	if input.ConsentMeta {
+		prospect.MetaDisclosedAt = &consentAt
+	}
 	var eventSourceURL string
 	if input.Meta != nil {
 		prospect.MetaFbp = cleanMetaCookie(input.Meta.Fbp)
@@ -556,8 +562,10 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 			fmt.Sprintf("/agen/jamaah/%d", prospect.ID))
 	}
 
+	// The browser pixel's Lead carries no personal data; the server event does, so it is sent only when
+	// the visitor's consent text mentioned Meta.
 	eventID := newMetaEventID()
-	if s.meta != nil {
+	if s.meta != nil && prospect.MetaDisclosedAt != nil {
 		ev := MetaLeadEvent{
 			EventID:     eventID,
 			EventTime:   consentAt,
@@ -604,13 +612,14 @@ func metaUserFromProspect(tenantID uint64, p *repository.Prospect) MetaUserData 
 // metaPurchaseClaimer is implemented by the MySQL prospect repository (one Purchase per prospect).
 type metaPurchaseClaimer interface {
 	ClaimMetaPurchase(ctx context.Context, tenantID uint64, id uint64) (bool, error)
+	ReleaseMetaPurchase(ctx context.Context, tenantID uint64, id uint64) error
 }
 
 // trackPurchase sends the Meta Purchase event for a closing (DP paid) of a web-form lead with consent.
 // Leads typed in by agents never came through the website/ads, so they are not reported. It is sent
 // once per prospect: a closing cancelled and closed again does not count twice in the ad reports.
 func (s *prospectService) trackPurchase(ctx context.Context, tenantID uint64, p *repository.Prospect) {
-	if s.meta == nil || p.EntryMethod != "web_form" || p.ConsentAt == nil || p.AnonymizedAt != nil {
+	if s.meta == nil || p.EntryMethod != "web_form" || p.ConsentAt == nil || p.MetaDisclosedAt == nil || p.AnonymizedAt != nil {
 		return
 	}
 	if !s.meta.Enabled(ctx, tenantID) {
@@ -635,6 +644,12 @@ func (s *prospectService) trackPurchase(ctx context.Context, tenantID uint64, p 
 		EventTime: time.Now(),
 		User:      metaUserFromProspect(tenantID, p),
 		NumItems:  jamaah,
+		// Delivery failed (e.g. expired token): release the claim so a later closing can report it.
+		OnFailed: func() {
+			if err := claimer.ReleaseMetaPurchase(context.Background(), tenantID, p.ID); err != nil {
+				log.Printf("[Meta] tenant %d: cannot release Purchase claim of prospect %d: %v", tenantID, p.ID, err)
+			}
+		},
 	}
 	if p.PackageID != nil {
 		ev.ContentID = strconv.FormatUint(*p.PackageID, 10)
@@ -680,7 +695,7 @@ func (s *prospectService) handleRepeatSubmission(
 	}
 	if filler, ok := s.prospectRepo.(prospectDetailFiller); ok {
 		if err := filler.FillMissingDetails(ctx, tenantID, existing.ID, incoming.PackageID, incoming.JumlahJamaah,
-			incoming.DeparturePlan, incoming.Domicile, incoming.ConsentAt); err != nil {
+			incoming.DeparturePlan, incoming.Domicile, incoming.ConsentAt, incoming.MetaDisclosedAt); err != nil {
 			log.Printf("[Prospect] Failed to complete prospect %d from repeat submission: %v", existing.ID, err)
 		}
 	}

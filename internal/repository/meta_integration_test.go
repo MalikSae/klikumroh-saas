@@ -31,6 +31,8 @@ type fakeGraph struct {
 	mu    sync.Mutex
 	calls []capturedMetaCall
 	srv   *httptest.Server
+	// fail makes the fake answer like Meta does for an invalid token.
+	fail bool
 }
 
 func newFakeGraph(t *testing.T) *fakeGraph {
@@ -41,8 +43,14 @@ func newFakeGraph(t *testing.T) *fakeGraph {
 		_ = json.Unmarshal(raw, &body)
 		g.mu.Lock()
 		g.calls = append(g.calls, capturedMetaCall{Path: r.URL.String(), Body: body})
+		fail := g.fail
 		g.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
+		if fail {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"error":{"message":"Invalid OAuth access token."}}`))
+			return
+		}
 		_, _ = w.Write([]byte(`{"events_received":1,"fbtrace_id":"trace-1"}`))
 	}))
 	t.Cleanup(g.srv.Close)
@@ -152,7 +160,7 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 	city := "Kota Bandung"
 	email := "Siti@Example.com"
 	res, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{
-		Consent: true, Name: "Siti Aminah", Phone: "0813-9999-1001", Email: &email, Domicile: &city, PackageID: &e.pkgA.ID,
+		Consent: true, ConsentMeta: true, Name: "Siti Aminah", Phone: "0813-9999-1001", Email: &email, Domicile: &city, PackageID: &e.pkgA.ID,
 		Meta:     &service.PublicMetaContext{Fbp: "fb.1.1727600000000.123456789", Fbc: "bad value", EventSourceURL: "https://travel.example/paket/1"},
 		ClientIP: "198.51.100.7", UserAgent: "Mozilla/5.0 test",
 	})
@@ -187,7 +195,8 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 	if strings.Contains(call.Path, "access_token") || call.Body["access_token"] != token || call.Body["test_event_code"] != "TEST123" {
 		t.Fatalf("token must be in the body only (not the URL), test code included: %s %+v", call.Path, call.Body)
 	}
-	if !strings.HasPrefix(call.Path, "/v21.0/1234567890123456/events") {
+	// P1: never an expired Marketing API version (v21.0 expired 9 Sep 2025).
+	if !strings.HasPrefix(call.Path, "/v25.0/1234567890123456/events") {
 		t.Fatalf("unexpected Graph path %s", call.Path)
 	}
 
@@ -230,7 +239,7 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 
 	// Tenant B has no Meta settings: its leads send nothing.
 	before := len(graph.events("Lead"))
-	if _, err := e.svc.CreatePublic(e.ctx, e.tenantB.ID, service.PublicProspectInput{Consent: true, Name: "Tenant B", Phone: "081399991003"}); err != nil {
+	if _, err := e.svc.CreatePublic(e.ctx, e.tenantB.ID, service.PublicProspectInput{Consent: true, ConsentMeta: true, Name: "Tenant B", Phone: "081399991003"}); err != nil {
 		t.Fatalf("tenant B create: %v", err)
 	}
 	if len(graph.events("Lead")) != before {
@@ -258,7 +267,7 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 		}
 	}
 	// A Lead without a user agent (no browser) is reported as system_generated, not rejected.
-	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, Name: "Tanpa Browser", Phone: "081399991004"}); err != nil {
+	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, ConsentMeta: true, Name: "Tanpa Browser", Phone: "081399991004"}); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	leads = graph.events("Lead")
@@ -286,7 +295,7 @@ func TestMeta_PurchaseNotClaimedWhileDisabled(t *testing.T) {
 	meta := service.NewMetaServiceForTest(metaRepo, testSecretBox(t), graph.srv.URL)
 	e.svc.SetMetaTracker(meta)
 
-	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, Name: "Awal", Phone: "081399991200"}); err != nil {
+	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, ConsentMeta: true, Name: "Awal", Phone: "081399991200"}); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	q := "081399991200"
@@ -363,4 +372,98 @@ func TestReaudit7_DeleteScrubsNotifications(t *testing.T) {
 func itoa(v uint64) string {
 	b, _ := json.Marshal(v)
 	return string(b)
+}
+
+// N1: a jamaah whose consent text did not mention Meta is never sent to the Conversions API.
+func TestMeta_NothingSentWithoutMetaDisclosure(t *testing.T) {
+	e := setupProspectAudit(t)
+	graph := newFakeGraph(t)
+	meta := service.NewMetaServiceForTest(repository.NewMetaIntegrationRepository(e.db), testSecretBox(t), graph.srv.URL)
+	e.svc.SetMetaTracker(meta)
+	token := "EAAGtesttoken1234567890abcd"
+	if _, err := meta.SaveSettings(e.ctx, e.tenantA.ID, service.MetaSettingsInput{PixelID: "1234567890123456", AccessToken: &token}); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	res, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, Name: "Teks Lama", Phone: "081399991300", UserAgent: "Mozilla/5.0"})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if res.MetaEventID == "" {
+		t.Fatalf("the browser pixel (no personal data) still gets its event id")
+	}
+	if n := len(graph.events("Lead")); n != 0 {
+		t.Fatalf("no server Lead without Meta disclosure, got %d", n)
+	}
+	q := "081399991300"
+	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{Search: &q})
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil); err != nil {
+		t.Fatalf("closing: %v", err)
+	}
+	if n := len(graph.events("Purchase")); n != 0 {
+		t.Fatalf("no Purchase for a jamaah who never saw the Meta text, got %d", n)
+	}
+	// Submitting again with the Meta text completes the disclosure (without overwriting other data).
+	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, ConsentMeta: true, Name: "Teks Baru", Phone: "081399991301"}); err != nil {
+		t.Fatalf("create disclosed: %v", err)
+	}
+	if n := len(graph.events("Lead")); n != 1 {
+		t.Fatalf("a disclosed lead is sent, got %d", n)
+	}
+}
+
+// N2: failed deliveries are recorded for the dashboard and do not use up the one-time Purchase.
+func TestMeta_DeliveryFailureVisibleAndPurchaseRetried(t *testing.T) {
+	e := setupProspectAudit(t)
+	graph := newFakeGraph(t)
+	meta := service.NewMetaServiceForTest(repository.NewMetaIntegrationRepository(e.db), testSecretBox(t), graph.srv.URL)
+	e.svc.SetMetaTracker(meta)
+	token := "EAAGtesttoken1234567890abcd"
+	if _, err := meta.SaveSettings(e.ctx, e.tenantA.ID, service.MetaSettingsInput{PixelID: "1234567890123456", AccessToken: &token}); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	graph.mu.Lock()
+	graph.fail = true
+	graph.mu.Unlock()
+
+	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, ConsentMeta: true, Name: "Gagal Kirim", Phone: "081399991400", UserAgent: "Mozilla/5.0"}); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	view, _ := meta.GetSettings(e.ctx, e.tenantA.ID)
+	if view.LastErrorAt == nil || !strings.Contains(view.LastError, "Invalid OAuth access token") || strings.Contains(view.LastError, token) {
+		t.Fatalf("failure must be visible without the token, got %+v", view)
+	}
+	if other, _ := meta.GetSettings(e.ctx, e.tenantB.ID); other.LastError != "" || other.LastErrorAt != nil {
+		t.Fatalf("CRITICAL: tenant B must not see tenant A delivery errors, got %+v", other)
+	}
+
+	q := "081399991400"
+	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{Search: &q})
+	id := list[0].ID
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil); err != nil {
+		t.Fatalf("closing: %v", err)
+	}
+	var sent sql.NullTime
+	_ = e.db.QueryRow(`SELECT meta_purchase_sent_at FROM prospects WHERE id = ?`, id).Scan(&sent)
+	if sent.Valid {
+		t.Fatalf("a failed Purchase must release its claim")
+	}
+
+	// Token fixed: the next closing of this prospect is reported, and the status shows success.
+	graph.mu.Lock()
+	graph.fail = false
+	graph.mu.Unlock()
+	if _, err := e.svc.CancelClosing(e.ctx, e.tenantA.ID, id, 1, "salah input"); err != nil {
+		t.Fatalf("cancel: %v", err)
+	}
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil); err != nil {
+		t.Fatalf("re-closing: %v", err)
+	}
+	_ = e.db.QueryRow(`SELECT meta_purchase_sent_at FROM prospects WHERE id = ?`, id).Scan(&sent)
+	if !sent.Valid {
+		t.Fatalf("the retried Purchase must be marked sent")
+	}
+	view, _ = meta.GetSettings(e.ctx, e.tenantA.ID)
+	if view.LastSuccessAt == nil {
+		t.Fatalf("success must be recorded")
+	}
 }

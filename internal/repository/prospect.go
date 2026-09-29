@@ -38,6 +38,9 @@ type Prospect struct {
 	// MetaFbp / MetaFbc: the visitor's _fbp / _fbc cookies at lead time, for Meta Conversions API matching.
 	MetaFbp *string `json:"-"`
 	MetaFbc *string `json:"-"`
+	// MetaDisclosedAt: the jamaah's consent text said their data (hashed) goes to Meta. Only then is
+	// their data sent to Meta's Conversions API.
+	MetaDisclosedAt *time.Time `json:"-"`
 	// ConsentAt: when the jamaah agreed to be contacted (UU PDP), from the public interest form.
 	ConsentAt  *time.Time `json:"consent_at"`
 	Status     string     `json:"status"`
@@ -167,7 +170,7 @@ const prospectSelect = `
 	SELECT
 		p.id, p.tenant_id, p.package_id, p.agent_id, p.name, p.phone, p.phone_normalized, p.jumlah_jamaah,
 		p.departure_plan, p.domicile, p.email,
-		p.source_channel, p.entry_method, p.utm_source, p.utm_medium, p.utm_campaign, p.fbclid, p.meta_fbp, p.meta_fbc, p.consent_at,
+		p.source_channel, p.entry_method, p.utm_source, p.utm_medium, p.utm_campaign, p.fbclid, p.meta_fbp, p.meta_fbc, p.meta_disclosed_at, p.consent_at,
 		p.status, p.lost_reason, p.lost_reason_category, p.paid_off_at, p.anonymized_at, p.created_at, p.updated_at,
 		COALESCE(pkg.name, '') AS package_name,
 		COALESCE(ag.name, '') AS agent_name,
@@ -186,12 +189,12 @@ func scanProspectRow(row rowScanner) (*Prospect, error) {
 	var p Prospect
 	var packageID, agentID, jumlahJamaah sql.NullInt64
 	var phoneNorm, departurePlan, domicile, email, utmSource, utmMedium, utmCampaign, fbclid, metaFbp, metaFbc, lostReason, lostCategory sql.NullString
-	var closedAt, paidOffAt, consentAt, anonymizedAt sql.NullTime
+	var closedAt, paidOffAt, consentAt, anonymizedAt, metaDisclosedAt sql.NullTime
 
 	if err := row.Scan(
 		&p.ID, &p.TenantID, &packageID, &agentID, &p.Name, &p.Phone, &phoneNorm, &jumlahJamaah,
 		&departurePlan, &domicile, &email,
-		&p.SourceChannel, &p.EntryMethod, &utmSource, &utmMedium, &utmCampaign, &fbclid, &metaFbp, &metaFbc, &consentAt,
+		&p.SourceChannel, &p.EntryMethod, &utmSource, &utmMedium, &utmCampaign, &fbclid, &metaFbp, &metaFbc, &metaDisclosedAt, &consentAt,
 		&p.Status, &lostReason, &lostCategory, &paidOffAt, &anonymizedAt, &p.CreatedAt, &p.UpdatedAt,
 		&p.PackageName, &p.AgentName, &closedAt,
 	); err != nil {
@@ -234,6 +237,10 @@ func scanProspectRow(row rowScanner) (*Prospect, error) {
 		t := anonymizedAt.Time
 		p.AnonymizedAt = &t
 	}
+	if metaDisclosedAt.Valid {
+		t := metaDisclosedAt.Time
+		p.MetaDisclosedAt = &t
+	}
 	if closedAt.Valid {
 		t := closedAt.Time
 		p.ClosedAt = &t
@@ -256,9 +263,9 @@ func (r *mysqlProspectRepository) Create(ctx context.Context, tenantID uint64, p
 	query := `
 		INSERT INTO prospects (
 			tenant_id, package_id, agent_id, name, phone, phone_normalized, jumlah_jamaah, departure_plan, domicile,
-			email, source_channel, entry_method, utm_source, utm_medium, utm_campaign, fbclid, meta_fbp, meta_fbc, consent_at,
+			email, source_channel, entry_method, utm_source, utm_medium, utm_campaign, fbclid, meta_fbp, meta_fbc, meta_disclosed_at, consent_at,
 			status, lost_reason, lost_reason_category
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	prospect.TenantID = tenantID
 	if prospect.Status == "" {
@@ -284,6 +291,7 @@ func (r *mysqlProspectRepository) Create(ctx context.Context, tenantID uint64, p
 		prospect.Fbclid,
 		prospect.MetaFbp,
 		prospect.MetaFbc,
+		prospect.MetaDisclosedAt,
 		prospect.ConsentAt,
 		prospect.Status,
 		prospect.LostReason,
@@ -748,16 +756,17 @@ func (r *mysqlProspectRepository) existsIfUnchanged(ctx context.Context, res sql
 
 // FillMissingDetails completes an open prospect with details the jamaah gave when submitting again.
 // Only empty columns are filled: nothing the admin or agent already recorded is overwritten.
-func (r *mysqlProspectRepository) FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt *time.Time) error {
+func (r *mysqlProspectRepository) FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt, metaDisclosedAt *time.Time) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE prospects
 		SET package_id = COALESCE(package_id, ?),
 		    jumlah_jamaah = COALESCE(jumlah_jamaah, ?),
 		    departure_plan = COALESCE(departure_plan, ?),
 		    domicile = COALESCE(domicile, ?),
-		    consent_at = COALESCE(consent_at, ?)
+		    consent_at = COALESCE(consent_at, ?),
+		    meta_disclosed_at = COALESCE(meta_disclosed_at, ?)
 		WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL`,
-		packageID, jumlahJamaah, departurePlan, domicile, consentAt, id, tenantID)
+		packageID, jumlahJamaah, departurePlan, domicile, consentAt, metaDisclosedAt, id, tenantID)
 	return err
 }
 
@@ -775,6 +784,13 @@ func (r *mysqlProspectRepository) ClaimMetaPurchase(ctx context.Context, tenantI
 		return false, err
 	}
 	return n == 1, nil
+}
+
+// ReleaseMetaPurchase undoes ClaimMetaPurchase after a failed delivery, so a later closing can report it.
+func (r *mysqlProspectRepository) ReleaseMetaPurchase(ctx context.Context, tenantID uint64, id uint64) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE prospects SET meta_purchase_sent_at = NULL WHERE id = ? AND tenant_id = ?`, id, tenantID)
+	return err
 }
 
 // AnonymizedName replaces the jamaah's name after their personal data was removed.

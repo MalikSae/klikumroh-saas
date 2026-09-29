@@ -171,6 +171,8 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
         website,
         // Meta browser identifiers (_fbp/_fbc) so the server-side Lead matches this visitor.
         meta: getMetaBrowserContext(),
+        // The consent text shown mentioned Meta: only then may the backend send this jamaah to Meta.
+        consent_meta: adsMeasured,
       };
 
       const res = await fetch('/api/prospects', {

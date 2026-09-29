@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -34,8 +35,11 @@ import (
 
 const (
 	metaGraphBaseURL = "https://graph.facebook.com"
-	metaGraphVersion = "v21.0"
-	metaSendTimeout  = 10 * time.Second
+	// defaultMetaGraphVersion is the Marketing API version used for Conversions API calls. Marketing API
+	// versions expire (v21.0 expired 9 Sep 2025); override with META_GRAPH_VERSION to upgrade without a
+	// code change. Checked 29 Sep 2026: v25.0 is the newest Marketing API version, no expiry date yet.
+	defaultMetaGraphVersion = "v25.0"
+	metaSendTimeout         = 10 * time.Second
 )
 
 var (
@@ -54,6 +58,7 @@ var (
 var (
 	metaPixelIDPattern  = regexp.MustCompile(`^[0-9]{10,20}$`)
 	metaTestCodePattern = regexp.MustCompile(`^[A-Za-z0-9]{1,40}$`)
+	metaVersionPattern  = regexp.MustCompile(`^v[0-9]{2,3}\.0$`)
 	metaCookiePattern   = regexp.MustCompile(`^fb\.[0-9]\.[0-9]{10,13}\.[A-Za-z0-9_\-.]{1,200}$`)
 )
 
@@ -65,6 +70,10 @@ type MetaSettingsView struct {
 	TestEventCode   string `json:"test_event_code"`
 	// EncryptionReady is false when the server has no APP_ENCRYPTION_KEY: a token cannot be saved then.
 	EncryptionReady bool `json:"encryption_ready"`
+	// Delivery status of server events, so a failing token is visible to the travel.
+	LastSuccessAt *time.Time `json:"last_success_at"`
+	LastError     string     `json:"last_error"`
+	LastErrorAt   *time.Time `json:"last_error_at"`
 }
 
 // MetaSettingsInput updates the settings. AccessToken nil keeps the stored token.
@@ -113,6 +122,8 @@ type MetaPurchaseEvent struct {
 	ContentName string
 	ContentID   string
 	NumItems    int
+	// OnFailed is called when the event could not be delivered (so the caller can allow a retry).
+	OnFailed func()
 }
 
 // MetaEventTracker is what the prospect service needs: fire-and-forget server events.
@@ -139,6 +150,7 @@ type metaService struct {
 	box        *util.SecretBox // nil when APP_ENCRYPTION_KEY is missing
 	httpClient *http.Client
 	baseURL    string
+	version    string
 	// dispatch runs event sends in the background (tests replace it to run inline).
 	dispatch func(func())
 }
@@ -151,8 +163,20 @@ func NewMetaService(repo repository.MetaIntegrationRepository, box *util.SecretB
 		box:        box,
 		httpClient: &http.Client{Timeout: metaSendTimeout},
 		baseURL:    metaGraphBaseURL,
+		version:    metaGraphVersion(),
 		dispatch:   func(f func()) { go f() },
 	}
+}
+
+// metaGraphVersion returns META_GRAPH_VERSION when it is a valid version ("v25.0"), else the default.
+func metaGraphVersion() string {
+	if v := strings.TrimSpace(os.Getenv("META_GRAPH_VERSION")); v != "" {
+		if metaVersionPattern.MatchString(v) {
+			return v
+		}
+		log.Printf("[Meta] ignoring invalid META_GRAPH_VERSION %q, using %s", v, defaultMetaGraphVersion)
+	}
+	return defaultMetaGraphVersion
 }
 
 // NewMetaServiceForTest points the service at a fake Graph API and sends events synchronously.
@@ -170,6 +194,11 @@ func (s *metaService) view(m *repository.MetaIntegration) *MetaSettingsView {
 	}
 	if m.TestEventCode != nil {
 		v.TestEventCode = *m.TestEventCode
+	}
+	v.LastSuccessAt = m.LastSuccessAt
+	v.LastErrorAt = m.LastErrorAt
+	if m.LastError != nil {
+		v.LastError = *m.LastError
 	}
 	if m.TokenEnc != nil && *m.TokenEnc != "" {
 		v.TokenConfigured = true
@@ -284,7 +313,20 @@ func (s *metaService) SendTestEvent(ctx context.Context, tenantID uint64, client
 		"action_source": websiteActionSource(userAgent),
 		"user_data":     user,
 	}
-	return s.post(ctx, pixelID, token, testCode, event)
+	return s.deliver(ctx, tenantID, pixelID, token, testCode, event)
+}
+
+// deliver sends one event and records the outcome for the dashboard (never the token).
+func (s *metaService) deliver(ctx context.Context, tenantID uint64, pixelID, token, testCode string, event map[string]interface{}) (*MetaTestResult, error) {
+	result, err := s.post(ctx, pixelID, token, testCode, event)
+	msg := ""
+	if err != nil {
+		msg = err.Error()
+	}
+	if recErr := s.repo.RecordDelivery(context.Background(), tenantID, msg); recErr != nil {
+		log.Printf("[Meta] tenant %d: cannot record delivery status: %v", tenantID, recErr)
+	}
+	return result, err
 }
 
 func (s *metaService) TrackLead(tenantID uint64, ev MetaLeadEvent) {
@@ -314,7 +356,7 @@ func (s *metaService) TrackLead(tenantID uint64, ev MetaLeadEvent) {
 		if ev.SourceURL != "" {
 			event["event_source_url"] = ev.SourceURL
 		}
-		if _, err := s.post(ctx, pixelID, token, testCode, event); err != nil {
+		if _, err := s.deliver(ctx, tenantID, pixelID, token, testCode, event); err != nil {
 			log.Printf("[Meta] tenant %d: Lead event failed: %v", tenantID, err)
 		}
 	})
@@ -324,8 +366,14 @@ func (s *metaService) TrackPurchase(tenantID uint64, ev MetaPurchaseEvent) {
 	s.dispatch(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), metaSendTimeout)
 		defer cancel()
+		failed := func() {
+			if ev.OnFailed != nil {
+				ev.OnFailed()
+			}
+		}
 		pixelID, token, testCode, ok := s.credentials(ctx, tenantID)
 		if !ok {
+			failed()
 			return
 		}
 		custom := map[string]interface{}{"currency": "IDR", "value": ev.Value, "content_category": "umroh"}
@@ -348,8 +396,9 @@ func (s *metaService) TrackPurchase(tenantID uint64, ev MetaPurchaseEvent) {
 			"user_data":     metaUserData(ev.User),
 			"custom_data":   custom,
 		}
-		if _, err := s.post(ctx, pixelID, token, testCode, event); err != nil {
+		if _, err := s.deliver(ctx, tenantID, pixelID, token, testCode, event); err != nil {
 			log.Printf("[Meta] tenant %d: Purchase event failed: %v", tenantID, err)
+			failed()
 		}
 	})
 }
@@ -367,7 +416,7 @@ func (s *metaService) post(ctx context.Context, pixelID, token, testCode string,
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("%s/%s/%s/events", s.baseURL, metaGraphVersion, pixelID)
+	url := fmt.Sprintf("%s/%s/%s/events", s.baseURL, s.version, pixelID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
 	if err != nil {
 		return nil, err

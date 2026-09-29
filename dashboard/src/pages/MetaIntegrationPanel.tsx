@@ -7,6 +7,7 @@ import {
   saveMetaIntegration,
   sendMetaTestEvent,
 } from '../services/api';
+import { formatDateTimeWIB } from '../utils/datetime';
 import './MetaIntegrationPanel.css';
 
 // Standard Meta events sent for this travel (see internal/service/meta.go).
@@ -45,14 +46,17 @@ export const MetaIntegrationPanel: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  // clearToken / overrideTestCode are quick actions: they change only that one thing and keep the
+  // saved Pixel ID and test code, not whatever is half-typed in the form.
   const save = async (clearToken = false, overrideTestCode?: string) => {
+    const quick = clearToken || overrideTestCode !== undefined;
     setSaving(true);
     setMessage(null);
     try {
       const next = await saveMetaIntegration({
-        pixel_id: pixelId.trim(),
-        test_event_code: (overrideTestCode ?? testCode).trim(),
-        ...(clearToken ? { clear_token: true } : token.trim() ? { access_token: token.trim() } : {}),
+        pixel_id: quick ? settings?.pixel_id || '' : pixelId.trim(),
+        test_event_code: overrideTestCode ?? (quick ? settings?.test_event_code || '' : testCode.trim()),
+        ...(clearToken ? { clear_token: true } : !quick && token.trim() ? { access_token: token.trim() } : {}),
       });
       apply(next);
       setMessage({
@@ -96,6 +100,12 @@ export const MetaIntegrationPanel: React.FC = () => {
   }
 
   const showTokenInput = !settings?.token_configured || replacingToken;
+  // Failing since the last success (or never succeeded): the travel is losing server conversions.
+  const deliveryFailing = Boolean(
+    settings?.token_configured &&
+      settings.last_error_at &&
+      (!settings.last_success_at || new Date(settings.last_error_at) > new Date(settings.last_success_at))
+  );
   const canTest = Boolean(settings?.pixel_id && settings?.token_configured);
 
   return (
@@ -108,6 +118,20 @@ export const MetaIntegrationPanel: React.FC = () => {
             save();
           }}
         >
+          {deliveryFailing && (
+            <div className="db-meta-delivery db-meta-delivery--failing" role="alert">
+              <AlertCircle size={16} />
+              <span>
+                <strong>Pengiriman ke Meta gagal sejak {formatDateTimeWIB(settings?.last_error_at)}.</strong>{' '}
+                {(settings?.last_error || '').replace(/[.\s]+$/, '')}.
+                Periksa atau ganti access token, lalu kirim event uji.
+              </span>
+            </div>
+          )}
+          {!deliveryFailing && settings?.token_configured && settings.last_success_at && (
+            <p className="db-meta-note">Event terakhir diterima Meta: {formatDateTimeWIB(settings.last_success_at)}.</p>
+          )}
+
           {settings?.test_event_code && (
             <div className="db-meta-testmode" role="status">
               <AlertTriangle size={16} />

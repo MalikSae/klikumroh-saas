@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 // MetaIntegration is a travel's Meta Pixel + Conversions API configuration.
@@ -13,6 +14,10 @@ type MetaIntegration struct {
 	PixelID       *string
 	TokenEnc      *string
 	TestEventCode *string
+	// Delivery status of the Conversions API events (N2).
+	LastSuccessAt *time.Time
+	LastError     *string
+	LastErrorAt   *time.Time
 }
 
 // MetaIntegrationRepository reads and writes a tenant's Meta settings. Every call is scoped by tenant_id.
@@ -24,6 +29,8 @@ type MetaIntegrationRepository interface {
 	// GetPublicPixelID returns the pixel ID for the public site, or "" when none or when the site is not
 	// live (pending, inactive, or subscription expired past the 7-day grace period: the suspended page).
 	GetPublicPixelID(ctx context.Context, tenantID uint64) (string, error)
+	// RecordDelivery stores the outcome of a Conversions API call: errMsg "" = success.
+	RecordDelivery(ctx context.Context, tenantID uint64, errMsg string) error
 }
 
 type mysqlMetaIntegrationRepository struct {
@@ -36,22 +43,47 @@ func NewMetaIntegrationRepository(db *sql.DB) MetaIntegrationRepository {
 }
 
 func (r *mysqlMetaIntegrationRepository) Get(ctx context.Context, tenantID uint64) (*MetaIntegration, error) {
-	var pixel, token, testCode sql.NullString
+	var pixel, token, testCode, lastError sql.NullString
+	var lastSuccess, lastErrorAt sql.NullTime
 	err := r.db.QueryRowContext(ctx,
-		`SELECT meta_pixel_id, meta_capi_token_enc, meta_test_event_code FROM tenants WHERE id = ?`, tenantID,
-	).Scan(&pixel, &token, &testCode)
+		`SELECT meta_pixel_id, meta_capi_token_enc, meta_test_event_code, meta_last_success_at, meta_last_error, meta_last_error_at
+		 FROM tenants WHERE id = ?`, tenantID,
+	).Scan(&pixel, &token, &testCode, &lastSuccess, &lastError, &lastErrorAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &MetaIntegration{
+	m := &MetaIntegration{
 		TenantID:      tenantID,
 		PixelID:       nullStringPtr(pixel),
 		TokenEnc:      nullStringPtr(token),
 		TestEventCode: nullStringPtr(testCode),
-	}, nil
+		LastError:     nullStringPtr(lastError),
+	}
+	if lastSuccess.Valid {
+		t := lastSuccess.Time
+		m.LastSuccessAt = &t
+	}
+	if lastErrorAt.Valid {
+		t := lastErrorAt.Time
+		m.LastErrorAt = &t
+	}
+	return m, nil
+}
+
+func (r *mysqlMetaIntegrationRepository) RecordDelivery(ctx context.Context, tenantID uint64, errMsg string) error {
+	if errMsg == "" {
+		_, err := r.db.ExecContext(ctx, `UPDATE tenants SET meta_last_success_at = NOW() WHERE id = ?`, tenantID)
+		return err
+	}
+	if len(errMsg) > 500 {
+		errMsg = errMsg[:500]
+	}
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE tenants SET meta_last_error = ?, meta_last_error_at = NOW() WHERE id = ?`, errMsg, tenantID)
+	return err
 }
 
 func (r *mysqlMetaIntegrationRepository) Save(ctx context.Context, tenantID uint64, pixelID *string, tokenEnc *string, clearToken bool, testEventCode *string) error {
@@ -61,7 +93,7 @@ func (r *mysqlMetaIntegrationRepository) Save(ctx context.Context, tenantID uint
 	case clearToken:
 		query += `, meta_capi_token_enc = NULL`
 	case tokenEnc != nil:
-		query += `, meta_capi_token_enc = ?`
+		query += `, meta_capi_token_enc = ?, meta_last_error = NULL, meta_last_error_at = NULL`
 		args = append(args, *tokenEnc)
 	}
 	query += ` WHERE id = ?`
