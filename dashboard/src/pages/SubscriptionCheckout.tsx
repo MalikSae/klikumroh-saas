@@ -60,16 +60,29 @@ export const SubscriptionCheckoutPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const [info, plans] = await Promise.all([
-          fetchTenantSubscription(),
+          fetchTenantSubscription(true),
           fetchPricingPlansForRenewal(),
         ]);
         setSubInfo(info);
         setPricingPlans(plans);
 
+        // Keep the coupon of the unpaid invoice (re-checked against its plan; dropped if no longer valid).
+        const pendingCoupon = info.pending_verification?.coupon_code;
+        if (pendingCoupon && info.pending_verification) {
+          setCouponCodeInput(pendingCoupon);
+          validateCoupon(pendingCoupon, info.pending_verification.plan_id)
+            .then(setValidatedCoupon)
+            .catch(() => setValidatedCoupon(null));
+        }
+
         if (plans.length > 0) {
           const parsedId = initialPlanIdParam ? parseInt(initialPlanIdParam, 10) : null;
+          // Changing the plan of an unpaid invoice starts from that invoice's plan (not the first plan).
+          const pendingPlanId = info.pending_verification?.plan_id;
           if (parsedId && plans.some((p) => p.id === parsedId)) {
             setSelectedPlanId(parsedId);
+          } else if (pendingPlanId && plans.some((p) => p.id === pendingPlanId)) {
+            setSelectedPlanId(pendingPlanId);
           } else if (info.current_plan_id && plans.some((p) => p.id === info.current_plan_id)) {
             setSelectedPlanId(info.current_plan_id);
           } else {
@@ -95,6 +108,8 @@ export const SubscriptionCheckoutPage: React.FC = () => {
   // Backend clears an uploaded proof when the billed amount of the pending invoice changes
   // (different plan, price, or coupon). Warn before the travel submits.
   const pendingVerification = subInfo?.pending_verification || null;
+  // A travel that has never paid is activating its account, not renewing it.
+  const isActivation = subInfo?.status === 'pending';
   const normalizeCoupon = (code?: string | null) => (code || '').trim().toUpperCase();
   const willDiscardUploadedProof = Boolean(
     pendingVerification?.proof_url &&
@@ -121,7 +136,7 @@ export const SubscriptionCheckoutPage: React.FC = () => {
 
   const handleCreateInvoice = async () => {
     if (!selectedPlan) {
-      setError('Silakan pilih salah satu paket durasi perpanjangan');
+      setError(isActivation ? 'Silakan pilih salah satu paket durasi langganan' : 'Silakan pilih salah satu paket durasi perpanjangan');
       return;
     }
 
@@ -135,7 +150,7 @@ export const SubscriptionCheckoutPage: React.FC = () => {
         navigate('/settings/subscription');
       }
     } catch (err: any) {
-      setError(err.message || 'Gagal membuat tagihan perpanjangan');
+      setError(err.message || (isActivation ? 'Gagal membuat tagihan aktivasi' : 'Gagal membuat tagihan perpanjangan'));
       setSubmitting(false);
     }
   };
@@ -158,7 +173,7 @@ export const SubscriptionCheckoutPage: React.FC = () => {
           <main className="db-page-container" style={{ maxWidth: '1140px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '40px 0', color: 'var(--db-text-muted)' }}>
               <RefreshCw size={20} className="db-spin" />
-              <span>Memuat data perpanjangan paket...</span>
+              <span>Memuat paket langganan...</span>
             </div>
           </main>
         </div>
@@ -201,8 +216,12 @@ export const SubscriptionCheckoutPage: React.FC = () => {
           </div>
 
           <PageHeader
-            title="Perpanjang Lisensi Platform"
-            subtitle="Pilih durasi paket perpanjangan dan lanjutkan untuk mendapatkan rincian tagihan transfer resmi."
+            title={isActivation ? 'Pilih Paket Aktivasi' : 'Perpanjang Lisensi Platform'}
+            subtitle={
+              isActivation
+                ? 'Pilih durasi paket untuk mengaktifkan akun travel Anda, lalu lanjutkan ke rincian tagihan transfer resmi.'
+                : 'Pilih durasi paket perpanjangan dan lanjutkan untuk mendapatkan rincian tagihan transfer resmi.'
+            }
           />
 
           {error && (
@@ -235,7 +254,21 @@ export const SubscriptionCheckoutPage: React.FC = () => {
                     return (
                       <div
                         key={plan.id}
-                        onClick={() => setSelectedPlanId(plan.id)}
+                        onClick={() => {
+                          setSelectedPlanId(plan.id);
+                          // A coupon can be limited to a plan: re-check it for the newly chosen plan.
+                          if (validatedCoupon && plan.id !== selectedPlanId) {
+                            validateCoupon(validatedCoupon.code, plan.id)
+                              .then((res) => {
+                                setValidatedCoupon(res);
+                                setCouponError(null);
+                              })
+                              .catch((err: any) => {
+                                setValidatedCoupon(null);
+                                setCouponError(err.message || 'Kupon tidak berlaku untuk paket ini');
+                              });
+                          }
+                        }}
                         style={{
                           border: isSelected
                             ? '2px solid var(--db-sidebar-active-highlight)'
@@ -411,7 +444,9 @@ export const SubscriptionCheckoutPage: React.FC = () => {
                         {selectedPlan.name}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--db-text-muted)', marginTop: '2px' }}>
-                        Perpanjangan lisensi: +{selectedPlan.period_months} Bulan
+                        {isActivation
+                          ? `Aktivasi lisensi: ${selectedPlan.period_months} bulan`
+                          : `Perpanjangan lisensi: +${selectedPlan.period_months} Bulan`}
                       </div>
                     </div>
 
@@ -603,7 +638,11 @@ export const SubscriptionCheckoutPage: React.FC = () => {
                 }}
               >
                 <ShieldCheck size={16} style={{ color: 'var(--db-sidebar-active-highlight)', flexShrink: 0 }} />
-                <span>Masa aktif lisensi akan otomatis bertambah setelah pembayaran diverifikasi oleh tim KlikUmroh.</span>
+                <span>
+                  {isActivation
+                    ? 'Akun dan website travel Anda aktif setelah pembayaran diverifikasi oleh tim KlikUmroh; masa aktif dihitung sejak tanggal aktivasi.'
+                    : 'Masa aktif lisensi akan otomatis bertambah setelah pembayaran diverifikasi oleh tim KlikUmroh.'}
+                </span>
               </div>
             </div>
           </div>

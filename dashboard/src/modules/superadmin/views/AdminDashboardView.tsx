@@ -78,14 +78,28 @@ export const AdminDashboardView: React.FC = () => {
     return digits;
   };
 
-  // Tenants expiring soon (within next 30 days)
-  const expiringTenants = tenants.filter((t) => {
-    if (!t.subscription_expires_at) return false;
-    const exp = new Date(t.subscription_expires_at).getTime();
-    const now = Date.now();
-    const diffDays = (exp - now) / (1000 * 60 * 60 * 24);
-    return diffDays > 0 && diffDays <= 30;
-  });
+  // Travels to follow up, most urgent first: in the 7-day grace period (the website is suspended when it
+  // ends), then those expiring within 30 days. Travels only get in-app reminders, so a WhatsApp from
+  // KlikUmroh is the reminder that reaches admins who rarely log in.
+  const GRACE_DAYS = 7;
+  const DAY_MS = 1000 * 60 * 60 * 24;
+  const expiringTenants = tenants
+    .filter((t) => t.status === 'active' && t.subscription_expires_at)
+    .map((t) => ({ ...t, daysLeft: (new Date(t.subscription_expires_at as string).getTime() - Date.now()) / DAY_MS }))
+    .filter((t) => t.daysLeft > -GRACE_DAYS && t.daysLeft <= 30)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  const followUpLabel = (daysLeft: number) =>
+    daysLeft <= 0
+      ? `Tenggang ${Math.ceil(GRACE_DAYS + daysLeft)} hari lagi`
+      : `${Math.ceil(daysLeft)} hari lagi`;
+
+  const followUpMessage = (name: string, expiresAt: string | null, daysLeft: number) => {
+    const date = formatDate(expiresAt);
+    return daysLeft <= 0
+      ? `Assalamu'alaikum ${name}, kami dari KlikUmroh. Masa aktif langganan Anda berakhir ${date} dan saat ini dalam masa tenggang. Agar website travel tidak ditangguhkan, silakan perpanjang dari menu Pengaturan > Langganan. Ada yang bisa kami bantu?`
+      : `Assalamu'alaikum ${name}, kami dari KlikUmroh. Masa aktif langganan Anda berakhir ${date}. Perpanjangan bisa dilakukan dari menu Pengaturan > Langganan dan melanjutkan sisa masa aktif. Ada yang bisa kami bantu?`;
+  };
 
   return (
     <AdminLayout
@@ -200,6 +214,7 @@ export const AdminDashboardView: React.FC = () => {
                     <th>Travel Mitra</th>
                     <th>Paket</th>
                     <th>Jatuh Tempo</th>
+                    <th>Sisa</th>
                     <th style={{ textAlign: 'right' }}>Follow Up</th>
                   </tr>
                 </thead>
@@ -210,13 +225,16 @@ export const AdminDashboardView: React.FC = () => {
                       <td>
                         <span className="sa-pill sa-pill--neutral">{t.plan_name || 'Pro'}</span>
                       </td>
-                      <td style={{ fontSize: '12px', color: 'var(--sa-amber-text)', fontWeight: 600 }}>
-                        {formatDate(t.subscription_expires_at)}
+                      <td style={{ fontSize: '12px' }}>{formatDate(t.subscription_expires_at)}</td>
+                      <td>
+                        <span className={`sa-pill ${t.daysLeft <= 0 ? 'sa-pill--red' : t.daysLeft <= 7 ? 'sa-pill--amber' : 'sa-pill--neutral'}`}>
+                          {followUpLabel(t.daysLeft)}
+                        </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         {t.whatsapp_number ? (
                           <a
-                            href={`https://wa.me/${cleanWa(t.whatsapp_number)}?text=Halo%20${encodeURIComponent(t.name)},%20kami%20dari%20KlikUmroh%20ingin%20mengingatkan%20masa%20aktif%20langganan%20Anda.`}
+                            href={`https://wa.me/${cleanWa(t.whatsapp_number)}?text=${encodeURIComponent(followUpMessage(t.name, t.subscription_expires_at, t.daysLeft))}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="sa-action-btn"

@@ -214,6 +214,8 @@ export const setStoredTravelName = (name: string) => {
 };
 
 export const setAuthSession = (token: string, user: AdminUser) => {
+  // A new session must never show the previous travel's subscription state (banner, billing).
+  invalidateSubscriptionCache();
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   if (user.tenant_name) {
@@ -222,6 +224,7 @@ export const setAuthSession = (token: string, user: AdminUser) => {
 };
 
 export const clearAuthSession = () => {
+  invalidateSubscriptionCache();
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(TRAVEL_NAME_KEY);
@@ -2080,7 +2083,7 @@ export interface PaymentVerification {
   final_amount: number;
   unique_code?: number;
   proof_url: string | null;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   rejection_reason: string | null;
   reviewed_at: string | null;
   created_at: string;
@@ -2108,9 +2111,14 @@ export interface TenantSubscriptionInfo {
 
 let cachedSubscriptionInfo: TenantSubscriptionInfo | null = null;
 let subscriptionFetchPromise: Promise<TenantSubscriptionInfo> | null = null;
+// Bumped on every invalidation: an older in-flight request must not refill the cache.
+let subscriptionCacheGeneration = 0;
 
 export const invalidateSubscriptionCache = () => {
   cachedSubscriptionInfo = null;
+  // A request still in flight belongs to the old state/session: do not reuse it.
+  subscriptionFetchPromise = null;
+  subscriptionCacheGeneration += 1;
 };
 
 export const fetchTenantSubscription = async (forceRefresh = false): Promise<TenantSubscriptionInfo> => {
@@ -2121,20 +2129,22 @@ export const fetchTenantSubscription = async (forceRefresh = false): Promise<Ten
     return subscriptionFetchPromise;
   }
   const headers = await getAuthHeaders();
-  subscriptionFetchPromise = dashboardFetch(`${API_BASE}/api/dashboard/subscription`, { headers })
+  const generation = subscriptionCacheGeneration;
+  const request: Promise<TenantSubscriptionInfo> = dashboardFetch(`${API_BASE}/api/dashboard/subscription`, { headers })
     .then(async (res) => {
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Gagal memuat info langganan' }));
         throw new Error(err.error || 'Gagal memuat info langganan');
       }
       const data: TenantSubscriptionInfo = await res.json();
-      cachedSubscriptionInfo = data;
+      if (generation === subscriptionCacheGeneration) cachedSubscriptionInfo = data;
       return data;
     })
     .finally(() => {
-      subscriptionFetchPromise = null;
+      if (subscriptionFetchPromise === request) subscriptionFetchPromise = null;
     });
-  return subscriptionFetchPromise;
+  subscriptionFetchPromise = request;
+  return request;
 };
 
 export const fetchPricingPlansForRenewal = async (): Promise<SubscriptionPricingPlan[]> => {

@@ -252,7 +252,7 @@ export interface PaymentVerificationItem {
   final_amount: number;
   unique_code?: number;
   proof_url: string | null;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   rejection_reason: string | null;
   reviewed_by: number | null;
   reviewed_by_name?: string | null;

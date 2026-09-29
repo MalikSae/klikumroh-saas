@@ -40,16 +40,29 @@
   opacity: 0.85;
 }
 
-.db-topbar__pending-banner {
+/* Subscription banner tones: danger keeps the base (lost) colours. */
+.db-topbar__banner--warning {
   background-color: var(--db-status-contacted-bg);
   border-bottom: 1px solid var(--db-status-contacted-border);
   color: var(--db-status-contacted);
 }
 
-.db-topbar__pending-banner .db-topbar__expired-banner-icon,
-.db-topbar__pending-banner .db-topbar__expired-banner-text,
-.db-topbar__pending-banner .db-topbar__expired-banner-link {
+.db-topbar__banner--warning .db-topbar__expired-banner-icon,
+.db-topbar__banner--warning .db-topbar__expired-banner-text,
+.db-topbar__banner--warning .db-topbar__expired-banner-link {
   color: var(--db-status-contacted);
+}
+
+/* Reminder more than a week ahead: informative, not alarming. */
+.db-topbar__banner--info {
+  background-color: var(--db-surface);
+  border-bottom: 1px solid var(--db-border);
+}
+
+.db-topbar__banner--info .db-topbar__expired-banner-icon,
+.db-topbar__banner--info .db-topbar__expired-banner-text,
+.db-topbar__banner--info .db-topbar__expired-banner-link {
+  color: var(--db-text-primary);
 }
 
 .db-topbar {

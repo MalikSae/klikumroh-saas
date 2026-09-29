@@ -210,11 +210,33 @@ export const SettingsPage: React.FC = () => {
   const [subInfo, setSubInfo] = useState<TenantSubscriptionInfo | null>(null);
   const [pricingPlans, setPricingPlans] = useState<SubscriptionPricingPlan[]>([]);
   const [loadingSub, setLoadingSub] = useState<boolean>(false);
+  const [subLoadError, setSubLoadError] = useState<string | null>(null);
   const [previewProofURL, setPreviewProofURL] = useState<string | null>(null);
 
-  const currentPlan = pricingPlans.find((p) => p.id === subInfo?.current_plan_id) || pricingPlans[0];
-  const activePeriodMonths = Math.max(1, subInfo?.current_plan_period_months || (currentPlan ? currentPlan.period_months : 12));
-  const effectiveMonthlyPrice = currentPlan && currentPlan.period_months ? Math.round(currentPlan.price / currentPlan.period_months) : 400000;
+  const currentPlan = pricingPlans.find((p) => p.id === subInfo?.current_plan_id);
+  // A travel that has not paid yet has no active plan: its card shows the plan of the pending invoice.
+  const rejectedActivation =
+    subInfo?.status === 'pending' && !subInfo.pending_verification
+      ? subInfo.payment_verifications?.find((p) => p.status === 'rejected') || null
+      : null;
+  const pendingInvoicePlan = subInfo?.status === 'pending' ? subInfo.pending_verification || rejectedActivation : null;
+  // Renewal reminder window (H-30) for an active subscription (L1).
+  const renewalDue = Boolean(subInfo?.should_show_renewal_invoice && !subInfo?.is_subscription_expired && (subInfo?.days_remaining ?? 0) > 0);
+  const expiryDateLabel = subInfo?.subscription_expires_at
+    ? new Date(subInfo.subscription_expires_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+  const displayPlanName = pendingInvoicePlan
+    ? pendingInvoicePlan.plan_name || `Paket #${pendingInvoicePlan.plan_id}`
+    : subInfo?.current_plan_name || currentPlan?.name || '-';
+  const activePeriodMonths = Math.max(
+    1,
+    pendingInvoicePlan?.plan_period_months || subInfo?.current_plan_period_months || currentPlan?.period_months || 12
+  );
+  const effectiveMonthlyPrice: number | null = pendingInvoicePlan
+    ? Math.round(pendingInvoicePlan.amount / activePeriodMonths)
+    : currentPlan && currentPlan.period_months
+    ? Math.round(currentPlan.price / currentPlan.period_months)
+    : null;
   const daysRemaining = subInfo?.days_remaining ?? 0;
   const isSubPending = subInfo?.status === 'pending';
   const isSubExpired = Boolean(subInfo?.is_subscription_expired || subInfo?.is_suspended);
@@ -236,7 +258,13 @@ export const SettingsPage: React.FC = () => {
       item.plan_name || `Paket #${item.plan_id}`,
       item.coupon_code || '-',
       item.final_amount,
-      item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu Verifikasi',
+      item.status === 'approved'
+        ? 'Disetujui'
+        : item.status === 'rejected'
+        ? 'Ditolak'
+        : item.status === 'cancelled'
+        ? 'Dibatalkan'
+        : 'Menunggu Verifikasi',
       item.rejection_reason || '-',
     ]);
 
@@ -253,20 +281,18 @@ export const SettingsPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  // Subscription and plans load independently: a failing plan list must never hide the subscription.
   const loadSubscriptionData = async () => {
-    try {
-      setLoadingSub(true);
-      const [info, plans] = await Promise.all([
-        fetchTenantSubscription(),
-        fetchPricingPlansForRenewal(),
-      ]);
-      setSubInfo(info);
-      setPricingPlans(plans);
-    } catch (err: any) {
-      console.error('Failed to load subscription info:', err);
-    } finally {
-      setLoadingSub(false);
+    setLoadingSub(true);
+    setSubLoadError(null);
+    const [info, plans] = await Promise.allSettled([fetchTenantSubscription(true), fetchPricingPlansForRenewal()]);
+    if (info.status === 'fulfilled') {
+      setSubInfo(info.value);
+    } else {
+      setSubLoadError(info.reason?.message || 'Gagal memuat data langganan');
     }
+    if (plans.status === 'fulfilled') setPricingPlans(plans.value);
+    setLoadingSub(false);
   };
 
   useEffect(() => {
@@ -2770,7 +2796,24 @@ export const SettingsPage: React.FC = () => {
               {/* ------------------------------------------------------------- */}
               {/* TAB 8: LANGGANAN & TAGIHAN */}
               {/* ------------------------------------------------------------- */}
-              {activeTab === 'subscription' && (
+              {activeTab === 'subscription' && !subInfo && (
+                loadingSub ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '32px 0', color: 'var(--db-text-muted)' }}>
+                    <RefreshCw size={20} className="db-spin" />
+                    <span>Memuat data langganan...</span>
+                  </div>
+                ) : (
+                  <div className="db-alert db-alert--error" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <AlertCircle size={18} />
+                    <span style={{ flex: 1 }}>{subLoadError || 'Data langganan belum dapat dimuat.'}</span>
+                    <Button variant="secondary" size="sm" onClick={loadSubscriptionData}>
+                      Coba lagi
+                    </Button>
+                  </div>
+                )
+              )}
+
+              {activeTab === 'subscription' && subInfo && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   {subInfo?.is_suspended ? (
                     <div
@@ -2783,9 +2826,9 @@ export const SettingsPage: React.FC = () => {
                           Layanan Website Sedang Ditangguhkan
                         </strong>
                         <span style={{ fontSize: '13px' }}>
-                          Masa aktif langganan Anda telah berakhir dan melewati batas toleransi masa tenggang 7 hari.
-                          Website publik Anda saat ini menampilkan halaman penangguhan sementara. Silakan selesaikan
-                          pembayaran tagihan perpanjangan di bawah ini untuk mengaktifkan kembali layanan.
+                          Masa aktif dan masa tenggang 7 hari telah berakhir. Website travel menampilkan halaman
+                          penangguhan dan data dashboard hanya bisa dilihat. Perpanjang langganan untuk mengaktifkan
+                          kembali layanan.
                         </span>
                       </div>
                     </div>
@@ -2797,11 +2840,11 @@ export const SettingsPage: React.FC = () => {
                       <Clock size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
                       <div>
                         <strong style={{ display: 'block', fontSize: '14px', marginBottom: '2px' }}>
-                          Masa Aktif Berakhir — Dalam Masa Tenggang ({subInfo.grace_period_days_remaining ?? 0} Hari Tersisa)
+                          Masa aktif berakhir {expiryDateLabel} · masa tenggang {subInfo.grace_period_days_remaining ?? 0} hari lagi
                         </strong>
                         <span style={{ fontSize: '13px' }}>
-                          Website publik Anda masih dapat diakses hingga masa tenggang berakhir. Segera selesaikan tagihan
-                          perpanjangan paket agar calon jamaah tetap dapat mendaftar dan operasional travel tidak terganggu.
+                          Website dan dashboard tetap berjalan normal selama masa tenggang. Setelah itu website
+                          ditangguhkan dan data dashboard hanya bisa dilihat sampai langganan diperpanjang.
                         </span>
                       </div>
                     </div>
@@ -2848,7 +2891,11 @@ export const SettingsPage: React.FC = () => {
                               color: 'rgba(255, 255, 255, 0.65)',
                             }}
                           >
-                            PAKET AKTIF
+                            {subInfo?.status === 'pending'
+                              ? 'PAKET DIPILIH'
+                              : subInfo?.is_suspended || subInfo?.is_subscription_expired
+                              ? 'PAKET TERAKHIR'
+                              : 'PAKET AKTIF'}
                           </span>
 
                           <div
@@ -2870,7 +2917,9 @@ export const SettingsPage: React.FC = () => {
                                 width: '6px',
                                 height: '6px',
                                 borderRadius: '50%',
-                                backgroundColor: subInfo?.status === 'pending'
+                                backgroundColor: rejectedActivation
+                                  ? 'var(--db-negative)'
+                                  : subInfo?.status === 'pending'
                                   ? 'var(--db-status-contacted)'
                                   : subInfo?.is_suspended
                                   ? 'var(--db-negative)'
@@ -2880,7 +2929,9 @@ export const SettingsPage: React.FC = () => {
                               }}
                             />
                             <span>
-                              {subInfo?.status === 'pending'
+                              {rejectedActivation
+                                ? 'Perlu Perbaikan'
+                                : subInfo?.status === 'pending'
                                 ? 'Menunggu Pembayaran'
                                 : subInfo?.is_suspended
                                 ? 'Ditangguhkan'
@@ -2903,7 +2954,7 @@ export const SettingsPage: React.FC = () => {
                             margin: '4px 0 20px 0',
                           }}
                         >
-                          {subInfo?.current_plan_name || 'KlikUmroh Pro · 12 Bulan'}
+                          {displayPlanName}
                         </h2>
 
                         {/* 3 Metrik Kunci */}
@@ -2972,7 +3023,7 @@ export const SettingsPage: React.FC = () => {
                                 marginTop: '4px',
                               }}
                             >
-                              Rp {effectiveMonthlyPrice.toLocaleString('id-ID')} / bln
+                              {effectiveMonthlyPrice !== null ? `Rp ${effectiveMonthlyPrice.toLocaleString('id-ID')} / bln` : '-'}
                             </div>
                           </div>
                         </div>
@@ -3072,7 +3123,7 @@ export const SettingsPage: React.FC = () => {
                             marginBottom: '8px',
                           }}
                         >
-                          Jadwal perpanjangan
+                          {subInfo?.status === 'pending' ? 'Aktivasi akun' : 'Jadwal perpanjangan'}
                         </h3>
 
                         <p
@@ -3083,10 +3134,16 @@ export const SettingsPage: React.FC = () => {
                             lineHeight: 1.6,
                           }}
                         >
-                          {subInfo?.is_suspended ? (
-                            'Layanan website sedang ditangguhkan karena masa aktif dan masa tenggang telah berakhir. Segera lakukan pembayaran tagihan perpanjangan di bawah untuk mengaktifkan kembali situs travel Anda.'
+                          {rejectedActivation ? (
+                            `Pembayaran tagihan #${rejectedActivation.id} perlu diperbaiki: ${rejectedActivation.rejection_reason || 'bukti transfer belum sesuai'}. Unggah ulang bukti transfer yang benar atau ganti paket.`
+                          ) : subInfo?.status === 'pending' ? (
+                            'Akun travel Anda aktif setelah pembayaran tagihan di bawah diverifikasi. Anda masih bisa mengganti paket selama bukti transfer belum diunggah.'
+                          ) : subInfo?.is_suspended ? (
+                            'Layanan ditangguhkan. Perpanjang langganan; setelah pembayaran diverifikasi, website dan dashboard langsung aktif kembali.'
                           ) : subInfo?.is_subscription_expired ? (
-                            `Masa aktif langganan Anda telah berakhir. Saat ini berada dalam toleransi masa tenggang (${subInfo.grace_period_days_remaining ?? 0} hari tersisa). Selesaikan pembayaran agar website tetap dapat diakses calon jamaah.`
+                            `Masa tenggang tersisa ${subInfo.grace_period_days_remaining ?? 0} hari. Perpanjang sebelum masa tenggang berakhir agar website travel tidak ditangguhkan.`
+                          ) : renewalDue ? (
+                            `Masa aktif berakhir ${expiryDateLabel}. Perpanjangan melanjutkan sisa masa aktif, jadi aman diperpanjang sekarang.`
                           ) : (
                             'Tagihan perpanjangan tidak diterbitkan otomatis. Anda bisa memperpanjang lebih awal kapan saja; masa aktif baru dihitung melanjutkan sisa masa aktif saat ini.'
                           )}
@@ -3100,6 +3157,8 @@ export const SettingsPage: React.FC = () => {
                           onClick={() => {
                             if (subInfo?.pending_verification) {
                               navigate(`/settings/subscription/payment/${subInfo.pending_verification.id}`);
+                            } else if (rejectedActivation) {
+                              navigate(`/settings/subscription/payment/${rejectedActivation.id}`);
                             } else {
                               navigate('/settings/subscription/checkout');
                             }
@@ -3116,8 +3175,10 @@ export const SettingsPage: React.FC = () => {
                           <span>
                             {subInfo?.pending_verification
                               ? 'Lihat Instruksi Pembayaran'
-                              : subInfo?.is_subscription_expired || subInfo?.is_suspended
-                              ? 'Selesaikan Tagihan Sekarang'
+                              : rejectedActivation
+                              ? 'Perbaiki Pembayaran'
+                              : subInfo?.is_subscription_expired || subInfo?.is_suspended || renewalDue
+                              ? 'Perpanjang Sekarang'
                               : 'Perpanjang lebih awal'}
                           </span>
                           <ArrowRight size={15} />
@@ -3409,6 +3470,8 @@ export const SettingsPage: React.FC = () => {
                                         </>
                                       ) : item.status === 'approved' ? (
                                         <Badge variant="positive">Lunas</Badge>
+                                      ) : item.status === 'cancelled' ? (
+                                        <Badge variant="neutral">Dibatalkan</Badge>
                                       ) : (
                                         <>
                                           <Badge variant="negative">Perlu Perbaikan</Badge>
@@ -3432,7 +3495,9 @@ export const SettingsPage: React.FC = () => {
                                     </div>
                                   </td>
                                   <td style={{ padding: '14px', color: 'var(--db-text-muted)', fontSize: '12px' }}>
-                                    {item.status === 'rejected' ? (
+                                    {item.status === 'cancelled' ? (
+                                      item.rejection_reason || 'Tagihan dibatalkan; tidak perlu dibayar.'
+                                    ) : item.status === 'rejected' ? (
                                       <span style={{ color: 'var(--db-negative)' }}>
                                         {item.rejection_reason || 'Bukti transfer tidak sesuai. Silakan unggah bukti baru.'}
                                       </span>

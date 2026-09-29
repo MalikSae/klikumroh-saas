@@ -253,6 +253,8 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
               >
                 {verification.status === 'approved'
                   ? 'Lunas'
+                  : verification.status === 'cancelled'
+                  ? 'Dibatalkan'
                   : verification.status === 'rejected'
                   ? 'Perlu Perbaikan'
                   : verification.proof_url
@@ -273,6 +275,16 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
             <div className="db-alert db-alert--error" style={{ marginBottom: '20px' }}>
               <AlertCircle size={18} />
               <span>{uploadError}</span>
+            </div>
+          )}
+
+          {verification.status === 'cancelled' && (
+            <div className="db-alert db-alert--warning" style={{ marginBottom: '20px' }}>
+              <AlertCircle size={18} />
+              <span>
+                {verification.rejection_reason || 'Tagihan ini dibatalkan.'} Tidak perlu melakukan transfer untuk tagihan
+                ini; status langganan terbaru ada di halaman Langganan.
+              </span>
             </div>
           )}
 
@@ -413,7 +425,8 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
               </div>
             </Card>
 
-            {/* 2. Petunjuk Transfer Bank */}
+            {/* 2. Petunjuk Transfer Bank (not for a cancelled invoice) */}
+            {verification.status !== 'cancelled' && (
             <Card title="Petunjuk Transfer Bank Resmi">
               {!bankReady ? (
                 <div className="db-alert db-alert--warning">
@@ -509,8 +522,10 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
               </div>
               )}
             </Card>
+            )}
 
             {/* 3. Berkas Bukti Transfer */}
+            {verification.status !== 'cancelled' && (
             <Card title="Unggah Bukti Transfer">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div
@@ -644,6 +659,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
                 )}
               </div>
             </Card>
+            )}
 
             {/* 4. Konfirmasi Cepat WhatsApp & Bantuan (hidden until the owner sets a CS number) */}
             {csWhatsApp && (

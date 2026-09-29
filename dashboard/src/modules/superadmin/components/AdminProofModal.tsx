@@ -266,10 +266,18 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   ? 'sa-badge--active'
                   : currentItem.status === 'rejected'
                   ? 'sa-badge--expired'
+                  : currentItem.status === 'cancelled'
+                  ? 'sa-badge--neutral'
                   : 'sa-badge--pending'
               }`}
             >
-              {currentItem.status === 'approved' ? 'Disetujui' : currentItem.status === 'rejected' ? 'Ditolak' : 'Menunggu Review'}
+              {currentItem.status === 'approved'
+                ? 'Disetujui'
+                : currentItem.status === 'rejected'
+                ? 'Ditolak'
+                : currentItem.status === 'cancelled'
+                ? 'Dibatalkan'
+                : 'Menunggu Review'}
             </span>
             <button
               type="button"

@@ -25,7 +25,8 @@ export const AdminPaymentsView: React.FC = () => {
   const [items, setItems] = useState<PaymentVerificationItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('pending');
+  // Pending invoices are split: a transfer proof to check (staff action) vs. waiting for the travel to pay.
+  const [activeTab, setActiveTab] = useState<string>('review');
   const [selectedItem, setSelectedItem] = useState<PaymentVerificationItem | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -63,19 +64,22 @@ export const AdminPaymentsView: React.FC = () => {
     });
   };
 
-  const pendingCount = items.filter((i) => i.status === 'pending').length;
-  const approvedCount = items.filter((i) => i.status === 'approved').length;
-  const rejectedCount = items.filter((i) => i.status === 'rejected').length;
+  const needsReview = (i: PaymentVerificationItem) =>
+    i.status === 'pending' && (Boolean(i.proof_url) || (i.final_amount || i.amount) <= 0);
+  const awaitingTransfer = (i: PaymentVerificationItem) => i.status === 'pending' && !needsReview(i);
 
   const tabs: AdminTabOption[] = [
-    { key: 'pending', label: 'Menunggu Review', count: pendingCount },
-    { key: 'approved', label: 'Disetujui', count: approvedCount },
-    { key: 'rejected', label: 'Ditolak', count: rejectedCount },
+    { key: 'review', label: 'Perlu Verifikasi', count: items.filter(needsReview).length },
+    { key: 'waiting', label: 'Menunggu Transfer', count: items.filter(awaitingTransfer).length },
+    { key: 'approved', label: 'Disetujui', count: items.filter((i) => i.status === 'approved').length },
+    { key: 'rejected', label: 'Ditolak', count: items.filter((i) => i.status === 'rejected').length },
     { key: 'all', label: 'Semua Transaksi' },
   ];
 
   const filteredItems = items.filter((item) => {
     if (activeTab === 'all') return true;
+    if (activeTab === 'review') return needsReview(item);
+    if (activeTab === 'waiting') return awaitingTransfer(item);
     return item.status === activeTab;
   });
 
@@ -184,7 +188,7 @@ export const AdminPaymentsView: React.FC = () => {
     },
     {
       key: 'created_at',
-      label: 'Tanggal Upload',
+      label: 'Tanggal Tagihan',
       render: (row) => (
         <span style={{ fontSize: '12px', color: 'var(--sa-text-muted)' }}>
           {formatDate(row.created_at)}
@@ -201,14 +205,22 @@ export const AdminPaymentsView: React.FC = () => {
               ? 'sa-badge--active'
               : row.status === 'rejected'
               ? 'sa-badge--expired'
-              : 'sa-badge--pending'
+              : row.status === 'cancelled'
+              ? 'sa-badge--neutral'
+              : needsReview(row)
+              ? 'sa-badge--pending'
+              : 'sa-badge--neutral'
           }`}
         >
           {row.status === 'approved'
             ? 'Disetujui'
             : row.status === 'rejected'
             ? 'Ditolak'
-            : 'Menunggu Review'}
+            : row.status === 'cancelled'
+            ? 'Dibatalkan'
+            : needsReview(row)
+            ? 'Perlu Verifikasi'
+            : 'Menunggu Transfer'}
         </span>
       ),
     },
@@ -226,7 +238,7 @@ export const AdminPaymentsView: React.FC = () => {
           }}
         >
           <Eye size={13} />
-          <span>{row.status === 'pending' ? 'Verifikasi' : 'Lihat Bukti'}</span>
+          <span>{needsReview(row) ? 'Verifikasi' : row.status === 'pending' ? 'Detail' : 'Lihat Bukti'}</span>
         </button>
       ),
     },
