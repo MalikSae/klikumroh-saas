@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -68,6 +69,11 @@ type subscriptionService struct {
 	domainRepo    repository.DomainRepository
 	packageRepo   repository.PackageRepository
 	faqRepo       repository.FAQRepository
+	// Notifications (optional, see SetNotifier in subscription_notify.go).
+	notif     NotificationService
+	admins    repository.AdminUserRepository
+	staff     StaffLister
+	reminders repository.SubscriptionReminderRepository
 }
 
 // NewSubscriptionService creates a new SubscriptionService.
@@ -127,7 +133,7 @@ func (s *subscriptionService) GetSubscriptionInfo(ctx context.Context, tenantID 
 			diff := tenant.SubscriptionExpiresAt.Sub(now)
 			info.DaysRemaining = int(diff.Hours()/24) + 1
 			info.IsSubscriptionExpired = false
-			info.GracePeriodDaysRemaining = 7
+			info.GracePeriodDaysRemaining = util.SubscriptionGraceDays
 			info.IsSuspended = false
 		} else {
 			info.IsActive = false
@@ -135,7 +141,7 @@ func (s *subscriptionService) GetSubscriptionInfo(ctx context.Context, tenantID 
 			info.IsSubscriptionExpired = true
 
 			// Grace period calculation (7 days after expiry)
-			graceEnd := tenant.SubscriptionExpiresAt.AddDate(0, 0, 7)
+			graceEnd := util.SubscriptionGraceEnd(*tenant.SubscriptionExpiresAt)
 			if now.Before(graceEnd) {
 				diff := graceEnd.Sub(now)
 				info.GracePeriodDaysRemaining = int(diff.Hours()/24) + 1
@@ -150,7 +156,7 @@ func (s *subscriptionService) GetSubscriptionInfo(ctx context.Context, tenantID 
 		info.IsActive = tenant.Status == "active"
 		info.DaysRemaining = 0
 		info.IsSubscriptionExpired = false
-		info.GracePeriodDaysRemaining = 7
+		info.GracePeriodDaysRemaining = util.SubscriptionGraceDays
 		info.IsSuspended = false
 	}
 
@@ -229,6 +235,7 @@ func (s *subscriptionService) CreateRenewalRequest(
 					return nil, err
 				}
 				existing.ProofURL = proofURL
+				s.notifyProofUploaded(ctx, existing)
 			}
 			return existing, nil
 		}
@@ -245,6 +252,9 @@ func (s *subscriptionService) CreateRenewalRequest(
 		existing.FinalAmount = finalAmount
 		existing.UniqueCode = uniqueCode
 		existing.ProofURL = proofURL
+		if proofURL != nil {
+			s.notifyProofUploaded(ctx, existing)
+		}
 		return existing, nil
 	}
 
@@ -261,6 +271,9 @@ func (s *subscriptionService) CreateRenewalRequest(
 
 	if err := s.pvRepo.Create(ctx, pv); err != nil {
 		return nil, err
+	}
+	if proofURL != nil {
+		s.notifyProofUploaded(ctx, pv)
 	}
 
 	return pv, nil
@@ -339,6 +352,8 @@ func (s *subscriptionService) UploadRenewalProof(
 			return "", err
 		}
 	}
+	pv.ProofURL = &relPath
+	s.notifyProofUploaded(ctx, pv)
 
 	return relPath, nil
 }
@@ -431,73 +446,112 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 		}
 	}
 
-	// If tenant was pending activation, seed default sample draft package and standard FAQs if none exist
+	title, body := "Pembayaran disetujui", fmt.Sprintf("Paket %s aktif hingga %s. Terima kasih telah memperpanjang langganan KlikUmroh.", plan.Name, formatDateID(newExpiry))
 	if wasPending {
-		if s.packageRepo != nil {
-			count, err := s.packageRepo.CountByTenant(ctx, tenant.ID)
-			if err == nil && count == 0 {
-				sampleDesc := "Paket perjalanan ibadah umroh reguler dengan fasilitas bintang 4 dan bimbingan ibadah sesuai sunnah."
-				samplePrice := 29500000.0
-				sampleQuota := 45
-				depDate := time.Now().AddDate(0, 2, 0)
-				sampleFacilitiesInc := "- Tiket pesawat PP kelas ekonomi\n- Visa Umroh\n- Hotel Makkah & Madinah\n- Makan 3x sehari menu Indonesia\n- Muthawwif berpengalaman\n- Perlengkapan umroh eksklusif"
-				sampleFacilitiesExc := "- Paspor & suntik meningitis\n- Keperluan pribadi / laundry\n- Kelebihan bagasi"
-				sampleHotel := "Makkah: Hotel Bintang 4 (Walking distance) | Madinah: Hotel Bintang 4"
-				sampleFlight := "Direct flight Jakarta - Jeddah"
-				sampleTerms := "1. DP Rp 5.000.000 saat pendaftaran.\n2. Pelunasan H-30 sebelum keberangkatan.\n3. Paspor berlaku minimal 7 bulan."
+		title, body = "Akun travel aktif", fmt.Sprintf("Pembayaran paket %s disetujui. Akun dan website travel Anda aktif hingga %s.", plan.Name, formatDateID(newExpiry))
+	}
+	s.notifyTenantAdmins(ctx, pv.TenantID, "subscription_approved", title, body, "/settings/subscription")
 
-				pkg := &repository.Package{
-					TenantID:           tenant.ID,
-					Name:               "Paket Umroh Reguler 9 Hari (Contoh)",
-					Description:        &sampleDesc,
-					Price:              &samplePrice,
-					DepartureDate:      &depDate,
-					Quota:              &sampleQuota,
-					Status:             "draft",
-					FacilitiesIncluded: &sampleFacilitiesInc,
-					FacilitiesExcluded: &sampleFacilitiesExc,
-					HotelInfo:          &sampleHotel,
-					FlightInfo:         &sampleFlight,
-					TermsConditions:    &sampleTerms,
-				}
-				_ = s.packageRepo.Create(ctx, tenant.ID, pkg)
-			}
-		}
+	// A newly activated travel starts with a sample draft package and standard FAQs.
+	if wasPending {
+		s.seedStarterContent(ctx, tenant.ID)
+	}
+	return nil
+}
 
-		if s.faqRepo != nil {
-			faqs, err := s.faqRepo.ListByTenantID(ctx, tenant.ID, false)
-			if err == nil && len(faqs) == 0 {
-				defaultFaqs := []struct {
-					q string
-					a string
-				}{
-					{
-						q: "Apa saja persyaratan dokumen untuk pendaftaran umroh?",
-						a: "Persyaratan umum meliputi: Paspor asli yang masih berlaku minimal 7 bulan dengan nama minimal 2 kata, Buku Kuning (Meningitis), KTP, KK, dan pas foto terbaru latar belakang putih.",
-					},
-					{
-						q: "Bagaimana cara melakukan pembayaran dan pelunasan?",
-						a: "Pembayaran dapat dilakukan melalui transfer rekening resmi biro travel kami. Uang muka (DP) disetorkan saat pendaftaran dan pelunasan maksimal 30 hari sebelum jadwal keberangkatan.",
-					},
-					{
-						q: "Apakah jamaah lansia atau yang membutuhkan kursi roda didampingi?",
-						a: "Ya, tim muthawwif dan perwakilan kami di tanah suci siap membantu jamaah yang membutuhkan layanan khusus atau kursi roda demi kelancaran dan kenyamanan ibadah Anda.",
-					},
-				}
-				for i, item := range defaultFaqs {
-					_ = s.faqRepo.Create(ctx, tenant.ID, &repository.FAQ{
-						TenantID:     tenant.ID,
-						Question:     item.q,
-						Answer:       item.a,
-						DisplayOrder: i + 1,
-						IsActive:     true,
-					})
-				}
+// seedStarterContent gives a newly activated travel a sample draft package and standard FAQs when it
+// has none yet (shared by payment approval and manual activation by staff).
+func (s *subscriptionService) seedStarterContent(ctx context.Context, tenantID uint64) {
+	if s.packageRepo != nil {
+		count, err := s.packageRepo.CountByTenant(ctx, tenantID)
+		if err == nil && count == 0 {
+			sampleDesc := "Paket perjalanan ibadah umroh reguler dengan fasilitas bintang 4 dan bimbingan ibadah sesuai sunnah."
+			samplePrice := 29500000.0
+			sampleQuota := 45
+			depDate := time.Now().AddDate(0, 2, 0)
+			sampleFacilitiesInc := "- Tiket pesawat PP kelas ekonomi\n- Visa Umroh\n- Hotel Makkah & Madinah\n- Makan 3x sehari menu Indonesia\n- Muthawwif berpengalaman\n- Perlengkapan umroh eksklusif"
+			sampleFacilitiesExc := "- Paspor & suntik meningitis\n- Keperluan pribadi / laundry\n- Kelebihan bagasi"
+			sampleHotel := "Makkah: Hotel Bintang 4 (Walking distance) | Madinah: Hotel Bintang 4"
+			sampleFlight := "Direct flight Jakarta - Jeddah"
+			sampleTerms := "1. DP Rp 5.000.000 saat pendaftaran.\n2. Pelunasan H-30 sebelum keberangkatan.\n3. Paspor berlaku minimal 7 bulan."
+
+			pkg := &repository.Package{
+				TenantID:           tenantID,
+				Name:               "Paket Umroh Reguler 9 Hari (Contoh)",
+				Description:        &sampleDesc,
+				Price:              &samplePrice,
+				DepartureDate:      &depDate,
+				Quota:              &sampleQuota,
+				Status:             "draft",
+				FacilitiesIncluded: &sampleFacilitiesInc,
+				FacilitiesExcluded: &sampleFacilitiesExc,
+				HotelInfo:          &sampleHotel,
+				FlightInfo:         &sampleFlight,
+				TermsConditions:    &sampleTerms,
 			}
+			_ = s.packageRepo.Create(ctx, tenantID, pkg)
 		}
 	}
 
-	return nil
+	if s.faqRepo != nil {
+		faqs, err := s.faqRepo.ListByTenantID(ctx, tenantID, false)
+		if err == nil && len(faqs) == 0 {
+			defaultFaqs := []struct {
+				q string
+				a string
+			}{
+				{
+					q: "Apa saja persyaratan dokumen untuk pendaftaran umroh?",
+					a: "Persyaratan umum meliputi: Paspor asli yang masih berlaku minimal 7 bulan dengan nama minimal 2 kata, Buku Kuning (Meningitis), KTP, KK, dan pas foto terbaru latar belakang putih.",
+				},
+				{
+					q: "Bagaimana cara melakukan pembayaran dan pelunasan?",
+					a: "Pembayaran dapat dilakukan melalui transfer rekening resmi biro travel kami. Uang muka (DP) disetorkan saat pendaftaran dan pelunasan maksimal 30 hari sebelum jadwal keberangkatan.",
+				},
+				{
+					q: "Apakah jamaah lansia atau yang membutuhkan kursi roda didampingi?",
+					a: "Ya, tim muthawwif dan perwakilan kami di tanah suci siap membantu jamaah yang membutuhkan layanan khusus atau kursi roda demi kelancaran dan kenyamanan ibadah Anda.",
+				},
+			}
+			for i, item := range defaultFaqs {
+				_ = s.faqRepo.Create(ctx, tenantID, &repository.FAQ{
+					TenantID:     tenantID,
+					Question:     item.q,
+					Answer:       item.a,
+					DisplayOrder: i + 1,
+					IsActive:     true,
+				})
+			}
+		}
+	}
+}
+
+// ManualCancelReason is shown on invoices closed because staff changed the subscription manually.
+const ManualCancelReason = "Dibatalkan: langganan diaktifkan manual oleh tim KlikUmroh"
+
+type pendingInvoiceCanceller interface {
+	CancelPendingForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error)
+}
+
+// HandleManualSubscriptionChange runs the side effects of a payment approval when staff activate or
+// extend a subscription by hand: open invoices are cancelled (the travel must not pay twice), a newly
+// activated travel gets its starter content, and the travel's admins are notified.
+func (s *subscriptionService) HandleManualSubscriptionChange(ctx context.Context, tenantID uint64, wasPending bool, planName string, expiresAt time.Time, staffUserID uint64) {
+	if c, ok := s.pvRepo.(pendingInvoiceCanceller); ok {
+		if n, err := c.CancelPendingForTenant(ctx, tenantID, ManualCancelReason, staffUserID); err != nil {
+			log.Printf("[Subscription] tenant %d: cannot cancel open invoices after manual change: %v", tenantID, err)
+		} else if n > 0 {
+			log.Printf("[Subscription] tenant %d: %d open invoice(s) cancelled after manual change", tenantID, n)
+		}
+	}
+	if wasPending {
+		s.seedStarterContent(ctx, tenantID)
+	}
+	title, body := "Langganan diperbarui", fmt.Sprintf("Tim KlikUmroh memperbarui langganan Anda: paket %s aktif hingga %s.", planName, formatDateID(expiresAt))
+	if wasPending {
+		title, body = "Akun travel aktif", fmt.Sprintf("Tim KlikUmroh mengaktifkan akun Anda: paket %s aktif hingga %s.", planName, formatDateID(expiresAt))
+	}
+	s.notifyTenantAdmins(ctx, tenantID, "subscription_approved", title, body, "/settings/subscription")
 }
 
 // releaseApprovalClaim puts a claimed verification back to 'pending' when the subscription could not be
@@ -527,6 +581,9 @@ func (s *subscriptionService) RejectVerification(ctx context.Context, id uint64,
 		}
 		return err
 	}
+	s.notifyTenantAdmins(ctx, pv.TenantID, "subscription_rejected", "Pembayaran perlu diperbaiki",
+		fmt.Sprintf("Tagihan #%d: %s. Unggah ulang bukti transfer yang benar.", pv.ID, trimmedReason),
+		fmt.Sprintf("/settings/subscription/payment/%d", pv.ID))
 	return nil
 }
 

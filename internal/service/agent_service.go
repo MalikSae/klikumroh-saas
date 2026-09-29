@@ -59,6 +59,8 @@ type AgentPaymentInfo struct {
 }
 
 type AgentProfileResult struct {
+	// TravelSuspended: the travel's subscription lapsed past the grace period; writes are blocked.
+	TravelSuspended   bool              `json:"travel_suspended"`
 	ID                uint64            `json:"id"`
 	TenantID          uint64            `json:"tenant_id"`
 	Name              string            `json:"name"`
@@ -112,6 +114,8 @@ type AgentDashboardSummary struct {
 	PhotoURL            *string                       `json:"photo_url"`
 	TotalClicks         int                           `json:"total_clicks"`
 	TenantName          string                        `json:"tenant_name,omitempty"`
+	// TravelSuspended: the travel's subscription lapsed past the grace period; the portal is read-only.
+	TravelSuspended bool `json:"travel_suspended"`
 }
 
 type LeaderboardEntry struct {
@@ -317,7 +321,7 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 		return nil, err
 	}
 
-	if tenant.Status == "inactive" || tenant.Status == "pending" || (tenant.SubscriptionExpiresAt != nil && time.Now().After(tenant.SubscriptionExpiresAt.AddDate(0, 0, 7))) {
+	if tenant.Status == "pending" || util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()) {
 		return nil, errors.New("layanan pendaftaran agen sementara tidak aktif karena masa layanan biro travel belum aktif atau sedang ditangguhkan")
 	}
 
@@ -564,6 +568,7 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 	return &AgentDashboardSummary{
 		Name:                agent.Name,
 		TenantName:          tenant.Name,
+		TravelSuspended:     util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()),
 		SaldoSiapCair:       saldoSiapCair,
 		SaldoTertunda:       saldoTertunda,
 		SaldoTertahan:       s.heldCommission(ctx, tenantID, agentID),
@@ -780,6 +785,7 @@ func (s *agentService) buildProfile(agent *repository.Agent, tenant *repository.
 		BankAccountNumber: agent.BankAccountNumber,
 		BankAccountHolder: agent.BankAccountHolder,
 		Status:            agent.Status,
+		TravelSuspended:   tenant != nil && util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()),
 		PaymentStatus:     agent.PaymentStatus,
 		PaymentProofURL:   agent.PaymentProofURL,
 		RejectionReason:   agent.RejectionReason,

@@ -588,12 +588,15 @@ func (m *mockTenantRepoForMiddleware) Delete(ctx context.Context, id uint64) err
 func TestSubscriptionEnforcementMiddleware(t *testing.T) {
 	past := time.Now().Add(-1 * time.Hour)
 	future := time.Now().Add(10 * 24 * time.Hour)
+	pastGrace := time.Now().Add(-8 * 24 * time.Hour)
 
 	tenantRepo := &mockTenantRepoForMiddleware{
 		tenants: map[uint64]*repository.Tenant{
 			1: {ID: 1, Name: "Expired", SubscriptionExpiresAt: &past},
 			2: {ID: 2, Name: "Legacy Null", SubscriptionExpiresAt: nil},
 			3: {ID: 3, Name: "Active Future", SubscriptionExpiresAt: &future},
+			4: {ID: 4, Name: "Pending Signup", Status: "pending"},
+			5: {ID: 5, Name: "Suspended", SubscriptionExpiresAt: &pastGrace},
 		},
 	}
 
@@ -615,14 +618,35 @@ func TestSubscriptionEnforcementMiddleware(t *testing.T) {
 		}
 	})
 
-	t.Run("Expired tenant POST request blocked with 402", func(t *testing.T) {
+	// L2: within the 7-day grace period the travel keeps full access.
+	t.Run("Expired tenant within grace POST request allowed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/dashboard/packages", nil)
 		req = req.WithContext(middleware.WithTenantID(req.Context(), 1))
 		rr := httptest.NewRecorder()
 		mw.ServeHTTP(rr, req)
 
-		if rr.Code != http.StatusPaymentRequired {
-			t.Errorf("Expected 402, got %d", rr.Code)
+		if rr.Code != http.StatusOK {
+			t.Errorf("Expected 200 during grace, got %d", rr.Code)
+		}
+	})
+
+	t.Run("Suspended tenant POST blocked, GET allowed, renewal allowed", func(t *testing.T) {
+		for _, c := range []struct {
+			method, path string
+			want         int
+		}{
+			{http.MethodPost, "/api/dashboard/packages", http.StatusPaymentRequired},
+			{http.MethodPatch, "/api/dashboard/prospects/1/status", http.StatusPaymentRequired},
+			{http.MethodGet, "/api/dashboard/prospects", http.StatusOK},
+			{http.MethodPost, "/api/dashboard/subscription/renewal-request", http.StatusOK},
+		} {
+			req := httptest.NewRequest(c.method, c.path, nil)
+			req = req.WithContext(middleware.WithTenantID(req.Context(), 5))
+			rr := httptest.NewRecorder()
+			mw.ServeHTTP(rr, req)
+			if rr.Code != c.want {
+				t.Errorf("%s %s: expected %d, got %d", c.method, c.path, c.want, rr.Code)
+			}
 		}
 	})
 
@@ -648,6 +672,34 @@ func TestSubscriptionEnforcementMiddleware(t *testing.T) {
 		}
 	})
 
+	// Q1: a travel that just signed up (pending) can read what it needs to pay, nothing else.
+	t.Run("Pending tenant billing data allowed, other data blocked", func(t *testing.T) {
+		cases := []struct {
+			method, path string
+			want         int
+		}{
+			{http.MethodGet, "/api/dashboard/subscription", http.StatusOK},
+			{http.MethodGet, "/api/dashboard/pricing-plans", http.StatusOK},
+			{http.MethodGet, "/api/dashboard/coupons/validate", http.StatusOK},
+			{http.MethodGet, "/api/dashboard/platform-settings", http.StatusOK},
+			{http.MethodGet, "/api/dashboard/notifications", http.StatusOK},
+			{http.MethodPatch, "/api/dashboard/notifications/read-all", http.StatusOK},
+			{http.MethodPut, "/api/dashboard/platform-settings", http.StatusPaymentRequired},
+			{http.MethodGet, "/api/dashboard/prospects", http.StatusPaymentRequired},
+			{http.MethodGet, "/api/dashboard/packages", http.StatusPaymentRequired},
+			{http.MethodGet, "/api/dashboard/pricing-plans/../prospects", http.StatusPaymentRequired},
+		}
+		for _, c := range cases {
+			req := httptest.NewRequest(c.method, c.path, nil)
+			req = req.WithContext(middleware.WithTenantID(req.Context(), 4))
+			rr := httptest.NewRecorder()
+			mw.ServeHTTP(rr, req)
+			if rr.Code != c.want {
+				t.Errorf("%s %s: expected %d, got %d", c.method, c.path, c.want, rr.Code)
+			}
+		}
+	})
+
 	t.Run("Active tenant with future expiry POST request allowed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/dashboard/packages", nil)
 		req = req.WithContext(middleware.WithTenantID(req.Context(), 3))
@@ -658,4 +710,46 @@ func TestSubscriptionEnforcementMiddleware(t *testing.T) {
 			t.Errorf("Expected 200, got %d", rr.Code)
 		}
 	})
+}
+
+// R2: the agent portal is read-only while the travel is suspended; normal during the grace period.
+func TestAgentSuspensionMiddleware(t *testing.T) {
+	inGrace := time.Now().Add(-3 * 24 * time.Hour)
+	pastGrace := time.Now().Add(-9 * 24 * time.Hour)
+	tenantRepo := &mockTenantRepoForMiddleware{
+		tenants: map[uint64]*repository.Tenant{
+			1: {ID: 1, Name: "Grace", Status: "active", SubscriptionExpiresAt: &inGrace},
+			2: {ID: 2, Name: "Suspended", Status: "active", SubscriptionExpiresAt: &pastGrace},
+			3: {ID: 3, Name: "Deactivated", Status: "inactive"},
+		},
+	}
+	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	mw := middleware.AgentSuspensionMiddleware(tenantRepo)(ok)
+
+	cases := []struct {
+		tenant       uint64
+		method, path string
+		want         int
+	}{
+		{1, http.MethodPost, "/api/agent/jamaah", http.StatusOK},
+		{2, http.MethodPost, "/api/agent/jamaah", http.StatusPaymentRequired},
+		{2, http.MethodPatch, "/api/agent/jamaah/5/status", http.StatusPaymentRequired},
+		{2, http.MethodPost, "/api/agent/payment-proof", http.StatusPaymentRequired},
+		{2, http.MethodGet, "/api/agent/jamaah", http.StatusOK},
+		{2, http.MethodGet, "/api/agent/commission-history", http.StatusOK},
+		{2, http.MethodPost, "/api/agent/payout-requests", http.StatusOK},
+		{2, http.MethodPut, "/api/agent/password", http.StatusOK},
+		{2, http.MethodPost, "/api/agent/logout", http.StatusOK},
+		{2, http.MethodPatch, "/api/agent/notifications/read-all", http.StatusOK},
+		{3, http.MethodPost, "/api/agent/jamaah", http.StatusPaymentRequired},
+	}
+	for _, c := range cases {
+		req := httptest.NewRequest(c.method, c.path, nil)
+		req = req.WithContext(middleware.WithTenantID(req.Context(), c.tenant))
+		rr := httptest.NewRecorder()
+		mw.ServeHTTP(rr, req)
+		if rr.Code != c.want {
+			t.Errorf("tenant %d %s %s: expected %d, got %d", c.tenant, c.method, c.path, c.want, rr.Code)
+		}
+	}
 }

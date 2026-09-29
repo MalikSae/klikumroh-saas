@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"klikumroh/internal/repository"
+	"klikumroh/internal/util"
 )
 
 var (
@@ -382,7 +383,7 @@ func (s *tenantService) GetPublicInfo(ctx context.Context, tenantID uint64) (*Pu
 		isSuspended = true
 		reason := "Layanan website biro travel ini sedang dinonaktifkan sementara. Silakan hubungi pihak biro travel."
 		suspendedReason = &reason
-	} else if tenant.SubscriptionExpiresAt != nil && time.Now().After(tenant.SubscriptionExpiresAt.AddDate(0, 0, 7)) {
+	} else if util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()) {
 		isSuspended = true
 		reason := "Layanan website biro travel ini sedang dalam masa pembaruan berkala. Silakan hubungi pihak biro travel."
 		suspendedReason = &reason

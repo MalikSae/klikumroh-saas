@@ -436,7 +436,7 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 	if s.tenantRepo != nil {
 		tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
 		if err == nil && tenant != nil {
-			if tenant.Status == "inactive" || (tenant.SubscriptionExpiresAt != nil && time.Now().After(tenant.SubscriptionExpiresAt.AddDate(0, 0, 7))) {
+			if util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()) {
 				return nil, ErrTenantServiceSuspended
 			}
 		}

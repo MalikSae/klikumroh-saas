@@ -110,7 +110,8 @@ func (m *mockTenantRepoEnforce) Delete(ctx context.Context, id uint64) error {
 }
 
 func TestSubscriptionEnforcement_CrossContextAndValidation(t *testing.T) {
-	pastExpiry := time.Now().Add(-24 * time.Hour)
+	// Past the 7-day grace period (suspended): only then are writes blocked (L2).
+	pastExpiry := time.Now().Add(-10 * 24 * time.Hour)
 	futureExpiry := time.Now().Add(30 * 24 * time.Hour)
 
 	tenantRepo := &mockTenantRepoEnforce{
@@ -310,7 +311,7 @@ func TestSubscriptionEnforcement_CrossContextAndValidation(t *testing.T) {
 	// -------------------------------------------------------------------------
 	// 1. Tenant dengan subscription_expires_at di masa lalu -> POST/PUT/PATCH/DELETE -> 402
 	// -------------------------------------------------------------------------
-	t.Run("Scenario 1: Expired tenant write actions blocked with 402 Payment Required", func(t *testing.T) {
+	t.Run("Scenario 1: Suspended tenant (past grace) write actions blocked with 402 Payment Required", func(t *testing.T) {
 		writeCases := []struct {
 			method string
 			path   string
@@ -336,7 +337,7 @@ func TestSubscriptionEnforcement_CrossContextAndValidation(t *testing.T) {
 			if err := json.NewDecoder(rr.Body).Decode(&respBody); err != nil {
 				t.Fatalf("Failed to parse JSON response: %v", err)
 			}
-			expectedErrMsg := "Langganan Anda telah berakhir. Perpanjang untuk melanjutkan mengelola data."
+			expectedErrMsg := "Layanan ditangguhkan karena masa aktif dan masa tenggang telah berakhir. Perpanjang langganan untuk kembali mengelola data."
 			if respBody["error"] != expectedErrMsg {
 				t.Errorf("Expected error message %q, got %q", expectedErrMsg, respBody["error"])
 			}

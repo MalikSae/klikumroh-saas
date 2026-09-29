@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"klikumroh/internal/repository"
+	"klikumroh/internal/util"
 )
 
 // SubscriptionEnforcementMiddleware enforces read-only access on /api/dashboard/* endpoints
@@ -18,6 +19,27 @@ import (
 //     responds with 402 Payment Required: {"error": "Langganan Anda telah berakhir. Perpanjang untuk melanjutkan mengelola data."}
 //   - EXCEPTION: Requests to paths containing "/subscription" (e.g. renewal requests, payment proofs)
 //     ALWAYS proceed regardless of subscription status or HTTP method.
+//   - EXCEPTION: the read-only data a pending/inactive travel needs to pay (plans, coupon check, the
+//     KlikUmroh bank account) and its notifications also proceed (see billingSupportPaths).
+//
+// billingSupportPaths are GET endpoints a travel needs to choose a plan and pay, even while its account
+// is pending (just signed up) or inactive: without them it cannot see plans, apply a coupon or see the
+// bank account to transfer to.
+var billingSupportPaths = map[string]bool{
+	"/api/dashboard/pricing-plans":     true,
+	"/api/dashboard/coupons/validate":  true,
+	"/api/dashboard/platform-settings": true,
+}
+
+// isBillingSupportRequest reports whether the request may pass for a pending/inactive travel.
+func isBillingSupportRequest(r *http.Request) bool {
+	if r.Method == http.MethodGet && billingSupportPaths[r.URL.Path] {
+		return true
+	}
+	// Notifications (e.g. "pembayaran disetujui") stay readable and can be marked read.
+	return strings.HasPrefix(r.URL.Path, "/api/dashboard/notifications")
+}
+
 func SubscriptionEnforcementMiddleware(tenantRepo repository.TenantRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +65,12 @@ func SubscriptionEnforcementMiddleware(tenantRepo repository.TenantRepository) f
 			tenant, err := tenantRepo.GetByID(r.Context(), tenantID)
 			if err != nil {
 				// If tenant not found or repo error, fail safe and proceed to downstream handlers
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			// Pending / inactive travels may still read what they need to pay.
+			if (tenant.Status == "pending" || tenant.Status == "inactive") && isBillingSupportRequest(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -79,12 +107,14 @@ func SubscriptionEnforcementMiddleware(tenantRepo repository.TenantRepository) f
 				return
 			}
 
-			// If subscription has expired
-			if !tenant.SubscriptionExpiresAt.After(time.Now()) {
+			// Keputusan pendiri (29 Sep 2026): during the 7-day grace period after expiry the travel keeps full
+			// access (the public site still takes leads, so admins must be able to process them). Only once
+			// the grace period is over (suspended) does the dashboard become read-only.
+			if util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusPaymentRequired)
 				_ = json.NewEncoder(w).Encode(map[string]string{
-					"error": "Langganan Anda telah berakhir. Perpanjang untuk melanjutkan mengelola data.",
+					"error": "Layanan ditangguhkan karena masa aktif dan masa tenggang telah berakhir. Perpanjang langganan untuk kembali mengelola data.",
 				})
 				return
 			}

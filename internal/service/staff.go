@@ -165,7 +165,19 @@ type StaffService interface {
 	UpdateStaffUser(ctx context.Context, id uint64, name, email string, password *string, status string, currentStaffUserID uint64) (*StaffUserInfo, error)
 }
 
+// ManualSubscriptionHook runs the effects of a manual subscription change (cancel open invoices,
+// starter content, notify the travel); implemented by the subscription service.
+type ManualSubscriptionHook interface {
+	HandleManualSubscriptionChange(ctx context.Context, tenantID uint64, wasPending bool, planName string, expiresAt time.Time, staffUserID uint64)
+}
+
+// SetManualSubscriptionHook wires the subscription side effects into manual changes by staff.
+func (s *staffService) SetManualSubscriptionHook(h ManualSubscriptionHook) {
+	s.manualHook = h
+}
+
 type staffService struct {
+	manualHook    ManualSubscriptionHook
 	staffRepo     repository.StaffRepository
 	tenantRepo    repository.TenantRepository
 	domainRepo    repository.DomainRepository
@@ -632,6 +644,9 @@ func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID ui
 	if err := s.tenantRepo.UpdateSubscription(ctx, tenantID, planID, expiresAt, "active"); err != nil {
 		return err
 	}
+	if s.manualHook != nil {
+		s.manualHook.HandleManualSubscriptionChange(ctx, tenantID, tenant.Status == "pending", plan.Name, expiresAt, staffUserID)
+	}
 
 	// Pastikan subdomain default aktif
 	if s.domainRepo != nil {
@@ -785,5 +800,3 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 		CreatedAt: existing.CreatedAt,
 	}, nil
 }
-
-

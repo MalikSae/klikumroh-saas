@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"klikumroh/internal/util"
 )
 
 // MetaIntegration is a travel's Meta Pixel + Conversions API configuration.
@@ -119,7 +121,7 @@ func (r *mysqlMetaIntegrationRepository) GetPublicPixelID(ctx context.Context, t
 	err := r.db.QueryRowContext(ctx,
 		`SELECT meta_pixel_id FROM tenants
 		 WHERE id = ? AND status NOT IN ('pending', 'inactive')
-		   AND (subscription_expires_at IS NULL OR subscription_expires_at > NOW() - INTERVAL 7 DAY)`, tenantID).Scan(&pixel)
+		   AND (subscription_expires_at IS NULL OR subscription_expires_at > NOW() - INTERVAL ? DAY)`, tenantID, util.SubscriptionGraceDays).Scan(&pixel)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}

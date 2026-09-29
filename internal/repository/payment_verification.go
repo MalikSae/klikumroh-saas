@@ -319,6 +319,19 @@ func (r *mysqlPaymentVerificationRepository) UpdateStatus(
 	return nil
 }
 
+// CancelPendingForTenant closes every invoice of the tenant still waiting for payment (status
+// 'cancelled'), e.g. when staff activate the subscription manually. Returns how many were cancelled.
+func (r *mysqlPaymentVerificationRepository) CancelPendingForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error) {
+	res, err := r.db.ExecContext(ctx, `
+		UPDATE payment_verifications
+		SET status = 'cancelled', rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW(), updated_at = NOW()
+		WHERE tenant_id = ? AND status = 'pending'`, reason, staffUserID, tenantID)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 func (r *mysqlPaymentVerificationRepository) TransitionStatus(
 	ctx context.Context,
 	id uint64,

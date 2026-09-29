@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -137,6 +139,22 @@ func main() {
 	couponService := service.NewCouponService(couponRepo)
 	subscriptionService := service.NewSubscriptionService(pvRepo, couponRepo, couponService, pricingPlanRepo, tenantRepo, domainRepo)
 	subscriptionService.SetContentRepos(packageRepo, faqRepo)
+	// Manual activation/extension by staff: cancel open invoices, starter content, notify the travel.
+	if st, ok := staffService.(interface {
+		SetManualSubscriptionHook(service.ManualSubscriptionHook)
+	}); ok {
+		if hook, ok := subscriptionService.(service.ManualSubscriptionHook); ok {
+			st.SetManualSubscriptionHook(hook)
+		}
+	}
+	// Payment approved/rejected and renewal reminders for travels; new transfer proofs for staff.
+	if n, ok := subscriptionService.(interface {
+		SetNotifier(service.NotificationService, repository.AdminUserRepository, service.StaffLister, repository.SubscriptionReminderRepository)
+		StartRenewalReminderLoop(context.Context, time.Duration)
+	}); ok {
+		n.SetNotifier(notifService, adminUserRepo, staffRepo, repository.NewSubscriptionReminderRepository(db))
+		n.StartRenewalReminderLoop(context.Background(), 6*time.Hour)
+	}
 
 	// Initialize handlers
 	notifHandler := handler.NewNotificationHandler(notifService)
@@ -284,6 +302,8 @@ func main() {
 	// Protected Agent API Group
 	r.Group(func(agentProtected chi.Router) {
 		agentProtected.Use(appMiddleware.AgentAuthMiddleware(agentSessionRepo))
+		// Read-only while the travel is suspended (same policy as the travel dashboard).
+		agentProtected.Use(appMiddleware.AgentSuspensionMiddleware(tenantRepo))
 		agentHandler.RegisterAgentProtectedRoutes(agentProtected)
 		agentJamaahHandler.RegisterRoutes(agentProtected)
 		notifHandler.RegisterAgentRoutes(agentProtected)
