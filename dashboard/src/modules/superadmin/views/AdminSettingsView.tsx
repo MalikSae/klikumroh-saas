@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, CheckCircle2, AlertCircle, Building2, Phone } from 'lucide-react';
+import { Save, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle, Building2, Phone, FileText } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
 import {
   fetchPlatformSettingsStaff,
@@ -7,13 +7,26 @@ import {
   type PlatformSettingsInput,
 } from '../../../services/staffApi';
 
+// Human labels for missing_fields returned by the API.
+const FIELD_LABELS: Record<string, string> = {
+  whatsapp_number: 'Nomor WhatsApp CS',
+  bank_name: 'Nama bank',
+  bank_account_number: 'Nomor rekening',
+  bank_account_holder: 'Atas nama rekening',
+  terms_url: 'URL Syarat & Ketentuan',
+  privacy_url: 'URL Kebijakan Privasi',
+};
+
 export const AdminSettingsView: React.FC = () => {
   const [formData, setFormData] = useState<PlatformSettingsInput>({
     whatsapp_number: '',
     bank_name: '',
     bank_account_number: '',
     bank_account_holder: '',
+    terms_url: '',
+    privacy_url: '',
   });
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +42,10 @@ export const AdminSettingsView: React.FC = () => {
         bank_name: data.bank_name || '',
         bank_account_number: data.bank_account_number || '',
         bank_account_holder: data.bank_account_holder || '',
+        terms_url: data.terms_url || '',
+        privacy_url: data.privacy_url || '',
       });
+      setMissingFields(data.missing_fields || []);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat pengaturan platform');
     } finally {
@@ -47,7 +63,8 @@ export const AdminSettingsView: React.FC = () => {
       setSaving(true);
       setError(null);
       setSuccessMessage(null);
-      await updatePlatformSettingsStaff(formData);
+      const updated = await updatePlatformSettingsStaff(formData);
+      setMissingFields(updated.missing_fields || []);
       setSuccessMessage('Pengaturan platform berhasil diperbarui');
     } catch (err: any) {
       setError(err.message || 'Gagal menyimpan pengaturan');
@@ -109,6 +126,31 @@ export const AdminSettingsView: React.FC = () => {
         >
           <AlertCircle size={16} />
           <span>{error}</span>
+        </div>
+      )}
+
+      {!loading && missingFields.length > 0 && (
+        <div
+          style={{
+            padding: '12px 16px',
+            backgroundColor: 'var(--sa-amber-bg)',
+            border: '1px solid var(--sa-amber-border)',
+            borderRadius: 'var(--sa-radius-sm)',
+            color: 'var(--sa-amber-text)',
+            fontSize: '13px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            marginBottom: '20px',
+            maxWidth: '720px',
+          }}
+        >
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span>
+            Pengaturan belum lengkap: {missingFields.map((f) => FIELD_LABELS[f] || f).join(', ')}. Selama rekening
+            kosong, halaman pembayaran tidak menampilkan rekening; selama URL S&K/Privasi kosong, pendaftaran travel
+            baru ditutup.
+          </span>
         </div>
       )}
 
@@ -229,6 +271,48 @@ export const AdminSettingsView: React.FC = () => {
                 boxSizing: 'border-box',
               }}
             />
+          </div>
+        </div>
+
+        {/* Panel Dokumen Legal */}
+        <div className="sa-panel" style={{ padding: '24px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <FileText size={18} style={{ color: 'var(--sa-text-muted)' }} />
+            <h2 style={{ fontFamily: 'var(--sa-font-heading)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
+              Dokumen Legal
+            </h2>
+          </div>
+          <p style={{ fontSize: '13px', color: 'var(--sa-text-muted)', margin: '0 0 20px 0' }}>
+            Ditautkan di checkout dan footer. Pendaftaran travel baru ditutup sampai kedua URL diisi (wajib https://).
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {([
+              ['terms_url', 'URL Syarat & Ketentuan:', 'https://klikumroh.id/syarat-ketentuan'],
+              ['privacy_url', 'URL Kebijakan Privasi:', 'https://klikumroh.id/kebijakan-privasi'],
+            ] as const).map(([key, label, placeholder]) => (
+              <div key={key}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                  {label}
+                </label>
+                <input
+                  type="url"
+                  placeholder={placeholder}
+                  value={formData[key]}
+                  onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    padding: '0 12px',
+                    fontSize: '13px',
+                    border: '1px solid var(--sa-border)',
+                    borderRadius: 'var(--sa-radius-sm)',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            ))}
           </div>
         </div>
 

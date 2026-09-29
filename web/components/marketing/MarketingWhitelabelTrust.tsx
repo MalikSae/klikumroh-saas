@@ -8,7 +8,7 @@ import styles from './MarketingWhitelabelTrust.module.css';
 const TRUST_POINTS = [
   { icon: Globe, text: 'Website dan portal agen 100% berbrand travel Anda' },
   { icon: LinkIcon, text: 'Gunakan custom domain resmi milik travel' },
-  { icon: ShieldCheck, text: 'Database terisolasi ketat antar-tenant & terenkripsi' },
+  { icon: ShieldCheck, text: 'Database terisolasi ketat antar-travel, koneksi terenkripsi HTTPS' },
   { icon: Download, text: 'Data prospek & agen dapat diekspor ke Excel/CSV kapan saja' },
 ];
 
@@ -77,7 +77,7 @@ export const MarketingWhitelabelTrust: React.FC = () => {
             <div className={styles.securityTextGroup}>
               <span className={styles.securityTitle}>Jaminan Privasi & Keamanan Data</span>
               <p className={styles.securityDesc}>
-                Data jamaah dan prospek adalah aset eksklusif biro travel Anda. KlikUmroh menerapkan arsitektur isolasi multi-tenant ketat — kami tidak pernah mengakses, mengontak, atau membagikan database Anda ke pihak mana pun.
+                Data jamaah dan prospek adalah aset eksklusif biro travel Anda. KlikUmroh menerapkan arsitektur isolasi multi-tenant ketat. Kami tidak mengontak jamaah Anda dan tidak membagikan database Anda ke pihak mana pun. Akses staf KlikUmroh hanya untuk support dan tercatat di Riwayat Akses Staf yang bisa Anda audit.
               </p>
             </div>
           </div>

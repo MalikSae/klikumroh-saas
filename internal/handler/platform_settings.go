@@ -83,7 +83,8 @@ func (h *PlatformSettingsHandler) UpdateStaff(w http.ResponseWriter, r *http.Req
 		if errors.Is(err, service.ErrInvalidPlatformWhatsApp) ||
 			errors.Is(err, service.ErrInvalidBankName) ||
 			errors.Is(err, service.ErrInvalidBankAccountNumber) ||
-			errors.Is(err, service.ErrInvalidBankAccountHolder) {
+			errors.Is(err, service.ErrInvalidBankAccountHolder) ||
+			errors.Is(err, service.ErrInvalidLegalURL) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

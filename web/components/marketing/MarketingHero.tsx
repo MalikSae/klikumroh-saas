@@ -3,9 +3,16 @@
 import React from 'react';
 import { ArrowRight, MessageCircle, Check, Bell, Share2 } from 'lucide-react';
 import { ScrollReveal } from './ScrollReveal';
+import { usePlatformSettings, whatsappLink } from '../../lib/usePlatformSettings';
 import styles from './MarketingHero.module.css';
 
 export const MarketingHero: React.FC = () => {
+  const { settings } = usePlatformSettings();
+  const consultLink = whatsappLink(
+    settings.whatsapp_number,
+    'Halo KlikUmroh, saya owner travel ingin konsultasi sistem agen dan demo platform'
+  );
+
   return (
     <section className={styles.heroSection}>
       <div className={styles.container}>
@@ -34,15 +41,12 @@ export const MarketingHero: React.FC = () => {
               <span>Lihat pilihan paket</span>
               <ArrowRight size={16} />
             </a>
-            <a
-              href="https://wa.me/6281234567890?text=Halo%20KlikUmroh,%20saya%20owner%20travel%20ingin%20konsultasi%20sistem%20agen%20dan%20demo%20platform"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.secondaryBtn}
-            >
-              <MessageCircle size={16} className={styles.playIcon} />
-              <span>Konsultasi Gratis</span>
-            </a>
+            {consultLink && (
+              <a href={consultLink} target="_blank" rel="noopener noreferrer" className={styles.secondaryBtn}>
+                <MessageCircle size={16} className={styles.playIcon} />
+                <span>Konsultasi Gratis</span>
+              </a>
+            )}
           </div>
 
           <div className={styles.proofNotes}>
@@ -52,7 +56,7 @@ export const MarketingHero: React.FC = () => {
             </div>
             <div className={styles.proofItem}>
               <Check size={16} className={styles.proofCheck} />
-              <span>Database Jamaah Terenkripsi & Milik Travel</span>
+              <span>Database Jamaah Terisolasi & Milik Travel</span>
             </div>
             <div className={styles.proofItem}>
               <Check size={16} className={styles.proofCheck} />

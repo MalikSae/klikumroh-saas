@@ -1,9 +1,15 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { KlikUmrohBrand } from './KlikUmrohBrand';
+import { usePlatformSettings, whatsappLink } from '../../lib/usePlatformSettings';
 import styles from './MarketingFooter.module.css';
 
 export const MarketingFooter: React.FC = () => {
+  const { settings } = usePlatformSettings();
+  const contactLink = whatsappLink(settings.whatsapp_number);
+
   return (
     <footer className={styles.footer}>
       <div className={styles.container}>
@@ -35,15 +41,13 @@ export const MarketingFooter: React.FC = () => {
               <h4 className={styles.colTitle}>Perusahaan</h4>
               <ul className={styles.colLinks}>
                 <li><a href="#demo">Tentang KlikUmroh</a></li>
-                <li>
-                  <a
-                    href="https://wa.me/6281234567890"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Kontak
-                  </a>
-                </li>
+                {contactLink && (
+                  <li>
+                    <a href={contactLink} target="_blank" rel="noopener noreferrer">
+                      Kontak
+                    </a>
+                  </li>
+                )}
                 <li><a href="#faq">FAQ</a></li>
               </ul>
             </div>
@@ -65,7 +69,21 @@ export const MarketingFooter: React.FC = () => {
         {/* Bottom */}
         <div className={styles.footerBottom}>
           <span className={styles.copyright}>© 2026 KlikUmroh.id</span>
-          <span className={styles.legal}>Kebijakan Privasi   •   Syarat & Ketentuan</span>
+          {(settings.privacy_url || settings.terms_url) && (
+            <span className={styles.legal}>
+              {settings.privacy_url && (
+                <a href={settings.privacy_url} target="_blank" rel="noopener noreferrer">
+                  Kebijakan Privasi
+                </a>
+              )}
+              {settings.privacy_url && settings.terms_url && '   •   '}
+              {settings.terms_url && (
+                <a href={settings.terms_url} target="_blank" rel="noopener noreferrer">
+                  Syarat & Ketentuan
+                </a>
+              )}
+            </span>
+          )}
         </div>
       </div>
     </footer>

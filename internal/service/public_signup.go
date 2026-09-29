@@ -7,12 +7,9 @@ import (
 	"math"
 	"math/rand"
 	"net/mail"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"klikumroh/internal/repository"
@@ -31,6 +28,8 @@ var (
 	ErrVerificationNotFound       = errors.New("data verifikasi pembayaran tidak ditemukan")
 	ErrVerificationNotPending     = errors.New("status verifikasi pembayaran bukan pending")
 	ErrEmptyProofFile             = errors.New("berkas bukti transfer tidak boleh kosong")
+	// ErrLegalDocumentsNotConfigured blocks signup while there are no Terms/Privacy documents to consent to.
+	ErrLegalDocumentsNotConfigured = errors.New("pendaftaran belum dibuka: Syarat & Ketentuan dan Kebijakan Privasi belum tersedia")
 )
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
@@ -76,7 +75,6 @@ type TenantSignupRequest struct {
 // TenantSignupResult represents the output of a successful self-registration.
 type TenantSignupResult struct {
 	PaymentVerificationID uint64  `json:"payment_verification_id"`
-	PublicToken           string  `json:"public_token"`
 	FinalAmount           float64 `json:"final_amount"`
 	UniqueCode            int     `json:"unique_code"`
 	TenantID              uint64  `json:"tenant_id"`
@@ -85,29 +83,12 @@ type TenantSignupResult struct {
 	IsInstantActive       bool    `json:"is_instant_active"`
 }
 
-// VerificationStatusResult holds public verification status details for onboarding payment check.
-type VerificationStatusResult struct {
-	PublicToken      string  `json:"public_token"`
-	TenantName       string  `json:"tenant_name"`
-	TenantSlug       string  `json:"tenant_slug"`
-	TenantWhatsApp   *string `json:"tenant_whatsapp,omitempty"`
-	PlanID           uint64  `json:"plan_id"`
-	PlanName         string  `json:"plan_name"`
-	PlanPeriodMonths int     `json:"plan_period_months"`
-	Amount           float64 `json:"amount"`
-	FinalAmount      float64 `json:"final_amount"`
-	UniqueCode       int     `json:"unique_code"`
-	ProofURL         *string `json:"proof_url"`
-	Status           string  `json:"status"`
-	RejectionReason  *string `json:"rejection_reason,omitempty"`
-}
-
-// PublicSignupService handles public registration, slug check, and payment proof upload.
+// PublicSignupService handles public registration and slug check. After signup the travel logs in
+// and pays from the dashboard billing page — there is no public (unauthenticated) payment endpoint.
 type PublicSignupService interface {
 	CheckSlug(ctx context.Context, slug string) (bool, string, error)
 	TenantSignup(ctx context.Context, req TenantSignupRequest) (*TenantSignupResult, error)
-	UploadProof(ctx context.Context, identifier string, fileBytes []byte) (string, error)
-	GetVerificationStatus(ctx context.Context, identifier string) (*VerificationStatusResult, error)
+	SetPlatformSettingsRepo(repo repository.PlatformSettingsRepository)
 }
 
 type publicSignupService struct {
@@ -117,6 +98,28 @@ type publicSignupService struct {
 	couponService CouponService
 	pvRepo        repository.PaymentVerificationRepository
 	domainRepo    repository.DomainRepository
+	settingsRepo  repository.PlatformSettingsRepository
+}
+
+// SetPlatformSettingsRepo enables the check that Terms/Privacy URLs are configured before accepting signups.
+func (s *publicSignupService) SetPlatformSettingsRepo(repo repository.PlatformSettingsRepository) {
+	s.settingsRepo = repo
+}
+
+// requireLegalDocuments rejects signup while the super admin has not published Terms/Privacy URLs,
+// because the checkout asks travels to agree to those documents.
+func (s *publicSignupService) requireLegalDocuments(ctx context.Context) error {
+	if s.settingsRepo == nil {
+		return nil
+	}
+	data, err := s.settingsRepo.GetAll(ctx)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(data["terms_url"]) == "" || strings.TrimSpace(data["privacy_url"]) == "" {
+		return ErrLegalDocumentsNotConfigured
+	}
+	return nil
 }
 
 // NewPublicSignupService creates a new PublicSignupService instance.
@@ -164,6 +167,10 @@ func (s *publicSignupService) CheckSlug(ctx context.Context, slug string) (bool,
 }
 
 func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignupRequest) (*TenantSignupResult, error) {
+	if err := s.requireLegalDocuments(ctx); err != nil {
+		return nil, err
+	}
+
 	travelName := strings.TrimSpace(req.TravelName)
 	if len(travelName) < 2 || len(travelName) > 100 {
 		return nil, ErrInvalidTravelName
@@ -254,6 +261,12 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		whatsappPtr = &normalizedWA
 	}
 
+	// Hash before creating any row, so a hashing failure never leaves partial data behind.
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
 	// Buat tenant baru dengan status 'pending'
 	tenant := &repository.Tenant{
 		Name:             travelName,
@@ -266,12 +279,18 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		return nil, err
 	}
 
-	// Buat admin user pertama untuk tenant ini dengan status 'active'
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
+	// The repositories do not share a DB transaction, so a failure after the tenant row exists is
+	// compensated by deleting what was created. Otherwise an orphan tenant keeps the slug (and the
+	// WhatsApp number) locked forever and the travel cannot sign up again.
+	var createdAdmin *repository.AdminUser
+	rollback := func() {
+		if createdAdmin != nil {
+			_ = s.adminUserRepo.Delete(ctx, tenant.ID, createdAdmin.ID)
+		}
+		_ = s.tenantRepo.Delete(ctx, tenant.ID)
 	}
 
+	// Buat admin user pertama untuk tenant ini dengan status 'active'
 	adminUser := &repository.AdminUser{
 		TenantID:     tenant.ID,
 		Email:        adminEmail,
@@ -280,8 +299,15 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		Status:       "active",
 	}
 	if err := s.adminUserRepo.Create(ctx, tenant.ID, adminUser); err != nil {
+		rollback()
+		// Lost a race with another signup using the same email (UNIQUE index): report it cleanly
+		// instead of leaking the raw database error.
+		if existing, findErr := s.adminUserRepo.FindByEmail(ctx, adminEmail); findErr == nil && existing != nil {
+			return nil, ErrAdminEmailAlreadyInUse
+		}
 		return nil, err
 	}
+	createdAdmin = adminUser
 
 	// Buat payment_verifications dengan status 'pending'
 	pv := &repository.PaymentVerification{
@@ -295,6 +321,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		ProofURL:    nil,
 	}
 	if err := s.pvRepo.Create(ctx, pv); err != nil {
+		rollback()
 		return nil, err
 	}
 
@@ -311,104 +338,11 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 
 	return &TenantSignupResult{
 		PaymentVerificationID: pv.ID,
-		PublicToken:           pv.PublicToken,
 		FinalAmount:           pv.FinalAmount,
 		UniqueCode:            pv.UniqueCode,
 		TenantID:              tenant.ID,
 		TravelName:            tenant.Name,
 		TenantSlug:            tenant.Slug,
 		IsInstantActive:       false,
-	}, nil
-}
-
-func (s *publicSignupService) UploadProof(ctx context.Context, identifier string, fileBytes []byte) (string, error) {
-	if len(fileBytes) == 0 {
-		return "", ErrEmptyProofFile
-	}
-
-	identifier = strings.TrimSpace(identifier)
-	if identifier == "" {
-		return "", ErrVerificationNotFound
-	}
-
-	// Cari verifikasi berdasarkan public_token aman terlebih dahulu
-	pv, err := s.pvRepo.GetByPublicToken(ctx, identifier)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			// Fallback jika berupa numeric ID (backward compatibility)
-			if numID, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
-				pv, err = s.pvRepo.GetByID(ctx, numID)
-			}
-		}
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return "", ErrVerificationNotFound
-			}
-			return "", err
-		}
-	}
-
-	if pv.Status != "pending" && pv.Status != "rejected" {
-		return "", ErrVerificationNotPending
-	}
-
-	fileName := uuid.New().String() + ".webp"
-	relPath := fmt.Sprintf("/uploads/%d/subscription-proofs/%s", pv.TenantID, fileName)
-	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", pv.TenantID), "subscription-proofs", fileName)
-
-	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
-		return "", err
-	}
-
-	if pv.Status == "rejected" {
-		if err := s.pvRepo.ResetToPendingWithProof(ctx, pv.ID, relPath); err != nil {
-			return "", err
-		}
-	} else {
-		if err := s.pvRepo.UpdateProofURL(ctx, pv.ID, relPath); err != nil {
-			return "", err
-		}
-	}
-
-	return relPath, nil
-}
-
-func (s *publicSignupService) GetVerificationStatus(ctx context.Context, identifier string) (*VerificationStatusResult, error) {
-	identifier = strings.TrimSpace(identifier)
-	if identifier == "" {
-		return nil, ErrVerificationNotFound
-	}
-
-	// Cari verifikasi berdasarkan public_token aman terlebih dahulu
-	pv, err := s.pvRepo.GetByPublicToken(ctx, identifier)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			// Fallback jika berupa numeric ID (backward compatibility)
-			if numID, parseErr := strconv.ParseUint(identifier, 10, 64); parseErr == nil {
-				pv, err = s.pvRepo.GetByID(ctx, numID)
-			}
-		}
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return nil, ErrVerificationNotFound
-			}
-			return nil, err
-		}
-	}
-
-	return &VerificationStatusResult{
-		PublicToken:      pv.PublicToken,
-		TenantName:       pv.TenantName,
-		TenantSlug:       pv.TenantSlug,
-		TenantWhatsApp:   pv.TenantWhatsApp,
-		PlanID:           pv.PlanID,
-		PlanName:         pv.PlanName,
-		PlanPeriodMonths: pv.PlanPeriodMonths,
-		Amount:           pv.Amount,
-		FinalAmount:      pv.FinalAmount,
-		UniqueCode:       pv.UniqueCode,
-		ProofURL:         pv.ProofURL,
-		Status:           pv.Status,
-		RejectionReason:  pv.RejectionReason,
 	}, nil
 }

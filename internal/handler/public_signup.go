@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"klikumroh/internal/middleware"
 	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
-	"klikumroh/internal/util"
 	"time"
 )
 
@@ -51,9 +49,7 @@ func (h *PublicSignupHandler) RegisterPublicRoutes(r chi.Router) {
 	r.With(slugLimiter).Get("/api/public/check-slug", h.CheckSlug)
 	r.Post("/api/public/coupons/validate", h.ValidateCoupon)
 	r.With(signupLimiter).Post("/api/public/tenant-signup", h.TenantSignup)
-	r.Get("/api/public/tenant-signup/{token}/status", h.GetVerificationStatus)
-	r.Post("/api/public/tenant-signup/{token}/proof", h.UploadProof)
-	r.Post("/api/public/tenant-signup/{verification_id}/proof", h.UploadProof)
+	// No public payment endpoints: after signup the travel logs in and pays from the dashboard billing page.
 }
 
 // ListPricingPlans handles GET /api/public/pricing-plans.
@@ -150,6 +146,10 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 
 	res, err := h.publicSignupService.TenantSignup(r.Context(), req)
 	if err != nil {
+		if errors.Is(err, service.ErrLegalDocumentsNotConfigured) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, service.ErrInvalidTravelName) ||
 			errors.Is(err, service.ErrInvalidSlug) ||
 			errors.Is(err, service.ErrSlugAlreadyTaken) ||
@@ -182,77 +182,4 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 	}
 
 	respondJSON(w, http.StatusCreated, res)
-}
-
-// UploadProof handles POST /api/public/tenant-signup/{token}/proof.
-func (h *PublicSignupHandler) UploadProof(w http.ResponseWriter, r *http.Request) {
-	token := strings.TrimSpace(chi.URLParam(r, "token"))
-	if token == "" {
-		token = strings.TrimSpace(chi.URLParam(r, "verification_id"))
-	}
-	if token == "" {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Token verifikasi tidak valid"})
-		return
-	}
-
-	// Limit upload size to 10MB
-	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Ukuran berkas melebihi batas 10MB"})
-		return
-	}
-
-	file, _, err := r.FormFile("proof_file")
-	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Berkas bukti transfer wajib diunggah (field: proof_file)"})
-		return
-	}
-	defer file.Close()
-
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal membaca berkas bukti transfer"})
-		return
-	}
-
-	proofURL, err := h.publicSignupService.UploadProof(r.Context(), token, fileBytes)
-	if err != nil {
-		if errors.Is(err, service.ErrVerificationNotFound) ||
-			errors.Is(err, service.ErrVerificationNotPending) ||
-			errors.Is(err, service.ErrEmptyProofFile) ||
-			errors.Is(err, util.ErrInvalidImageFormat) ||
-			errors.Is(err, util.ErrCorruptImage) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
-		}
-
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memproses bukti transfer"})
-		return
-	}
-
-	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"message":   "Bukti transfer berhasil diunggah",
-		"proof_url": proofURL,
-	})
-}
-
-// GetVerificationStatus handles GET /api/public/tenant-signup/{token}/status.
-func (h *PublicSignupHandler) GetVerificationStatus(w http.ResponseWriter, r *http.Request) {
-	token := strings.TrimSpace(chi.URLParam(r, "token"))
-	if token == "" {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Token verifikasi tidak valid"})
-		return
-	}
-
-	res, err := h.publicSignupService.GetVerificationStatus(r.Context(), token)
-	if err != nil {
-		if errors.Is(err, service.ErrVerificationNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data verifikasi tidak ditemukan"})
-			return
-		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memuat status pendaftaran"})
-		return
-	}
-
-	respondJSON(w, http.StatusOK, res)
 }

@@ -2,23 +2,15 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { Check, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Check, ShieldCheck } from 'lucide-react';
 import { ScrollReveal } from './ScrollReveal';
+import { toPlanTiers, type PlanTier } from '../../lib/pricingPlans';
 import styles from './MarketingPricing.module.css';
 
-export interface PlanTier {
-  id: number;
-  name: string;
-  periodMonths: number;
-  price: number;
-  monthlyEquivalent: number;
-  discountLabel?: string;
-  discountBadge?: string;
-  popular?: boolean;
-}
+export type { PlanTier };
 
-// Fallback: nilai harus sinkron dengan pengaturan paket di superadmin dashboard.
-// Nilai aktual selalu diambil dari API /api/public/pricing-plans saat runtime.
+// DEPRECATED: hanya dipakai MarketingCheckout.tsx (komponen lama yang tidak dirender di halaman mana pun).
+// Landing TIDAK memakai nilai ini lagi — harga selalu dari API (lihat lib/pricingPlans.ts).
 export const PLANS_FALLBACK: PlanTier[] = [
   {
     id: 1,
@@ -69,82 +61,32 @@ function formatRp(val: number): string {
   return `Rp${val.toLocaleString('id-ID')}`;
 }
 
-export const MarketingPricing: React.FC = () => {
-  const [agents, setAgents] = React.useState<number>(20);
-  const [plans, setPlans] = React.useState<PlanTier[]>(PLANS_FALLBACK);
+export interface MarketingPricingProps {
+  /** Plans rendered on the server (ISR) so the initial HTML shows real prices. */
+  initialPlans?: PlanTier[];
+}
 
-  // Fetch harga aktual dari superadmin database agar selalu sinkron
+export const MarketingPricing: React.FC<MarketingPricingProps> = ({ initialPlans = [] }) => {
+  const [plans, setPlans] = React.useState<PlanTier[]>(initialPlans || []);
+
+  // Only when the server could not reach the API: retry from the browser. No hardcoded prices.
   useEffect(() => {
+    if (initialPlans && initialPlans.length > 0) return;
     fetch('/api/public/pricing-plans')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed');
-        return res.json();
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.plans) && data.plans.length > 0) {
-          const mapped: PlanTier[] = data.plans.map(
-            (p: { id: number; name: string; period_months: number; price: number }) => {
-              const months = p.period_months || 1;
-              const monthlyEq = Math.round(p.price / months);
-              let label = 'FLEKSIBEL';
-              let badge: string | undefined;
-              let popular = false;
-
-              if (months === 6) {
-                label = 'PALING POPULER';
-                const base6 = plans.find((x) => x.periodMonths === 3);
-                if (base6) {
-                  const savings = Math.round(
-                    ((base6.monthlyEquivalent - monthlyEq) / base6.monthlyEquivalent) * 100
-                  );
-                  badge = savings > 0 ? `Hemat ${savings}%` : undefined;
-                }
-                popular = true;
-              } else if (months >= 12) {
-                label = 'PALING HEMAT';
-                const base3 = plans.find((x) => x.periodMonths === 3);
-                if (base3) {
-                  const savings = Math.round(
-                    ((base3.monthlyEquivalent - monthlyEq) / base3.monthlyEquivalent) * 100
-                  );
-                  badge = savings > 0 ? `Hemat ${savings}%` : undefined;
-                }
-              }
-
-              const displayName = p.name.toLowerCase().startsWith('paket')
-                ? p.name
-                : `Paket ${p.name}`;
-
-              return {
-                id: p.id,
-                name: displayName,
-                periodMonths: months,
-                price: p.price,
-                monthlyEquivalent: monthlyEq,
-                discountLabel: label,
-                discountBadge: badge,
-                popular,
-              };
-            }
-          );
-          setPlans(mapped);
+          setPlans(toPlanTiers(data.plans));
         }
       })
-      .catch(() => {
-        // Fallback ke PLANS_FALLBACK — sudah diset sebagai initial state
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      .catch(() => {});
+  }, [initialPlans]);
 
-  const plan3 = plans.find((p) => p.periodMonths === 3) ?? plans[0];
-  const plan6 = plans.find((p) => p.periodMonths === 6) ?? plans[1];
-  const plan12 = plans.find((p) => p.periodMonths >= 12) ?? plans[2];
-
-  const estProspects = agents * 4;
-  const estClosing = Math.max(1, Math.round(agents * 0.15));
-  const estProfit = estClosing * 2500000;
-  const roiBase = plan6 ? plan6.price : 2000000;
-  const roiMultiple = Math.round(estProfit / roiBase);
+  const planList = plans || [];
+  const plan3 = planList.find((p) => p.periodMonths === 3) ?? planList[0];
+  const plan6 = planList.find((p) => p.periodMonths === 6) ?? planList[1];
+  const plan12 = planList.find((p) => p.periodMonths >= 12) ?? planList[2];
+  const plansReady = Boolean(plan3 && plan6 && plan12);
 
   return (
     <section id="harga" className={styles.section}>
@@ -160,62 +102,13 @@ export const MarketingPricing: React.FC = () => {
           </div>
         </ScrollReveal>
 
-        {/* Interactive ROI Value Anchor Banner */}
-        <ScrollReveal as="div" className={styles.roiBanner} animation="scale-up" delay={60}>
-          <div className={styles.roiBadge}>
-            <TrendingUp size={15} className={styles.roiBadgeIcon} />
-            <span>KALKULATOR SIMULASI BALIK MODAL (ROI)</span>
-          </div>
-
-          <h3 className={styles.roiHeadline}>
-            Hanya butuh 1 closing jamaah tambahan untuk melunasi biaya langganan setahun.
-          </h3>
-
-          <div className={styles.sliderContainer}>
-            <div className={styles.sliderLabelRow}>
-              <span className={styles.sliderLabelText}>Jumlah Agen:</span>
-              <span className={styles.sliderValueBadge}>{agents} Agen</span>
-            </div>
-            <input
-              type="range"
-              min="5"
-              max="100"
-              step="5"
-              value={agents}
-              onChange={(e) => setAgents(parseInt(e.target.value, 10))}
-              className={styles.rangeSlider}
-              aria-label="Jumlah agen aktif travel Anda"
-            />
-            <div className={styles.sliderTicks}>
-              <span>5 Agen</span>
-              <span>25 Agen</span>
-              <span>50 Agen</span>
-              <span>75 Agen</span>
-              <span>100 Agen</span>
-            </div>
-          </div>
-
-          {/* Dynamic Metrics Row */}
-          <div className={styles.calcGrid}>
-            <div className={styles.calcBox}>
-              <span className={styles.calcLabel}>ESTIMASI PROSPEK/BLN</span>
-              <span className={styles.calcVal}>~{estProspects}</span>
-              <span className={styles.calcSub}>4 prospek per agen</span>
-            </div>
-            <div className={styles.calcBox}>
-              <span className={styles.calcLabel}>POTENSI CLOSING</span>
-              <span className={styles.calcVal}>+{estClosing} Jamaah</span>
-              <span className={styles.calcSub}>Konversi konservatif ~15%</span>
-            </div>
-            <div className={styles.calcBoxHighlight}>
-              <span className={styles.calcLabelLight}>ESTIMASI LABA TRAVEL</span>
-              <span className={styles.calcValLight}>Rp {estProfit.toLocaleString('id-ID')}</span>
-              <span className={styles.calcSubLight}>Balik modal {roiMultiple}x lipat biaya sistem!</span>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* Pricing Cards Grid */}
+        {/* Pricing Cards Grid (only real plans from the API — no hardcoded prices) */}
+        {!plansReady && (
+          <p className={styles.description} role="status">
+            Daftar harga sedang tidak dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.
+          </p>
+        )}
+        {plansReady && plan3 && plan6 && plan12 && (
         <div className={styles.pricingGrid}>
           {/* Card 1: 3 Bulan */}
           <ScrollReveal as="div" className={styles.pricingCard} animation="fade-up" delay={0}>
@@ -372,6 +265,7 @@ export const MarketingPricing: React.FC = () => {
             </Link>
           </ScrollReveal>
         </div>
+        )}
 
         {/* Guarantee & Reassurance Row */}
         <ScrollReveal as="div" className={styles.reassuranceRow} animation="fade-up" delay={100}>

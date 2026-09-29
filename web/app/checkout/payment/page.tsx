@@ -1,34 +1,12 @@
-import React, { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
-import { PaymentInstructionPage } from '../../../components/checkout/PaymentInstructionPage';
+import { redirect } from 'next/navigation';
 
+// The public payment page was removed: billing now lives in the dashboard (sign in first).
+// Old links carried a payment token in the query string; redirect to a clean /login so it is dropped.
 export const metadata = {
-  title: 'Instruksi Pembayaran | KlikUmroh.id',
-  description:
-    'Selesaikan pembayaran untuk mengaktifkan platform agen & affiliate travel umroh Anda.',
+  referrer: 'no-referrer',
+  robots: { index: false, follow: false },
 };
 
-export default function CheckoutPaymentRoute() {
-  return (
-    <Suspense
-      fallback={
-        <div
-          style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'var(--km-bg)',
-          }}
-        >
-          <Loader2
-            size={32}
-            style={{ color: '#09090B', animation: 'spin 1s linear infinite' }}
-          />
-        </div>
-      }
-    >
-      <PaymentInstructionPage />
-    </Suspense>
-  );
+export default function LegacyPaymentRoute() {
+  redirect('/login');
 }

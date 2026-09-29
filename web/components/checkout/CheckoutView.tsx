@@ -18,8 +18,16 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { PaymentInstructionView } from './PaymentInstructionView';
 import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
+import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSettings';
+import { toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
+import {
+  clearDashboardSession,
+  dashboardUrl,
+  openDashboard,
+  storeDashboardSession,
+  storedDashboardSession,
+} from '@/lib/dashboardSession';
 import styles from './CheckoutView.module.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -39,15 +47,6 @@ interface CouponResult {
   code: string;
   discount_percentage: number;
   plan_id?: number;
-}
-
-interface SignupResult {
-  payment_verification_id: number;
-  final_amount: number;
-  unique_code?: number;
-  tenant_id: number;
-  travel_name: string;
-  error?: string;
 }
 
 interface FormErrors {
@@ -423,137 +422,61 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
 // ─── Main CheckoutView Component ──────────────────────────────────────────
 
-export const CheckoutView: React.FC = () => {
+const toCheckoutPlans = (tiers: PlanTier[]): PricingPlan[] =>
+  tiers.map((t) => ({
+    id: t.id,
+    name: t.name,
+    period_months: t.periodMonths,
+    price: t.price,
+    monthly_equivalent: t.monthlyEquivalent,
+    discount_label: t.discountLabel,
+    discount_badge: t.discountBadge,
+    popular: t.popular,
+  }));
+
+export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialPlans = [] }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planIdParam = searchParams ? searchParams.get('plan_id') : null;
 
-  const [pendingSession, setPendingSession] = useState<any>(null);
-
+  // Already signed in (valid session in this browser): signup makes no sense, open the dashboard.
+  // A pending travel lands on its billing page there. A stale/expired session is cleared instead.
   useEffect(() => {
     try {
-      // Banner hanya boleh muncul jika user sedang dalam keadaan login
-      const token = localStorage.getItem('klikumroh_token');
-      const userStr = localStorage.getItem('klikumroh_user');
-
-      if (!token || !userStr) {
-        // User belum login -> banner tidak boleh muncul
-        setPendingSession(null);
-        return;
-      }
-
-      const currentUser = JSON.parse(userStr);
-      const stored = localStorage.getItem('ku_pending_signup');
-
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const isSameAccount =
-          !parsed.adminEmail ||
-          !currentUser.email ||
-          parsed.adminEmail.toLowerCase() === currentUser.email.toLowerCase() ||
-          (parsed.travelName && parsed.travelName === currentUser.tenant_name);
-
-        if (isSameAccount) {
-          setPendingSession(parsed);
-          return;
-        }
-      }
-
-      if (currentUser.tenant_status === 'pending') {
-        setPendingSession({
-          travelName: currentUser.tenant_name || 'Travel Anda',
-          orderNumber: '',
-          slug: '',
-          planName: '',
-          baseAmount: '',
-          discountAmount: '',
-          uniqueCode: '',
-          finalAmount: '',
-          verificationId: currentUser.public_token || '',
-          adminEmail: currentUser.email || '',
-          adminWhatsApp: '',
-        });
-        return;
-      }
-
-      setPendingSession(null);
-    } catch {
-      setPendingSession(null);
-    }
-  }, []);
-
-  const [plans, setPlans] = useState<PricingPlan[]>([
-    {
-      id: 1,
-      name: 'Paket 3 Bulan',
-      period_months: 3,
-      price: 1500000,
-      monthly_equivalent: 500000,
-      discount_label: 'FLEKSIBEL',
-    },
-    {
-      id: 2,
-      name: 'Paket 6 Bulan',
-      period_months: 6,
-      price: 2000000,
-      monthly_equivalent: 333333,
-      discount_label: 'PALING POPULER',
-      discount_badge: 'Hemat 25%',
-      popular: true,
-    },
-    {
-      id: 3,
-      name: 'Paket 12 Bulan',
-      period_months: 12,
-      price: 3500000,
-      monthly_equivalent: 291667,
-      discount_label: 'PALING HEMAT',
-      discount_badge: 'Hemat 42%',
-    },
-  ]);
-
-  useEffect(() => {
-    fetch('/api/public/pricing-plans')
+      localStorage.removeItem('ku_pending_signup'); // leftover from the old public payment flow
+    } catch {}
+    const session = storedDashboardSession();
+    if (!session) return;
+    let active = true;
+    fetch('/api/dashboard/subscription', { headers: { Authorization: `Bearer ${session.token}` } })
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch pricing plans');
-        return res.json();
-      })
-      .then((data) => {
-        if (data && Array.isArray(data.plans) && data.plans.length > 0) {
-          const mapped: PricingPlan[] = data.plans.map(
-            (p: { id: number; name: string; period_months: number; price: number }) => {
-              const months = p.period_months || 1;
-              const monthlyEq = Math.round(p.price / months);
-              let label = 'FLEKSIBEL';
-              let badge: string | undefined;
-              let popular = false;
-
-              if (months === 6) {
-                label = 'PALING POPULER';
-                badge = 'Hemat 10%';
-                popular = true;
-              } else if (months >= 12) {
-                label = 'PALING HEMAT';
-                badge = 'Hemat 20%';
-              }
-
-              return {
-                id: p.id,
-                name: p.name.toLowerCase().startsWith('paket') ? p.name : `Paket ${p.name}`,
-                period_months: months,
-                price: p.price,
-                monthly_equivalent: monthlyEq,
-                discount_label: label,
-                discount_badge: badge,
-                popular,
-              };
-            }
-          );
-          setPlans(mapped);
+        if (!active) return;
+        if (res.ok) {
+          openDashboard(dashboardUrl(session));
+        } else if (res.status === 401) {
+          clearDashboardSession();
         }
       })
       .catch(() => {});
+    return () => {
+      active = false;
+    };
   }, []);
+
+  // Real plans rendered on the server; the browser only retries if the server could not reach the API.
+  const [plans, setPlans] = useState<PricingPlan[]>(() => toCheckoutPlans(initialPlans));
+
+  useEffect(() => {
+    if (initialPlans.length > 0) return;
+    fetch('/api/public/pricing-plans')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.plans) && data.plans.length > 0) {
+          setPlans(toCheckoutPlans(toPlanTiers(data.plans)));
+        }
+      })
+      .catch(() => {});
+  }, [initialPlans]);
 
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
 
@@ -561,9 +484,11 @@ export const CheckoutView: React.FC = () => {
     if (activePlanId !== null && plans.some((p) => p.id === activePlanId)) {
       return activePlanId;
     }
-    if (!planIdParam) return 2; // default 6 Bulan as in design
+    // Default: the 6-month plan (as in design), whatever its database ID is.
+    const defaultId = (plans.find((p) => p.period_months === 6) ?? plans[0])?.id ?? 0;
+    if (!planIdParam) return defaultId;
     const id = parseInt(planIdParam, 10);
-    return isNaN(id) || !plans.some((p) => p.id === id) ? 2 : id;
+    return isNaN(id) || !plans.some((p) => p.id === id) ? defaultId : id;
   }, [activePlanId, planIdParam, plans]);
 
   const selectedPlan = useMemo(
@@ -596,12 +521,13 @@ export const CheckoutView: React.FC = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const { settings: platformSettings, loaded: settingsLoaded } = usePlatformSettings();
+  const legalReady = hasLegalDocuments(platformSettings);
 
   // Validation
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [successResult, setSuccessResult] = useState<SignupResult | null>(null);
 
   // Coupon
   const [couponCode, setCouponCode] = useState('');
@@ -725,7 +651,8 @@ export const CheckoutView: React.FC = () => {
         setCouponError(null);
       } else {
         setCoupon(null);
-        setCouponError(data.message || 'Kupon tidak valid atau sudah kedaluwarsa');
+        // The API returns the reason in `error` (e.g. "kode kupon tidak ditemukan").
+        setCouponError(data.error || data.message || 'Kupon tidak valid atau sudah kedaluwarsa');
       }
     } catch {
       setCoupon(null);
@@ -808,47 +735,21 @@ export const CheckoutView: React.FC = () => {
 
       const data = await res.json();
 
-      if (res.ok && (data.success || data.payment_verification_id)) {
-        const discountVal = coupon
-          ? Math.round((selectedPlan.price * coupon.discount_percentage) / 100)
-          : 0;
-        const orderNum = `KU-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${String(
-          data.payment_verification_id || 1
-        ).padStart(4, '0')}`;
-
-        const sessionData = {
-          orderNumber: orderNum,
-          travelName: travelName.trim(),
-          slug: slug.trim(),
-          planName: selectedPlan.name,
-          baseAmount: selectedPlan.price,
-          discountAmount: discountVal,
-          uniqueCode: data.unique_code || 0,
-          finalAmount: data.final_amount,
-          verificationId: data.payment_verification_id,
-          adminEmail: adminEmail.trim().toLowerCase(),
-          adminWhatsApp: cleanedWA,
-        };
-
-        try {
-          localStorage.setItem('ku_pending_signup', JSON.stringify(sessionData));
-        } catch {}
-
-        const query = new URLSearchParams({
-          order: orderNum,
-          travel_name: travelName.trim(),
-          slug: slug.trim(),
-          plan: selectedPlan.name,
-          base_amount: String(selectedPlan.price),
-          discount_amount: String(discountVal),
-          unique_code: String(data.unique_code || 0),
-          final_amount: String(data.final_amount),
-          verification_id: String(data.payment_verification_id),
-          email: adminEmail.trim().toLowerCase(),
-          whatsapp: cleanedWA,
+      if (res.ok) {
+        // Standard SaaS flow: sign the new account in and open its billing page in the dashboard.
+        const loginRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: payload.admin_email, password: adminPassword }),
         });
-
-        router.push(`/checkout/payment?${query.toString()}`);
+        const login = await loginRes.json().catch(() => null);
+        if (!loginRes.ok || !login?.token) {
+          // The account exists; let the travel sign in manually.
+          router.push('/login');
+          return;
+        }
+        storeDashboardSession(login);
+        openDashboard(dashboardUrl(login, `/settings/subscription/payment/${data.payment_verification_id}`));
         return;
       } else {
         setSubmitError(
@@ -862,26 +763,15 @@ export const CheckoutView: React.FC = () => {
     }
   };
 
-  // ─── Success Screen (Payment Instruction Fallback) ───
-  if (successResult) {
-    const orderNum = `KU-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${String(
-      successResult.payment_verification_id || 1
-    ).padStart(4, '0')}`;
-
+  // No plans could be loaded (API unreachable): never fall back to hardcoded prices.
+  if (!selectedPlan) {
     return (
-      <PaymentInstructionView
-        orderNumber={orderNum}
-        travelName={successResult.travel_name || travelName}
-        slug={slug}
-        planName={selectedPlan.name}
-        baseAmount={selectedPlan.price}
-        discountAmount={coupon ? Math.round((selectedPlan.price * coupon.discount_percentage) / 100) : 0}
-        uniqueCode={successResult.unique_code}
-        finalAmount={Math.round(Number(successResult.final_amount ?? selectedPlan.price))}
-        verificationId={successResult.payment_verification_id}
-        adminEmail={adminEmail}
-        adminWhatsApp={adminWhatsApp}
-      />
+      <div className={styles.page}>
+        <div className={styles.alertError} role="alert">
+          <AlertCircle size={18} />
+          <span>Daftar paket langganan sedang tidak dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.</span>
+        </div>
+      </div>
     );
   }
 
@@ -911,22 +801,6 @@ export const CheckoutView: React.FC = () => {
               <ArrowLeft size={16} className={styles.backArrow} />
               <span className={styles.backText}>Kembali ke pilihan paket</span>
             </Link>
-
-            {/* Pending Session Banner */}
-            {pendingSession && (
-              <div className={styles.pendingBanner}>
-                <div>
-                  <strong>Pemberitahuan:</strong> Pendaftaran <em>{pendingSession.travelName}</em> menunggu pembayaran.
-                </div>
-                <Link
-                  href={`/checkout/payment?order=${pendingSession.orderNumber}&travel_name=${encodeURIComponent(pendingSession.travelName || '')}&slug=${encodeURIComponent(pendingSession.slug || '')}&plan=${encodeURIComponent(pendingSession.planName || '')}&base_amount=${pendingSession.baseAmount || ''}&discount_amount=${pendingSession.discountAmount || ''}&unique_code=${pendingSession.uniqueCode || ''}&final_amount=${pendingSession.finalAmount || ''}&verification_id=${pendingSession.verificationId || ''}&email=${encodeURIComponent(pendingSession.adminEmail || '')}&whatsapp=${encodeURIComponent(pendingSession.adminWhatsApp || '')}`}
-                  className={styles.pendingBannerLink}
-                >
-                  Lihat Instruksi
-                  <ArrowRight size={13} />
-                </Link>
-              </div>
-            )}
 
             {/* Checkout Heading */}
             <div className={styles.headingGroup}>
@@ -1120,26 +994,46 @@ export const CheckoutView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Terms Agreement */}
-                  <label className={styles.termsAgreement} htmlFor="agree-terms">
-                    <input
-                      id="agree-terms"
-                      type="checkbox"
-                      className={styles.termsCheckbox}
-                      checked={agreeTerms}
-                      onChange={(e) => setAgreeTerms(e.target.checked)}
-                    />
-                    <span className={styles.termsText}>
-                      Saya menyetujui Syarat & Ketentuan dan Kebijakan Privasi KlikUmroh.
-                    </span>
-                  </label>
+                  {/* Terms Agreement: signup stays closed until the owner publishes both documents */}
+                  {legalReady ? (
+                    <label className={styles.termsAgreement} htmlFor="agree-terms">
+                      <input
+                        id="agree-terms"
+                        type="checkbox"
+                        className={styles.termsCheckbox}
+                        checked={agreeTerms}
+                        onChange={(e) => setAgreeTerms(e.target.checked)}
+                      />
+                      <span className={styles.termsText}>
+                        Saya menyetujui{' '}
+                        <a href={platformSettings.terms_url} target="_blank" rel="noopener noreferrer">
+                          Syarat & Ketentuan
+                        </a>{' '}
+                        dan{' '}
+                        <a href={platformSettings.privacy_url} target="_blank" rel="noopener noreferrer">
+                          Kebijakan Privasi
+                        </a>{' '}
+                        KlikUmroh.
+                      </span>
+                    </label>
+                  ) : (
+                    settingsLoaded && (
+                      <div className={styles.alertError} role="alert">
+                        <AlertCircle size={18} />
+                        <span>
+                          Pendaftaran belum dibuka karena Syarat & Ketentuan dan Kebijakan Privasi belum tersedia.
+                          Silakan coba lagi nanti.
+                        </span>
+                      </div>
+                    )
+                  )}
 
                   {/* Continue to Payment Button */}
                   <button
                     id="checkout-submit-btn"
                     type="submit"
                     className={styles.submitBtn}
-                    disabled={submitting}
+                    disabled={submitting || !legalReady}
                   >
                     {submitting ? (
                       <>

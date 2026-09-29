@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { MessageCircle, Plus, Minus } from 'lucide-react';
 import { ScrollReveal } from './ScrollReveal';
+import { usePlatformSettings, whatsappLink } from '../../lib/usePlatformSettings';
 import styles from './MarketingFAQ.module.css';
 
 interface FAQItem {
@@ -17,7 +18,7 @@ const FAQS: FAQItem[] = [
   },
   {
     q: 'Apakah data jamaah kami aman dan tidak akan bocor ke travel lain?',
-    a: 'Sangat aman. KlikUmroh menggunakan arsitektur isolasi multi-tenant ketat dan terenkripsi. Seluruh database prospek, daftar jamaah, dan omzet adalah hak milik eksklusif biro travel Anda. Kami tidak pernah mengakses, mengontak, atau membagikan kontak jamaah Anda kepada pihak ketiga mana pun.',
+    a: 'Data setiap travel terisolasi ketat per akun dan dikirim lewat koneksi terenkripsi (HTTPS). Seluruh database prospek, daftar jamaah, dan omzet adalah milik biro travel Anda. Kami tidak mengontak jamaah Anda dan tidak membagikan datanya ke pihak ketiga. Staf KlikUmroh hanya membuka data untuk keperluan support, dan setiap aksesnya tercatat di Riwayat Akses Staf yang bisa Anda periksa sendiri.',
   },
   {
     q: 'Bagaimana agen mulai bergerak setelah mendaftar?',
@@ -33,12 +34,14 @@ const FAQS: FAQItem[] = [
   },
   {
     q: 'Apakah data prospek dan agen kami aman dan tidak dibagikan?',
-    a: 'Ya, 100% aman. Data travel Anda terisolasi secara multi-tenant murni, terenkripsi, dan tidak pernah diakses atau dibagikan ke pihak mana pun. Anda dapat mengekspornya ke format Excel/CSV kapan saja.',
+    a: 'Ya. Data travel Anda terisolasi per akun dan tidak dibagikan ke pihak mana pun. Setiap akses staf KlikUmroh untuk keperluan support tercatat di Riwayat Akses Staf pada dashboard Anda. Anda dapat mengekspor data ke format Excel/CSV kapan saja.',
   },
 ];
 
 export const MarketingFAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const { settings } = usePlatformSettings();
+  const askLink = whatsappLink(settings.whatsapp_number, 'Halo KlikUmroh, saya ingin tanya seputar platform');
 
   const toggleFAQ = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
@@ -56,15 +59,12 @@ export const MarketingFAQ: React.FC = () => {
           <p className={styles.body}>
             Belum menemukan jawaban yang Anda cari? Tim kami dapat menunjukkan alurnya langsung dalam sesi demo.
           </p>
-          <a
-            href="https://wa.me/6281234567890?text=Halo%20KlikUmroh,%20saya%20ingin%20tanya%20seputar%20platform"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.whatsappBtn}
-          >
-            <MessageCircle size={18} />
-            <span>Tanya lewat WhatsApp</span>
-          </a>
+          {askLink && (
+            <a href={askLink} target="_blank" rel="noopener noreferrer" className={styles.whatsappBtn}>
+              <MessageCircle size={18} />
+              <span>Tanya lewat WhatsApp</span>
+            </a>
+          )}
         </ScrollReveal>
 
         {/* Right: FAQ Accordion */}

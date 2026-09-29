@@ -13,8 +13,9 @@ import { MarketingPricing } from './MarketingPricing';
 import { MarketingFAQ } from './MarketingFAQ';
 import { MarketingFinalCTA } from './MarketingFinalCTA';
 import { MarketingFooter } from './MarketingFooter';
+import type { PlanTier } from '../../lib/pricingPlans';
 
-export const MarketingLandingView: React.FC = () => {
+export const MarketingLandingView: React.FC<{ plans?: PlanTier[] }> = ({ plans = [] }) => {
   return (
     <div style={{ backgroundColor: 'var(--km-bg)', minHeight: '100vh', width: '100%', overflowX: 'hidden' }}>
       <MarketingNavbar />
@@ -28,7 +29,7 @@ export const MarketingLandingView: React.FC = () => {
         <MarketingToolsFeature />
         <MarketingWhitelabelTrust />
         <MarketingProductFit />
-        <MarketingPricing />
+        <MarketingPricing initialPlans={plans} />
         <MarketingFAQ />
         <MarketingFinalCTA />
       </main>

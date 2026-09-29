@@ -82,7 +82,7 @@ func TestPlatformSettings_GetPublic(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var res map[string]string
+	var res map[string]interface{}
 	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestPlatformSettings_StaffUpdateSuccess(t *testing.T) {
 	pubW := httptest.NewRecorder()
 	r.ServeHTTP(pubW, pubReq)
 
-	var pubRes map[string]string
+	var pubRes map[string]interface{}
 	_ = json.Unmarshal(pubW.Body.Bytes(), &pubRes)
 	if pubRes["whatsapp_number"] != "6281299887766" {
 		t.Errorf("expected public endpoint to return updated whatsapp, got %s", pubRes["whatsapp_number"])
@@ -168,4 +168,72 @@ func TestPlatformSettings_StaffUpdateInvalidInput(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400 for invalid whatsapp, got %d", w.Code)
 	}
+}
+
+// Regresi temuan audit #6: pengaturan kosong tidak boleh diganti data placeholder yang terlihat asli.
+func TestPlatformSettings_EmptyValuesAreNotReplacedWithPlaceholders(t *testing.T) {
+	repo, r := setupPlatformSettingsEnv()
+	repo.settings = map[string]string{}
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/public/platform-settings", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var res struct {
+		WhatsAppNumber    string   `json:"whatsapp_number"`
+		BankAccountNumber string   `json:"bank_account_number"`
+		TermsURL          string   `json:"terms_url"`
+		MissingFields     []string `json:"missing_fields"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if res.WhatsAppNumber != "" || res.BankAccountNumber != "" {
+		t.Fatalf("expected empty values, got whatsapp=%q account=%q (placeholder leaked)", res.WhatsAppNumber, res.BankAccountNumber)
+	}
+	if len(res.MissingFields) != 6 {
+		t.Fatalf("expected 6 missing fields, got %v", res.MissingFields)
+	}
+}
+
+func TestPlatformSettings_LegalURLs(t *testing.T) {
+	base := service.UpdatePlatformSettingsRequest{
+		WhatsAppNumber:    "081299887766",
+		BankName:          "Bank Central Asia (BCA)",
+		BankAccountNumber: "8889990001",
+		BankAccountHolder: "PT KlikUmroh Sejahtera",
+	}
+	put := func(r http.Handler, payload service.UpdatePlatformSettingsRequest) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(payload)
+		req := httptest.NewRequest(http.MethodPut, "/api/staff/platform-settings", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Test-Staff-Auth", "true")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("non-https URL rejected", func(t *testing.T) {
+		_, r := setupPlatformSettingsEnv()
+		p := base
+		p.TermsURL = "http://klikumroh.id/syarat"
+		if w := put(r, p); w.Code != http.StatusBadRequest {
+			t.Fatalf("expected 400 for http:// terms URL, got %d", w.Code)
+		}
+	})
+
+	t.Run("https URLs saved and exposed publicly", func(t *testing.T) {
+		repo, r := setupPlatformSettingsEnv()
+		p := base
+		p.TermsURL = "https://klikumroh.id/syarat-ketentuan"
+		p.PrivacyURL = "https://klikumroh.id/kebijakan-privasi"
+		if w := put(r, p); w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+		}
+		if repo.settings["terms_url"] != p.TermsURL || repo.settings["privacy_url"] != p.PrivacyURL {
+			t.Fatalf("legal URLs not stored: %v", repo.settings)
+		}
+	})
 }

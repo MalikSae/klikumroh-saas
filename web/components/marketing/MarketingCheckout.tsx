@@ -341,7 +341,7 @@ const CheckoutForm = () => {
             
             <p className={styles.guaranteeText}>
               <ShieldCheck size={16} />
-              Transaksi aman & terenkripsi
+              Data dikirim lewat koneksi terenkripsi (HTTPS)
             </p>
           </div>
         </div>

@@ -1,13 +1,18 @@
 import React, { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { CheckoutView } from '../../../components/checkout/CheckoutView';
+import { fetchPricingPlans, toPlanTiers } from '../../../lib/pricingPlans';
+
+// Real prices from the super admin in the initial HTML (ISR, 5 minutes).
+export const revalidate = 300;
 
 export const metadata = {
   title: 'Checkout | KlikUmroh.id',
   description: 'Pendaftaran dan pembayaran sistem KlikUmroh.',
 };
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  const plans = toPlanTiers(await fetchPricingPlans());
   return (
     <Suspense
       fallback={
@@ -16,7 +21,7 @@ export default function CheckoutPage() {
         </div>
       }
     >
-      <CheckoutView />
+      <CheckoutView initialPlans={plans} />
     </Suspense>
   );
 }
