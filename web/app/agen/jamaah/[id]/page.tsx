@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { MobileContainer } from '../../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../../components/AgentBottomNavbar';
+import styles from './page.module.css';
+import { LOST_REASON_OPTIONS, formatDeparturePlan } from '../../../../lib/lostReasons';
 
 interface ProspectData {
   id: number;
@@ -32,6 +34,12 @@ interface ProspectData {
   status: string;
   source_channel?: string;
   entry_method: string;
+  departure_plan?: string | null;
+  domicile?: string | null;
+  /** Jamaah ditandai lunas oleh admin: komisi bisa dicairkan. */
+  paid_off_at?: string | null;
+  /** Personal data removed on the jamaah's request (UU PDP): no contact, no status change, no notes. */
+  anonymized_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,11 +53,13 @@ interface PackageData {
 }
 
 interface CommissionInfo {
-  type: string; // "potensi" or "final"
+  type: string; // "potensi" | "final" | "dibatalkan"
   direct_amount: number;
   override_amount: number;
-  total_amount: number;
+  total_amount: number; // agent's own commission (the upline override is not included for agents)
   rate_per_jamaah: number;
+  held_amount?: number; // part still held until the jamaah is lunas
+  released_amount?: number;
 }
 
 interface StatusHistoryItem {
@@ -94,6 +104,7 @@ export default function AgenJamaahDetailPage() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('baru');
   const [lostReason, setLostReason] = useState<string>('');
+  const [lostCategory, setLostCategory] = useState<string>('');
   const [statusSubmitting, setStatusSubmitting] = useState<boolean>(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
@@ -170,6 +181,7 @@ export default function AgenJamaahDetailPage() {
     if (data?.prospect && data.prospect.status !== 'closing') {
       setSelectedStatus(data.prospect.status);
       setLostReason('');
+      setLostCategory('');
       setStatusError(null);
       setIsStatusModalOpen(true);
     }
@@ -194,11 +206,18 @@ export default function AgenJamaahDetailPage() {
       setStatusSubmitting(true);
       setStatusError(null);
 
-      const payload: { status: string; lost_reason?: string } = {
+      const payload: { status: string; lost_reason?: string; lost_reason_category?: string } = {
         status: selectedStatus,
       };
-      if (selectedStatus === 'tidak_lanjut' && lostReason.trim()) {
-        payload.lost_reason = lostReason.trim();
+      if (selectedStatus === 'tidak_lanjut') {
+        if (!lostCategory) {
+          throw new Error('Pilih alasan tidak lanjut');
+        }
+        if (lostCategory === 'lainnya' && !lostReason.trim()) {
+          throw new Error('Jelaskan alasan untuk pilihan Lainnya');
+        }
+        payload.lost_reason_category = lostCategory;
+        if (lostReason.trim()) payload.lost_reason = lostReason.trim();
       }
 
       const res = await fetch(`/api/agent/jamaah/${id}/status`, {
@@ -306,16 +325,16 @@ export default function AgenJamaahDetailPage() {
       case 'baru':
         return {
           label: 'Baru',
-          bg: 'color-mix(in srgb, #3b82f6 12%, var(--tw-background))',
-          color: '#1d4ed8',
-          border: '1px solid color-mix(in srgb, #3b82f6 30%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background))',
+          color: 'var(--tw-status-new-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-new) 30%, transparent)',
         };
       case 'dihubungi':
         return {
           label: 'Dihubungi',
-          bg: 'color-mix(in srgb, #f59e0b 12%, var(--tw-background))',
-          color: '#b45309',
-          border: '1px solid color-mix(in srgb, #f59e0b 30%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-status-contacted) 12%, var(--tw-background))',
+          color: 'var(--tw-status-contacted-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-contacted) 30%, transparent)',
         };
       case 'tertarik':
         return {
@@ -329,21 +348,21 @@ export default function AgenJamaahDetailPage() {
           label: 'Closing',
           bg: 'var(--tw-badge-success-bg)',
           color: 'var(--tw-income)',
-          border: '1px solid color-mix(in srgb, #22c55e 30%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
         };
       case 'tidak_lanjut':
         return {
           label: 'Tidak Lanjut',
           bg: 'var(--tw-badge-neutral-bg)',
           color: 'var(--tw-text-muted)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
+          border: '1px solid var(--tw-border)',
         };
       default:
         return {
           label: status,
           bg: 'var(--tw-badge-neutral-bg)',
           color: 'var(--tw-text-muted)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
+          border: '1px solid var(--tw-border)',
         };
     }
   };
@@ -358,70 +377,29 @@ export default function AgenJamaahDetailPage() {
     return (
       <MobileContainer>
         <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 30,
-            backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
+          className={styles.detailheader1}
         >
           <button
             type="button"
             onClick={() => router.back()}
             aria-label="Kembali"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '6px',
-              cursor: 'pointer',
-              color: 'var(--tw-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '8px',
-            }}
+            className={styles.detailbutton2}
           >
             <ArrowLeft size={20} />
           </button>
           <span
-            style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              fontFamily: 'var(--tw-font-heading)',
-            }}
+            className={styles.detailspan3}
           >
             Detail Jamaah
           </span>
         </header>
         <div
-          style={{
-            padding: '80px 20px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px',
-            backgroundColor: 'var(--tw-page-bg)',
-            minHeight: 'calc(100vh - 62px)',
-          }}
+          className={styles.detaildiv4}
         >
           <div
-            style={{
-              width: '32px',
-              height: '32px',
-              border: '3px solid rgba(0, 0, 0, 0.08)',
-              borderTopColor: 'var(--tw-brand-primary)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }}
+            className={styles.detaildiv5}
           />
-          <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)' }}>
+          <span className={styles.detailspan6}>
             Memuat data detail jamaah...
           </span>
           <style jsx>{`
@@ -440,81 +418,37 @@ export default function AgenJamaahDetailPage() {
     return (
       <MobileContainer>
         <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 30,
-            backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
+          className={styles.detailheader1}
         >
           <button
             type="button"
             onClick={() => router.back()}
             aria-label="Kembali"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '6px',
-              cursor: 'pointer',
-              color: 'var(--tw-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              borderRadius: '8px',
-            }}
+            className={styles.detailbutton7}
           >
             <ArrowLeft size={20} />
           </button>
           <span
-            style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              fontFamily: 'var(--tw-font-heading)',
-            }}
+            className={styles.detailspan3}
           >
             Detail Jamaah
           </span>
         </header>
         <div
-          style={{
-            padding: '50px 20px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '14px',
-            backgroundColor: 'var(--tw-page-bg)',
-            minHeight: 'calc(100vh - 62px)',
-          }}
+          className={styles.detaildiv8}
         >
-          <div style={{ color: 'var(--tw-brand-primary)' }}>
+          <div className={styles.detaildiv9}>
             <AlertCircle size={36} />
           </div>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--tw-text-primary)' }}>
+          <h2 className={styles.detailh210}>
             Data Tidak Ditemukan
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--tw-text-secondary)', margin: 0, lineHeight: 1.5 }}>
+          <p className={styles.detailp11}>
             {error || 'Informasi jamaah tidak dapat ditampilkan.'}
           </p>
           <Link
             href="/agen/jamaah"
-            style={{
-              padding: '9px 16px',
-              borderRadius: '6px',
-              backgroundColor: 'var(--tw-brand-primary)',
-              color: '#FFFFFF',
-              fontSize: '13px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            className={styles.detaillink12}
           >
             <ArrowLeft size={15} />
             <span>Kembali ke Daftar Jamaah</span>
@@ -527,247 +461,155 @@ export default function AgenJamaahDetailPage() {
   const { prospect, package: pkg, info_komisi, status_history, notes } = data;
   const statusBadge = getStatusBadge(prospect.status);
   const isClosing = prospect.status === 'closing';
+  const isAnonymized = !!prospect.anonymized_at;
 
   return (
     <MobileContainer>
       {/* Sticky Header */}
       <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
+        className={styles.detailheader1}
       >
         <button
           type="button"
           onClick={() => router.back()}
           aria-label="Kembali"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
+          className={styles.detailbutton13}
         >
           <ArrowLeft size={20} />
         </button>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className={styles.detaildiv14}>
           <h1
-            style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
+            className={styles.detailh115}
           >
             {prospect.name}
           </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
+          <span className={styles.detailspan16}>
             Detail Calon Jamaah
           </span>
         </div>
 
         <span
-          style={{
-            padding: '3px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            backgroundColor: statusBadge.bg,
-            color: statusBadge.color,
-            border: statusBadge.border,
-            flexShrink: 0,
-          }}
+          className={styles.detailspan17} style={{
+  backgroundColor: statusBadge.bg,
+  color: statusBadge.color,
+  border: statusBadge.border
+}}
         >
           {statusBadge.label}
+          {isClosing && (prospect.paid_off_at ? ' · Lunas' : ' · Menunggu lunas')}
         </span>
       </header>
 
       {/* Main Canvas */}
       <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(84px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
+        className={styles.detaildiv18}
       >
         {/* 1. Info Kontak Section */}
         <section
           aria-label="Info Kontak Jamaah"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
+          className={styles.detailsection19}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div className={styles.detaildiv20}>
             <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '0.6px',
-                textTransform: 'uppercase',
-                color: 'var(--tw-text-muted)',
-              }}
+              className={styles.detailspan21}
             >
               Calon Jamaah
             </span>
             <h2
-              style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                color: 'var(--tw-text-primary)',
-                margin: 0,
-                fontFamily: 'var(--tw-font-heading)',
-              }}
+              className={styles.detailh222}
             >
               {prospect.name}
             </h2>
             <span
-              style={{
-                fontSize: '13px',
-                color: 'var(--tw-text-secondary)',
-                fontFamily: 'monospace',
-              }}
+              className={styles.detailspan23}
             >
               {prospect.phone}
             </span>
           </div>
 
-          {/* Action Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {/* Action Buttons (none once the jamaah's personal data was removed) */}
+          {!isAnonymized && (
+          <div className={styles.detaildiv24}>
             <a
               href={getWhatsAppUrl(prospect.phone, prospect.name)}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                padding: '10px 12px',
-                borderRadius: '6px',
-                backgroundColor: '#16a34a',
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                border: 'none',
-                cursor: 'pointer',
-              }}
+              className={styles.detaila25}
             >
-              <MessageCircle size={15} color="#ffffff" />
+              <MessageCircle size={15} color="var(--tw-on-brand)" />
               <span>Chat WhatsApp</span>
             </a>
 
             <Link
               href={`/agen/script-wa?prospect_id=${prospect.id}`}
-              style={{
-                padding: '10px 12px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-background)',
-                color: 'var(--tw-brand-primary)',
-                border: '1px solid var(--tw-brand-primary)',
-                fontSize: '12px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
+              className={styles.detaillink26}
             >
               <MessageSquare size={15} />
               <span>Script Chat</span>
             </Link>
           </div>
+          )}
         </section>
 
         {/* 2. Konteks Pendaftaran Section */}
         <section
           aria-label="Konteks Pendaftaran"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
+          className={styles.detailsection27}
         >
           <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-              color: 'var(--tw-text-muted)',
-            }}
+            className={styles.detailspan28}
           >
             Konteks Pendaftaran
           </span>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>Paket Diminati</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <PackageIcon size={13} color="var(--tw-text-secondary)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+          <div className={styles.detaildiv29}>
+            <div className={styles.detaildiv20}>
+              <span className={styles.detailspan30}>Paket Diminati</span>
+              <div className={styles.detaildiv31}>
+                <PackageIcon size={13} color="var(--tw-text-secondary)" className={styles.noShrink} />
+                <span className={styles.detailspan32}>
                   {pkg ? pkg.name : 'Paket Pilihan'}
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>Jumlah Jamaah</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Users size={13} color="var(--tw-text-secondary)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+            <div className={styles.detaildiv20}>
+              <span className={styles.detailspan30}>Jumlah Jamaah</span>
+              <div className={styles.detaildiv31}>
+                <Users size={13} color="var(--tw-text-secondary)" className={styles.noShrink} />
+                <span className={styles.detailspan32}>
                   {prospect.jumlah_jamaah || 1} Orang
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>Jalur Pendaftaran</span>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+            <div className={styles.detaildiv20}>
+              <span className={styles.detailspan30}>Rencana Berangkat</span>
+              <div className={styles.detaildiv31}>
+                <span className={styles.detailspan32}>{formatDeparturePlan(prospect.departure_plan)}</span>
+              </div>
+            </div>
+
+            <div className={styles.detaildiv20}>
+              <span className={styles.detailspan30}>Domisili</span>
+              <div className={styles.detaildiv31}>
+                <span className={styles.detailspan32}>{prospect.domicile || '-'}</span>
+              </div>
+            </div>
+
+            <div className={styles.detaildiv20}>
+              <span className={styles.detailspan30}>Jalur Pendaftaran</span>
+              <span className={styles.detailspan33}>
                 {prospect.entry_method === 'agent_manual' ? 'Input Manual Agen' : 'Formulir Website'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>Tanggal Masuk</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div className={styles.detaildiv20}>
+              <span className={styles.detailspan30}>Tanggal Masuk</span>
+              <div className={styles.detaildiv31}>
                 <Calendar size={12} color="var(--tw-text-secondary)" />
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+                <span className={styles.detailspan33}>
                   {formatDate(prospect.created_at)}
                 </span>
               </div>
@@ -776,77 +618,50 @@ export default function AgenJamaahDetailPage() {
         </section>
 
         {/* 3. Info Komisi Section */}
-        {info_komisi && (
+        {info_komisi && info_komisi.type !== 'dibatalkan' && (
           <section
             aria-label="Informasi Komisi"
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              padding: '14px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              boxShadow: 'var(--tw-card-shadow)',
-            }}
+            className={styles.detailsection34}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className={styles.detaildiv35}>
               <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                  color: 'var(--tw-text-muted)',
-                }}
+                className={styles.detailspan28}
               >
                 Informasi Komisi
               </span>
 
               <span
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  backgroundColor: isClosing ? 'var(--tw-badge-success-bg)' : 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))',
-                  color: isClosing ? 'var(--tw-income)' : 'var(--tw-brand-primary)',
-                  border: isClosing ? '1px solid color-mix(in srgb, #22c55e 30%, transparent)' : '1px solid color-mix(in srgb, var(--tw-brand-primary) 25%, transparent)',
-                }}
+                className={`${styles.detailspan36} ${isClosing ? styles.detailspan37 : styles.detailspan38}`}
               >
-                {isClosing ? 'Komisi Final' : 'Potensi Komisi'}
+                {!isClosing
+                  ? 'Potensi Komisi'
+                  : prospect.paid_off_at
+                  ? 'Lunas, siap dicairkan'
+                  : 'Tertahan, menunggu lunas'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <div className={styles.detaildiv39}>
               <span
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 800,
-                  color: 'var(--tw-text-primary)',
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
+                className={styles.detailspan40}
               >
                 {formatRupiah(info_komisi.total_amount)}
               </span>
               {info_komisi.rate_per_jamaah > 0 && (prospect.jumlah_jamaah || 1) > 1 && (
-                <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
+                <span className={styles.detailspan30}>
                   ({formatRupiah(info_komisi.rate_per_jamaah)} x {prospect.jumlah_jamaah} jamaah)
                 </span>
               )}
             </div>
 
             <p
-              style={{
-                fontSize: '11px',
-                color: 'var(--tw-text-secondary)',
-                lineHeight: 1.4,
-                margin: 0,
-              }}
+              className={styles.detailp41}
             >
-              {isClosing
-                ? 'Pendaftaran jamaah ini telah closing dan komisi telah berhasil dicatat ke saldo Anda.'
-                : 'Komisi berstatus potensi. Saldo komisi akan menjadi final setelah admin travel memverifikasi pembayaran jamaah.'}
+              {!isClosing
+                ? 'Komisi berstatus potensi. Komisi tercatat saat jamaah membayar DP (closing).'
+                : prospect.paid_off_at || (info_komisi.held_amount || 0) <= 0
+                ? 'Jamaah sudah lunas. Komisi ini sudah bisa Anda cairkan.'
+                : 'Jamaah sudah membayar DP. Komisi tercatat dan bisa dicairkan setelah admin menandai jamaah lunas.'}
             </p>
           </section>
         )}
@@ -854,86 +669,47 @@ export default function AgenJamaahDetailPage() {
         {/* 4. Pipeline Status & Ubah Status Button */}
         <section
           aria-label="Status Prospek"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
+          className={styles.detailsection27}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div className={styles.detaildiv35}>
+            <div className={styles.detaildiv20}>
               <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                  color: 'var(--tw-text-muted)',
-                }}
+                className={styles.detailspan28}
               >
                 Status Tahapan
               </span>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tw-text-primary)' }}>
+              <span className={styles.detailspan42}>
                 {statusBadge.label}
+          {isClosing && (prospect.paid_off_at ? ' · Lunas' : ' · Menunggu lunas')}
               </span>
             </div>
 
-            {!isClosing ? (
+            {!isClosing && !isAnonymized ? (
               <button
                 type="button"
                 onClick={handleOpenStatusModal}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  backgroundColor: 'var(--tw-background)',
-                  color: 'var(--tw-brand-primary)',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                className={styles.detailbutton43}
               >
                 Ubah Status
               </button>
             ) : (
               <span
-                style={{
-                  padding: '5px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: 'var(--tw-badge-success-bg)',
-                  border: '1px solid var(--tw-border)',
-                  color: 'var(--tw-income)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
+                className={styles.detailspan44}
               >
                 <Lock size={12} />
-                <span>Closing — Status Final</span>
+                <span>{isClosing ? 'Closing — Status Final' : 'Status Terkunci'}</span>
               </span>
             )}
           </div>
 
           <div
-            style={{
-              padding: '8px 10px',
-              borderRadius: '6px',
-              backgroundColor: 'var(--tw-page-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            className={styles.detaildiv45}
           >
-            <Info size={14} color="var(--tw-text-muted)" style={{ flexShrink: 0 }} />
-            <span style={{ fontSize: '11px', color: 'var(--tw-text-secondary)', lineHeight: 1.4 }}>
-              {isClosing
+            <Info size={14} color="var(--tw-text-muted)" className={styles.noShrink} />
+            <span className={styles.detailspan46}>
+              {isAnonymized
+                ? 'Data pribadi jamaah ini sudah dihapus atas permintaannya (UU PDP). Riwayat dan komisi tetap tersimpan.'
+                : isClosing
                 ? 'Status prospek ini sudah Closing dan bersifat final.'
                 : 'Status Closing akan ditetapkan oleh admin travel setelah verifikasi pembayaran.'}
             </span>
@@ -943,35 +719,20 @@ export default function AgenJamaahDetailPage() {
         {/* 5. Riwayat Status Timeline */}
         <section
           aria-label="Riwayat Status"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
+          className={styles.detailsection27}
         >
           <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-              color: 'var(--tw-text-muted)',
-            }}
+            className={styles.detailspan28}
           >
             Riwayat Status
           </span>
 
           {status_history.length === 0 ? (
-            <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)' }}>
+            <span className={styles.detailspan47}>
               Belum ada perubahan status.
             </span>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className={styles.detaildiv48}>
               {status_history.map((hist, idx) => {
                 const isAgent = hist.changed_by_type === 'agent';
                 const isLast = idx === status_history.length - 1;
@@ -979,44 +740,25 @@ export default function AgenJamaahDetailPage() {
                 return (
                   <div
                     key={hist.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px',
-                      position: 'relative',
-                    }}
+                    className={styles.detaildiv49}
                   >
                     <div
-                      style={{
-                        width: '7px',
-                        height: '7px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--tw-brand-primary)',
-                        marginTop: '5px',
-                        flexShrink: 0,
-                      }}
+                      className={styles.detaildiv50}
                     />
 
                     <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '1px',
-                        flex: 1,
-                        paddingBottom: isLast ? 0 : '6px',
-                        borderBottom: isLast ? 'none' : '1px solid rgba(0, 0, 0, 0.04)',
-                      }}
+                      className={`${styles.detaildiv51} ${isLast ? styles.detaildiv52 : styles.detaildiv53}`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+                      <div className={styles.detaildiv54}>
+                        <span className={styles.detailspan33}>
                           Status: {hist.new_status}
                         </span>
-                        <span style={{ fontSize: '10px', color: 'var(--tw-text-muted)' }}>
+                        <span className={styles.detailspan55}>
                           {formatDateTime(hist.changed_at)}
                         </span>
                       </div>
 
-                      <span style={{ fontSize: '11px', color: 'var(--tw-text-secondary)' }}>
+                      <span className={styles.detailspan56}>
                         {isAgent ? 'Diubah oleh Anda' : 'Diubah oleh Admin Travel'}
                         {hist.lost_reason && ` - Alasan: ${hist.lost_reason}`}
                       </span>
@@ -1031,33 +773,19 @@ export default function AgenJamaahDetailPage() {
         {/* 6. Catatan Perkembangan Section */}
         <section
           aria-label="Catatan Perkembangan"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
+          className={styles.detailsection27}
         >
           <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-              color: 'var(--tw-text-muted)',
-            }}
+            className={styles.detailspan28}
           >
             Catatan Prospek ({notes.length})
           </span>
 
           {/* Form Tambah Catatan */}
-          <form onSubmit={handleAddNote} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {!isAnonymized && (
+          <form onSubmit={handleAddNote} className={styles.detailform57}>
             {noteError && (
-              <span style={{ fontSize: '11px', color: '#dc2626' }}>
+              <span className={styles.detailspan58}>
                 {noteError}
               </span>
             )}
@@ -1067,86 +795,48 @@ export default function AgenJamaahDetailPage() {
               placeholder="Tulis catatan perkembangan jamaah..."
               value={newNoteText}
               onChange={(e) => setNewNoteText(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                borderRadius: '8px',
-                border: '1px solid rgba(0, 0, 0, 0.1)',
-                fontSize: '13px',
-                backgroundColor: 'var(--tw-page-bg)',
-                color: 'var(--tw-text-primary)',
-                outline: 'none',
-                resize: 'vertical',
-                boxSizing: 'border-box',
-                fontFamily: 'inherit',
-              }}
+              className={styles.detailtextarea59}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className={styles.detaildiv60}>
               <button
                 type="submit"
                 disabled={noteSubmitting || !newNoteText.trim()}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--tw-brand-primary)',
-                  color: '#FFFFFF',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: noteSubmitting || !newNoteText.trim() ? 'not-allowed' : 'pointer',
-                  opacity: noteSubmitting || !newNoteText.trim() ? 0.6 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                }}
+                className={`${styles.detailbutton61} ${noteSubmitting || !newNoteText.trim() ? styles.detailbutton62 : styles.detailbutton63}`}
               >
                 <Send size={12} />
                 <span>{noteSubmitting ? 'Mengirim...' : 'Tambah Catatan'}</span>
               </button>
             </div>
           </form>
+          )}
 
           {/* List of Notes */}
           {notes.length === 0 ? (
-            <div style={{ padding: '8px 0', textAlign: 'center' }}>
-              <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)' }}>
+            <div className={styles.detaildiv64}>
+              <span className={styles.detailspan47}>
                 Belum ada catatan. Tambahkan catatan untuk memantau follow-up.
               </span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
+            <div className={styles.detaildiv65}>
               {notes.map((note) => {
                 const isAuthorAgent = note.author_type === 'agent';
                 return (
                   <div
                     key={note.id}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      backgroundColor: isAuthorAgent ? 'rgba(0, 0, 0, 0.02)' : '#f8fafc',
-                      border: '1px solid rgba(0, 0, 0, 0.05)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '3px',
-                    }}
+                    className={`${styles.detaildiv66} ${isAuthorAgent ? styles.detaildiv67 : styles.detaildiv68}`}
                   >
                     <p
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--tw-text-primary)',
-                        lineHeight: 1.5,
-                        margin: 0,
-                        whiteSpace: 'pre-wrap',
-                      }}
+                      className={styles.detailp69}
                     >
                       {note.note_text}
                     </p>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                      <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--tw-text-secondary)' }}>
+                    <div className={styles.detaildiv70}>
+                      <span className={styles.detailspan71}>
                         {isAuthorAgent ? 'Catatan Anda' : 'Admin Travel'}
                       </span>
-                      <span style={{ fontSize: '10px', color: 'var(--tw-text-muted)' }}>
+                      <span className={styles.detailspan55}>
                         {formatDateTime(note.created_at)}
                       </span>
                     </div>
@@ -1159,49 +849,20 @@ export default function AgenJamaahDetailPage() {
       </div>
 
       {/* Modal Ubah Status (TIDAK ADA OPSI CLOSING) */}
-      {!isClosing && isStatusModalOpen && (
+      {!isClosing && !isAnonymized && isStatusModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-status-title"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-            zIndex: 1000,
-          }}
+          className={styles.detaildiv72}
         >
           <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '14px',
-              width: '100%',
-              maxWidth: '400px',
-              padding: '18px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            }}
+            className={styles.detaildiv73}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className={styles.detaildiv35}>
               <h2
                 id="modal-status-title"
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  color: 'var(--tw-text-primary)',
-                  margin: 0,
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
+                className={styles.detailh274}
               >
                 Ubah Status Prospek
               </h2>
@@ -1210,18 +871,7 @@ export default function AgenJamaahDetailPage() {
                 onClick={handleCloseStatusModal}
                 disabled={statusSubmitting}
                 aria-label="Tutup modal"
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className={styles.detailbutton75}
               >
                 <X size={15} />
               </button>
@@ -1229,22 +879,15 @@ export default function AgenJamaahDetailPage() {
 
             {statusError && (
               <div
-                style={{
-                  padding: '8px 10px',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fee2e2',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  color: '#991b1b',
-                }}
+                className={styles.detaildiv76}
               >
                 {statusError}
               </div>
             )}
 
-            <form onSubmit={handleUpdateStatus} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleUpdateStatus} className={styles.detailform77}>
               {/* Status Radio Choices */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className={styles.detailform57}>
                 {[
                   { key: 'baru', label: 'Baru', desc: 'Calon jamaah baru mendaftar / masuk' },
                   { key: 'dihubungi', label: 'Dihubungi', desc: 'Sudah dihubungi via WhatsApp atau telepon' },
@@ -1255,18 +898,7 @@ export default function AgenJamaahDetailPage() {
                   return (
                     <label
                       key={opt.key}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                        padding: '9px 10px',
-                        borderRadius: '6px',
-                        border: isChecked ? '1.5px solid var(--tw-brand-primary)' : '1px solid rgba(0, 0, 0, 0.08)',
-                        backgroundColor: isChecked
-                          ? 'color-mix(in srgb, var(--tw-brand-primary) 5%, var(--tw-background))'
-                          : 'var(--tw-background)',
-                        cursor: 'pointer',
-                      }}
+                      className={`${styles.detaillabel78} ${isChecked ? styles.detaillabel79 : styles.detaillabel80}`}
                     >
                       <input
                         type="radio"
@@ -1274,13 +906,13 @@ export default function AgenJamaahDetailPage() {
                         value={opt.key}
                         checked={isChecked}
                         onChange={() => setSelectedStatus(opt.key)}
-                        style={{ marginTop: '2px' }}
+                        className={styles.detailinput81}
                       />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+                      <div className={styles.detaildiv82}>
+                        <span className={styles.detailspan32}>
                           {opt.label}
                         </span>
-                        <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
+                        <span className={styles.detailspan30}>
                           {opt.desc}
                         </span>
                       </div>
@@ -1291,78 +923,55 @@ export default function AgenJamaahDetailPage() {
 
               {/* Alasan Tidak Lanjut (Conditional) */}
               {selectedStatus === 'tidak_lanjut' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
-                    Alasan Tidak Lanjut (Opsional)
+                <div className={styles.detaildiv83}>
+                  <label className={styles.detailspan33} htmlFor="lost-category">
+                    Alasan Tidak Lanjut
                   </label>
+                  <select
+                    id="lost-category"
+                    value={lostCategory}
+                    onChange={(e) => setLostCategory(e.target.value)}
+                    className={styles.detailinput84}
+                  >
+                    <option value="">Pilih alasan</option>
+                    {LOST_REASON_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                   <input
                     type="text"
-                    placeholder="Contoh: Jadwal tidak cocok, kendala dana"
+                    placeholder={lostCategory === 'lainnya' ? 'Jelaskan alasannya (wajib)' : 'Keterangan tambahan (opsional)'}
                     value={lostReason}
+                    maxLength={255}
                     onChange={(e) => setLostReason(e.target.value)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid rgba(0, 0, 0, 0.12)',
-                      fontSize: '12px',
-                      backgroundColor: 'var(--tw-background)',
-                      color: 'var(--tw-text-primary)',
-                      outline: 'none',
-                    }}
+                    className={styles.detailinput84}
                   />
                 </div>
               )}
 
               {/* Notice */}
               <div
-                style={{
-                  padding: '7px 9px',
-                  borderRadius: '6px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  fontSize: '11px',
-                  color: 'var(--tw-text-muted)',
-                  lineHeight: 1.4,
-                }}
+                className={styles.detaildiv85}
               >
                 Status <strong>Closing</strong> hanya dapat ditetapkan oleh admin travel setelah verifikasi pembayaran.
               </div>
 
               {/* Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+              <div className={styles.detaildiv86}>
                 <button
                   type="button"
                   onClick={handleCloseStatusModal}
                   disabled={statusSubmitting}
-                  style={{
-                    flex: 1,
-                    padding: '9px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    backgroundColor: 'var(--tw-background)',
-                    color: 'var(--tw-text-secondary)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className={styles.detailbutton87}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={statusSubmitting}
-                  style={{
-                    flex: 1,
-                    padding: '9px 12px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: 'var(--tw-brand-primary)',
-                    color: '#FFFFFF',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: statusSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: statusSubmitting ? 0.7 : 1,
-                  }}
+                  className={`${styles.detailbutton88} ${statusSubmitting ? styles.detailbutton89 : styles.detailbutton63}`}
                 >
                   {statusSubmitting ? 'Menyimpan...' : 'Simpan Status'}
                 </button>

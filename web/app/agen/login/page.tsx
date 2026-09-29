@@ -16,6 +16,7 @@ import {
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
 import { BottomNavbar } from '../../../components/BottomNavbar';
+import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import designTokens from '../../../../design-tokens.json';
 import './AgenLogin.css';
@@ -116,8 +117,16 @@ export default function AgenLoginPage() {
     ? { '--tw-brand-primary': tenantInfo.brand_primary_color }
     : {};
 
-  const waNumber = tenantInfo?.whatsapp_number || '6281234567890';
-  const helpWaUrl = `https://wa.me/${waNumber}?text=Halo%20Admin%2C%20saya%20mitra%20agen%20${encodeURIComponent(tenantInfo?.name || 'travel')}%20butuh%20bantuan%20login%20akun`;
+  // No travel WhatsApp number -> hide the help links instead of pointing to a placeholder number.
+  const travelLabel = tenantInfo?.name || 'travel';
+  const helpWaUrl = whatsappLink(
+    tenantInfo?.whatsapp_number,
+    `Halo Admin, saya mitra agen ${travelLabel} butuh bantuan login akun`
+  );
+  const forgotPasswordWaUrl = whatsappLink(
+    tenantInfo?.whatsapp_number,
+    `Halo Admin, saya mitra agen ${travelLabel} lupa password akun saya (Email: ${email || '-'})`
+  );
 
   return (
     <div
@@ -185,19 +194,21 @@ export default function AgenLoginPage() {
                 <label className="tw-agen-login-label" htmlFor="login-password" style={{ margin: 0 }}>
                   Password
                 </label>
-                <a
-                  href={`https://wa.me/${waNumber}?text=Halo%20Admin%2C%20saya%20mitra%20agen%20${encodeURIComponent(tenantInfo?.name || 'travel')}%20lupa%20password%20akun%20saya%20(Email%3A%20${encodeURIComponent(email || '-')})`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--tw-brand-primary, #0D9488)',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                  }}
-                >
-                  Lupa password?
-                </a>
+                {forgotPasswordWaUrl && (
+                  <a
+                    href={forgotPasswordWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--tw-brand-primary, #0D9488)',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Lupa password?
+                  </a>
+                )}
               </div>
               <div className="tw-agen-login-input-wrap">
                 <Lock size={16} className="tw-agen-login-icon-left" />
@@ -243,15 +254,17 @@ export default function AgenLoginPage() {
             </div>
 
             {/* Help Link */}
-            <a
-              href={helpWaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="tw-agen-login-help"
-            >
-              <MessageCircle size={14} />
-              <span>Kendala login? Hubungi Admin</span>
-            </a>
+            {helpWaUrl && (
+              <a
+                href={helpWaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tw-agen-login-help"
+              >
+                <MessageCircle size={14} />
+                <span>Kendala login? Hubungi Admin</span>
+              </a>
+            )}
           </form>
 
           {/* 5. Registration CTA Card */}

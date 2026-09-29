@@ -316,6 +316,10 @@ func (h *AgentTargetHandler) MarkReward(w http.ResponseWriter, r *http.Request) 
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, service.ErrRewardHasUnpaidJamaah) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal memperbarui status reward"})
 		return
 	}
@@ -356,4 +360,3 @@ func (h *AgentTargetHandler) ExportAchievementsCSV(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(csvBytes)
 }
-

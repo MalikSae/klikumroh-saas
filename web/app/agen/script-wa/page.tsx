@@ -263,7 +263,10 @@ function ScriptWAContent() {
         });
         if (res.ok) {
           const data = await res.json();
-          const list: AgentProspectItem[] = Array.isArray(data) ? data : [];
+          // A jamaah whose personal data was removed (UU PDP) has no number: nothing to chat with.
+          const list: AgentProspectItem[] = (Array.isArray(data) ? data : []).filter(
+            (p: AgentProspectItem) => Boolean(p.phone && p.phone.trim())
+          );
           setProspectList(list);
 
           // If query param ?prospect_id=... is given, auto-select
@@ -761,7 +764,7 @@ function ScriptWAContent() {
                   >
                     <option value="">-- Pilih Calon Jamaah ({prospectList.length} tersedia) --</option>
                     {prospectList.map((p) => {
-                      const statusLabel = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+                      const statusLabel = STATUS_LABELS[p.status] || p.status;
                       return (
                         <option key={p.id} value={p.id}>
                           {p.name} ({p.phone}) • {statusLabel}
@@ -808,7 +811,7 @@ function ScriptWAContent() {
                               : 'var(--tw-badge-neutral-text)',
                         }}
                       >
-                        {selectedProspect.status}
+                        {STATUS_LABELS[selectedProspect.status] || selectedProspect.status}
                       </span>
                       <strong style={{ fontSize: '13px', color: 'var(--tw-text-primary)' }}>
                         {selectedProspect.name}
@@ -1688,6 +1691,14 @@ function ScriptWAContent() {
     </MobileContainer>
   );
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  baru: 'Baru',
+  dihubungi: 'Dihubungi',
+  tertarik: 'Tertarik',
+  closing: 'Closing',
+  tidak_lanjut: 'Tidak Lanjut',
+};
 
 export default function ScriptWAPage() {
   return (

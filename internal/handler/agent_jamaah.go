@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -14,8 +15,9 @@ import (
 )
 
 type updateAgentJamaahStatusPayload struct {
-	Status     string  `json:"status"`
-	LostReason *string `json:"lost_reason"`
+	Status             string  `json:"status"`
+	LostReason         *string `json:"lost_reason"`
+	LostReasonCategory *string `json:"lost_reason_category"`
 }
 
 type addAgentJamaahNotePayload struct {
@@ -62,8 +64,7 @@ func (h *AgentJamaahHandler) List(w http.ResponseWriter, r *http.Request) {
 		statusPtr = &statusFilter
 	}
 
-	jamaahList, err := h.prospectService.ListByAgent(r.Context(), tenantID, agentID, statusPtr)
-	if err != nil {
+	respondErr := func(err error) {
 		if errors.Is(err, service.ErrAgentNotActive) {
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": "akun agen belum aktif atau ditangguhkan"})
 			return
@@ -73,6 +74,29 @@ func (h *AgentJamaahHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
+
+	// Paged form (?page=&page_size=) for the jamaah list; without page the full list is returned
+	// (used by pickers such as the WhatsApp script page).
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		page, _ := strconv.Atoi(pageStr)
+		pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+		var searchPtr *string
+		if search := strings.TrimSpace(r.URL.Query().Get("search")); search != "" {
+			searchPtr = &search
+		}
+		result, err := h.prospectService.ListByAgentPage(r.Context(), tenantID, agentID, statusPtr, searchPtr, page, pageSize)
+		if err != nil {
+			respondErr(err)
+			return
+		}
+		respondJSON(w, http.StatusOK, result)
+		return
+	}
+
+	jamaahList, err := h.prospectService.ListByAgent(r.Context(), tenantID, agentID, statusPtr)
+	if err != nil {
+		respondErr(err)
 		return
 	}
 
@@ -143,7 +167,7 @@ func (h *AgentJamaahHandler) UpdateStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := h.prospectService.UpdateStatusByAgent(r.Context(), tenantID, agentID, id, payload.Status, payload.LostReason); err != nil {
+	if err := h.prospectService.UpdateStatusByAgent(r.Context(), tenantID, agentID, id, payload.Status, payload.LostReason, payload.LostReasonCategory); err != nil {
 		if errors.Is(err, service.ErrAgentNotActive) {
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": "akun agen belum aktif atau ditangguhkan"})
 			return
@@ -157,8 +181,12 @@ func (h *AgentJamaahHandler) UpdateStatus(w http.ResponseWriter, r *http.Request
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, service.ErrInvalidProspectStatus) {
+		if isProspectInputError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if isProspectConflictError(err) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
@@ -208,7 +236,11 @@ func (h *AgentJamaahHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "jamaah tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if isProspectInputError(err) || strings.Contains(err.Error(), "catatan tidak boleh kosong") {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 
@@ -244,7 +276,11 @@ func (h *AgentJamaahHandler) CreateManual(w http.ResponseWriter, r *http.Request
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "paket tidak ditemukan"})
 			return
 		}
-		if errors.Is(err, service.ErrProspectNameRequired) || errors.Is(err, service.ErrProspectPhoneRequired) || errors.Is(err, service.ErrInvalidJumlahJamaah) {
+		if isProspectConflictError(err) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+		if isProspectInputError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

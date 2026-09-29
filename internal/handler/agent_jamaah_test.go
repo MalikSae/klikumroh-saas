@@ -646,6 +646,7 @@ func TestAgentJamaah_CreateManual_AssignsAgentAndAuditFields(t *testing.T) {
 
 	t.Run("Tambah manual sukses -> agent_id otomatis ter-assign, source_channel='agen', entry_method='agent_manual', initial note created", func(t *testing.T) {
 		payload := map[string]interface{}{
+			"consent":       true,
 			"name":          "Bapak Hendra",
 			"phone":         "08129876543",
 			"jumlah_jamaah": 3,

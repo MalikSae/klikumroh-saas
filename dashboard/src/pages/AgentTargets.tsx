@@ -46,6 +46,7 @@ import {
   exportTargetAchievementsCSV,
   getStoredUser,
 } from '../services/api';
+import './AgentTargets.css';
 
 export const AgentTargetsPage: React.FC = () => {
   const [targets, setTargets] = useState<AgentTarget[]>([]);
@@ -466,7 +467,11 @@ export const AgentTargetsPage: React.FC = () => {
       label: 'Aksi',
       render: (item) => (
         <div>
-          {item.reward_status === 'pending' ? (
+          {item.reward_status === 'pending' && (item.unpaid_jamaah_count || 0) > 0 ? (
+            <span className="db-target-unpaid-note" title="Reward menunggu jamaah yang dihitung untuk target ini lunas">
+              {item.unpaid_jamaah_count} jamaah belum lunas
+            </span>
+          ) : item.reward_status === 'pending' ? (
             <Button
               variant="secondary"
               size="sm"

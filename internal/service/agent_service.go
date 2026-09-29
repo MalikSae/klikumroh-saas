@@ -97,9 +97,11 @@ type TargetBulanan struct {
 }
 
 type AgentDashboardSummary struct {
-	Name                string                        `json:"name"`
-	SaldoSiapCair       float64                       `json:"saldo_siap_cair"`
-	SaldoTertunda       float64                       `json:"saldo_tertunda"`
+	Name          string  `json:"name"`
+	SaldoSiapCair float64 `json:"saldo_siap_cair"`
+	SaldoTertunda float64 `json:"saldo_tertunda"`
+	// SaldoTertahan: komisi dari jamaah yang sudah closing (DP) tapi belum ditandai lunas.
+	SaldoTertahan       float64                       `json:"saldo_tertahan"`
 	JamaahTertundaCount int                           `json:"jamaah_tertunda_count"`
 	TargetBulanan       *TargetBulanan                `json:"target_bulanan"`
 	Targets             []AgentTargetView             `json:"targets"`
@@ -136,14 +138,16 @@ type AgentCreatePayoutRequestInput struct {
 }
 
 type CommissionHistoryItem struct {
-	ID          uint64    `json:"id"`
-	Source      string    `json:"source"` // "ledger" or "payout"
-	Type        string    `json:"type"`   // "direct", "override", "correction", "payout"
-	Description string    `json:"description"`
-	Amount      float64   `json:"amount"`
-	Direction   string    `json:"direction"`        // "masuk" or "keluar"
-	Status      string    `json:"status,omitempty"` // "pending", "approved", "rejected", "paid"
-	CreatedAt   time.Time `json:"created_at"`
+	ID          uint64  `json:"id"`
+	Source      string  `json:"source"` // "ledger" or "payout"
+	Type        string  `json:"type"`   // "direct", "override", "correction", "payout"
+	Description string  `json:"description"`
+	Amount      float64 `json:"amount"`
+	Direction   string  `json:"direction"`        // "masuk" or "keluar"
+	Status      string  `json:"status,omitempty"` // "pending", "approved", "rejected", "paid"
+	// Held: commission entry not withdrawable yet (jamaah belum lunas). Ledger entries only.
+	Held      bool      `json:"held,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type UpdateProfileRequest struct {
@@ -188,6 +192,7 @@ type AgentDashboardDetail struct {
 	TotalJamaahClosing int                           `json:"total_jamaah_closing"`
 	SaldoSiapCair      float64                       `json:"saldo_siap_cair"`
 	SaldoTertunda      float64                       `json:"saldo_tertunda"`
+	SaldoTertahan      float64                       `json:"saldo_tertahan"`
 	RiwayatPencairan   []AgentPayoutHistoryItem      `json:"riwayat_pencairan"`
 	RiwayatKomisi      []CommissionHistoryItem       `json:"riwayat_komisi"`
 }
@@ -561,6 +566,7 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 		TenantName:          tenant.Name,
 		SaldoSiapCair:       saldoSiapCair,
 		SaldoTertunda:       saldoTertunda,
+		SaldoTertahan:       s.heldCommission(ctx, tenantID, agentID),
 		JamaahTertundaCount: countTertunda,
 		TargetBulanan:       targetBulanan,
 		Targets:             targets,
@@ -889,7 +895,7 @@ func (s *agentService) GetPayoutInfo(ctx context.Context, tenantID uint64, agent
 		return nil, err
 	}
 
-	totalEarned, err := s.commissionLedgerRepo.SumByAgent(ctx, tenantID, agentID)
+	totalEarned, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
 	if err != nil {
 		return nil, err
 	}
@@ -968,7 +974,7 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 	}
 
 	// 3. TOLAK kalau amount_requested > saldo_tersedia (hitung ulang di server)
-	totalEarned, err := s.commissionLedgerRepo.SumByAgent(ctx, tenantID, agentID)
+	totalEarned, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1174,6 +1180,7 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 			Description: desc,
 			Amount:      l.Amount,
 			Direction:   direction,
+			Held:        l.ReleasedAt == nil,
 			CreatedAt:   l.CreatedAt,
 		})
 	}
@@ -1306,8 +1313,17 @@ func (s *agentService) UpdatePassword(ctx context.Context, tenantID uint64, agen
 	return s.agentRepo.UpdatePassword(ctx, tenantID, agentID, hashed)
 }
 
+// heldCommission is commission booked at closing (DP) that is not withdrawable until the jamaah is paid off.
+func (s *agentService) heldCommission(ctx context.Context, tenantID, agentID uint64) float64 {
+	held, err := s.commissionLedgerRepo.SumHeldByAgent(ctx, tenantID, agentID)
+	if err != nil || held < 0 {
+		return 0
+	}
+	return held
+}
+
 func (s *agentService) calculateAgentBalances(ctx context.Context, tenantID, agentID uint64) (float64, float64, int, error) {
-	totalEarned, err := s.commissionLedgerRepo.SumByAgent(ctx, tenantID, agentID)
+	totalEarned, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -1422,6 +1438,7 @@ func (s *agentService) GetDashboardAgentDetail(ctx context.Context, tenantID uin
 		TotalJamaahClosing: totalClosing,
 		SaldoSiapCair:      saldoSiapCair,
 		SaldoTertunda:      saldoTertunda,
+		SaldoTertahan:      s.heldCommission(ctx, tenantID, agentID),
 		RiwayatPencairan:   riwayatPencairan,
 		RiwayatKomisi:      recentKomisi,
 	}, nil

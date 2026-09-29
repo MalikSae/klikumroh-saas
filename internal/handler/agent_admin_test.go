@@ -413,11 +413,12 @@ func TestAgentAdminDetail_SaldoSiapCairParity(t *testing.T) {
 	now := time.Now().UTC()
 	// Total available direct commission: 3,000,000
 	_ = commLedgerRepo.Create(context.Background(), t1.ID, &repository.CommissionLedger{
-		TenantID:  t1.ID,
-		AgentID:   ag1.ID,
-		Type:      "direct",
-		Amount:    3000000,
-		CreatedAt: now.Add(-3 * time.Hour),
+		ReleasedAt: releasedNow(), // jamaah lunas: withdrawable
+		TenantID:   t1.ID,
+		AgentID:    ag1.ID,
+		Type:       "direct",
+		Amount:     3000000,
+		CreatedAt:  now.Add(-3 * time.Hour),
 	})
 	// One pending payout request of 750,000
 	_ = payoutRepo.Create(context.Background(), t1.ID, &repository.CommissionPayoutRequest{
@@ -483,18 +484,20 @@ func TestAgentAdminDetail_GetDashboardAgentCommissions(t *testing.T) {
 
 	now := time.Now().UTC()
 	_ = commLedgerRepo.Create(context.Background(), t1.ID, &repository.CommissionLedger{
-		TenantID:  t1.ID,
-		AgentID:   ag1.ID,
-		Type:      "direct",
-		Amount:    2000000,
-		CreatedAt: now.Add(-2 * time.Hour),
+		ReleasedAt: releasedNow(), // jamaah lunas: withdrawable
+		TenantID:   t1.ID,
+		AgentID:    ag1.ID,
+		Type:       "direct",
+		Amount:     2000000,
+		CreatedAt:  now.Add(-2 * time.Hour),
 	})
 	_ = commLedgerRepo.Create(context.Background(), t1.ID, &repository.CommissionLedger{
-		TenantID:  t1.ID,
-		AgentID:   ag1.ID,
-		Type:      "override",
-		Amount:    1000000,
-		CreatedAt: now.Add(-1 * time.Hour),
+		ReleasedAt: releasedNow(), // jamaah lunas: withdrawable
+		TenantID:   t1.ID,
+		AgentID:    ag1.ID,
+		Type:       "override",
+		Amount:     1000000,
+		CreatedAt:  now.Add(-1 * time.Hour),
 	})
 	_ = payoutRepo.Create(context.Background(), t1.ID, &repository.CommissionPayoutRequest{
 		TenantID:        t1.ID,

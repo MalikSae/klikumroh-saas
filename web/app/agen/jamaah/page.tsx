@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,6 +17,24 @@ import {
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import styles from './page.module.css';
+
+const PAGE_SIZE = 20;
+
+// Next 24 months as "YYYY-MM" for the planned departure (plus "belum tahu").
+const departureOptions = (): { value: string; label: string }[] => {
+  const opts = [{ value: '', label: 'Belum tahu' }];
+  const d = new Date();
+  d.setDate(1);
+  for (let i = 0; i < 24; i++) {
+    opts.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+    });
+    d.setMonth(d.getMonth() + 1);
+  }
+  return opts;
+};
 
 interface AgentProspectItem {
   id: number;
@@ -30,6 +48,8 @@ interface AgentProspectItem {
   status: string;
   source_channel?: string;
   entry_method: string;
+  /** Jamaah ditandai lunas oleh admin (komisi bisa dicairkan). */
+  paid_off_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,6 +79,16 @@ export default function AgenJamaahListPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  // Search runs on the server over all of the agent's jamaah (not only the loaded page).
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  // Per-status totals from the server, independent of the active tab and of paging.
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  // Only the latest request may fill the list (typing fast must not show stale results).
+  const requestSeq = useRef(0);
+  // Paged list: the API returns PAGE_SIZE jamaah at a time; "Muat lebih banyak" appends the next page.
+  const [page, setPage] = useState<number>(1);
+  const [total, setTotal] = useState<number>(0);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   // Modal Tambah Manual
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -69,28 +99,36 @@ export default function AgenJamaahListPage() {
     phone: string;
     package_id: string;
     jumlah_jamaah: number;
+    departure_plan: string;
+    domicile: string;
+    consent: boolean;
   }>({
     name: '',
     phone: '',
     package_id: '',
     jumlah_jamaah: 1,
+    departure_plan: '',
+    domicile: '',
+    consent: false,
   });
 
-  const fetchJamaah = async (statusFilter = activeStatus) => {
+  const fetchJamaah = async (statusFilter = activeStatus, pageToLoad = 1, search = debouncedSearch) => {
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
       return;
     }
 
+    const seq = ++requestSeq.current;
     try {
-      setLoading(true);
+      if (pageToLoad === 1) setLoading(true);
+      else setLoadingMore(true);
       setError(null);
 
-      let url = '/api/agent/jamaah';
-      if (statusFilter) {
-        url += `?status=${encodeURIComponent(statusFilter)}`;
-      }
+      const params = new URLSearchParams({ page: String(pageToLoad), page_size: String(PAGE_SIZE) });
+      if (statusFilter) params.set('status', statusFilter);
+      if (search.trim()) params.set('search', search.trim());
+      const url = `/api/agent/jamaah?${params.toString()}`;
 
       const res = await fetch(url, {
         headers: {
@@ -109,12 +147,18 @@ export default function AgenJamaahListPage() {
       }
 
       const data = await res.json();
-      setJamaahList(Array.isArray(data) ? data : []);
+      if (seq !== requestSeq.current) return;
+      const items: AgentProspectItem[] = Array.isArray(data?.items) ? data.items : [];
+      if (data?.status_counts && typeof data.status_counts === 'object') setStatusCounts(data.status_counts);
+      setJamaahList((prev) => (pageToLoad === 1 ? items : [...prev, ...items]));
+      setTotal(typeof data?.total === 'number' ? data.total : items.length);
+      setPage(pageToLoad);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data';
       setError(msg);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -131,10 +175,18 @@ export default function AgenJamaahListPage() {
   };
 
   useEffect(() => {
-    fetchJamaah(activeStatus);
-    fetchPackages();
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchJamaah(activeStatus, 1, debouncedSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStatus]);
+  }, [activeStatus, debouncedSearch]);
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
 
   const handleOpenModal = () => {
     setFormData({
@@ -142,6 +194,9 @@ export default function AgenJamaahListPage() {
       phone: '',
       package_id: packages.length > 0 ? String(packages[0].id) : '',
       jumlah_jamaah: 1,
+      departure_plan: '',
+      domicile: '',
+      consent: false,
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -174,6 +229,10 @@ export default function AgenJamaahListPage() {
     // Validasi format nomor HP / WhatsApp Indonesia
     const rawPhone = formData.phone.trim();
     const cleanDigits = rawPhone.replace(/\D/g, '');
+    if (!formData.consent) {
+      setFormError('Konfirmasi bahwa calon jamaah sudah setuju dihubungi oleh travel.');
+      return;
+    }
     const isIndoMobile = /^(?:08\d{8,11}|628\d{8,11})$/.test(cleanDigits);
 
     if (!isIndoMobile) {
@@ -192,11 +251,17 @@ export default function AgenJamaahListPage() {
         phone: string;
         package_id?: number;
         jumlah_jamaah?: number;
+        departure_plan?: string;
+        domicile?: string;
+        consent: boolean;
       } = {
         name: formData.name.trim(),
         phone: normalizedPhone,
         jumlah_jamaah: Number(formData.jumlah_jamaah) || 1,
+        consent: formData.consent,
       };
+      if (formData.departure_plan) payload.departure_plan = formData.departure_plan;
+      if (formData.domicile.trim()) payload.domicile = formData.domicile.trim();
 
       if (formData.package_id) {
         payload.package_id = Number(formData.package_id);
@@ -246,16 +311,16 @@ export default function AgenJamaahListPage() {
       case 'baru':
         return {
           label: 'Baru',
-          bg: 'color-mix(in srgb, #3b82f6 12%, var(--tw-background))',
-          color: '#1d4ed8',
-          border: '1px solid color-mix(in srgb, #3b82f6 30%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background))',
+          color: 'var(--tw-status-new-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-new) 30%, transparent)',
         };
       case 'dihubungi':
         return {
           label: 'Dihubungi',
-          bg: 'color-mix(in srgb, #f59e0b 12%, var(--tw-background))',
-          color: '#b45309',
-          border: '1px solid color-mix(in srgb, #f59e0b 30%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-status-contacted) 12%, var(--tw-background))',
+          color: 'var(--tw-status-contacted-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-contacted) 30%, transparent)',
         };
       case 'tertarik':
         return {
@@ -269,93 +334,50 @@ export default function AgenJamaahListPage() {
           label: 'Closing',
           bg: 'var(--tw-badge-success-bg)',
           color: 'var(--tw-income)',
-          border: '1px solid color-mix(in srgb, #22c55e 30%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
         };
       case 'tidak_lanjut':
         return {
           label: 'Tidak Lanjut',
           bg: 'var(--tw-badge-neutral-bg)',
           color: 'var(--tw-text-muted)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
+          border: '1px solid var(--tw-border)',
         };
       default:
         return {
           label: status,
           bg: 'var(--tw-badge-neutral-bg)',
           color: 'var(--tw-text-muted)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
+          border: '1px solid var(--tw-border)',
         };
     }
   };
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { '': jamaahList.length };
-    jamaahList.forEach((item) => {
-      counts[item.status] = (counts[item.status] || 0) + 1;
-    });
-    return counts;
-  }, [jamaahList]);
-
-  const filteredJamaah = jamaahList.filter((item) => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(query) ||
-      item.phone.includes(query) ||
-      (item.package_name && item.package_name.toLowerCase().includes(query))
-    );
-  });
+  // The server already applied status and search.
+  const filteredJamaah = jamaahList;
 
   return (
     <MobileContainer>
       {/* Sticky Header */}
       <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
+        className={styles.listheader1}
       >
         <button
           type="button"
           onClick={() => router.push('/agen/dashboard')}
           aria-label="Kembali ke Dashboard"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
+          className={styles.listbutton2}
         >
           <ArrowLeft size={20} />
         </button>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className={styles.listdiv3}>
           <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
+            className={styles.listh14}
           >
             Prospek Jamaah
           </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
+          <span className={styles.listspan5}>
             Kelola prospek &amp; jamaah referral Anda
           </span>
         </div>
@@ -363,20 +385,7 @@ export default function AgenJamaahListPage() {
         <button
           type="button"
           onClick={handleOpenModal}
-          style={{
-            padding: '7px 12px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--tw-brand-primary)',
-            color: '#FFFFFF',
-            fontSize: '12px',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            flexShrink: 0,
-          }}
+          className={styles.listbutton6}
         >
           <Plus size={15} />
           <span>Tambah</span>
@@ -385,69 +394,29 @@ export default function AgenJamaahListPage() {
 
       {/* Main Canvas */}
       <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
+        className={styles.listdiv7}
       >
         {/* Search Bar */}
         <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-          }}
+          className={styles.listdiv8}
         >
           <div
-            style={{
-              position: 'absolute',
-              left: '12px',
-              color: 'var(--tw-text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              pointerEvents: 'none',
-            }}
+            className={styles.listdiv9}
           >
             <Search size={15} />
           </div>
           <input
             type="text"
-            placeholder="Cari nama jamaah atau nomor WA..."
+            placeholder="Cari nama, nomor WA, atau paket..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 36px 10px 36px',
-              fontSize: '13px',
-              backgroundColor: 'var(--tw-background)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              borderRadius: '8px',
-              color: 'var(--tw-text-primary)',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
+            className={styles.listinput10}
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: 'var(--tw-text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
+              className={styles.listbutton11}
               title="Hapus pencarian"
             >
               <X size={14} />
@@ -457,15 +426,7 @@ export default function AgenJamaahListPage() {
 
         {/* Filter Status Tabs (Horizontal Scroll) */}
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
+          className={styles.listdiv12}
         >
           {STATUS_OPTIONS.map((tab) => {
             const isActive = activeStatus === tab.key;
@@ -474,36 +435,13 @@ export default function AgenJamaahListPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveStatus(tab.key)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: isActive
-                    ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid rgba(0, 0, 0, 0.08)',
-                  backgroundColor: isActive ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isActive ? '#FFFFFF' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
+                className={`${styles.listbutton13} ${isActive ? styles.listbutton14 : styles.listbutton15}`}
               >
                 <span>{tab.label}</span>
                 <span
-                  style={{
-                    fontSize: '10px',
-                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.06)',
-                    color: isActive ? '#FFFFFF' : 'var(--tw-text-muted)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                  }}
+                  className={`${styles.listspan16} ${isActive ? styles.listspan17 : styles.listspan18}`}
                 >
-                  {statusCounts[tab.key] || 0}
+                  {(tab.key === '' ? statusCounts.total : statusCounts[tab.key]) || 0}
                 </span>
               </button>
             );
@@ -513,26 +451,12 @@ export default function AgenJamaahListPage() {
         {/* Content Body */}
         {loading ? (
           <div
-            style={{
-              padding: '60px 20px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
+            className={styles.listdiv19}
           >
             <div
-              style={{
-                width: '32px',
-                height: '32px',
-                border: '3px solid rgba(0, 0, 0, 0.08)',
-                borderTopColor: 'var(--tw-brand-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
+              className={styles.listdiv20}
             />
-            <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)' }}>
+            <span className={styles.listspan21}>
               Memuat data jamaah...
             </span>
             <style jsx>{`
@@ -545,40 +469,18 @@ export default function AgenJamaahListPage() {
           </div>
         ) : error ? (
           <div
-            style={{
-              padding: '36px 16px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
+            className={styles.listdiv22}
           >
-            <div style={{ color: 'var(--tw-brand-primary)' }}>
+            <div className={styles.listdiv23}>
               <AlertCircle size={32} />
             </div>
-            <p style={{ fontSize: '14px', color: 'var(--tw-text-primary)', margin: 0, fontWeight: 600 }}>
+            <p className={styles.listp24}>
               {error}
             </p>
             <button
               type="button"
               onClick={() => fetchJamaah()}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+              className={styles.listbutton25}
             >
               <RefreshCw size={13} />
               <span>Coba Lagi</span>
@@ -586,43 +488,23 @@ export default function AgenJamaahListPage() {
           </div>
         ) : filteredJamaah.length === 0 ? (
           <div
-            style={{
-              padding: '48px 20px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
+            className={styles.listdiv26}
           >
-            <div style={{ color: 'var(--tw-text-muted)' }}>
+            <div className={styles.listdiv27}>
               <Users size={36} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div className={styles.listdiv28}>
               <h2
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  margin: 0,
-                  color: 'var(--tw-text-primary)',
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
+                className={styles.listh229}
               >
-                Belum Ada Jamaah
+                {debouncedSearch.trim() ? 'Jamaah Tidak Ditemukan' : 'Belum Ada Jamaah'}
               </h2>
               <p
-                style={{
-                  fontSize: '13px',
-                  color: 'var(--tw-text-secondary)',
-                  margin: 0,
-                  lineHeight: 1.5,
-                  maxWidth: '280px',
-                }}
+                className={styles.listp30}
               >
-                {activeStatus
+                {debouncedSearch.trim()
+                  ? `Tidak ada jamaah yang cocok dengan "${debouncedSearch.trim()}".`
+                  : activeStatus
                   ? `Tidak ada jamaah dengan status "${STATUS_OPTIONS.find((s) => s.key === activeStatus)?.label}".`
                   : 'Jamaah yang mendaftar melalui tautan referral Anda atau input manual akan muncul di sini.'}
               </p>
@@ -631,27 +513,14 @@ export default function AgenJamaahListPage() {
             <button
               type="button"
               onClick={handleOpenModal}
-              style={{
-                marginTop: '4px',
-                padding: '9px 16px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
-                fontSize: '13px',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+              className={styles.listbutton31}
             >
               <Plus size={15} />
               <span>Tambah Jamaah Manual</span>
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className={styles.listdiv32}>
             {filteredJamaah.map((item) => {
               const badge = getStatusBadge(item.status);
               const isManual = item.entry_method === 'agent_manual';
@@ -660,109 +529,52 @@ export default function AgenJamaahListPage() {
                 <Link
                   key={item.id}
                   href={`/agen/jamaah/${item.id}`}
-                  style={{
-                    backgroundColor: 'var(--tw-background)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
-                    padding: '14px 15px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    boxShadow: 'var(--tw-card-shadow)',
-                  }}
+                  className={styles.listlink33}
                 >
                   {/* Row 1: Nama & Badge Status */}
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
+                    className={styles.listdiv34}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                    <div className={styles.listdiv35}>
                       <span
-                        style={{
-                          fontSize: '15px',
-                          fontWeight: 700,
-                          color: 'var(--tw-text-primary)',
-                          lineHeight: 1.3,
-                          fontFamily: 'var(--tw-font-heading)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
+                        className={styles.listspan36}
                       >
                         {item.name}
                       </span>
                       <span
-                        style={{
-                          fontSize: '12px',
-                          color: 'var(--tw-text-secondary)',
-                          fontFamily: 'monospace',
-                        }}
+                        className={styles.listspan37}
                       >
                         {item.phone}
                       </span>
                     </div>
 
                     <span
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        backgroundColor: badge.bg,
-                        color: badge.color,
-                        border: badge.border,
-                        flexShrink: 0,
-                      }}
+                      className={styles.listspan38} style={{
+  backgroundColor: badge.bg,
+  color: badge.color,
+  border: badge.border
+}}
                     >
                       {badge.label}
+                      {item.status === 'closing' && (item.paid_off_at ? ' · Lunas' : ' · Menunggu lunas')}
                     </span>
                   </div>
 
                   {/* Row 2: Paket & Jumlah Jamaah */}
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      paddingTop: '6px',
-                      borderTop: '1px solid rgba(0, 0, 0, 0.04)',
-                    }}
+                    className={styles.listdiv39}
                   >
                     <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '12px',
-                        color: 'var(--tw-text-secondary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
+                      className={styles.listdiv40}
                     >
-                      <PackageIcon size={14} color="var(--tw-text-muted)" style={{ flexShrink: 0 }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <PackageIcon size={14} color="var(--tw-text-muted)" className={styles.noShrink} />
+                      <span className={styles.listspan41}>
                         {item.package_name || 'Paket Pilihan'}
                       </span>
                     </div>
 
                     <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: 'var(--tw-text-primary)',
-                        flexShrink: 0,
-                      }}
+                      className={styles.listdiv42}
                     >
                       <Users size={13} color="var(--tw-text-muted)" />
                       <span>{item.jumlah_jamaah || 1} Jamaah</span>
@@ -771,37 +583,23 @@ export default function AgenJamaahListPage() {
 
                   {/* Row 3: Tanggal Masuk & Entry Method */}
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '11px',
-                      color: 'var(--tw-text-muted)',
-                      paddingTop: '4px',
-                    }}
+                    className={styles.listdiv43}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div className={styles.listdiv44}>
+                      <div className={styles.listdiv45}>
                         <Calendar size={12} />
                         <span>{formatDate(item.created_at)}</span>
                       </div>
                       {isManual && (
                         <span
-                          style={{
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                            fontSize: '10px',
-                            fontWeight: 600,
-                            color: 'var(--tw-text-secondary)',
-                          }}
+                          className={styles.listspan46}
                         >
                           Manual
                         </span>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: 'var(--tw-text-muted)' }}>
+                    <div className={styles.listdiv47}>
                       <span>Detail</span>
                       <ChevronRight size={14} />
                     </div>
@@ -809,6 +607,16 @@ export default function AgenJamaahListPage() {
                 </Link>
               );
             })}
+            {jamaahList.length < total && (
+              <button
+                type="button"
+                className={styles.listbutton63}
+                onClick={() => fetchJamaah(activeStatus, page + 1)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Memuat...' : `Muat lebih banyak (${jamaahList.length} dari ${total})`}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -819,58 +627,23 @@ export default function AgenJamaahListPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-tambah-title"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-            zIndex: 1000,
-          }}
+          className={styles.listdiv48}
         >
           <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '14px',
-              width: '100%',
-              maxWidth: '420px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
+            className={styles.listdiv49}
           >
             {/* Modal Header */}
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
+              className={styles.listdiv50}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <div className={styles.listdiv51}>
                 <h2
                   id="modal-tambah-title"
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: 'var(--tw-text-primary)',
-                    margin: 0,
-                    fontFamily: 'var(--tw-font-heading)',
-                  }}
+                  className={styles.listh252}
                 >
                   Tambah Jamaah Manual
                 </h2>
-                <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)' }}>
+                <span className={styles.listspan53}>
                   Catat calon jamaah yang mendaftar via WhatsApp
                 </span>
               </div>
@@ -880,18 +653,7 @@ export default function AgenJamaahListPage() {
                 onClick={handleCloseModal}
                 disabled={formSubmitting}
                 aria-label="Tutup modal"
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className={styles.listbutton54}
               >
                 <X size={16} />
               </button>
@@ -899,26 +661,18 @@ export default function AgenJamaahListPage() {
 
             {formError && (
               <div
-                style={{
-                  padding: '10px 12px',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fee2e2',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  color: '#991b1b',
-                  lineHeight: 1.4,
-                }}
+                className={styles.listdiv55}
               >
                 {formError}
               </div>
             )}
 
             {/* Form */}
-            <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleFormSubmit} className={styles.listform56}>
               {/* Nama */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
-                  Nama Lengkap Jamaah <span style={{ color: '#ef4444' }}>*</span>
+              <div className={styles.listdiv57}>
+                <label className={styles.listlabel58}>
+                  Nama Lengkap Jamaah <span className={styles.listspan59}>*</span>
                 </label>
                 <input
                   type="text"
@@ -926,22 +680,14 @@ export default function AgenJamaahListPage() {
                   placeholder="Contoh: H. Ahmad Subagio"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.12)',
-                    fontSize: '13px',
-                    backgroundColor: 'var(--tw-background)',
-                    color: 'var(--tw-text-primary)',
-                    outline: 'none',
-                  }}
+                  className={styles.listinput60}
                 />
               </div>
 
               {/* WhatsApp */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
-                  Nomor WhatsApp <span style={{ color: '#ef4444' }}>*</span>
+              <div className={styles.listdiv28}>
+                <label className={styles.listlabel58}>
+                  Nomor WhatsApp <span className={styles.listspan59}>*</span>
                 </label>
                 <input
                   type="tel"
@@ -952,38 +698,22 @@ export default function AgenJamaahListPage() {
                     const val = e.target.value.replace(/[^\d+]/g, '');
                     setFormData({ ...formData, phone: val });
                   }}
-                  style={{
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.12)',
-                    fontSize: '13px',
-                    backgroundColor: 'var(--tw-background)',
-                    color: 'var(--tw-text-primary)',
-                    outline: 'none',
-                  }}
+                  className={styles.listinput60}
                 />
-                <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
+                <span className={styles.listspan61}>
                   Format: 08xx atau 628xx (10-13 digit angka)
                 </span>
               </div>
 
               {/* Paket Pilihan */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+              <div className={styles.listdiv57}>
+                <label className={styles.listlabel58}>
                   Pilihan Paket Umroh
                 </label>
                 <select
                   value={formData.package_id}
                   onChange={(e) => setFormData({ ...formData, package_id: e.target.value })}
-                  style={{
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.12)',
-                    fontSize: '13px',
-                    backgroundColor: 'var(--tw-background)',
-                    color: 'var(--tw-text-primary)',
-                    outline: 'none',
-                  }}
+                  className={styles.listinput60}
                 >
                   <option value="">Pilih Paket (Opsional)</option>
                   {packages.map((pkg) => (
@@ -995,73 +725,84 @@ export default function AgenJamaahListPage() {
               </div>
 
               {/* Jumlah Jamaah */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)' }}>
+              <div className={styles.listdiv57}>
+                <label className={styles.listlabel58}>
                   Jumlah Jamaah
                 </label>
                 <input
                   type="number"
                   min={1}
+                  max={50}
                   value={formData.jumlah_jamaah}
-                  onChange={(e) => setFormData({ ...formData, jumlah_jamaah: parseInt(e.target.value, 10) || 1 })}
-                  style={{
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.12)',
-                    fontSize: '13px',
-                    backgroundColor: 'var(--tw-background)',
-                    color: 'var(--tw-text-primary)',
-                    outline: 'none',
-                  }}
+                  onChange={(e) =>
+                    setFormData({ ...formData, jumlah_jamaah: Math.min(50, parseInt(e.target.value, 10) || 1) })
+                  }
+                  className={styles.listinput60}
                 />
               </div>
 
+              {/* Rencana Berangkat */}
+              <div className={styles.listdiv57}>
+                <label className={styles.listlabel58} htmlFor="manual-departure">
+                  Rencana Berangkat
+                </label>
+                <select
+                  id="manual-departure"
+                  value={formData.departure_plan}
+                  onChange={(e) => setFormData({ ...formData, departure_plan: e.target.value })}
+                  className={styles.listinput60}
+                >
+                  {departureOptions().map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Domisili */}
+              <div className={styles.listdiv57}>
+                <label className={styles.listlabel58} htmlFor="manual-domicile">
+                  Domisili (Kota)
+                </label>
+                <input
+                  id="manual-domicile"
+                  type="text"
+                  maxLength={100}
+                  placeholder="Contoh: Bandung"
+                  value={formData.domicile}
+                  onChange={(e) => setFormData({ ...formData, domicile: e.target.value })}
+                  className={styles.listinput60}
+                />
+              </div>
+
+              {/* Persetujuan (UU PDP) */}
+              <label className={styles.manualConsent} htmlFor="manual-consent">
+                <input
+                  id="manual-consent"
+                  type="checkbox"
+                  checked={formData.consent}
+                  onChange={(e) => setFormData({ ...formData, consent: e.target.checked })}
+                />
+                <span>Calon jamaah sudah setuju nama dan nomor WhatsApp-nya disimpan dan dihubungi oleh travel.</span>
+              </label>
+
               {/* Modal Buttons */}
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginTop: '8px',
-                }}
+                className={styles.listdiv62}
               >
                 <button
                   type="button"
                   onClick={handleCloseModal}
                   disabled={formSubmitting}
-                  style={{
-                    flex: 1,
-                    padding: '10px 16px',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    backgroundColor: 'var(--tw-background)',
-                    color: 'var(--tw-text-secondary)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
+                  className={styles.listbutton63}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={formSubmitting}
-                  style={{
-                    flex: 1,
-                    padding: '10px 16px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: 'var(--tw-brand-primary)',
-                    color: '#FFFFFF',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: formSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: formSubmitting ? 0.7 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                  }}
+                  className={`${styles.listbutton64} ${formSubmitting ? styles.listbutton65 : styles.listbutton66}`}
                 >
                   {formSubmitting ? <span>Menyimpan...</span> : <span>Simpan Jamaah</span>}
                 </button>

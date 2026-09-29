@@ -40,7 +40,7 @@ type UpdateTargetInput struct {
 }
 
 type TargetProgressResponse struct {
-	Target repository.AgentTarget             `json:"target"`
+	Target repository.AgentTarget              `json:"target"`
 	Rows   []repository.AgentTargetProgressRow `json:"rows"`
 }
 
@@ -54,6 +54,8 @@ type AchievementDTO struct {
 	RewardGivenAt             *time.Time `json:"reward_given_at"`
 	RewardDescriptionSnapshot *string    `json:"reward_description_snapshot"`
 	Notes                     *string    `json:"notes"`
+	// UnpaidJamaahCount: counted closings (DP) not yet lunas; the reward waits for them.
+	UnpaidJamaahCount int `json:"unpaid_jamaah_count"`
 }
 
 type AgentTargetView struct {
@@ -86,6 +88,39 @@ type AgentTargetService interface {
 type agentTargetService struct {
 	targetRepo repository.AgentTargetRepository
 	agentRepo  repository.AgentRepository
+	// Optional: guard rewards on closings that are not lunas yet (see SetPayoffGuard).
+	payoffRepo repository.TargetPayoffRepository
+	policyRepo repository.CommissionPolicyRepository
+}
+
+// ErrRewardHasUnpaidJamaah blocks handing out a closing-based reward while jamaah counted for it
+// have only paid DP. Wraps a message with the count.
+var ErrRewardHasUnpaidJamaah = errors.New("reward belum bisa diberikan: masih ada jamaah yang dihitung untuk target ini tetapi belum lunas")
+
+// SetPayoffGuard enables the "reward only after lunas" rule (keputusan pendiri 29 Sep 2026): targets
+// count closings (DP), but a closing_pax reward can be marked given only when those jamaah are lunas,
+// unless the travel releases commission at DP.
+func (s *agentTargetService) SetPayoffGuard(payoffRepo repository.TargetPayoffRepository, policyRepo repository.CommissionPolicyRepository) {
+	s.payoffRepo = payoffRepo
+	s.policyRepo = policyRepo
+}
+
+// unpaidClosings returns how many jamaah counted for this achievement are not lunas yet (0 when the
+// guard does not apply).
+func (s *agentTargetService) unpaidClosings(ctx context.Context, tenantID uint64, target *repository.AgentTarget, agentID uint64) int {
+	if s.payoffRepo == nil || target.MetricType == "mitra_baru_count" {
+		return 0
+	}
+	if s.policyRepo != nil {
+		if v, err := s.policyRepo.GetReleaseOn(ctx, tenantID); err == nil && v == repository.CommissionReleaseOnDP {
+			return 0
+		}
+	}
+	n, err := s.payoffRepo.CountUnpaidClosings(ctx, tenantID, agentID, target.PeriodStart, target.PeriodEnd)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 func NewAgentTargetService(
@@ -241,6 +276,10 @@ func (s *agentTargetService) ListAchievements(ctx context.Context, tenantID uint
 	if err != nil {
 		return nil, err
 	}
+	target, err := s.targetRepo.GetByID(ctx, tenantID, targetID)
+	if err != nil {
+		return nil, err
+	}
 
 	agentNameMap := make(map[uint64]string)
 	var dtos []AchievementDTO
@@ -266,6 +305,7 @@ func (s *agentTargetService) ListAchievements(ctx context.Context, tenantID uint
 			RewardGivenAt:             a.RewardGivenAt,
 			RewardDescriptionSnapshot: a.RewardDescriptionSnapshot,
 			Notes:                     a.Notes,
+			UnpaidJamaahCount:         s.unpaidClosings(ctx, tenantID, target, a.AgentID),
 		})
 	}
 
@@ -284,6 +324,9 @@ func (s *agentTargetService) MarkRewardGiven(ctx context.Context, tenantID uint6
 	}
 	if target.Status != "closed" {
 		return ErrTargetNotClosed
+	}
+	if n := s.unpaidClosings(ctx, tenantID, target, ach.AgentID); n > 0 {
+		return fmt.Errorf("%w (%d jamaah masih DP; tandai lunas atau batalkan closing-nya dulu)", ErrRewardHasUnpaidJamaah, n)
 	}
 
 	return s.targetRepo.UpdateRewardStatus(ctx, tenantID, achievementID, adminUserID, "given", notes)
@@ -404,4 +447,3 @@ func (s *agentTargetService) GetTargetsForAgent(ctx context.Context, tenantID ui
 
 	return views, nil
 }
-

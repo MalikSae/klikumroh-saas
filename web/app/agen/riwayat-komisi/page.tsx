@@ -25,6 +25,7 @@ interface CommissionHistoryItem {
   amount: number;
   direction: string; // 'masuk' | 'keluar'
   status?: string; // 'pending' | 'approved' | 'rejected' | 'paid'
+  held?: boolean; // ledger entry not withdrawable yet (jamaah belum lunas)
   created_at: string;
 }
 
@@ -120,9 +121,9 @@ export default function RiwayatKomisiPage() {
     let totalKeluar = 0;
     items.forEach((item) => {
       if (item.direction === 'masuk') {
-        totalMasuk += item.amount;
+        totalMasuk += Math.abs(item.amount);
       } else if (item.direction === 'keluar' && item.status !== 'rejected') {
-        totalKeluar += item.amount;
+        totalKeluar += Math.abs(item.amount);
       }
     });
     return { totalMasuk, totalKeluar };
@@ -233,6 +234,14 @@ export default function RiwayatKomisiPage() {
         default:
           return null;
       }
+    }
+    if (item.held) {
+      return {
+        label: 'Tertahan',
+        bg: 'color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background))',
+        color: 'var(--tw-status-contacted-text)',
+        border: '1px solid color-mix(in srgb, var(--tw-rating-star) 30%, transparent)',
+      };
     }
     return {
       label: 'Berhasil',
@@ -754,10 +763,10 @@ export default function RiwayatKomisiPage() {
                       }}
                     >
                       {isRejected
-                        ? formatRupiah(tx.amount)
+                        ? formatRupiah(Math.abs(tx.amount))
                         : isIncoming
-                        ? `+ ${formatRupiah(tx.amount)}`
-                        : `- ${formatRupiah(tx.amount)}`}
+                        ? `+ ${formatRupiah(Math.abs(tx.amount))}`
+                        : `- ${formatRupiah(Math.abs(tx.amount))}`}
                     </span>
                   </div>
 

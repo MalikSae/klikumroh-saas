@@ -665,7 +665,7 @@ export default function AgenDaftarPage() {
               </Button>
               <div className="tw-agen-daftar-trust-signal">
                 <ShieldCheck size={14} className="tw-agen-daftar-trust-icon" />
-                <span>Data terenkripsi & aman</span>
+                <span>Dikirim lewat koneksi terenkripsi (HTTPS)</span>
               </div>
             </div>
           </form>

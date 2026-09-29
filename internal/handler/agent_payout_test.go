@@ -258,9 +258,10 @@ func TestAgentPayout_EndToEnd_ValidationAndCrossTenant(t *testing.T) {
 
 	// Give Agent 1 some commission earned in commission_ledger (Rp 3.000.000)
 	_ = commLedgerRepo.Create(context.Background(), t1.ID, &repository.CommissionLedger{
-		TenantID: t1.ID,
-		AgentID:  ag1.ID,
-		Amount:   3000000,
+		ReleasedAt: releasedNow(), // jamaah lunas: withdrawable
+		TenantID:   t1.ID,
+		AgentID:    ag1.ID,
+		Amount:     3000000,
 	})
 
 	t.Run("1. Amount di bawah minimum -> 400", func(t *testing.T) {

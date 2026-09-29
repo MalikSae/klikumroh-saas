@@ -307,6 +307,18 @@ func (r *mysqlAgentTargetRepository) Close(ctx context.Context, tenantID uint64,
 	return nil
 }
 
+// latestClosingInPeriod (for a prospect aliased p, with two args: period start and end dates) is true
+// when the prospect's most recent move into 'closing' falls inside the period. Combined with
+// p.status = 'closing' it counts every still-closed prospect once: a closing cancelled after DP drops
+// out, and a re-closed prospect is not counted twice.
+const latestClosingInPeriod = `(
+	SELECT MAX(h.changed_at) FROM prospect_status_history h
+	WHERE h.tenant_id = p.tenant_id AND h.prospect_id = p.id AND h.new_status = 'closing'
+) >= ? AND (
+	SELECT MAX(h.changed_at) FROM prospect_status_history h
+	WHERE h.tenant_id = p.tenant_id AND h.prospect_id = p.id AND h.new_status = 'closing'
+) < DATE_ADD(?, INTERVAL 1 DAY)`
+
 func (r *mysqlAgentTargetRepository) GetAgentProgress(ctx context.Context, tenantID uint64, agentID uint64, metricType string, periodStart, periodEnd string) (int, error) {
 	if metricType == "mitra_baru_count" {
 		query := `
@@ -314,10 +326,9 @@ func (r *mysqlAgentTargetRepository) GetAgentProgress(ctx context.Context, tenan
 			FROM agents d
 			WHERE d.tenant_id = ? AND d.parent_agent_id = ?
 			  AND EXISTS (
-			    SELECT 1 FROM prospect_status_history h
-			    JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
-			    WHERE h.tenant_id = d.tenant_id AND p.agent_id = d.id AND h.new_status = 'closing'
-			      AND h.changed_at >= ? AND h.changed_at < DATE_ADD(?, INTERVAL 1 DAY)
+			    SELECT 1 FROM prospects p
+			    WHERE p.tenant_id = d.tenant_id AND p.agent_id = d.id AND p.status = 'closing'
+			      AND ` + latestClosingInPeriod + `
 			  )
 		`
 		var count int
@@ -331,10 +342,9 @@ func (r *mysqlAgentTargetRepository) GetAgentProgress(ctx context.Context, tenan
 	// Default to closing_pax
 	query := `
 		SELECT COALESCE(SUM(COALESCE(p.jumlah_jamaah, 1)), 0)
-		FROM prospect_status_history h
-		JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
-		WHERE h.tenant_id = ? AND p.agent_id = ? AND h.new_status = 'closing'
-		  AND h.changed_at >= ? AND h.changed_at < DATE_ADD(?, INTERVAL 1 DAY)
+		FROM prospects p
+		WHERE p.tenant_id = ? AND p.agent_id = ? AND p.status = 'closing'
+		  AND ` + latestClosingInPeriod + `
 	`
 	var sum int
 	err := r.db.QueryRowContext(ctx, query, tenantID, agentID, periodStart, periodEnd).Scan(&sum)
@@ -371,10 +381,9 @@ func (r *mysqlAgentTargetRepository) ListAgentProgress(ctx context.Context, tena
 			    WHERE d.tenant_id = ? 
 			      AND d.parent_agent_id IS NOT NULL
 			      AND EXISTS (
-			        SELECT 1 FROM prospect_status_history h
-			        JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
-			        WHERE h.tenant_id = d.tenant_id AND p.agent_id = d.id AND h.new_status = 'closing'
-			          AND h.changed_at >= ? AND h.changed_at < DATE_ADD(?, INTERVAL 1 DAY)
+			        SELECT 1 FROM prospects p
+			        WHERE p.tenant_id = d.tenant_id AND p.agent_id = d.id AND p.status = 'closing'
+			          AND ` + latestClosingInPeriod + `
 			      )
 			    GROUP BY d.parent_agent_id
 			) prog ON prog.parent_agent_id = a.id
@@ -405,11 +414,10 @@ func (r *mysqlAgentTargetRepository) ListAgentProgress(ctx context.Context, tena
 			FROM agents a
 			LEFT JOIN (
 			    SELECT p.agent_id, COALESCE(SUM(COALESCE(p.jumlah_jamaah, 1)), 0) AS val
-			    FROM prospect_status_history h
-			    JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
-			    WHERE h.tenant_id = ?
-			      AND h.new_status = 'closing'
-			      AND h.changed_at >= ? AND h.changed_at < DATE_ADD(?, INTERVAL 1 DAY)
+			    FROM prospects p
+			    WHERE p.tenant_id = ?
+			      AND p.status = 'closing'
+			      AND ` + latestClosingInPeriod + `
 			    GROUP BY p.agent_id
 			) prog ON prog.agent_id = a.id
 			LEFT JOIN agent_target_achievements ata ON ata.tenant_id = a.tenant_id AND ata.target_id = ? AND ata.agent_id = a.id
@@ -685,4 +693,3 @@ func (r *mysqlAgentTargetRepository) HasAchievements(ctx context.Context, tenant
 	}
 	return exists, nil
 }
-

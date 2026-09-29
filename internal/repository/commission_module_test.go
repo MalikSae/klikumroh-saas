@@ -201,7 +201,7 @@ func TestCommissionModule_CrossTenantAndCalculations(t *testing.T) {
 
 	t.Run("Commission calculation when closing with override", func(t *testing.T) {
 		// Change status to closing
-		err := prospectSvc.UpdateStatus(ctx, tenantA.ID, prospectA.ID, adminUserA.ID, "closing", nil)
+		err := prospectSvc.UpdateStatus(ctx, tenantA.ID, prospectA.ID, adminUserA.ID, "closing", nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to update status to closing: %v", err)
 		}
@@ -267,7 +267,7 @@ func TestCommissionModule_CrossTenantAndCalculations(t *testing.T) {
 	t.Run("Updating status when already closing is rejected as immutable", func(t *testing.T) {
 		allStatuses := []string{"baru", "dihubungi", "tertarik", "tidak_lanjut", "closing"}
 		for _, targetStatus := range allStatuses {
-			err := prospectSvc.UpdateStatus(ctx, tenantA.ID, prospectA.ID, adminUserA.ID, targetStatus, nil)
+			err := prospectSvc.UpdateStatus(ctx, tenantA.ID, prospectA.ID, adminUserA.ID, targetStatus, nil, nil)
 			if err == nil {
 				t.Fatalf("Expected error when updating already closed prospect to '%s', got nil", targetStatus)
 			}
@@ -372,7 +372,7 @@ func TestCommissionModule_CrossTenantAndCalculations(t *testing.T) {
 			t.Fatalf("Failed to create organic prospect: %v", err)
 		}
 
-		err := prospectSvc.UpdateStatus(ctx, tenantA.ID, organicProspect.ID, adminUserA.ID, "closing", nil)
+		err := prospectSvc.UpdateStatus(ctx, tenantA.ID, organicProspect.ID, adminUserA.ID, "closing", nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to update status to closing: %v", err)
 		}
@@ -536,7 +536,7 @@ func TestRegression_DoubleCommission_TerminalClosing(t *testing.T) {
 	}
 
 	// 1. Initial status change to 'closing' -> should produce exactly 1 direct commission row
-	err := prospectSvc.UpdateStatus(ctx, tenant.ID, prospect.ID, adminUser.ID, "closing", nil)
+	err := prospectSvc.UpdateStatus(ctx, tenant.ID, prospect.ID, adminUser.ID, "closing", nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to set prospect to closing: %v", err)
 	}
@@ -553,7 +553,7 @@ func TestRegression_DoubleCommission_TerminalClosing(t *testing.T) {
 
 	// 2. CRITICAL REGRESSION: attempt to call UpdateStatus with new_status='closing' again
 	// MUST be rejected with ErrProspectAlreadyClosed (400)
-	err = prospectSvc.UpdateStatus(ctx, tenant.ID, prospect.ID, adminUser.ID, "closing", nil)
+	err = prospectSvc.UpdateStatus(ctx, tenant.ID, prospect.ID, adminUser.ID, "closing", nil, nil)
 	if err == nil {
 		t.Fatalf("CRITICAL BUG: UpdateStatus allowed closing an already closed prospect!")
 	}
@@ -564,7 +564,7 @@ func TestRegression_DoubleCommission_TerminalClosing(t *testing.T) {
 	// Also test all other statuses: 'baru', 'dihubungi', 'tertarik', 'tidak_lanjut'
 	otherStatuses := []string{"baru", "dihubungi", "tertarik", "tidak_lanjut"}
 	for _, s := range otherStatuses {
-		err = prospectSvc.UpdateStatus(ctx, tenant.ID, prospect.ID, adminUser.ID, s, nil)
+		err = prospectSvc.UpdateStatus(ctx, tenant.ID, prospect.ID, adminUser.ID, s, nil, nil)
 		if err == nil {
 			t.Fatalf("CRITICAL BUG: UpdateStatus allowed changing status to '%s' on already closed prospect!", s)
 		}
@@ -595,4 +595,3 @@ func TestRegression_DoubleCommission_TerminalClosing(t *testing.T) {
 	}
 	t.Logf("RAW SQL VERIFICATION: commission_ledger for prospect_id=%d has exactly 1 row (ID=%d, type=%s, amount=%.2f)", prospect.ID, ledgerID, ledgerType, ledgerAmount)
 }
-

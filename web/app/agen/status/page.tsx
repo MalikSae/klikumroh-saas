@@ -22,6 +22,7 @@ import {
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
 import { BottomNavbar } from '../../../components/BottomNavbar';
+import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import designTokens from '../../../../design-tokens.json';
 import './AgenStatus.css';
@@ -237,7 +238,8 @@ export default function AgenStatusPage() {
 
   const getReferralUrl = () => {
     if (typeof window !== 'undefined' && data?.agent?.referral_code) {
-      return `${window.location.origin}/?ref=${data.agent.referral_code}`;
+      // /ref/CODE records the click and remembers the agent even if the visitor opens other pages.
+      return `${window.location.origin}/ref/${data.agent.referral_code}`;
     }
     return '';
   };
@@ -263,8 +265,11 @@ export default function AgenStatusPage() {
     ? { '--tw-brand-primary': data.tenant.brand_primary_color }
     : {};
 
-  const waNumber = data?.tenant?.whatsapp_number || '6281234567890';
-  const helpWaUrl = `https://wa.me/${waNumber}?text=Halo%20Admin%2C%20saya%20mitra%20agen%20${encodeURIComponent(data?.tenant?.name || 'travel')}%20ingin%20menanyakan%20status%20kemitraan`;
+  // No travel WhatsApp number -> hide the contact button instead of pointing to a placeholder number.
+  const helpWaUrl = whatsappLink(
+    data?.tenant?.whatsapp_number,
+    `Halo Admin, saya mitra agen ${data?.tenant?.name || 'travel'} ingin menanyakan status kemitraan`
+  );
 
   if (loading) {
     return (
@@ -640,16 +645,18 @@ export default function AgenStatusPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '280px', marginTop: '14px' }}>
-                  <a
-                    href={helpWaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tw-button tw-button--secondary tw-button--md"
-                    style={{ textDecoration: 'none', justifyContent: 'center' }}
-                  >
-                    <MessageCircle size={15} />
-                    <span>Hubungi Admin Travel</span>
-                  </a>
+                  {helpWaUrl && (
+                    <a
+                      href={helpWaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="tw-button tw-button--secondary tw-button--md"
+                      style={{ textDecoration: 'none', justifyContent: 'center' }}
+                    >
+                      <MessageCircle size={15} />
+                      <span>Hubungi Admin Travel</span>
+                    </a>
+                  )}
 
                   <Link
                     href="/"

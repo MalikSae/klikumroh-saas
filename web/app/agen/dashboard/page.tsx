@@ -61,6 +61,8 @@ interface AgentDashboardSummary {
   name: string;
   saldo_siap_cair: number;
   saldo_tertunda: number;
+  // Komisi dari jamaah yang sudah DP (closing) tapi belum lunas: belum bisa dicairkan.
+  saldo_tertahan?: number;
   jamaah_tertunda_count: number;
   targets: AgentTargetView[];
   minimum_payout_amount: number | null;
@@ -769,6 +771,12 @@ export default function AgenDashboardPage() {
                 Potensi Komisi:{' '}
                 <strong>{showBalance ? formatRupiah(summary.saldo_tertunda) : '••••••••'}</strong>
                 {' '}({summary.jamaah_tertunda_count} jamaah)
+                {(summary.saldo_tertahan || 0) > 0 && (
+                  <>
+                    {' · '}Tertahan (menunggu lunas):{' '}
+                    <strong>{showBalance ? formatRupiah(summary.saldo_tertahan || 0) : '••••••••'}</strong>
+                  </>
+                )}
               </span>
             </div>
           </div>

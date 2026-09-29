@@ -28,7 +28,6 @@ import {
   MessagesSquare,
   Filter,
   Phone,
-  Briefcase,
   Search,
   ListFilter,
   Package,
@@ -45,13 +44,14 @@ import {
   FormInput,
   Modal,
   getStandardMenuItems,
-  AgentActivityFeed,
 } from '../components';
 import {
   type AgentDashboardDetail,
+  type AgentItem,
   type ProspectItem,
   fetchAgentDetail,
   fetchProspects,
+  fetchDashboardAgents,
   updateDashboardAgentProfile,
   resetAgentPassword,
   toggleAgentStatus,
@@ -60,7 +60,9 @@ import {
   getFullImageUrl,
   getStoredUser,
 } from '../services/api';
+import { formatDateWIB, formatTimeWIB } from '../utils/datetime';
 import './AgentDetail.css';
+import styles from './AgentDetail.module.css';
 
 const formatIDR = (val: number): string => {
   return new Intl.NumberFormat('id-ID', {
@@ -71,6 +73,8 @@ const formatIDR = (val: number): string => {
   }).format(val);
 };
 
+type ProspectTone = 'new' | 'contacted' | 'interested' | 'closing' | 'lost';
+
 interface AgentProspectRow {
   id: number;
   name: string;
@@ -78,15 +82,16 @@ interface AgentProspectRow {
   package_name: string;
   status: 'baru' | 'dihubungi' | 'tertarik' | 'closing' | 'tidak_lanjut';
   status_label: string;
-  status_color: string;
-  follow_up: string;
-  is_overdue?: boolean;
+  tone: ProspectTone;
+  created_label: string;
+  created_at: string;
   source: string;
+  updated_at: string;
   updated_at_relative: string;
 }
 
 interface CommissionLedgerRow {
-  id: number;
+  id: string;
   date: string;
   reference: string;
   description: string;
@@ -98,31 +103,60 @@ interface CommissionLedgerRow {
   month: number;
 }
 
-const SAMPLE_COMMISSION_LEDGER: CommissionLedgerRow[] = [
-  { id: 1, date: '14 Mar', reference: 'COM-260314', description: 'Closing · Siti Aminah', type: 'Direct', incoming: 500000, outgoing: 0, balance: 2500000, year: 2026, month: 3 },
-  { id: 2, date: '10 Mar', reference: 'PAY-260310', description: 'Pencairan komisi', type: 'Pencairan', incoming: 0, outgoing: 1500000, balance: 2000000, year: 2026, month: 3 },
-  { id: 3, date: '8 Mar', reference: 'COM-260308', description: 'Override dari jaringan', type: 'Override', incoming: 250000, outgoing: 0, balance: 3500000, year: 2026, month: 3 },
-  { id: 4, date: '1 Mar', reference: 'COM-260301', description: 'Penambahan jumlah jamaah', type: 'Koreksi', incoming: 250000, outgoing: 0, balance: 3250000, year: 2026, month: 3 },
-  { id: 5, date: '20 Feb', reference: 'COM-260220', description: 'Closing · Dewi Kartika', type: 'Direct', incoming: 500000, outgoing: 0, balance: 2500000, year: 2026, month: 2 },
-  { id: 6, date: '12 Feb', reference: 'COM-260212', description: 'Override dari jaringan', type: 'Override', incoming: 250000, outgoing: 0, balance: 2500000, year: 2026, month: 2 },
-  { id: 7, date: '28 Jan', reference: 'COM-260128', description: 'Pengurangan jumlah jamaah', type: 'Koreksi', incoming: 0, outgoing: 250000, balance: 2250000, year: 2026, month: 1 },
-  { id: 8, date: '24 Jan', reference: 'COM-260124', description: 'Closing · Farhan Maulana', type: 'Direct', incoming: 500000, outgoing: 0, balance: 2500000, year: 2026, month: 1 },
-  { id: 9, date: '20 Jan', reference: 'COM-260120', description: 'Override dari jaringan', type: 'Override', incoming: 250000, outgoing: 0, balance: 2000000, year: 2026, month: 1 },
-  { id: 10, date: '15 Jan', reference: 'COM-260115', description: 'Closing · Nur Aisyah', type: 'Direct', incoming: 500000, outgoing: 0, balance: 1750000, year: 2026, month: 1 },
-  { id: 11, date: '10 Jan', reference: 'COM-260110', description: 'Closing · Hendra Wijaya', type: 'Direct', incoming: 500000, outgoing: 0, balance: 1250000, year: 2026, month: 1 },
-  { id: 12, date: '5 Jan', reference: 'COM-260105', description: 'Bonus aktivasi referral', type: 'Direct', incoming: 250000, outgoing: 0, balance: 750000, year: 2026, month: 1 },
-  { id: 13, date: '28 Des', reference: 'PAY-251228', description: 'Pencairan komisi akhir tahun', type: 'Pencairan', incoming: 0, outgoing: 1000000, balance: 500000, year: 2025, month: 12 },
-  { id: 14, date: '20 Des', reference: 'COM-251220', description: 'Closing · Rudi Hartono', type: 'Direct', incoming: 500000, outgoing: 0, balance: 1500000, year: 2025, month: 12 },
-  { id: 15, date: '15 Des', reference: 'COM-251215', description: 'Override dari jaringan', type: 'Override', incoming: 250000, outgoing: 0, balance: 1000000, year: 2025, month: 12 },
-  { id: 16, date: '10 Des', reference: 'COM-251210', description: 'Closing · Aulia Rahman', type: 'Direct', incoming: 500000, outgoing: 0, balance: 750000, year: 2025, month: 12 },
-  { id: 17, date: '25 Nov', reference: 'COM-251125', description: 'Closing · Faisal Akbar', type: 'Direct', incoming: 500000, outgoing: 0, balance: 250000, year: 2025, month: 11 },
-  { id: 18, date: '20 Nov', reference: 'COM-251120', description: 'Override dari jaringan', type: 'Override', incoming: 250000, outgoing: 0, balance: 500000, year: 2025, month: 11 },
-  { id: 19, date: '15 Nov', reference: 'PAY-251115', description: 'Pencairan komisi', type: 'Pencairan', incoming: 0, outgoing: 750000, balance: 250000, year: 2025, month: 11 },
-  { id: 20, date: '5 Nov', reference: 'COM-251105', description: 'Closing · Bambang Sutrisno', type: 'Direct', incoming: 500000, outgoing: 0, balance: 1000000, year: 2025, month: 11 },
-  { id: 21, date: '28 Okt', reference: 'COM-251028', description: 'Closing · Rina Marlina', type: 'Direct', incoming: 500000, outgoing: 0, balance: 500000, year: 2025, month: 10 },
-  { id: 22, date: '20 Okt', reference: 'COM-251020', description: 'Override dari jaringan', type: 'Override', incoming: 250000, outgoing: 0, balance: 250000, year: 2025, month: 10 },
-  { id: 23, date: '15 Okt', reference: 'COM-251015', description: 'Bonus registrasi agen pertama', type: 'Direct', incoming: 250000, outgoing: 0, balance: 250000, year: 2025, month: 10 },
-];
+interface ActivityEntry {
+  key: string;
+  at: string;
+  title: string;
+  detail: string;
+  kind: 'prospect' | 'closing' | 'commission' | 'payout';
+}
+
+const PROSPECT_STATUS_META: Record<AgentProspectRow['status'], { label: string; tone: ProspectTone }> = {
+  baru: { label: 'Prospek baru', tone: 'new' },
+  dihubungi: { label: 'Dihubungi', tone: 'contacted' },
+  tertarik: { label: 'Berminat', tone: 'interested' },
+  closing: { label: 'Closing', tone: 'closing' },
+  tidak_lanjut: { label: 'Tidak lanjut', tone: 'lost' },
+};
+
+const sourceLabel = (p: ProspectItem): string => {
+  if (p.entry_method === 'agent_manual') return 'Input agen';
+  if (p.source_channel === 'agen') return 'Link referral';
+  if (p.source_channel === 'paid') return 'Meta Ads';
+  return 'Organik';
+};
+
+const toTime = (value?: string | null): number => {
+  if (!value) return 0;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? 0 : t;
+};
+
+// Relative time for recent activity; older than a week falls back to a WIB date.
+const relativeTime = (value?: string | null): string => {
+  const t = toTime(value);
+  if (!t) return '-';
+  const diffMin = Math.floor((Date.now() - t) / 60000);
+  if (diffMin < 1) return 'Baru saja';
+  if (diffMin < 60) return `${diffMin} menit lalu`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return 'Kemarin';
+  if (diffDay < 7) return `${diffDay} hari lalu`;
+  return formatDateWIB(value);
+};
+
+const dayLabel = (value: string): string => {
+  const d = new Date(value);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const key = (x: Date) => x.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
+  if (key(d) === key(today)) return 'Hari ini';
+  if (key(d) === key(yesterday)) return 'Kemarin';
+  return formatDateWIB(value);
+};
 
 export const AgentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -136,6 +170,9 @@ export const AgentDetailPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [agent, setAgent] = useState<AgentDashboardDetail | null>(null);
   const [realProspects, setRealProspects] = useState<ProspectItem[]>([]);
+  // Sub-agents recruited through this agent's referral link, and which of them ever closed a jamaah.
+  const [subAgents, setSubAgents] = useState<AgentItem[]>([]);
+  const [closingAgentIds, setClosingAgentIds] = useState<Set<number>>(new Set());
 
   // Tab Prospek Filter & Pagination States
   const [prospectSearch, setProspectSearch] = useState<string>('');
@@ -147,7 +184,7 @@ export const AgentDetailPage: React.FC = () => {
   // Tab Riwayat Komisi Filter & Pagination States
   const [commSearch, setCommSearch] = useState<string>('');
   const [commTypeFilter, setCommTypeFilter] = useState<string>('all');
-  const [commDateFilter, setCommDateFilter] = useState<string>('2026');
+  const [commDateFilter, setCommDateFilter] = useState<string>('year');
   const [commPage, setCommPage] = useState<number>(1);
 
   // Edit Profile Modal State
@@ -193,12 +230,16 @@ export const AgentDetailPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [agentData, prospectsData] = await Promise.all([
+      const [agentData, prospectsData, allAgents, closingProspects] = await Promise.all([
         fetchAgentDetail(agentId),
-        fetchProspects().catch(() => [] as ProspectItem[]),
+        fetchProspects({ agent_id: agentId }).catch(() => [] as ProspectItem[]),
+        fetchDashboardAgents().catch(() => [] as AgentItem[]),
+        fetchProspects({ status: 'closing' }).catch(() => [] as ProspectItem[]),
       ]);
       setAgent(agentData);
       setRealProspects(prospectsData.filter((p: ProspectItem) => p.agent_id === agentId));
+      setSubAgents(allAgents.filter((a) => a.parent_agent_id === agentId));
+      setClosingAgentIds(new Set(closingProspects.map((p) => p.agent_id).filter((v): v is number => typeof v === 'number')));
       setName(agentData.name || '');
       setPhone(agentData.phone || '');
       setEmail(agentData.email || '');
@@ -338,10 +379,10 @@ export const AgentDetailPage: React.FC = () => {
             userRole="Administrator"
             userInitial={currentUser?.name?.slice(0, 2).toUpperCase() || 'AD'}
           />
-          <main className="db-page-container" style={{ maxWidth: '1400px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '320px', color: 'var(--db-text-muted)', gap: '10px' }}>
+          <main className={`db-page-container ${styles.admain1}`}>
+            <div className={styles.addiv2}>
               <RefreshCw size={24} className="db-spin" />
-              <span style={{ fontSize: 'var(--font-size-lg)' }}>Memuat data agen...</span>
+              <span className={styles.adspan3}>Memuat data agen...</span>
             </div>
           </main>
         </div>
@@ -363,12 +404,12 @@ export const AgentDetailPage: React.FC = () => {
             userRole="Administrator"
             userInitial={currentUser?.name?.slice(0, 2).toUpperCase() || 'AD'}
           />
-          <main className="db-page-container" style={{ maxWidth: '1400px' }}>
+          <main className={`db-page-container ${styles.admain1}`}>
             <Card>
-              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--db-negative)' }}>
-                <AlertCircle size={32} style={{ marginBottom: '12px' }} />
-                <p style={{ fontWeight: 'var(--font-weight-semibold)', fontSize: 'var(--font-size-lg)', marginBottom: '8px' }}>Terjadi Kesalahan</p>
-                <p style={{ color: 'var(--db-text-muted)', fontSize: 'var(--font-size-md)', marginBottom: '16px' }}>{error || 'Agen tidak ditemukan'}</p>
+              <div className={styles.addiv4}>
+                <AlertCircle size={32} className={styles.iconMb12} />
+                <p className={styles.adp5}>Terjadi Kesalahan</p>
+                <p className={styles.adp6}>{error || 'Agen tidak ditemukan'}</p>
                 <Button variant="secondary" size="sm" onClick={() => navigate('/agents')}>
                   <ArrowLeft size={16} />
                   <span>Kembali ke Sistem Agen</span>
@@ -383,40 +424,25 @@ export const AgentDetailPage: React.FC = () => {
 
   if (!agent) return null;
 
-  const activeProspects: AgentProspectRow[] = realProspects.length > 0
-    ? realProspects.map((p) => {
-        const getStatusMeta = (s: string) => {
-          switch (s) {
-            case 'baru':
-              return { label: 'Prospek baru', color: '#0369A1' };
-            case 'dihubungi':
-              return { label: 'Dihubungi', color: '#4338CA' };
-            case 'tertarik':
-              return { label: 'Berminat', color: '#F59E0B' };
-            case 'closing':
-              return { label: 'Closing', color: '#0D9488' };
-            case 'tidak_lanjut':
-              return { label: 'Tidak lanjut', color: '#64748B' };
-            default:
-              return { label: s, color: '#64748B' };
-          }
-        };
-        const meta = getStatusMeta(p.status);
-        return {
-          id: p.id,
-          name: p.name,
-          phone: p.phone,
-          package_name: p.package_name || 'Umroh Reguler',
-          status: p.status,
-          status_label: meta.label,
-          status_color: meta.color,
-          follow_up: p.status === 'closing' ? 'Selesai' : p.status === 'tidak_lanjut' ? '—' : 'Hari ini',
-          source: p.source_channel || 'Referral',
-          updated_at_relative: 'Hari ini',
-        };
-      })
-    : [];
+  const activeProspects: AgentProspectRow[] = realProspects.map((p) => {
+    const meta = PROSPECT_STATUS_META[p.status] || { label: p.status, tone: 'lost' as ProspectTone };
+    return {
+      id: p.id,
+      name: p.name,
+      phone: p.phone,
+      package_name: p.package_name || 'Umroh',
+      status: p.status,
+      status_label: meta.label,
+      tone: meta.tone,
+      created_label: `${formatDateWIB(p.created_at)} ${formatTimeWIB(p.created_at)}`.trim(),
+      created_at: p.created_at,
+      source: sourceLabel(p),
+      updated_at: p.updated_at,
+      updated_at_relative: relativeTime(p.updated_at),
+    };
+  });
 
+  const DATE_FILTER_DAYS: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
   const filteredProspects = activeProspects.filter((p) => {
     if (prospectSearch.trim()) {
       const q = prospectSearch.toLowerCase().trim();
@@ -425,12 +451,10 @@ export const AgentDetailPage: React.FC = () => {
       const matchPkg = p.package_name.toLowerCase().includes(q);
       if (!matchName && !matchPhone && !matchPkg) return false;
     }
-    if (prospectStatusFilter !== 'all') {
-      if (p.status !== prospectStatusFilter) return false;
-    }
-    if (prospectPackageFilter !== 'all') {
-      if (p.package_name !== prospectPackageFilter) return false;
-    }
+    if (prospectStatusFilter !== 'all' && p.status !== prospectStatusFilter) return false;
+    if (prospectPackageFilter !== 'all' && p.package_name !== prospectPackageFilter) return false;
+    const days = DATE_FILTER_DAYS[prospectDateFilter];
+    if (days && toTime(p.created_at) < Date.now() - days * 24 * 60 * 60 * 1000) return false;
     return true;
   });
 
@@ -443,44 +467,62 @@ export const AgentDetailPage: React.FC = () => {
 
   const distinctPackages = Array.from(new Set(activeProspects.map((p) => p.package_name)));
 
-  // Tab Riwayat Komisi calculations
-  const hasRealCommission = Boolean(agent?.riwayat_komisi && agent.riwayat_komisi.length > 0);
-  const displayCommissions: CommissionLedgerRow[] = hasRealCommission
-    ? (agent?.riwayat_komisi?.map((item, idx) => {
-        const d = new Date(item.created_at);
-        const dateStr = !isNaN(d.getTime())
-          ? d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-          : '14 Mar';
-        const typeLabel: 'Direct' | 'Override' | 'Pencairan' | 'Koreksi' =
-          item.type === 'override' ? 'Override' :
-          item.type === 'payout' ? 'Pencairan' :
-          item.type === 'correction' ? 'Koreksi' : 'Direct';
-        const isIncoming = item.direction === 'masuk';
-        return {
-          id: item.id || idx + 1,
-          date: dateStr,
-          reference: item.type === 'payout' ? `PAY-2603${String(idx + 1).padStart(2, '0')}` : `COM-2603${String(idx + 1).padStart(2, '0')}`,
-          description: item.description,
-          type: typeLabel,
-          incoming: isIncoming ? item.amount : 0,
-          outgoing: !isIncoming ? item.amount : 0,
-          balance: 2500000,
-          year: !isNaN(d.getTime()) ? d.getFullYear() : 2026,
-          month: !isNaN(d.getTime()) ? d.getMonth() + 1 : 3,
-        };
-      }) ?? [])
-    : SAMPLE_COMMISSION_LEDGER;
+  const pipelineCounts = {
+    baru: realProspects.filter((p) => p.status === 'baru').length,
+    dihubungi: realProspects.filter((p) => p.status === 'dihubungi').length,
+    tertarik: realProspects.filter((p) => p.status === 'tertarik').length,
+    closing: realProspects.filter((p) => p.status === 'closing').length,
+  };
+  const recentProspects = [...activeProspects].sort((a, b) => toTime(b.updated_at) - toTime(a.updated_at)).slice(0, 3);
 
-  const totalKomisiMasuk = hasRealCommission
-    ? (agent?.riwayat_komisi?.filter((c) => c.direction === 'masuk').reduce((sum, c) => sum + c.amount, 0) ?? 0)
-    : 4000000;
-  const totalKomisiKeluar = hasRealCommission
-    ? (agent?.riwayat_komisi?.filter((c) => c.direction === 'keluar').reduce((sum, c) => sum + c.amount, 0) ?? 0)
-    : 1500000;
-  const saldoLedger = hasRealCommission
-    ? (agent?.saldo_siap_cair ?? (totalKomisiMasuk - totalKomisiKeluar))
-    : 2500000;
+  // Tab Riwayat Komisi: real ledger + payouts, running balance in chronological order.
+  const commissionItems = agent.riwayat_komisi || [];
+  const countsTowardsBalance = (item: (typeof commissionItems)[number]) =>
+    !(item.source === 'payout' && item.status === 'rejected');
+  // Entries booked in the same second keep their booking order (ids), so the running balance is stable.
+  const chronological = [...commissionItems].sort(
+    (a, b) =>
+      toTime(a.created_at) - toTime(b.created_at) ||
+      (a.source === b.source ? a.id - b.id : a.source === 'ledger' ? -1 : 1)
+  );
+  let runningBalance = 0;
+  const ledgerAsc: CommissionLedgerRow[] = chronological.map((item) => {
+    const isIncoming = item.direction === 'masuk';
+    // Ledger amounts are signed (a negative correction reverses commission); payouts are positive.
+    const signed = item.source === 'ledger' ? item.amount : -Math.abs(item.amount);
+    if (countsTowardsBalance(item)) runningBalance += signed;
+    const d = new Date(item.created_at);
+    const valid = !Number.isNaN(d.getTime());
+    const typeLabel: CommissionLedgerRow['type'] =
+      item.type === 'override' ? 'Override' : item.type === 'payout' ? 'Pencairan' : item.type === 'correction' ? 'Koreksi' : 'Direct';
+    const suffix =
+      item.source === 'payout' && item.status === 'rejected' ? ' (ditolak)' : item.held ? ' (tertahan)' : '';
+    return {
+      id: `${item.source}-${item.id}`,
+      date: valid ? formatDateWIB(item.created_at) : '-',
+      reference: `${item.source === 'payout' ? 'PAY' : 'KOM'}-${String(item.id).padStart(5, '0')}`,
+      description: item.description + suffix,
+      type: typeLabel,
+      incoming: isIncoming ? Math.abs(item.amount) : 0,
+      outgoing: !isIncoming ? Math.abs(item.amount) : 0,
+      balance: runningBalance,
+      year: valid ? d.getFullYear() : 0,
+      month: valid ? d.getMonth() + 1 : 0,
+    };
+  });
+  const displayCommissions = [...ledgerAsc].reverse();
 
+  // Net commission booked for the agent (reversals from cancelled closings subtract).
+  const totalKomisiMasuk = commissionItems.filter((c) => c.source === 'ledger').reduce((sum, c) => sum + c.amount, 0);
+  const totalKomisiKeluar = commissionItems
+    .filter((c) => c.source === 'payout' && countsTowardsBalance(c))
+    .reduce((sum, c) => sum + Math.abs(c.amount), 0);
+  const saldoLedger = agent.saldo_siap_cair || 0;
+  const commissionEntryCount = commissionItems.filter((c) => c.source === 'ledger').length;
+
+  const nowDate = new Date();
+  const currentYear = nowDate.getFullYear();
+  const currentMonth = nowDate.getMonth() + 1;
   const filteredCommissions = displayCommissions.filter((item) => {
     if (commSearch.trim()) {
       const q = commSearch.toLowerCase().trim();
@@ -490,13 +532,11 @@ export const AgentDetailPage: React.FC = () => {
       if (!matchRef && !matchDesc && !matchType) return false;
     }
     if (commTypeFilter !== 'all') {
-      if (item.type.toLowerCase() !== commTypeFilter.toLowerCase()) return false;
+      const wanted = commTypeFilter === 'payout' ? 'pencairan' : commTypeFilter;
+      if (item.type.toLowerCase() !== wanted) return false;
     }
-    if (commDateFilter === '2026') {
-      if (item.year !== 2026) return false;
-    } else if (commDateFilter === 'month') {
-      if (item.year !== 2026 || item.month !== 3) return false;
-    }
+    if (commDateFilter === 'year' && item.year !== currentYear) return false;
+    if (commDateFilter === 'month' && (item.year !== currentYear || item.month !== currentMonth)) return false;
     return true;
   });
 
@@ -506,6 +546,47 @@ export const AgentDetailPage: React.FC = () => {
     (commPage - 1) * COMMISSIONS_PER_PAGE,
     commPage * COMMISSIONS_PER_PAGE
   );
+
+  // Activity timeline built from real records (prospects, closings, commission, payouts).
+  const activityEntries: ActivityEntry[] = [
+    ...realProspects.map((p) => ({
+      key: `p-${p.id}`,
+      at: p.created_at,
+      title: p.entry_method === 'agent_manual' ? 'Menambah prospek manual' : 'Prospek masuk lewat link referral',
+      detail: `${p.name} · ${p.package_name || 'Umroh'}`,
+      kind: 'prospect' as const,
+    })),
+    ...realProspects
+      .filter((p) => p.closed_at)
+      .map((p) => ({
+        key: `c-${p.id}`,
+        at: p.closed_at as string,
+        title: 'Jamaah closing (DP)',
+        detail: p.name,
+        kind: 'closing' as const,
+      })),
+    ...commissionItems.map((c) => ({
+      key: `${c.source}-${c.id}`,
+      at: c.created_at,
+      title: c.source === 'payout' ? 'Mengajukan pencairan komisi' : 'Komisi tercatat',
+      detail: `${c.amount < 0 ? '-' : ''}${formatIDR(Math.abs(c.amount))} · ${c.description}`,
+      kind: (c.source === 'payout' ? 'payout' : 'commission') as ActivityEntry['kind'],
+    })),
+  ]
+    .filter((e) => toTime(e.at) > 0)
+    .sort((a, b) => toTime(b.at) - toTime(a.at))
+    .slice(0, 60);
+  const activityGroups: { label: string; items: ActivityEntry[] }[] = [];
+  activityEntries.forEach((e) => {
+    const label = dayLabel(e.at);
+    const last = activityGroups[activityGroups.length - 1];
+    if (last && last.label === label) last.items.push(e);
+    else activityGroups.push({ label, items: [e] });
+  });
+  const lastActivityAt = activityEntries[0]?.at;
+
+  const activeSubAgents = subAgents.filter((a) => a.status === 'active').length;
+  const closingSubAgents = subAgents.filter((a) => closingAgentIds.has(a.id)).length;
 
   const exportCommissionCSV = () => {
     const headers = ['Tanggal', 'Referensi', 'Keterangan', 'Jenis', 'Masuk', 'Keluar', 'Saldo'];
@@ -544,17 +625,17 @@ export const AgentDetailPage: React.FC = () => {
           userInitial={currentUser?.name?.slice(0, 2).toUpperCase() || 'AD'}
         />
 
-        <main className="db-page-container" style={{ maxWidth: '1400px' }}>
+        <main className={`db-page-container ${styles.admain1}`}>
           {/* Top Notification Alerts */}
           {successMessage && (
-            <div className="db-alert db-alert--success" style={{ marginBottom: '16px' }}>
+            <div className={`db-alert db-alert--success ${styles.addiv7}`}>
               <CheckCircle2 size={18} />
               <span>{successMessage}</span>
             </div>
           )}
 
           {error && (
-            <div className="db-alert db-alert--error" style={{ marginBottom: '16px' }}>
+            <div className={`db-alert db-alert--error ${styles.addiv7}`}>
               <AlertCircle size={18} />
               <span>{error}</span>
             </div>
@@ -563,23 +644,16 @@ export const AgentDetailPage: React.FC = () => {
           {/* Status Penolakan Banner */}
           {agent.status === 'rejected' && (
             <div
-              className="db-alert db-alert--error"
-              style={{
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px',
-                padding: '14px 16px',
-              }}
+              className={`db-alert db-alert--error ${styles.addiv8}`}
             >
-              <XCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: 'var(--font-size-md)' }}>Pendaftaran Agen Ditolak</strong>
-                <p style={{ margin: '4px 0 0 0', fontSize: 'var(--font-size-sm)', color: 'var(--db-text-primary)' }}>
+              <XCircle size={20} className={styles.iconTop} />
+              <div className={styles.addiv9}>
+                <strong className={styles.adstrong10}>Pendaftaran Agen Ditolak</strong>
+                <p className={styles.adp11}>
                   Alasan penolakan: <strong>{agent.rejection_reason || 'Tidak memenuhi kriteria kelayakan mitra agen.'}</strong>
                 </p>
                 {agent.payment_proof_url && (
-                  <div style={{ marginTop: '10px' }}>
+                  <div className={styles.addiv12}>
                     <Button variant="secondary" size="sm" onClick={() => setSelectedProofUrl(agent.payment_proof_url!)}>
                       <ReceiptText size={14} />
                       <span>Lihat Bukti Transfer Terakhir</span>
@@ -593,24 +667,15 @@ export const AgentDetailPage: React.FC = () => {
           {/* Status Pending Banner */}
           {agent.status === 'pending' && (
             <div
-              className="db-alert db-alert--warning"
-              style={{
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-                padding: '14px 16px',
-                flexWrap: 'wrap',
-              }}
+              className={`db-alert db-alert--warning ${styles.addiv13}`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 'var(--font-size-md)' }}>
+              <div className={styles.addiv14}>
+                <AlertCircle size={20} className={styles.iconNoShrink} />
+                <span className={styles.adstrong10}>
                   Pendaftaran agen ini sedang menunggu verifikasi dan persetujuan admin.
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className={styles.addiv15}>
                 {agent.payment_proof_url && (
                   <Button variant="secondary" size="sm" onClick={() => setSelectedProofUrl(agent.payment_proof_url!)}>
                     <ReceiptText size={14} />
@@ -654,7 +719,7 @@ export const AgentDetailPage: React.FC = () => {
                 </div>
               </div>
               <div className="adv2-header-actions">
-                <div style={{ position: 'relative' }}>
+                <div className={styles.addiv16}>
                   <button
                     type="button"
                     className="adv2-btn-more"
@@ -665,35 +730,14 @@ export const AgentDetailPage: React.FC = () => {
                   </button>
                   {moreMenuOpen && (
                     <div
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: '42px',
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                        zIndex: 50,
-                        minWidth: '180px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        padding: '6px 0',
-                      }}
+                      className={styles.addiv17}
                     >
                       {waTarget && (
                         <a
                           href={`https://wa.me/${waTarget}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 14px',
-                            fontSize: 'var(--font-size-sm)',
-                            color: '#10B981',
-                            textDecoration: 'none',
-                          }}
+                          className={styles.ada18}
                           onClick={() => setMoreMenuOpen(false)}
                         >
                           <MessageCircle size={14} />
@@ -702,19 +746,7 @@ export const AgentDetailPage: React.FC = () => {
                       )}
                       <button
                         type="button"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '8px 14px',
-                          fontSize: 'var(--font-size-sm)',
-                          color: '#0F172A',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          width: '100%',
-                        }}
+                        className={styles.adbutton19}
                         onClick={() => {
                           setMoreMenuOpen(false);
                           openResetPasswordModal();
@@ -726,19 +758,7 @@ export const AgentDetailPage: React.FC = () => {
                       {agent.status === 'active' && (
                         <button
                           type="button"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 14px',
-                            fontSize: 'var(--font-size-sm)',
-                            color: '#EF4444',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            width: '100%',
-                          }}
+                          className={styles.adbutton20}
                           onClick={() => {
                             setMoreMenuOpen(false);
                             setConfirmStatusModal({
@@ -756,19 +776,7 @@ export const AgentDetailPage: React.FC = () => {
                       {agent.status === 'inactive' && (
                         <button
                           type="button"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 14px',
-                            fontSize: 'var(--font-size-sm)',
-                            color: '#10B981',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            width: '100%',
-                          }}
+                          className={styles.adbutton21}
                           onClick={() => {
                             setMoreMenuOpen(false);
                             setConfirmStatusModal({
@@ -787,19 +795,7 @@ export const AgentDetailPage: React.FC = () => {
                         <>
                           <button
                             type="button"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '8px 14px',
-                              fontSize: 'var(--font-size-sm)',
-                              color: '#10B981',
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              width: '100%',
-                            }}
+                            className={styles.adbutton21}
                             onClick={() => {
                               setMoreMenuOpen(false);
                               setConfirmStatusModal({
@@ -815,19 +811,7 @@ export const AgentDetailPage: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '8px 14px',
-                              fontSize: 'var(--font-size-sm)',
-                              color: '#EF4444',
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              width: '100%',
-                            }}
+                            className={styles.adbutton20}
                             onClick={() => {
                               setMoreMenuOpen(false);
                               setConfirmStatusModal({
@@ -846,19 +830,7 @@ export const AgentDetailPage: React.FC = () => {
                       {agent.status === 'rejected' && (
                         <button
                           type="button"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 14px',
-                            fontSize: 'var(--font-size-sm)',
-                            color: '#10B981',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            width: '100%',
-                          }}
+                          className={styles.adbutton21}
                           onClick={() => {
                             setMoreMenuOpen(false);
                             setConfirmStatusModal({
@@ -909,10 +881,10 @@ export const AgentDetailPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="adv2-phone-city">
-                    {agent.phone || '0812 7788 1021'} · {agent.domisili || 'Jakarta'}
+                    {agent.phone || '-'} · {agent.domisili || '-'}
                   </div>
                   <div className="adv2-referral-code">
-                    Kode agen {agent.referral_code || 'AHMAD24'}
+                    Kode agen {agent.referral_code || '-'}
                   </div>
                 </div>
               </div>
@@ -921,7 +893,7 @@ export const AgentDetailPage: React.FC = () => {
                   <GitBranch size={14} className="adv2-meta-icon" />
                   <div className="adv2-meta-copy">
                     <span className="adv2-meta-label">Direkrut oleh</span>
-                    <span className="adv2-meta-value">Mandiri</span>
+                    <span className="adv2-meta-value">{agent.parent_agent_name || 'Mendaftar langsung'}</span>
                   </div>
                 </div>
                 <div className="adv2-meta-item">
@@ -931,7 +903,7 @@ export const AgentDetailPage: React.FC = () => {
                     <span className="adv2-meta-value">
                       {agent.created_at
                         ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(agent.created_at))
-                        : '12 Jan 2026'}
+                        : '-'}
                     </span>
                   </div>
                 </div>
@@ -939,7 +911,7 @@ export const AgentDetailPage: React.FC = () => {
                   <Clock3 size={14} className="adv2-meta-icon" />
                   <div className="adv2-meta-copy">
                     <span className="adv2-meta-label">Aktivitas terakhir</span>
-                    <span className="adv2-meta-value">Hari ini, 10.18</span>
+                    <span className="adv2-meta-value">{relativeTime(lastActivityAt)}</span>
                   </div>
                 </div>
               </div>
@@ -995,49 +967,57 @@ export const AgentDetailPage: React.FC = () => {
                 {/* Agent Performance Metrics Row */}
                 <div className="adv2-metrics-row">
                   <div className="adv2-metric-col">
-                    <div className="adv2-metric-icon-box" style={{ color: '#0F766E' }}>
+                    <div className={`adv2-metric-icon-box ${styles.addiv22}`}>
                       <Users size={16} />
                     </div>
                     <div className="adv2-metric-copy">
                       <span className="adv2-metric-label">Total prospek</span>
                       <span className="adv2-metric-value">
-                        {agent.ringkasan_jamaah ? (agent.ringkasan_jamaah.baru + agent.ringkasan_jamaah.diproses + agent.ringkasan_jamaah.closing) : 34}
+                        {realProspects.length}
                       </span>
                       <span className="adv2-metric-subtext">Sejak bergabung</span>
                     </div>
                   </div>
                   <div className="adv2-metric-col">
-                    <div className="adv2-metric-icon-box" style={{ color: '#F59E0B' }}>
+                    <div className={`adv2-metric-icon-box ${styles.addiv23}`}>
                       <MessagesSquare size={16} />
                     </div>
                     <div className="adv2-metric-copy">
                       <span className="adv2-metric-label">Sedang ditangani</span>
                       <span className="adv2-metric-value">
-                        {agent.ringkasan_jamaah ? agent.ringkasan_jamaah.diproses : 6}
+                        {agent.ringkasan_jamaah ? agent.ringkasan_jamaah.diproses : 0}
                       </span>
                       <span className="adv2-metric-subtext">Perlu tindak lanjut</span>
                     </div>
                   </div>
                   <div className="adv2-metric-col">
-                    <div className="adv2-metric-icon-box" style={{ color: '#0D9488' }}>
+                    <div className={`adv2-metric-icon-box ${styles.addiv22}`}>
                       <CheckCircle2 size={16} />
                     </div>
                     <div className="adv2-metric-copy">
                       <span className="adv2-metric-label">Jamaah closing</span>
                       <span className="adv2-metric-value">
-                        {agent.ringkasan_jamaah ? agent.ringkasan_jamaah.closing : 8}
+                        {agent.ringkasan_jamaah ? agent.ringkasan_jamaah.closing : 0}
                       </span>
-                      <span className="adv2-metric-subtext">23,5% dari prospek</span>
+                      <span className="adv2-metric-subtext">
+                        {(agent.ringkasan_jamaah?.batal || 0) > 0
+                          ? `${agent.ringkasan_jamaah.batal} batal setelah DP (${Math.round(
+                              ((agent.ringkasan_jamaah.batal || 0) /
+                                ((agent.ringkasan_jamaah.closing || 0) + (agent.ringkasan_jamaah.batal || 0))) *
+                                100
+                            )}%)`
+                          : 'Belum ada yang batal setelah DP'}
+                      </span>
                     </div>
                   </div>
                   <div className="adv2-metric-col">
-                    <div className="adv2-metric-icon-box" style={{ color: '#4338CA' }}>
+                    <div className={`adv2-metric-icon-box ${styles.addiv24}`}>
                       <Wallet size={16} />
                     </div>
                     <div className="adv2-metric-copy">
                       <span className="adv2-metric-label">Komisi tercatat</span>
-                      <span className="adv2-metric-value">Rp4.000.000</span>
-                      <span className="adv2-metric-subtext">8 transaksi</span>
+                      <span className="adv2-metric-value">{formatIDR(totalKomisiMasuk)}</span>
+                      <span className="adv2-metric-subtext">{commissionEntryCount} transaksi komisi</span>
                     </div>
                   </div>
                 </div>
@@ -1049,33 +1029,33 @@ export const AgentDetailPage: React.FC = () => {
                     {/* Pipeline Overview */}
                     <div className="adv2-card">
                       <div className="adv2-card-header">
-                        <Filter size={15} style={{ color: '#0F766E' }} />
+                        <Filter size={15} className={styles.cardIcon} />
                         <div className="adv2-card-header-copy">
                           <h3 className="adv2-card-title">Pipeline jamaah</h3>
                           <p className="adv2-card-subtitle">
-                            Perkembangan {agent.ringkasan_jamaah ? (agent.ringkasan_jamaah.baru + agent.ringkasan_jamaah.diproses + agent.ringkasan_jamaah.closing) : 34} prospek milik agen ini.
+                            Perkembangan {realProspects.length} prospek milik agen ini.
                           </p>
                         </div>
                       </div>
                       <div className="adv2-pipeline-body">
                         <div className="adv2-pipeline-item">
-                          <span className="adv2-pipeline-val">12</span>
-                          <div className="adv2-pipeline-bar" style={{ backgroundColor: '#0369A1' }} />
+                          <span className="adv2-pipeline-val">{pipelineCounts.baru}</span>
+                          <div className="adv2-pipeline-bar adv2-tone-bg--new" />
                           <span className="adv2-pipeline-lbl">Prospek baru</span>
                         </div>
                         <div className="adv2-pipeline-item">
-                          <span className="adv2-pipeline-val">9</span>
-                          <div className="adv2-pipeline-bar" style={{ backgroundColor: '#4338CA' }} />
+                          <span className="adv2-pipeline-val">{pipelineCounts.dihubungi}</span>
+                          <div className="adv2-pipeline-bar adv2-tone-bg--contacted" />
                           <span className="adv2-pipeline-lbl">Dihubungi</span>
                         </div>
                         <div className="adv2-pipeline-item">
-                          <span className="adv2-pipeline-val">5</span>
-                          <div className="adv2-pipeline-bar" style={{ backgroundColor: '#F59E0B' }} />
+                          <span className="adv2-pipeline-val">{pipelineCounts.tertarik}</span>
+                          <div className="adv2-pipeline-bar adv2-tone-bg--interested" />
                           <span className="adv2-pipeline-lbl">Berminat</span>
                         </div>
                         <div className="adv2-pipeline-item">
-                          <span className="adv2-pipeline-val">8</span>
-                          <div className="adv2-pipeline-bar" style={{ backgroundColor: '#0D9488' }} />
+                          <span className="adv2-pipeline-val">{pipelineCounts.closing}</span>
+                          <div className="adv2-pipeline-bar adv2-tone-bg--closing" />
                           <span className="adv2-pipeline-lbl">Closing</span>
                         </div>
                       </div>
@@ -1084,7 +1064,7 @@ export const AgentDetailPage: React.FC = () => {
                     {/* Recent Prospects Table */}
                     <div className="adv2-card">
                       <div className="adv2-card-header">
-                        <Users size={15} style={{ color: '#0F766E' }} />
+                        <Users size={15} className={styles.cardIcon} />
                         <div className="adv2-card-header-copy">
                           <h3 className="adv2-card-title">Prospek terbaru</h3>
                           <p className="adv2-card-subtitle">Aktivitas jamaah yang terakhir diperbarui.</p>
@@ -1092,62 +1072,33 @@ export const AgentDetailPage: React.FC = () => {
                       </div>
                       <div className="adv2-table">
                         <div className="adv2-thead">
-                          <span style={{ width: '230px' }}>JAMAAH</span>
-                          <span style={{ width: '220px' }}>PAKET</span>
-                          <span style={{ width: '120px' }}>STATUS</span>
-                          <span style={{ width: '110px' }}>DIPERBARUI</span>
+                          <span className="adv2-w-jamaah">JAMAAH</span>
+                          <span className="adv2-w-paket">PAKET</span>
+                          <span className="adv2-w-status">STATUS</span>
+                          <span className="adv2-w-updated">DIPERBARUI</span>
                         </div>
                         <div className="adv2-tbody">
-                          <div className="adv2-tr">
-                            <div className="adv2-td-jamaah" style={{ width: '230px' }}>
-                              <span className="adv2-jamaah-name">Siti Aminah</span>
-                              <span className="adv2-jamaah-phone">0813 8821 0091</span>
+                          {recentProspects.length === 0 ? (
+                            <div className="adv2-prospects-empty">
+                              <span className="adv2-prospects-empty-title">Belum ada prospek</span>
+                              <span className="adv2-prospects-empty-desc">Prospek dari link referral atau input agen akan muncul di sini.</span>
                             </div>
-                            <div className="adv2-td-paket" style={{ width: '220px' }}>
-                              Umroh Syawal 9 Hari
-                            </div>
-                            <div className="adv2-td-status" style={{ width: '120px' }}>
-                              <span className="adv2-status-dot" style={{ backgroundColor: '#F59E0B' }} />
-                              <span className="adv2-status-name">Berminat</span>
-                            </div>
-                            <div className="adv2-td-updated" style={{ width: '110px' }}>
-                              15 menit lalu
-                            </div>
-                          </div>
-
-                          <div className="adv2-tr">
-                            <div className="adv2-td-jamaah" style={{ width: '230px' }}>
-                              <span className="adv2-jamaah-name">Hendra Wijaya</span>
-                              <span className="adv2-jamaah-phone">0821 1109 7742</span>
-                            </div>
-                            <div className="adv2-td-paket" style={{ width: '220px' }}>
-                              Umroh Hemat 12 Hari
-                            </div>
-                            <div className="adv2-td-status" style={{ width: '120px' }}>
-                              <span className="adv2-status-dot" style={{ backgroundColor: '#4338CA' }} />
-                              <span className="adv2-status-name">Dihubungi</span>
-                            </div>
-                            <div className="adv2-td-updated" style={{ width: '110px' }}>
-                              1 jam lalu
-                            </div>
-                          </div>
-
-                          <div className="adv2-tr">
-                            <div className="adv2-td-jamaah" style={{ width: '230px' }}>
-                              <span className="adv2-jamaah-name">Nur Aisyah</span>
-                              <span className="adv2-jamaah-phone">0856 7720 3319</span>
-                            </div>
-                            <div className="adv2-td-paket" style={{ width: '220px' }}>
-                              Umroh Syawal 9 Hari
-                            </div>
-                            <div className="adv2-td-status" style={{ width: '120px' }}>
-                              <span className="adv2-status-dot" style={{ backgroundColor: '#0D9488' }} />
-                              <span className="adv2-status-name">Closing</span>
-                            </div>
-                            <div className="adv2-td-updated" style={{ width: '110px' }}>
-                              Kemarin
-                            </div>
-                          </div>
+                          ) : (
+                            recentProspects.map((p) => (
+                              <div key={p.id} className="adv2-tr">
+                                <div className="adv2-td-jamaah adv2-w-jamaah">
+                                  <span className="adv2-jamaah-name">{p.name}</span>
+                                  <span className="adv2-jamaah-phone">{p.phone}</span>
+                                </div>
+                                <div className="adv2-td-paket adv2-w-paket">{p.package_name}</div>
+                                <div className="adv2-td-status adv2-w-status">
+                                  <span className={`adv2-status-dot adv2-tone-bg--${p.tone}`} />
+                                  <span className="adv2-status-name">{p.status_label}</span>
+                                </div>
+                                <div className="adv2-td-updated adv2-w-updated">{p.updated_at_relative}</div>
+                              </div>
+                            ))
+                          )}
                         </div>
                         <div className="adv2-tfoot">
                           <button
@@ -1168,7 +1119,7 @@ export const AgentDetailPage: React.FC = () => {
                     {/* Card: Kontak dan profil */}
                     <div className="adv2-card">
                       <div className="adv2-card-header">
-                        <Users size={15} style={{ color: '#0F766E' }} />
+                        <Users size={15} className={styles.cardIcon} />
                         <div className="adv2-card-header-copy">
                           <h3 className="adv2-card-title">Kontak dan profil</h3>
                           <p className="adv2-card-subtitle">Data terdaftar milik agen.</p>
@@ -1177,19 +1128,15 @@ export const AgentDetailPage: React.FC = () => {
                       <div className="adv2-contact-list">
                         <div className="adv2-contact-item">
                           <Phone size={13} />
-                          <span>{agent.phone || '0812 7788 1021'}</span>
+                          <span>{agent.phone || '-'}</span>
                         </div>
                         <div className="adv2-contact-item">
                           <Mail size={13} />
-                          <span>{agent.email || 'ahmad.fauzi@email.com'}</span>
+                          <span>{agent.email || '-'}</span>
                         </div>
                         <div className="adv2-contact-item">
                           <MapPin size={13} />
-                          <span>{agent.domisili || 'Jakarta Selatan'}</span>
-                        </div>
-                        <div className="adv2-contact-item">
-                          <Briefcase size={13} />
-                          <span>Wiraswasta</span>
+                          <span>{agent.domisili || '-'}</span>
                         </div>
                       </div>
                     </div>
@@ -1197,7 +1144,7 @@ export const AgentDetailPage: React.FC = () => {
                     {/* Card: Jaringan agen */}
                     <div className="adv2-card">
                       <div className="adv2-card-header">
-                        <Network size={15} style={{ color: '#0F766E' }} />
+                        <Network size={15} className={styles.cardIcon} />
                         <div className="adv2-card-header-copy">
                           <h3 className="adv2-card-title">Jaringan agen</h3>
                           <p className="adv2-card-subtitle">Struktur referral di bawah agen ini.</p>
@@ -1205,15 +1152,15 @@ export const AgentDetailPage: React.FC = () => {
                       </div>
                       <div className="adv2-network-stats">
                         <div className="adv2-net-stat">
-                          <span className="adv2-net-val">14</span>
+                          <span className="adv2-net-val">{subAgents.length}</span>
                           <span className="adv2-net-lbl">Agen direkrut</span>
                         </div>
                         <div className="adv2-net-stat">
-                          <span className="adv2-net-val">9</span>
+                          <span className="adv2-net-val">{activeSubAgents}</span>
                           <span className="adv2-net-lbl">Agen aktif</span>
                         </div>
                         <div className="adv2-net-stat">
-                          <span className="adv2-net-val">3</span>
+                          <span className="adv2-net-val">{closingSubAgents}</span>
                           <span className="adv2-net-lbl">Pernah closing</span>
                         </div>
                       </div>
@@ -1222,7 +1169,7 @@ export const AgentDetailPage: React.FC = () => {
                     {/* Card: Saldo komisi */}
                     <div className="adv2-card">
                       <div className="adv2-card-header">
-                        <Wallet size={15} style={{ color: '#0F766E' }} />
+                        <Wallet size={15} className={styles.cardIcon} />
                         <div className="adv2-card-header-copy">
                           <h3 className="adv2-card-title">Saldo komisi</h3>
                           <p className="adv2-card-subtitle">Ringkasan komisi yang dapat dicairkan.</p>
@@ -1230,17 +1177,17 @@ export const AgentDetailPage: React.FC = () => {
                       </div>
                       <div className="adv2-saldo-body">
                         <span className="adv2-saldo-lbl">Saldo tersedia</span>
-                        <span className="adv2-saldo-val">{formatIDR(agent.saldo_siap_cair || 2500000)}</span>
+                        <span className="adv2-saldo-val">{formatIDR(agent.saldo_siap_cair || 0)}</span>
                         <div className="adv2-saldo-footer">
                           <span className="adv2-saldo-sub">
-                            Sudah dicairkan {formatIDR(agent.saldo_tertunda || 1500000)}
+                            Tertahan (menunggu lunas) {formatIDR(agent.saldo_tertahan || 0)}
                           </span>
                           <button
                             type="button"
                             className="adv2-saldo-link"
                             onClick={() => setActiveTab('riwayat_komisi')}
                           >
-                            8 transaksi
+                            {agent.riwayat_komisi?.length || 0} transaksi
                           </button>
                         </div>
                       </div>
@@ -1251,7 +1198,43 @@ export const AgentDetailPage: React.FC = () => {
             )}
 
             {activeTab === 'aktivitas' && (
-              <AgentActivityFeed />
+              <div className="adv2-card adv2-activity">
+                {activityGroups.length === 0 ? (
+                  <div className="adv2-prospects-empty">
+                    <Activity size={24} className="adv2-empty-icon" />
+                    <span className="adv2-prospects-empty-title">Belum ada aktivitas</span>
+                    <span className="adv2-prospects-empty-desc">
+                      Prospek, closing, komisi, dan pencairan agen ini akan tampil di sini.
+                    </span>
+                  </div>
+                ) : (
+                  activityGroups.map((group) => (
+                    <div key={group.label} className="adv2-activity-group">
+                      <span className="adv2-activity-day">{group.label}</span>
+                      {group.items.map((item) => (
+                        <div key={item.key} className="adv2-activity-row">
+                          <span className={`adv2-activity-icon adv2-activity-icon--${item.kind}`}>
+                            {item.kind === 'prospect' ? (
+                              <Users size={14} />
+                            ) : item.kind === 'closing' ? (
+                              <CheckCircle2 size={14} />
+                            ) : item.kind === 'payout' ? (
+                              <Wallet size={14} />
+                            ) : (
+                              <ReceiptText size={14} />
+                            )}
+                          </span>
+                          <div className="adv2-activity-copy">
+                            <span className="adv2-activity-title">{item.title}</span>
+                            <span className="adv2-activity-detail">{item.detail}</span>
+                          </div>
+                          <span className="adv2-activity-time">{formatTimeWIB(item.at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
+              </div>
             )}
 
             {activeTab === 'prospek' && (
@@ -1343,7 +1326,7 @@ export const AgentDetailPage: React.FC = () => {
                   <div className="adv2-th adv2-col-jamaah">JAMAAH</div>
                   <div className="adv2-th adv2-col-paket">PAKET</div>
                   <div className="adv2-th adv2-col-status">STATUS</div>
-                  <div className="adv2-th adv2-col-followup">TINDAK LANJUT</div>
+                  <div className="adv2-th adv2-col-followup">MASUK</div>
                   <div className="adv2-th adv2-col-source">SUMBER</div>
                   <div className="adv2-th adv2-col-updated">DIPERBARUI</div>
                 </div>
@@ -1359,25 +1342,20 @@ export const AgentDetailPage: React.FC = () => {
                         </div>
                         <div className="adv2-col-paket">{p.package_name}</div>
                         <div className="adv2-col-status">
-                          <span
-                            className={`adv2-status-dot ${p.status}`}
-                            style={{ backgroundColor: p.status_color }}
-                          />
+                          <span className={`adv2-status-dot adv2-tone-bg--${p.tone}`} />
                           <span className="adv2-status-text">{p.status_label}</span>
                         </div>
-                        <div className={`adv2-col-followup ${p.is_overdue ? 'overdue' : ''}`}>
-                          {p.follow_up}
-                        </div>
+                        <div className="adv2-col-followup">{p.created_label}</div>
                         <div className="adv2-col-source">{p.source}</div>
                         <div className="adv2-col-updated">{p.updated_at_relative}</div>
                       </div>
                     ))
                   ) : (
                     <div className="adv2-prospects-empty">
-                      <Users size={32} style={{ color: '#64748B', opacity: 0.5, marginBottom: '8px' }} />
+                      <Users size={32} className={styles.emptyIcon} />
                       <span className="adv2-prospects-empty-title">Tidak ada prospek ditemukan</span>
                       <span className="adv2-prospects-empty-desc">
-                        Coba sesuaikan kata kunci pencarian atau filter status/paket.
+                        Coba sesuaikan kata kunci, filter status/paket, atau rentang tanggal.
                       </span>
                     </div>
                   )}
@@ -1423,10 +1401,33 @@ export const AgentDetailPage: React.FC = () => {
             )}
 
           {activeTab === 'jaringan' && (
-            <div style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: 'var(--db-card-bg)', borderRadius: 'var(--radius-lg)', border: '1px dashed var(--db-border)' }}>
-              <MessageCircle size={32} style={{ color: 'var(--db-text-muted)', opacity: 0.6, marginBottom: '16px' }} />
-              <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--db-text-primary)', marginBottom: '8px' }}>Jaringan Sub-Agen</h3>
-              <p style={{ color: 'var(--db-text-muted)', fontSize: 'var(--font-size-md)', maxWidth: '400px', margin: '0 auto' }}>Daftar sub-agen yang mendaftar melalui tautan referral agen ini akan ditampilkan di sini.</p>
+            <div className="adv2-card adv2-network-panel">
+              {subAgents.length === 0 ? (
+                <div className="adv2-prospects-empty">
+                  <Network size={24} className="adv2-empty-icon" />
+                  <span className="adv2-prospects-empty-title">Belum ada sub-agen</span>
+                  <span className="adv2-prospects-empty-desc">
+                    Agen yang mendaftar lewat tautan referral {agent.name} akan tampil di sini.
+                  </span>
+                </div>
+              ) : (
+                subAgents.map((sub) => (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    className="adv2-network-row"
+                    onClick={() => navigate(`/agents/${sub.id}`)}
+                  >
+                    <span className="adv2-network-name">{sub.name}</span>
+                    <span className="adv2-network-meta">
+                      {sub.status === 'active' ? 'Aktif' : sub.status === 'pending' ? 'Pending' : sub.status === 'inactive' ? 'Nonaktif' : 'Ditolak'}
+                      {' · '}Bergabung {formatDateWIB(sub.created_at)}
+                      {closingAgentIds.has(sub.id) ? ' · Pernah closing' : ''}
+                    </span>
+                    <ChevronRight size={14} />
+                  </button>
+                ))
+              )}
             </div>
           )}
 
@@ -1447,7 +1448,7 @@ export const AgentDetailPage: React.FC = () => {
                 </div>
 
                 <div className="adv2-commission-audit-item">
-                  <span className="adv2-commission-audit-item-label">Saldo</span>
+                  <span className="adv2-commission-audit-item-label">Saldo siap cair</span>
                   <span className="adv2-commission-audit-item-val balance">{formatIDR(saldoLedger)}</span>
                 </div>
               </div>
@@ -1455,7 +1456,7 @@ export const AgentDetailPage: React.FC = () => {
               {/* 2. Toolbar */}
               <div className="adv2-commission-toolbar">
                 <div className="adv2-comm-search-wrap">
-                  <Search size={13} color="#64748B" />
+                  <Search size={13} color="var(--db-text-muted)" />
                   <input
                     type="text"
                     placeholder="Cari transaksi atau jamaah..."
@@ -1468,7 +1469,7 @@ export const AgentDetailPage: React.FC = () => {
                 </div>
 
                 <div className="adv2-comm-filter-select-wrap">
-                  <ListFilter size={12} color="#64748B" />
+                  <ListFilter size={12} color="var(--db-text-muted)" />
                   <span className="adv2-comm-filter-label">
                     {commTypeFilter === 'all'
                       ? 'Semua transaksi'
@@ -1480,7 +1481,7 @@ export const AgentDetailPage: React.FC = () => {
                             ? 'Pencairan'
                             : 'Koreksi'}
                   </span>
-                  <ChevronDown size={11} color="#64748B" />
+                  <ChevronDown size={11} color="var(--db-text-muted)" />
                   <select
                     value={commTypeFilter}
                     onChange={(e) => {
@@ -1498,15 +1499,15 @@ export const AgentDetailPage: React.FC = () => {
                 </div>
 
                 <div className="adv2-comm-filter-select-wrap">
-                  <CalendarDays size={12} color="#64748B" />
+                  <CalendarDays size={12} color="var(--db-text-muted)" />
                   <span className="adv2-comm-filter-label">
-                    {commDateFilter === '2026'
-                      ? 'Tahun 2026'
+                    {commDateFilter === 'year'
+                      ? `Tahun ${currentYear}`
                       : commDateFilter === 'month'
                         ? 'Bulan ini'
                         : 'Semua tahun'}
                   </span>
-                  <ChevronDown size={11} color="#64748B" />
+                  <ChevronDown size={11} color="var(--db-text-muted)" />
                   <select
                     value={commDateFilter}
                     onChange={(e) => {
@@ -1515,7 +1516,7 @@ export const AgentDetailPage: React.FC = () => {
                     }}
                     aria-label="Filter periode tanggal"
                   >
-                    <option value="2026">Tahun 2026</option>
+                    <option value="year">Tahun {currentYear}</option>
                     <option value="month">Bulan ini</option>
                     <option value="all">Semua tahun</option>
                   </select>
@@ -1527,7 +1528,7 @@ export const AgentDetailPage: React.FC = () => {
                   onClick={exportCommissionCSV}
                   title="Ekspor CSV"
                 >
-                  <Download size={12} color="#64748B" />
+                  <Download size={12} color="var(--db-text-muted)" />
                   <span>CSV</span>
                 </button>
               </div>
@@ -1563,7 +1564,7 @@ export const AgentDetailPage: React.FC = () => {
                   ))
                 ) : (
                   <div className="adv2-prospects-empty">
-                    <ReceiptText size={24} style={{ color: '#64748B', opacity: 0.6, marginBottom: '8px' }} />
+                    <ReceiptText size={24} className={styles.emptyIcon} />
                     <div className="adv2-prospects-empty-title">Tidak ada transaksi yang cocok</div>
                     <div className="adv2-prospects-empty-desc">Coba ubah kata kunci pencarian atau filter transaksi.</div>
                   </div>
@@ -1618,7 +1619,7 @@ export const AgentDetailPage: React.FC = () => {
             onClose={() => !savingProfile && setEditProfileModalOpen(false)}
             title="Edit Profil Agen"
             footer={
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', width: '100%' }}>
+              <div className={styles.addiv25}>
                 <Button
                   type="button"
                   variant="secondary"
@@ -1641,7 +1642,7 @@ export const AgentDetailPage: React.FC = () => {
               </div>
             }
           >
-            <form id="edit-agent-profile-form" onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form id="edit-agent-profile-form" onSubmit={handleSaveProfile} className={styles.adform26}>
               {profileError && (
                 <div className="db-alert db-alert--error">
                   <AlertCircle size={16} />
@@ -1688,7 +1689,7 @@ export const AgentDetailPage: React.FC = () => {
             onClose={() => !resettingPassword && setResetPasswordModalOpen(false)}
             title="Ubah Password Akun Agen"
             footer={
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', width: '100%' }}>
+              <div className={styles.addiv25}>
                 <Button
                   type="button"
                   variant="secondary"
@@ -1711,21 +1712,11 @@ export const AgentDetailPage: React.FC = () => {
               </div>
             }
           >
-            <form id="reset-agent-password-form" onSubmit={handleExecuteResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form id="reset-agent-password-form" onSubmit={handleExecuteResetPassword} className={styles.adform26}>
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                  padding: '12px 14px',
-                  backgroundColor: 'var(--db-chart-area-fill)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: 'var(--font-size-base)',
-                  color: 'var(--db-text-muted)',
-                  lineHeight: 1.5,
-                }}
+                className={styles.addiv27}
               >
-                <ShieldAlert size={18} style={{ color: 'var(--db-accent-teal)', flexShrink: 0, marginTop: '2px' }} />
+                <ShieldAlert size={18} className={styles.accentIconTop} />
                 <span>
                   Admin memiliki wewenang override untuk mengganti password agen <strong>{agent.name}</strong>. Password lama akan langsung tidak berlaku setelah disimpan.
                 </span>
@@ -1784,7 +1775,7 @@ export const AgentDetailPage: React.FC = () => {
             }}
             title={confirmStatusModal?.title || 'Konfirmasi'}
             footer={
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', width: '100%' }}>
+              <div className={styles.addiv25}>
                 <Button
                   variant="secondary"
                   size="md"
@@ -1826,37 +1817,21 @@ export const AgentDetailPage: React.FC = () => {
               </div>
             }
           >
-            <div style={{ fontSize: 'var(--font-size-md)', lineHeight: 1.6, color: 'var(--db-text-primary)' }}>
-              <p style={{ margin: 0 }}>{confirmStatusModal?.description}</p>
+            <div className={styles.addiv28}>
+              <p className={styles.adp29}>{confirmStatusModal?.description}</p>
               {confirmStatusModal?.action === 'reject' && (
-                <div style={{ marginTop: '14px' }}>
+                <div className={styles.addiv30}>
                   <label
-                    style={{
-                      display: 'block',
-                      fontSize: 'var(--font-size-xs)',
-                      fontWeight: 600,
-                      color: 'var(--db-text-secondary)',
-                      marginBottom: '6px',
-                    }}
+                    className={styles.adlabel31}
                   >
-                    Alasan Penolakan <span style={{ color: 'var(--db-negative)' }}>*</span>
+                    Alasan Penolakan <span className={styles.adspan32}>*</span>
                   </label>
                   <textarea
                     value={rejectionReasonInput}
                     onChange={(e) => setRejectionReasonInput(e.target.value)}
                     placeholder="Contoh: Bukti transfer tidak terbaca atau nominal pembayaran pendaftaran tidak sesuai."
                     rows={3}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--db-border)',
-                      backgroundColor: 'var(--db-card-bg)',
-                      color: 'var(--db-text-primary)',
-                      fontSize: 'var(--font-size-sm)',
-                      resize: 'vertical',
-                      boxSizing: 'border-box',
-                    }}
+                    className={styles.adtextarea33}
                   />
                 </div>
               )}
@@ -1869,21 +1844,13 @@ export const AgentDetailPage: React.FC = () => {
             onClose={() => setSelectedProofUrl(null)}
             title={`Bukti Transfer Pendaftaran — ${agent.name}`}
             footer={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className={styles.addiv34}>
                 {selectedProofUrl && (
                   <a
                     href={getFullImageUrl(selectedProofUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: 'var(--font-size-sm)',
-                      color: 'var(--db-primary-button)',
-                      textDecoration: 'none',
-                      fontWeight: 600,
-                    }}
+                    className={styles.ada35}
                   >
                     <ExternalLink size={14} />
                     <span>Buka Ukuran Penuh</span>
@@ -1897,28 +1864,12 @@ export const AgentDetailPage: React.FC = () => {
           >
             {selectedProofUrl && (
               <div
-                style={{
-                  textAlign: 'center',
-                  backgroundColor: 'var(--db-chart-area-fill)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  overflow: 'hidden',
-                }}
+                className={styles.addiv36}
               >
                 <img
                   src={getFullImageUrl(selectedProofUrl)}
                   alt={`Bukti Transfer ${agent.name}`}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '65vh',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--db-border)',
-                    objectFit: 'contain',
-                    backgroundColor: 'var(--db-card-bg)',
-                  }}
+                  className={styles.adimg37}
                 />
               </div>
             )}
