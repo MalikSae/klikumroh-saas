@@ -288,12 +288,22 @@ CREATE TABLE access_logs (
     id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tenant_id    BIGINT UNSIGNED NOT NULL,                     -- data tenant mana yang diakses
     staff_id     BIGINT UNSIGNED NOT NULL,                     -- staf KlikUmroh yang mengakses
-    reason       VARCHAR(255) NULL,
+    action       VARCHAR(50) NOT NULL DEFAULT 'akses_data',    -- lihat_detail_travel | mulai_impersonasi | akses_dashboard | reset_password_admin | ubah_langganan
+    http_method  VARCHAR(10) NULL,                             -- diisi untuk akses_dashboard (request selama impersonasi)
+    path         VARCHAR(500) NULL,                            -- path API tanpa query string (query bisa berisi data pribadi)
+    session_id   BIGINT UNSIGNED NULL,                         -- sesi impersonasi asal request
+    reason       VARCHAR(255) NULL,                            -- alasan wajib saat impersonasi, label otomatis untuk aksi lain
     accessed_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    FOREIGN KEY (staff_id) REFERENCES staff_users(id),
     INDEX idx_accesslogs_tenant (tenant_id),
-    INDEX idx_accesslogs_staff (staff_id)
+    INDEX idx_accesslogs_staff (staff_id),
+    INDEX idx_accesslogs_tenant_accessed (tenant_id, accessed_at),
+    INDEX idx_accesslogs_session_path (tenant_id, session_id, http_method, path(191), accessed_at)
 );
+-- Append-only: repository tidak menyediakan update/delete. Pencatatan fail-closed — kalau log gagal
+-- ditulis, akses staf ditolak (503). GET identik dalam satu sesi impersonasi dicatat sekali per 5 menit
+-- (mencegah banjir dari polling notifikasi); POST/PUT/PATCH/DELETE selalu dicatat.
 
 -- Akun login admin travel (dashboard)
 CREATE TABLE admin_users (
@@ -315,14 +325,19 @@ CREATE TABLE sessions (
     token          VARCHAR(255) NOT NULL UNIQUE,               -- random token, dicari middleware auth
     admin_user_id  BIGINT UNSIGNED NOT NULL,
     tenant_id      BIGINT UNSIGNED NOT NULL,                   -- denormalisasi sengaja: hindari join di setiap request
+    impersonated_by_staff_id BIGINT UNSIGNED NULL,             -- terisi jika sesi dibuat staf via impersonasi; AuthMiddleware mencatat tiap request ke access_logs
+    impersonation_reason     VARCHAR(255) NULL,
     expires_at     TIMESTAMP NOT NULL,
     created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_user_id) REFERENCES admin_users(id),
     FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    FOREIGN KEY (impersonated_by_staff_id) REFERENCES staff_users(id),
     INDEX idx_sessions_token (token),
     INDEX idx_sessions_admin_user (admin_user_id)
 );
 ```
+
+**Zona waktu:** zona bisnis platform adalah WIB. Semua koneksi database WAJIB dibuat lewat `repository.MySQLDSN` (session MySQL `time_zone='+07:00'` + driver Go `loc=Asia/Jakarta`), supaya default `CURRENT_TIMESTAMP`/`NOW()` dan timestamp yang ditulis dari Go menyatakan instant yang sama, dan query berbasis `DATE()`/`CURDATE()` mengikuti hari kerja Indonesia di server mana pun. Jangan menulis DSN manual dengan `fmt.Sprintf`.
 
 **Catatan implementasi terkait Bagian 4.1 (isolasi tenant):** Kolom `tenant_id` bertipe `NOT NULL` di semua tabel yang menyimpan data milik tenant (kecuali `promo_tips` yang sengaja `NULL`-able untuk konten master) — constraint ini sendiri sudah jadi lapisan validasi pertama di level skema, sebelum bahkan sampai ke repository layer. Index `(tenant_id, ...)` pada `prospects` dan lookup `(hostname, status)` pada `domains` dipilih spesifik untuk pola query yang sudah diketahui dari fitur MVP (dashboard funnel, ask-endpoint Caddy) — bukan index generik.
 

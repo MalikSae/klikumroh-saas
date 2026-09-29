@@ -87,6 +87,17 @@ https:// {
 
 ---
 
+## 3a. Kunci Enkripsi Token (APP_ENCRYPTION_KEY)
+
+Token Conversions API Meta milik tiap travel disimpan terenkripsi (AES-256-GCM) memakai `APP_ENCRYPTION_KEY` di `.env` backend.
+
+- **Diisi manual oleh pemilik produk di VPS**, tidak pernah oleh AI agent (AGENTS.md 3.2). Buat dengan: `openssl rand -base64 32`.
+- Simpan cadangannya di tempat aman. **Jika kunci diganti atau hilang, semua token yang tersimpan tidak bisa dibaca** dan setiap travel harus memasukkan ulang tokennya di Pengaturan > Integrasi Meta.
+- Tanpa kunci ini backend tetap jalan: Pixel di situs travel tetap aktif, tetapi token tidak bisa disimpan dan event server (Conversions API) tidak dikirim. Log startup menulis `[Meta] Conversions API disabled`.
+- Backend mengirim event ke `graph.facebook.com` (HTTPS keluar). Pastikan firewall VPS mengizinkan koneksi keluar ke port 443.
+
+---
+
 ## 4. Koeksistensi Port 80 & 443 (Nginx Stream SNI di aaPanel)
 
 Karena VPS menjalankan Nginx (aaPanel) bersama puluhan website lain, Caddy tidak bisa langsung bind ke port publik 80/443. Gunakan Nginx Layer-4 `stream` SNI routing:
