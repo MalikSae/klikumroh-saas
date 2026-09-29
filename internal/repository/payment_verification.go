@@ -43,9 +43,16 @@ type PaymentVerificationRepository interface {
 	GetByPublicToken(ctx context.Context, token string) (*PaymentVerification, error)
 	Create(ctx context.Context, pv *PaymentVerification) error
 	UpdateStatus(ctx context.Context, id uint64, status string, rejectionReason *string, reviewedBy *uint64, reviewedAt *time.Time) error
+	// TransitionStatus atomically moves a verification from fromStatus to toStatus in one conditional UPDATE.
+	// Only one concurrent caller can win; the others get ErrStatusConflict (or ErrNotFound if the row is gone).
+	TransitionStatus(ctx context.Context, id uint64, fromStatus, toStatus string, rejectionReason *string, reviewedBy *uint64, reviewedAt *time.Time) error
 	UpdateProofURL(ctx context.Context, id uint64, proofURL string) error
 	ResetToPendingWithProof(ctx context.Context, id uint64, proofURL string) error
 	UpdateDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error
+	// ReplaceDetails is like UpdateDetails but writes proof_url exactly as given (nil clears it).
+	// Used when the travel changes the billed amount, so an old transfer proof never stays attached
+	// to an invoice with a different amount.
+	ReplaceDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error
 }
 
 type mysqlPaymentVerificationRepository struct {
@@ -312,6 +319,51 @@ func (r *mysqlPaymentVerificationRepository) UpdateStatus(
 	return nil
 }
 
+func (r *mysqlPaymentVerificationRepository) TransitionStatus(
+	ctx context.Context,
+	id uint64,
+	fromStatus, toStatus string,
+	rejectionReason *string,
+	reviewedBy *uint64,
+	reviewedAt *time.Time,
+) error {
+	query := `
+		UPDATE payment_verifications
+		SET status = ?, rejection_reason = ?, reviewed_by = ?, reviewed_at = ?, updated_at = NOW()
+		WHERE id = ? AND status = ?
+	`
+	res, err := r.db.ExecContext(ctx, query, toStatus, rejectionReason, reviewedBy, reviewedAt, id, fromStatus)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected > 0 {
+		return nil
+	}
+	return r.missingOrConflict(ctx, id, fromStatus)
+}
+
+// missingOrConflict explains why a conditional UPDATE (WHERE ... AND status = expectedStatus) reported
+// no affected row: the row is gone, its status changed concurrently, or (without clientFoundRows) the
+// UPDATE simply wrote identical values.
+func (r *mysqlPaymentVerificationRepository) missingOrConflict(ctx context.Context, id uint64, expectedStatus string) error {
+	var status string
+	err := r.db.QueryRowContext(ctx, `SELECT status FROM payment_verifications WHERE id = ?`, id).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if status == expectedStatus {
+		return nil
+	}
+	return ErrStatusConflict
+}
+
 func (r *mysqlPaymentVerificationRepository) UpdateProofURL(ctx context.Context, id uint64, proofURL string) error {
 	query := `
 		UPDATE payment_verifications
@@ -357,11 +409,22 @@ func (r *mysqlPaymentVerificationRepository) ResetToPendingWithProof(ctx context
 }
 
 func (r *mysqlPaymentVerificationRepository) UpdateDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+	return r.updateDetails(ctx, "COALESCE(?, proof_url)", id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL)
+}
+
+func (r *mysqlPaymentVerificationRepository) ReplaceDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+	return r.updateDetails(ctx, "?", id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL)
+}
+
+// updateDetails shares the UPDATE for UpdateDetails/ReplaceDetails; proofExpr is a fixed SQL fragment
+// (never user input) that decides whether an absent proof keeps or clears the stored one.
+func (r *mysqlPaymentVerificationRepository) updateDetails(ctx context.Context, proofExpr string, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
 	query := `
 		UPDATE payment_verifications
-		SET plan_id = ?, coupon_code = ?, amount = ?, final_amount = ?, unique_code = ?, proof_url = COALESCE(?, proof_url), status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
-		WHERE id = ?
+		SET plan_id = ?, coupon_code = ?, amount = ?, final_amount = ?, unique_code = ?, proof_url = ` + proofExpr + `, status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
+		WHERE id = ? AND status = 'pending'
 	`
+	// The status guard keeps a concurrent approve/reject from being silently reverted to 'pending'.
 	res, err := r.db.ExecContext(ctx, query, planID, couponCode, amount, finalAmount, uniqueCode, proofURL, id)
 	if err != nil {
 		return err
@@ -371,11 +434,10 @@ func (r *mysqlPaymentVerificationRepository) UpdateDetails(ctx context.Context, 
 	if err != nil {
 		return err
 	}
-	if affected == 0 {
-		return ErrNotFound
+	if affected > 0 {
+		return nil
 	}
-
-	return nil
+	return r.missingOrConflict(ctx, id, "pending")
 }
 
 func (r *mysqlPaymentVerificationRepository) scanList(rows *sql.Rows) ([]PaymentVerification, error) {

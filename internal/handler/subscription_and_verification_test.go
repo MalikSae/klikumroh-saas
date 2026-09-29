@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -101,6 +102,7 @@ func (m *mockCouponRepo) RecordRedemption(ctx context.Context, couponID, tenantI
 
 // mockPVRepo implements repository.PaymentVerificationRepository in-memory for testing.
 type mockPVRepo struct {
+	mu            sync.Mutex // guards status transitions, mirroring the atomic conditional UPDATE in MySQL
 	verifications map[uint64]*repository.PaymentVerification
 	nextID        uint64
 }
@@ -192,10 +194,42 @@ func (m *mockPVRepo) ResetToPendingWithProof(ctx context.Context, id uint64, pro
 	return nil
 }
 
+func (m *mockPVRepo) TransitionStatus(ctx context.Context, id uint64, fromStatus, toStatus string, rejectionReason *string, reviewedBy *uint64, reviewedAt *time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	pv, ok := m.verifications[id]
+	if !ok {
+		return repository.ErrNotFound
+	}
+	if pv.Status != fromStatus {
+		return repository.ErrStatusConflict
+	}
+	pv.Status = toStatus
+	pv.RejectionReason = rejectionReason
+	pv.ReviewedBy = reviewedBy
+	pv.ReviewedAt = reviewedAt
+	return nil
+}
+
+func (m *mockPVRepo) ReplaceDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+	pv, ok := m.verifications[id]
+	if !ok {
+		return repository.ErrNotFound
+	}
+	if err := m.UpdateDetails(ctx, id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL); err != nil {
+		return err
+	}
+	pv.ProofURL = proofURL
+	return nil
+}
+
 func (m *mockPVRepo) UpdateDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
 	pv, ok := m.verifications[id]
 	if !ok {
 		return repository.ErrNotFound
+	}
+	if pv.Status != "pending" {
+		return repository.ErrStatusConflict
 	}
 	pv.PlanID = planID
 	pv.CouponCode = couponCode

@@ -216,21 +216,36 @@ func (s *subscriptionService) CreateRenewalRequest(
 	// Check if there is already an existing pending verification for this tenant to prevent duplicate spam
 	existingHistory, _ := s.pvRepo.ListByTenant(ctx, tenantID)
 	for i := range existingHistory {
-		if existingHistory[i].Status == "pending" {
-			// Update the existing pending verification
-			if err := s.pvRepo.UpdateDetails(ctx, existingHistory[i].ID, planID, validCouponCode, baseAmount, finalAmount, uniqueCode, proofURL); err != nil {
-				return nil, err
-			}
-			existingHistory[i].PlanID = planID
-			existingHistory[i].CouponCode = validCouponCode
-			existingHistory[i].Amount = baseAmount
-			existingHistory[i].FinalAmount = finalAmount
-			existingHistory[i].UniqueCode = uniqueCode
-			if proofURL != nil {
-				existingHistory[i].ProofURL = proofURL
-			}
-			return &existingHistory[i], nil
+		if existingHistory[i].Status != "pending" {
+			continue
 		}
+		existing := &existingHistory[i]
+
+		// Same plan, price, and coupon: the billed amount is unchanged, so keep the unique code
+		// and any proof already uploaded. Only attach a new proof if this request carries one.
+		if existing.PlanID == planID && existing.Amount == baseAmount && sameCouponCode(existing.CouponCode, validCouponCode) {
+			if proofURL != nil {
+				if err := s.pvRepo.UpdateProofURL(ctx, existing.ID, *proofURL); err != nil {
+					return nil, err
+				}
+				existing.ProofURL = proofURL
+			}
+			return existing, nil
+		}
+
+		// The billed amount changes: an old transfer proof no longer matches this invoice and must be
+		// cleared, otherwise a proof for a cheaper plan could be approved against a pricier one.
+		// Only a proof uploaded in this same request (for the new amount) is kept.
+		if err := s.pvRepo.ReplaceDetails(ctx, existing.ID, planID, validCouponCode, baseAmount, finalAmount, uniqueCode, proofURL); err != nil {
+			return nil, mapVerificationConflict(err)
+		}
+		existing.PlanID = planID
+		existing.CouponCode = validCouponCode
+		existing.Amount = baseAmount
+		existing.FinalAmount = finalAmount
+		existing.UniqueCode = uniqueCode
+		existing.ProofURL = proofURL
+		return existing, nil
 	}
 
 	pv := &repository.PaymentVerification{
@@ -249,6 +264,25 @@ func (s *subscriptionService) CreateRenewalRequest(
 	}
 
 	return pv, nil
+}
+
+// mapVerificationConflict turns a lost race on a pending invoice (approved/rejected meanwhile) into the
+// service-level ErrVerificationAlreadyDone.
+func mapVerificationConflict(err error) error {
+	if errors.Is(err, repository.ErrStatusConflict) {
+		return ErrVerificationAlreadyDone
+	}
+	return err
+}
+
+func sameCouponCode(a, b *string) bool {
+	normalize := func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return strings.ToUpper(strings.TrimSpace(*p))
+	}
+	return normalize(a) == normalize(b)
 }
 
 func (s *subscriptionService) GetPaymentVerificationByID(
@@ -338,13 +372,26 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 		return ErrVerificationAlreadyDone
 	}
 
-	tenant, err := s.tenantRepo.GetByID(ctx, pv.TenantID)
+	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
 	if err != nil {
 		return err
 	}
 
-	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
+	// Claim the verification FIRST with a single conditional UPDATE (pending -> approved). Only one of
+	// several concurrent approve requests can win, so the subscription is extended and the coupon is
+	// counted exactly once. The losers get ErrVerificationAlreadyDone.
+	now := time.Now()
+	if err := s.pvRepo.TransitionStatus(ctx, pv.ID, "pending", "approved", nil, &staffUserID, &now); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return ErrVerificationAlreadyDone
+		}
+		return err
+	}
+
+	// Read the tenant after the claim so the expiry is based on the latest value.
+	tenant, err := s.tenantRepo.GetByID(ctx, pv.TenantID)
 	if err != nil {
+		s.releaseApprovalClaim(ctx, pv.ID)
 		return err
 	}
 
@@ -359,6 +406,7 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 
 	// Update tenant subscription and set status to active
 	if err := s.tenantRepo.UpdateSubscription(ctx, pv.TenantID, pv.PlanID, newExpiry, "active"); err != nil {
+		s.releaseApprovalClaim(ctx, pv.ID)
 		return err
 	}
 
@@ -449,8 +497,13 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 		}
 	}
 
-	now := time.Now()
-	return s.pvRepo.UpdateStatus(ctx, pv.ID, "approved", nil, &staffUserID, &now)
+	return nil
+}
+
+// releaseApprovalClaim puts a claimed verification back to 'pending' when the subscription could not be
+// extended, so staff can retry instead of leaving an 'approved' invoice with no activation behind it.
+func (s *subscriptionService) releaseApprovalClaim(ctx context.Context, id uint64) {
+	_ = s.pvRepo.TransitionStatus(ctx, id, "approved", "pending", nil, nil, nil)
 }
 
 func (s *subscriptionService) RejectVerification(ctx context.Context, id uint64, reason string, staffUserID uint64) error {
@@ -468,7 +521,13 @@ func (s *subscriptionService) RejectVerification(ctx context.Context, id uint64,
 	}
 
 	now := time.Now()
-	return s.pvRepo.UpdateStatus(ctx, pv.ID, "rejected", &trimmedReason, &staffUserID, &now)
+	if err := s.pvRepo.TransitionStatus(ctx, pv.ID, "pending", "rejected", &trimmedReason, &staffUserID, &now); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return ErrVerificationAlreadyDone
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verificationID uint64, newPlanID uint64, staffUserID uint64) (*repository.PaymentVerification, error) {
@@ -518,7 +577,7 @@ func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verifi
 	}
 
 	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, newPlan.ID, validCouponCode, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
-		return nil, err
+		return nil, mapVerificationConflict(err)
 	}
 
 	updatedPV, err := s.pvRepo.GetByID(ctx, pv.ID)
@@ -578,7 +637,7 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 	}
 
 	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, pv.PlanID, validCouponCode, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
-		return nil, err
+		return nil, mapVerificationConflict(err)
 	}
 
 	updatedPV, err := s.pvRepo.GetByID(ctx, pv.ID)

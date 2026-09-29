@@ -77,7 +77,7 @@ func (h *PaymentVerificationHandler) Approve(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		if errors.Is(err, service.ErrVerificationAlreadyDone) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menyetujui verifikasi pembayaran"})
@@ -122,7 +122,11 @@ func (h *PaymentVerificationHandler) Reject(w http.ResponseWriter, r *http.Reque
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data verifikasi tidak ditemukan"})
 			return
 		}
-		if errors.Is(err, service.ErrVerificationAlreadyDone) || errors.Is(err, service.ErrRejectionReasonRequired) {
+		if errors.Is(err, service.ErrVerificationAlreadyDone) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, service.ErrRejectionReasonRequired) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

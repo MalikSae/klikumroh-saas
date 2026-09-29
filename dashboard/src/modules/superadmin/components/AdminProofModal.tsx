@@ -44,6 +44,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
 }) => {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
+  // Approval is irreversible (activates the travel and extends the subscription), so it needs a second click.
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +72,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       setCouponInput(item.coupon_code || '');
     }
     setShowRejectForm(false);
+    setShowApproveConfirm(false);
     setShowUpsellForm(false);
     setShowCouponForm(false);
     setError(null);
@@ -85,6 +88,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   if (!isOpen || !currentItem) return null;
 
   const isPending = currentItem.status === 'pending';
+  const payableAmount = currentItem.final_amount || currentItem.amount;
+  const missingProof = !currentItem.proof_url && payableAmount > 0;
   const hasCoupon = !!(currentItem.coupon_code && currentItem.coupon_code.trim() !== '');
   const discountAmount = hasCoupon ? Math.max(0, currentItem.amount - (currentItem.final_amount - (currentItem.unique_code || 0))) : 0;
 
@@ -523,6 +528,31 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             )}
           </div>
 
+          {/* Approve confirmation (inline, above footer) */}
+          {showApproveConfirm && isPending && (
+            <div
+              style={{
+                marginTop: '14px',
+                padding: '12px 14px',
+                borderRadius: 'var(--sa-radius-sm)',
+                backgroundColor: missingProof ? 'var(--sa-amber-bg)' : 'var(--sa-surface)',
+                border: `1px solid ${missingProof ? 'var(--sa-amber-border)' : 'var(--sa-border)'}`,
+                color: missingProof ? 'var(--sa-amber-text)' : 'var(--sa-text-secondary)',
+                fontSize: '13px',
+                lineHeight: 1.5,
+              }}
+            >
+              {missingProof && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '6px' }}>
+                  <AlertTriangle size={14} />
+                  <span>Belum ada bukti transfer untuk tagihan ini.</span>
+                </div>
+              )}
+              Setujui pembayaran <strong>{formatIDR(payableAmount)}</strong> dari <strong>{currentItem.tenant_name}</strong> untuk paket{' '}
+              <strong>{currentItem.plan_name}</strong>? Travel langsung aktif dan masa langganan diperpanjang. Tindakan ini tidak bisa dibatalkan.
+            </div>
+          )}
+
           {/* Reject reason form (inline, above footer) */}
           {showRejectForm && (
             <div style={{ marginTop: '14px' }}>
@@ -560,7 +590,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
               {!showRejectForm ? (
                 <button
                   type="button" className="sa-btn sa-btn--danger"
-                  onClick={() => { setShowRejectForm(true); setError(null); }}
+                  onClick={() => { setShowRejectForm(true); setShowApproveConfirm(false); setError(null); }}
                   disabled={processing || updatingPlan || updatingCoupon}
                 >
                   <AlertTriangle size={14} />
@@ -576,14 +606,34 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 </button>
               )}
 
-              <button
-                type="button" className="sa-btn sa-btn--primary"
-                onClick={handleApprove}
-                disabled={processing || updatingPlan || updatingCoupon}
-              >
-                <Check size={14} />
-                <span>{processing ? 'Memproses...' : 'Setujui Pembayaran'}</span>
-              </button>
+              {!showApproveConfirm ? (
+                <button
+                  type="button" className="sa-btn sa-btn--primary"
+                  onClick={() => { setShowApproveConfirm(true); setShowRejectForm(false); setError(null); }}
+                  disabled={processing || updatingPlan || updatingCoupon}
+                >
+                  <Check size={14} />
+                  <span>Setujui Pembayaran</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button" className="sa-btn sa-btn--secondary"
+                    onClick={() => setShowApproveConfirm(false)}
+                    disabled={processing}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button" className="sa-btn sa-btn--primary"
+                    onClick={handleApprove}
+                    disabled={processing || updatingPlan || updatingCoupon}
+                  >
+                    <Check size={14} />
+                    <span>{processing ? 'Memproses...' : 'Ya, Setujui & Aktifkan'}</span>
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>

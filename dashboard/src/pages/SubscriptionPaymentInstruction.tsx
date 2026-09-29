@@ -25,8 +25,11 @@ import {
 } from '../components';
 import {
   fetchPaymentVerificationDetail,
+  invalidateSubscriptionCache,
   uploadRenewalProof,
   fetchPlatformSettings,
+  EMPTY_PLATFORM_SETTINGS,
+  hasPlatformBankDetails,
   getStoredUser,
   getStoredTravelName,
   type PaymentVerification,
@@ -40,12 +43,9 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [verification, setVerification] = useState<PaymentVerification | null>(null);
-  const [platformBankInfo, setPlatformBankInfo] = useState<PlatformSettings>({
-    whatsapp_number: '6281234567890',
-    bank_name: 'Bank Syariah Indonesia (BSI)',
-    bank_account_number: '7123456789',
-    bank_account_holder: 'PT Klik Umroh Digital',
-  });
+  const [platformBankInfo, setPlatformBankInfo] = useState<PlatformSettings>(EMPTY_PLATFORM_SETTINGS);
+  const bankReady = hasPlatformBankDetails(platformBankInfo);
+  const csWhatsApp = platformBankInfo.whatsapp_number.replace(/[^0-9]/g, '');
 
   const [copiedAccount, setCopiedAccount] = useState<boolean>(false);
   const [copiedAmount, setCopiedAmount] = useState<boolean>(false);
@@ -81,6 +81,34 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  // Keep the invoice fresh: it can change elsewhere (plan switched in another tab, approved or rejected
+  // by the KlikUmroh team). Refresh silently when the tab regains focus and every 30s while pending,
+  // so the travel never transfers an outdated amount.
+  useEffect(() => {
+    if (!id) return;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      fetchPaymentVerificationDetail(Number(id))
+        .then((pv) => setVerification(pv))
+        .catch(() => {});
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    const timer = verification?.status === 'pending' ? window.setInterval(refresh, 30000) : undefined;
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      if (timer) window.clearInterval(timer);
+    };
+  }, [id, verification?.status]);
+
+  // Once paid, drop the cached subscription so the pending lock and banners clear on the next page.
+  useEffect(() => {
+    if (verification?.status === 'approved') {
+      invalidateSubscriptionCache();
+    }
+  }, [verification?.status]);
 
   const handleCopyAccount = () => {
     const rawAcc = platformBankInfo.bank_account_number.replace(/\s+/g, '');
@@ -277,7 +305,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* 1. Rincian Tagihan */}
-            <Card title="Rincian Tagihan Perpanjangan">
+            <Card title="Rincian Tagihan">
               <div
                 style={{
                   display: 'grid',
@@ -387,6 +415,15 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
 
             {/* 2. Petunjuk Transfer Bank */}
             <Card title="Petunjuk Transfer Bank Resmi">
+              {!bankReady ? (
+                <div className="db-alert db-alert--warning">
+                  <AlertCircle size={18} />
+                  <span>
+                    Rekening pembayaran resmi belum tersedia. Jangan transfer dulu; hubungi tim KlikUmroh untuk
+                    mendapatkan rekening pembayaran.
+                  </span>
+                </div>
+              ) : (
               <div
                 style={{
                   padding: '20px',
@@ -461,7 +498,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
                   {Boolean(verification.unique_code && verification.unique_code > 0) ? (
                     <span>
                       PENTING: Mohon transfer tepat hingga 3 digit terakhir (termasuk kode unik{' '}
-                      <strong style={{ color: 'var(--db-text-primary)' }}>+{verification.unique_code}</strong>) agar verifikasi pembayaran dapat diproses otomatis/lebih cepat. Setelah transfer berhasil, unggah berkas bukti pembayaran di bawah ini.
+                      <strong style={{ color: 'var(--db-text-primary)' }}>+{verification.unique_code}</strong>) agar pembayaran mudah dicocokkan saat verifikasi manual oleh tim KlikUmroh. Setelah transfer berhasil, unggah berkas bukti pembayaran di bawah ini.
                     </span>
                   ) : (
                     <span>
@@ -470,6 +507,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
                   )}
                 </div>
               </div>
+              )}
             </Card>
 
             {/* 3. Berkas Bukti Transfer */}
@@ -607,7 +645,8 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
               </div>
             </Card>
 
-            {/* 4. Konfirmasi Cepat WhatsApp & Bantuan */}
+            {/* 4. Konfirmasi Cepat WhatsApp & Bantuan (hidden until the owner sets a CS number) */}
+            {csWhatsApp && (
             <div
               style={{
                 display: 'flex',
@@ -632,8 +671,8 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
               </div>
 
               <a
-                href={`https://wa.me/${platformBankInfo.whatsapp_number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                  `Halo Tim KlikUmroh, saya ingin konfirmasi pembayaran tagihan perpanjangan software travel:\n\n- Travel: ${
+                href={`https://wa.me/${csWhatsApp}?text=${encodeURIComponent(
+                  `Halo Tim KlikUmroh, saya ingin konfirmasi pembayaran tagihan langganan KlikUmroh:\n\n- Travel: ${
                     verification.tenant_name
                   }\n- Invoice: #INV-${verification.id}\n- Paket: ${
                     verification.plan_name || 'Paket Langganan'
@@ -660,6 +699,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
                 <span>Konfirmasi via WhatsApp CS KlikUmroh</span>
               </a>
             </div>
+            )}
           </div>
 
           {/* Modal Preview Bukti */}

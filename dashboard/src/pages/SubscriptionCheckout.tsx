@@ -92,6 +92,18 @@ export const SubscriptionCheckoutPage: React.FC = () => {
   const discountAmount = (discountPct / 100) * basePrice;
   const finalAmount = Math.max(0, basePrice - discountAmount);
 
+  // Backend clears an uploaded proof when the billed amount of the pending invoice changes
+  // (different plan, price, or coupon). Warn before the travel submits.
+  const pendingVerification = subInfo?.pending_verification || null;
+  const normalizeCoupon = (code?: string | null) => (code || '').trim().toUpperCase();
+  const willDiscardUploadedProof = Boolean(
+    pendingVerification?.proof_url &&
+      selectedPlan &&
+      (pendingVerification.plan_id !== selectedPlan.id ||
+        pendingVerification.amount !== selectedPlan.price ||
+        normalizeCoupon(pendingVerification.coupon_code) !== normalizeCoupon(validatedCoupon?.code))
+  );
+
   const handleApplyCoupon = async () => {
     if (!couponCodeInput.trim() || !selectedPlan) return;
     try {
@@ -539,6 +551,17 @@ export const SubscriptionCheckoutPage: React.FC = () => {
                         </span>
                       </div>
                     </div>
+
+                    {/* Peringatan: bukti transfer tagihan pending akan dihapus jika nominal berubah */}
+                    {willDiscardUploadedProof && (
+                      <div className="db-alert db-alert--warning" style={{ marginTop: '16px' }}>
+                        <AlertCircle size={18} />
+                        <span>
+                          Tagihan #INV-{pendingVerification?.id} sudah memiliki bukti transfer. Mengganti paket atau kupon
+                          akan menghapus bukti tersebut, dan Anda perlu mengunggah bukti baru sesuai nominal baru.
+                        </span>
+                      </div>
+                    )}
 
                     {/* Tombol Buat Tagihan */}
                     <div style={{ marginTop: '16px' }}>
