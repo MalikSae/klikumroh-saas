@@ -95,6 +95,7 @@ Token Conversions API Meta milik tiap travel disimpan terenkripsi (AES-256-GCM) 
 - Simpan cadangannya di tempat aman. **Jika kunci diganti atau hilang, semua token yang tersimpan tidak bisa dibaca** dan setiap travel harus memasukkan ulang tokennya di Pengaturan > Integrasi Meta.
 - Tanpa kunci ini backend tetap jalan: Pixel di situs travel tetap aktif, tetapi token tidak bisa disimpan dan event server (Conversions API) tidak dikirim. Log startup menulis `[Meta] Conversions API disabled`.
 - Backend mengirim event ke `graph.facebook.com` (HTTPS keluar). Pastikan firewall VPS mengizinkan koneksi keluar ke port 443.
+- Versi Marketing API diatur lewat `META_GRAPH_VERSION` (default `v25.0`). Versi Meta punya tanggal kedaluwarsa: cek [daftar versi](https://developers.facebook.com/docs/graph-api/changelog/versions) setiap Meta merilis versi baru (sekitar tiap 4-6 bulan), naikkan nilainya, lalu restart backend dan kirim event uji dari salah satu travel.
 
 ---
 
