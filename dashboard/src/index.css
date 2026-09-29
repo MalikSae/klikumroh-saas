@@ -40,6 +40,12 @@
   --db-modal-overlay: rgba(9, 9, 11, 0.50);
   --db-modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
   --db-focus-ring: rgba(9, 9, 11, 0.08);
+  --db-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+  --db-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --db-shadow-md: 0 3px 8px rgba(0, 0, 0, 0.14);
+  --db-shadow-accent: 0 2px 8px rgba(0, 110, 103, 0.25);
+  --db-text-on-dark: #FFFFFF;
+  --db-divider-on-dark: rgba(255, 255, 255, 0.12);
   --db-status-new: #0284C7;
   --db-status-new-bg: rgba(2, 132, 199, 0.08);
   --db-status-new-border: #BAE6FD;

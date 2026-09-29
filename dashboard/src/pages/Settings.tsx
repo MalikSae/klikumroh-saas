@@ -49,6 +49,9 @@ import {
   fetchTenantTrustMetrics,
   updateTenantTrustMetrics,
   fetchCommissionSettings,
+  fetchCommissionReleasePolicy,
+  updateCommissionReleasePolicy,
+  type CommissionReleaseOn,
   updateCommissionSettings,
   fetchTenantAgentSettings,
   updateTenantAgentSettings,
@@ -83,16 +86,19 @@ import {
   type SubscriptionPricingPlan,
   API_BASE,
 } from '../services/api';
+import { MetaIntegrationPanel } from './MetaIntegrationPanel';
+import './Settings.css';
 
 const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
 
-type SettingsTab = 'profile' | 'contact' | 'trust' | 'seo' | 'agent' | 'domain' | 'team' | 'subscription';
+type SettingsTab = 'profile' | 'contact' | 'trust' | 'seo' | 'meta' | 'agent' | 'domain' | 'team' | 'subscription';
 
 const VALID_SETTINGS_TABS: SettingsTab[] = [
   'profile',
   'contact',
   'trust',
   'seo',
+  'meta',
   'agent',
   'domain',
   'team',
@@ -147,6 +153,8 @@ export const SettingsPage: React.FC = () => {
   const [commissionOverrideEnabled, setCommissionOverrideEnabled] = useState<boolean>(false);
   const [commissionOverridePercentage, setCommissionOverridePercentage] = useState<string>('');
   const [commissionError, setCommissionError] = useState<string | null>(null);
+  // Kapan komisi agen bisa dicairkan: saat jamaah lunas (default) atau langsung saat closing (DP).
+  const [commissionReleaseOn, setCommissionReleaseOn] = useState<CommissionReleaseOn>('lunas');
 
   // Pengaturan Sistem Agen state
   const [agentMode, setAgentMode] = useState<'gratis' | 'berbayar'>('gratis');
@@ -345,6 +353,9 @@ export const SettingsPage: React.FC = () => {
       setTrustGuarantee(trustData.trust_guarantee || '100% Berangkat, Jadwal Pasti');
 
       // Commission
+      fetchCommissionReleasePolicy()
+        .then(setCommissionReleaseOn)
+        .catch(() => {});
       if (commData) {
         setCommissionOverrideEnabled(commData.commission_override_enabled);
         setCommissionOverridePercentage(
@@ -715,6 +726,7 @@ export const SettingsPage: React.FC = () => {
           minimum_payout_amount: minPayout,
         }),
         updateCommissionSettings(commissionOverrideEnabled, pct),
+        updateCommissionReleasePolicy(commissionReleaseOn),
         updateTenantTargetSettings({
           target_period_start: targetPeriodStart.trim() ? targetPeriodStart.trim() : null,
           target_period_end: targetPeriodEnd.trim() ? targetPeriodEnd.trim() : null,
@@ -929,6 +941,11 @@ export const SettingsPage: React.FC = () => {
         return {
           title: 'Pengaturan SEO & GEO Google',
           subtitle: 'Optimasi mesin pencari Google, meta description, kata kunci, dan penargetan wilayah travel.',
+        };
+      case 'meta':
+        return {
+          title: 'Integrasi Meta (Pixel & Conversions API)',
+          subtitle: 'Hubungkan Pixel dan Conversions API Meta agar iklan travel mengukur prospek dan closing.',
         };
       case 'agent':
         return {
@@ -1938,6 +1955,8 @@ export const SettingsPage: React.FC = () => {
               {/* ------------------------------------------------------------- */}
               {/* TAB 5: PENGATURAN SISTEM & KOMISI AGEN */}
               {/* ------------------------------------------------------------- */}
+              {activeTab === 'meta' && <MetaIntegrationPanel />}
+
               {activeTab === 'agent' && (
                 <form onSubmit={handleUnifiedAgentSubmit}>
                   {/* Bagian 1: Skema Pendaftaran & Syarat Kemitraan */}
@@ -2199,6 +2218,26 @@ export const SettingsPage: React.FC = () => {
                       />
                     </div>
                   </Card>
+
+                  {/* Pencairan komisi: Closing = DP; komisi tertahan sampai jamaah lunas (default) */}
+                  <div className="db-settings-section-gap">
+                    <Card
+                      title="Pencairan Komisi Agen"
+                      subtitle="Closing berarti jamaah sudah membayar DP. Tentukan kapan komisi agen boleh dicairkan."
+                    >
+                      <FormInput
+                        type="select"
+                        label="Komisi agen bisa dicairkan saat"
+                        value={commissionReleaseOn}
+                        onChange={(e) => setCommissionReleaseOn(e.target.value === 'dp' ? 'dp' : 'lunas')}
+                        options={[
+                          { value: 'lunas', label: 'Jamaah lunas (disarankan)' },
+                          { value: 'dp', label: 'Langsung saat closing (DP)' },
+                        ]}
+                        tooltip="Jamaah lunas: komisi tertahan sampai admin menekan Tandai Lunas di detail prospek, sehingga travel tidak membayar komisi untuk jamaah yang batal setelah DP."
+                      />
+                    </Card>
+                  </div>
 
                   {/* Bagian 2: SKEMA KOMISI OVERRIDE (1-TIER) */}
                   <div style={{ marginTop: '24px' }}>
@@ -3049,21 +3088,7 @@ export const SettingsPage: React.FC = () => {
                           ) : subInfo?.is_subscription_expired ? (
                             `Masa aktif langganan Anda telah berakhir. Saat ini berada dalam toleransi masa tenggang (${subInfo.grace_period_days_remaining ?? 0} hari tersisa). Selesaikan pembayaran agar website tetap dapat diakses calon jamaah.`
                           ) : (
-                            <>
-                              Tagihan otomatis berikutnya akan diterbitkan pada{' '}
-                              <strong>
-                                {subInfo?.subscription_expires_at
-                                  ? new Date(
-                                      new Date(subInfo.subscription_expires_at).getTime() - 30 * 24 * 60 * 60 * 1000
-                                    ).toLocaleDateString('id-ID', {
-                                      day: 'numeric',
-                                      month: 'long',
-                                      year: 'numeric',
-                                    })
-                                  : 'H-30'}
-                              </strong>{' '}
-                              (H-30 sebelum masa aktif berakhir).
-                            </>
+                            'Tagihan perpanjangan tidak diterbitkan otomatis. Anda bisa memperpanjang lebih awal kapan saja; masa aktif baru dihitung melanjutkan sisa masa aktif saat ini.'
                           )}
                         </p>
                       </div>

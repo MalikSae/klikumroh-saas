@@ -16,6 +16,7 @@ import { AgentDetailPage } from './pages/AgentDetail';
 import { AgentCommissionsPage } from './pages/AgentCommissions';
 import { AgentTargetsPage } from './pages/AgentTargets';
 import { ProfilSayaPage } from './pages/ProfilSaya';
+import { AccessLogsPage } from './pages/AccessLogs';
 
 import {
   AdminLoginView,
@@ -75,6 +76,7 @@ export const App: React.FC = () => {
           <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
           <Route path="/settings/subscription/checkout" element={<SubscriptionCheckoutPage />} />
           <Route path="/settings/subscription/payment/:id" element={<SubscriptionPaymentInstructionPage />} />
+          <Route path="/settings/access-log" element={<AccessLogsPage />} />
           <Route path="/settings/:section" element={<SettingsPage />} />
           <Route path="/profil-saya" element={<ProfilSayaPage />} />
         </Route>

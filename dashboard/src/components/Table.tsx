@@ -33,6 +33,12 @@ export interface TableProps<T = any> {
   pageSizeOptions?: number[];
   currentPage?: number;
   onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  /**
+   * Server-side mode: `data` is already the current page (filtered & paginated by the API) and
+   * serverTotal is the total number of matching rows. The table then skips its own search & slicing.
+   */
+  serverTotal?: number;
 
   // Row click callback
   onRowClick?: (row: T, index: number) => void;
@@ -59,8 +65,11 @@ export function Table<T extends Record<string, any>>({
   pageSizeOptions = [10, 25, 50],
   currentPage,
   onPageChange,
+  onPageSizeChange,
+  serverTotal,
   onRowClick,
 }: TableProps<T>) {
+  const isServerMode = serverTotal !== undefined;
   // Internal search state if uncontrolled
   const [internalSearch, setInternalSearch] = useState<string>('');
   const isSearchControlled = searchValue !== undefined;
@@ -99,12 +108,15 @@ export function Table<T extends Record<string, any>>({
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSize = parseInt(e.target.value, 10) || 10;
     setCurrentPageSize(newSize);
+    if (onPageSizeChange) {
+      onPageSizeChange(newSize);
+    }
     handlePageChange(1);
   };
 
   // Filter data based on search
   const filteredData = useMemo(() => {
-    if (!searchable || !currentSearch.trim()) {
+    if (isServerMode || !searchable || !currentSearch.trim()) {
       return data;
     }
 
@@ -131,27 +143,27 @@ export function Table<T extends Record<string, any>>({
         return false;
       });
     });
-  }, [data, currentSearch, searchable, searchKeys, columns]);
+  }, [data, currentSearch, searchable, searchKeys, columns, isServerMode]);
 
   // Total pages
-  const totalItems = filteredData.length;
+  const totalItems = isServerMode ? serverTotal : filteredData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / currentPageSize));
 
   // Reset page if activePage > totalPages
   useEffect(() => {
-    if (activePage > totalPages) {
+    if (!loading && activePage > totalPages) {
       handlePageChange(totalPages);
     }
-  }, [totalPages, activePage]);
+  }, [totalPages, activePage, loading]);
 
   // Paginated slice
   const paginatedData = useMemo(() => {
-    if (!paginated) {
+    if (!paginated || isServerMode) {
       return filteredData;
     }
     const startIndex = (activePage - 1) * currentPageSize;
     return filteredData.slice(startIndex, startIndex + currentPageSize);
-  }, [filteredData, paginated, activePage, currentPageSize]);
+  }, [filteredData, paginated, activePage, currentPageSize, isServerMode]);
 
   // Item range display
   const startItem = totalItems === 0 ? 0 : (activePage - 1) * currentPageSize + 1;

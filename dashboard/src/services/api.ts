@@ -65,15 +65,52 @@ export interface ProspectItem {
   package_id?: number | null;
   package_name?: string;
   agent_id?: number | null;
+  agent_name?: string;
   name: string;
   phone: string;
   email?: string | null;
   jumlah_jamaah?: number | null;
   source_channel: string;
+  entry_method?: string;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
   status: 'baru' | 'dihubungi' | 'tertarik' | 'closing' | 'tidak_lanjut';
   lost_reason?: string | null;
+  lost_reason_category?: string | null;
+  departure_plan?: string | null;
+  domicile?: string | null;
+  consent_at?: string | null;
+  /** When the admin marked the jamaah as paid off (komisi agen dilepas). */
+  paid_off_at?: string | null;
+  /** Personal data removed on the jamaah's request (UU PDP); status and commission are kept. */
+  anonymized_at?: string | null;
+  closed_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProspectPage {
+  items: ProspectItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface ProspectStatusSummary {
+  total: number;
+  baru: number;
+  dihubungi: number;
+  tertarik: number;
+  closing: number;
+  tidak_lanjut: number;
+  stale_baru: number;
+  /** Closings (DP) not yet marked lunas: their agent commission is still held. */
+  awaiting_payoff: number;
+  /** Part of awaiting_payoff that belongs to an agent (commission still held). */
+  awaiting_payoff_with_agent: number;
+  /** Tidak Lanjut prospects per lost-reason category (uncategorised counted as "lainnya"). */
+  lost_reasons?: Record<string, number>;
 }
 
 export interface ProspectStatusHistoryItem {
@@ -92,7 +129,7 @@ export interface ProspectNoteItem {
   id: number;
   tenant_id: number;
   prospect_id: number;
-  author_type: 'admin' | 'agent';
+  author_type: 'admin' | 'agent' | 'system';
   author_id: number;
   author_name?: string | null;
   note_text: string;
@@ -100,11 +137,14 @@ export interface ProspectNoteItem {
 }
 
 export interface ProspectCommissionInfo {
-  type: 'potensi' | 'final';
+  type: 'potensi' | 'final' | 'dibatalkan';
   direct_amount: number;
   override_amount: number;
   total_amount: number;
   rate_per_jamaah: number;
+  /** Final commission only: part still held (jamaah belum lunas) and part withdrawable. */
+  held_amount?: number;
+  released_amount?: number;
 }
 
 export interface ProspectDetailResponse {
@@ -121,6 +161,8 @@ export interface UpdateProspectInput {
   phone: string;
   package_id?: number | null;
   jumlah_jamaah?: number | null;
+  departure_plan?: string | null;
+  domicile?: string | null;
   correction_reason?: string;
 }
 
@@ -188,7 +230,7 @@ export const clearAuthSession = () => {
 export const loginAdmin = async (
   email: string,
   password: string
-): Promise<{ token: string; user: AdminUser; tenant_status?: string; public_token?: string }> => {
+): Promise<{ token: string; user: AdminUser; tenant_status?: string }> => {
   const res = await dashboardFetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -201,11 +243,10 @@ export const loginAdmin = async (
   }
 
   const data = await res.json();
-  if (data.tenant_status === 'active') {
-    setAuthSession(data.token, data.user);
-  } else {
-    clearAuthSession();
-  }
+  // Pending tenants get a session too: PendingBillingGuard locks them to the
+  // billing page, and the backend (SubscriptionEnforcementMiddleware) only
+  // allows /subscription endpoints until the first payment is approved.
+  setAuthSession(data.token, data.user);
   return data;
 };
 
@@ -361,35 +402,37 @@ export interface FetchProspectsParams {
   source?: string;
   search?: string;
   package_id?: number | string;
+  agent_id?: number | string;
+  /** 'pending' = DP menunggu lunas, 'done' = lunas (closing only). */
+  payoff?: string;
+  /** Planned departure month "YYYY-MM", or 'none' for prospects without a plan. */
+  departure_plan?: string;
 }
 
-export const fetchProspects = async (
-  statusOrParams?: string | FetchProspectsParams
-): Promise<ProspectItem[]> => {
+const prospectQuery = (params?: FetchProspectsParams): URLSearchParams => {
+  const q = new URLSearchParams();
+  if (params?.status && params.status !== 'all') q.append('status', params.status);
+  if (params?.source && params.source !== 'all') q.append('source', params.source);
+  if (params?.search && params.search.trim()) q.append('search', params.search.trim());
+  if (params?.package_id && params.package_id !== 'all') q.append('package_id', String(params.package_id));
+  if (params?.agent_id && params.agent_id !== 'all') q.append('agent_id', String(params.agent_id));
+  if (params?.payoff && params.payoff !== 'all') q.append('payoff', params.payoff);
+  if (params?.departure_plan && params.departure_plan !== 'all') q.append('departure_plan', params.departure_plan);
+  return q;
+};
+
+/** One page of the prospect list (server-side pagination). */
+export const fetchProspectPage = async (
+  params: FetchProspectsParams,
+  page: number,
+  pageSize: number,
+  signal?: AbortSignal
+): Promise<ProspectPage> => {
   const headers = await getAuthHeaders();
-  let status: string | undefined;
-  let source: string | undefined;
-  let search: string | undefined;
-  let packageId: number | string | undefined;
-
-  if (typeof statusOrParams === 'string') {
-    status = statusOrParams;
-  } else if (statusOrParams) {
-    status = statusOrParams.status;
-    source = statusOrParams.source;
-    search = statusOrParams.search;
-    packageId = statusOrParams.package_id;
-  }
-
-  const queryParams = new URLSearchParams();
-  if (status && status !== 'all') queryParams.append('status', status);
-  if (source && source !== 'all') queryParams.append('source', source);
-  if (search && search.trim()) queryParams.append('search', search.trim());
-  if (packageId && packageId !== 'all') queryParams.append('package_id', String(packageId));
-
-  const qs = queryParams.toString();
-  const url = qs ? `${API_BASE}/api/dashboard/prospects?${qs}` : `${API_BASE}/api/dashboard/prospects`;
-  const res = await dashboardFetch(url, { headers });
+  const q = prospectQuery(params);
+  q.append('page', String(page));
+  q.append('page_size', String(pageSize));
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects?${q.toString()}`, { headers, signal });
   if (!res.ok) {
     if (res.status === 401) {
       redirectToLogin();
@@ -397,11 +440,162 @@ export const fetchProspects = async (
     const err = await res.json().catch(() => ({ error: 'Gagal memuat prospek' }));
     throw new Error(err.error || 'Gagal memuat prospek');
   }
-  const data = await res.json();
-  return data || [];
+  const data: ProspectPage = await res.json();
+  return { ...data, items: data.items || [] };
 };
 
-export const updateProspectStatus = async (id: number, status: string, lostReason?: string): Promise<void> => {
+/**
+ * All prospects matching the filters (walks every page). For screens that aggregate per agent;
+ * the prospect list itself uses fetchProspectPage.
+ */
+export const fetchProspects = async (
+  statusOrParams?: string | FetchProspectsParams
+): Promise<ProspectItem[]> => {
+  const params: FetchProspectsParams =
+    typeof statusOrParams === 'string' ? { status: statusOrParams } : statusOrParams || {};
+  const pageSize = 100;
+  const all: ProspectItem[] = [];
+  for (let page = 1; ; page++) {
+    const data = await fetchProspectPage(params, page, pageSize);
+    all.push(...data.items);
+    if (data.items.length < pageSize || all.length >= data.total) break;
+  }
+  return all;
+};
+
+export const fetchProspectSummary = async (): Promise<ProspectStatusSummary> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/summary`, { headers });
+  if (!res.ok) {
+    if (res.status === 401) {
+      redirectToLogin();
+    }
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat ringkasan prospek' }));
+    throw new Error(err.error || 'Gagal memuat ringkasan prospek');
+  }
+  return await res.json();
+};
+
+export interface CancelClosingResult {
+  reversed_held: number;
+  reversed_released: number;
+}
+
+/** Jamaah lunas: releases the agent commission held since closing (DP). */
+export const markProspectPaidOff = async (id: number): Promise<void> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/${id}/paid-off`, { method: 'PATCH', headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal menandai lunas' }));
+    throw new Error(err.error || 'Gagal menandai lunas');
+  }
+};
+
+/** UU PDP: hapus data pribadi jamaah atas permintaannya; riwayat status & komisi tetap. */
+export const anonymizeProspect = async (id: number): Promise<void> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/${id}/anonymize`, { method: 'POST', headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal menghapus data pribadi' }));
+    throw new Error(err.error || 'Gagal menghapus data pribadi');
+  }
+};
+
+/** Jamaah batal setelah DP: status ke Tidak Lanjut dan komisi agen dibatalkan. */
+export const cancelProspectClosing = async (id: number, reason: string): Promise<CancelClosingResult> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/${id}/cancel-closing`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal membatalkan closing' }));
+    throw new Error(err.error || 'Gagal membatalkan closing');
+  }
+  return await res.json();
+};
+
+export type CommissionReleaseOn = 'lunas' | 'dp';
+
+export const fetchCommissionReleasePolicy = async (): Promise<CommissionReleaseOn> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/commission-release-policy`, { headers });
+  if (!res.ok) {
+    throw new Error('Gagal memuat pengaturan pencairan komisi');
+  }
+  const data = await res.json();
+  return data.commission_release_on === 'dp' ? 'dp' : 'lunas';
+};
+
+export const updateCommissionReleasePolicy = async (value: CommissionReleaseOn): Promise<void> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/commission-release-policy`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ commission_release_on: value }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal menyimpan pengaturan pencairan komisi' }));
+    throw new Error(err.error || 'Gagal menyimpan pengaturan pencairan komisi');
+  }
+};
+
+export const deleteProspect = async (id: number): Promise<void> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/${id}`, { method: 'DELETE', headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal menghapus prospek' }));
+    throw new Error(err.error || 'Gagal menghapus prospek');
+  }
+};
+
+// Fixed reasons for 'Tidak Lanjut' (same keys as service.LostReasonCategories in the Go backend).
+// "batal_setelah_dp" is set only by Batalkan Closing, so it is not selectable.
+export const LOST_REASON_OPTIONS: { value: string; label: string }[] = [
+  { value: 'harga', label: 'Harga tidak cocok' },
+  { value: 'jadwal', label: 'Jadwal tidak cocok' },
+  { value: 'dana', label: 'Dana belum siap' },
+  { value: 'travel_lain', label: 'Memilih travel lain' },
+  { value: 'tidak_respons', label: 'Tidak merespons' },
+  { value: 'lainnya', label: 'Lainnya' },
+];
+
+export const lostReasonCategoryLabel = (category?: string | null): string => {
+  if (!category) return '';
+  if (category === 'batal_setelah_dp') return 'Batal setelah DP';
+  return LOST_REASON_OPTIONS.find((o) => o.value === category)?.label || category;
+};
+
+// Planned departure month "YYYY-MM" as a readable label (e.g. "Desember 2026").
+export const formatDeparturePlan = (value?: string | null): string => {
+  if (!value || !/^\d{4}-\d{2}$/.test(value)) return '-';
+  const [y, m] = value.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+};
+
+// Next 24 months as "YYYY-MM" options (plus "belum tahu").
+export const departurePlanOptions = (current?: string | null): { value: string; label: string }[] => {
+  const opts = [{ value: '', label: 'Belum tahu' }];
+  const d = new Date();
+  d.setDate(1);
+  for (let i = 0; i < 24; i++) {
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    opts.push({ value, label: formatDeparturePlan(value) });
+    d.setMonth(d.getMonth() + 1);
+  }
+  if (current && !opts.some((o) => o.value === current)) {
+    opts.push({ value: current, label: formatDeparturePlan(current) });
+  }
+  return opts;
+};
+
+export const updateProspectStatus = async (
+  id: number,
+  status: string,
+  lostReason?: string,
+  lostReasonCategory?: string
+): Promise<void> => {
   const headers = await getAuthHeaders();
   const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/${id}/status`, {
     method: 'PATCH',
@@ -409,6 +603,7 @@ export const updateProspectStatus = async (id: number, status: string, lostReaso
     body: JSON.stringify({
       status,
       lost_reason: status === 'tidak_lanjut' ? (lostReason || null) : null,
+      lost_reason_category: status === 'tidak_lanjut' ? (lostReasonCategory || null) : null,
     }),
   });
   if (!res.ok) {
@@ -417,17 +612,9 @@ export const updateProspectStatus = async (id: number, status: string, lostReaso
   }
 };
 
-export const downloadProspectsCSV = async (
-  params?: { status?: string; source?: string; search?: string; package_id?: number | string }
-): Promise<void> => {
+export const downloadProspectsCSV = async (params?: FetchProspectsParams): Promise<void> => {
   const headers = await getAuthHeaders();
-  const queryParams = new URLSearchParams();
-  if (params?.status && params.status !== 'all') queryParams.append('status', params.status);
-  if (params?.source && params.source !== 'all') queryParams.append('source', params.source);
-  if (params?.search && params.search.trim()) queryParams.append('search', params.search.trim());
-  if (params?.package_id && params.package_id !== 'all') queryParams.append('package_id', String(params.package_id));
-
-  const qs = queryParams.toString();
+  const qs = prospectQuery(params).toString();
   const url = qs ? `${API_BASE}/api/dashboard/prospects/export?${qs}` : `${API_BASE}/api/dashboard/prospects/export`;
 
   const res = await dashboardFetch(url, { headers });
@@ -1213,6 +1400,8 @@ export interface AchievementItem {
   reward_given_at?: string | null;
   reward_description_snapshot?: string | null;
   notes?: string | null;
+  /** Jamaah counted for this target that only paid DP (reward waits until they are lunas). */
+  unpaid_jamaah_count?: number;
 }
 
 export interface CreateTargetInput {
@@ -1431,6 +1620,8 @@ export interface CommissionHistoryItem {
   amount: number;
   direction: string; // 'masuk' | 'keluar'
   status?: string; // 'pending' | 'approved' | 'rejected' | 'paid'
+  /** Ledger entry not withdrawable yet (jamaah belum lunas). */
+  held?: boolean;
   created_at: string;
 }
 
@@ -1454,10 +1645,14 @@ export interface AgentDashboardDetail {
     baru: number;
     diproses: number;
     closing: number;
+    /** Prospek yang sudah closing (DP) lalu dibatalkan. */
+    batal?: number;
   };
   total_jamaah_closing: number;
   saldo_siap_cair: number;
   saldo_tertunda: number;
+  /** Komisi dari jamaah yang sudah DP tapi belum ditandai lunas. */
+  saldo_tertahan?: number;
   riwayat_pencairan: AgentPayoutHistoryItem[];
   riwayat_komisi?: CommissionHistoryItem[];
 }
@@ -1630,6 +1825,31 @@ export interface MyProfileItem {
   created_at: string;
   updated_at: string;
 }
+
+// Riwayat Akses Staf KlikUmroh (audit trail, read-only)
+export interface AccessLogItem {
+  id: number;
+  tenant_id: number;
+  staff_id: number;
+  staff_name: string;
+  action: string;
+  http_method?: string | null;
+  path?: string | null;
+  session_id?: number | null;
+  reason?: string | null;
+  accessed_at: string;
+}
+
+export const fetchAccessLogs = async (): Promise<AccessLogItem[]> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/access-logs`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat riwayat akses staf' }));
+    throw new Error(err.error || 'Gagal memuat riwayat akses staf');
+  }
+  const json = await res.json();
+  return json.access_logs || [];
+};
 
 export const fetchTeamMembers = async (): Promise<TeamMemberItem[]> => {
   const headers = await getAuthHeaders();
@@ -2025,27 +2245,86 @@ export interface PlatformSettings {
   bank_name: string;
   bank_account_number: string;
   bank_account_holder: string;
+  terms_url?: string;
+  privacy_url?: string;
 }
+
+// Empty values mean "not configured yet" — the UI hides bank details / WhatsApp instead of showing
+// placeholder data that a travel could transfer money to.
+export const EMPTY_PLATFORM_SETTINGS: PlatformSettings = {
+  whatsapp_number: '',
+  bank_name: '',
+  bank_account_number: '',
+  bank_account_holder: '',
+  terms_url: '',
+  privacy_url: '',
+};
+
+export const hasPlatformBankDetails = (s: PlatformSettings): boolean =>
+  Boolean(s.bank_name && s.bank_account_number && s.bank_account_holder);
 
 export const fetchPlatformSettings = async (): Promise<PlatformSettings> => {
   try {
     const res = await dashboardFetch(`${API_BASE}/api/public/platform-settings`);
     if (!res.ok) {
-      return {
-        whatsapp_number: '6281234567890',
-        bank_name: 'Bank Syariah Indonesia (BSI)',
-        bank_account_number: '7123456789',
-        bank_account_holder: 'PT Klik Umroh Digital',
-      };
+      return EMPTY_PLATFORM_SETTINGS;
     }
-    return await res.json();
+    return { ...EMPTY_PLATFORM_SETTINGS, ...(await res.json()) };
   } catch {
-    return {
-      whatsapp_number: '6281234567890',
-      bank_name: 'Bank Syariah Indonesia (BSI)',
-      bank_account_number: '7123456789',
-      bank_account_holder: 'PT Klik Umroh Digital',
-    };
+    return EMPTY_PLATFORM_SETTINGS;
   }
 };
 
+
+// ---------------------------------------------------------------------------
+// Integrasi Meta (Pixel + Conversions API) per travel
+// ---------------------------------------------------------------------------
+
+export interface MetaIntegrationSettings {
+  pixel_id: string;
+  /** The access token itself is never returned: only whether one is stored and its last 4 characters. */
+  token_configured: boolean;
+  token_hint: string;
+  test_event_code: string;
+  /** False when the server cannot encrypt tokens yet (APP_ENCRYPTION_KEY missing). */
+  encryption_ready: boolean;
+}
+
+export const fetchMetaIntegration = async (): Promise<MetaIntegrationSettings> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/meta-integration`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat integrasi Meta' }));
+    throw new Error(err.error || 'Gagal memuat integrasi Meta');
+  }
+  return await res.json();
+};
+
+export const saveMetaIntegration = async (input: {
+  pixel_id: string;
+  access_token?: string;
+  clear_token?: boolean;
+  test_event_code: string;
+}): Promise<MetaIntegrationSettings> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/meta-integration`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal menyimpan integrasi Meta' }));
+    throw new Error(err.error || 'Gagal menyimpan integrasi Meta');
+  }
+  return await res.json();
+};
+
+export const sendMetaTestEvent = async (): Promise<{ events_received: number; fbtrace_id: string }> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/meta-integration/test`, { method: 'POST', headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal mengirim event uji' }));
+    throw new Error(err.error || 'Gagal mengirim event uji');
+  }
+  return await res.json();
+};

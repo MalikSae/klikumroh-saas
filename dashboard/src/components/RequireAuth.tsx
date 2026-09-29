@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { getStoredToken } from '../services/api';
+import { PendingBillingGuard } from './PendingBillingGuard';
 
 // Guards the travel admin dashboard routes. Without this, pages relied on
 // API calls to fail before showing anything.
@@ -33,5 +34,9 @@ export const RequireAuth: React.FC = () => {
     return null;
   }
 
-  return <Outlet />;
+  return (
+    <PendingBillingGuard>
+      <Outlet />
+    </PendingBillingGuard>
+  );
 };

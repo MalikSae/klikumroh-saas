@@ -4,6 +4,7 @@ import {
   Package as PackageIcon,
   Handshake,
   Globe,
+  Target,
   Settings as SettingsIcon,
   Palette,
   Phone,
@@ -17,6 +18,7 @@ import {
   Quote,
   HelpCircle,
   Award,
+  History,
 } from 'lucide-react';
 import type { MenuItem } from './Sidebar';
 
@@ -143,6 +145,13 @@ export const getStandardMenuItems = (activeId?: string): MenuItem[] => {
           active: activeId === 'settings-seo',
         },
         {
+          id: 'settings-meta',
+          label: 'Integrasi Meta',
+          to: '/settings/meta',
+          icon: <Target size={15} />,
+          active: activeId === 'settings-meta',
+        },
+        {
           id: 'settings-agent',
           label: 'Sistem & Komisi Agen',
           to: '/settings/agent',
@@ -169,6 +178,13 @@ export const getStandardMenuItems = (activeId?: string): MenuItem[] => {
           to: '/settings/subscription',
           icon: <CreditCard size={15} />,
           active: activeId === 'settings-subscription',
+        },
+        {
+          id: 'settings-access-log',
+          label: 'Riwayat Akses Staf',
+          to: '/settings/access-log',
+          icon: <History size={15} />,
+          active: activeId === 'settings-access-log',
         },
       ],
     },

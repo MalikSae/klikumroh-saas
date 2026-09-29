@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { loginStaff } from '../../../services/staffApi';
 
 export const AdminLoginView: React.FC = () => {
@@ -57,24 +57,6 @@ export const AdminLoginView: React.FC = () => {
       >
         {/* Brand Header */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 10px',
-              backgroundColor: '#0F172A',
-              color: '#FFFFFF',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              marginBottom: '14px',
-            }}
-          >
-            <ShieldCheck size={14} />
-            <span>PORTAL MASTER ADMIN</span>
-          </div>
           <h1
             style={{
               margin: '0 0 6px',

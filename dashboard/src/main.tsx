@@ -24,6 +24,7 @@ import App from './App.tsx';
 (() => {
   const hash = window.location.hash;
   if (!hash.startsWith('#auth=')) return;
+  let target = '/';
   try {
     const payload = JSON.parse(decodeURIComponent(hash.slice('#auth='.length)));
     if (payload.token) {
@@ -35,11 +36,16 @@ import App from './App.tsx';
         localStorage.setItem('klikumroh_travel_name', payload.user.tenant_name);
       }
     }
+    // Optional landing path (e.g. the billing page right after signup). Only same-origin
+    // absolute paths are accepted, so the payload can't send the user to another site.
+    if (typeof payload.redirect === 'string' && /^\/(?![/\\])/.test(payload.redirect)) {
+      target = payload.redirect;
+    }
   } catch {
     // Malformed payload — ignore, RequireAuth will redirect to /login
   }
   // Clean the URL so the token doesn't linger in the address bar
-  history.replaceState(null, '', '/');
+  history.replaceState(null, '', target);
 })();
 
 createRoot(document.getElementById('root')!).render(

@@ -11,5 +11,4 @@ export * from './Topbar';
 export * from './PageHeader';
 export * from './Tooltip';
 export * from './sidebarNav';
-export * from './AgentActivityFeed';
 export * from './OfficialReceiptModal';
