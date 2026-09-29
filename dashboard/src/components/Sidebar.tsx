@@ -372,6 +372,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
             </div>
+          ) : subInfo && subInfo.status === 'suspended' ? (
+            <div className="db-sidebar__sub-card">
+              <div className="db-sidebar__sub-row">
+                <span className="db-sidebar__sub-label">Status</span>
+                <span
+                  className="db-sidebar__sub-days"
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--db-status-lost-text)',
+                    fontWeight: 600,
+                  }}
+                >
+                  Ditangguhkan
+                </span>
+              </div>
+              <div className="db-sidebar__sub-progress-track">
+                <div
+                  className="db-sidebar__sub-progress-bar"
+                  style={{ width: '0%', backgroundColor: 'var(--db-status-lost-text)' }}
+                />
+              </div>
+            </div>
+          ) : subInfo && subInfo.status === 'grace_period' ? (
+            <div className="db-sidebar__sub-card">
+              <div className="db-sidebar__sub-row">
+                <span className="db-sidebar__sub-label">Masa tenggang</span>
+                <span 
+                  className="db-sidebar__sub-days"
+                  style={{ color: 'var(--db-status-lost-text)' }}
+                >
+                  {subInfo.grace_period_days_remaining} hari
+                </span>
+              </div>
+              <div className="db-sidebar__sub-progress-track">
+                <div
+                  className="db-sidebar__sub-progress-bar"
+                  style={{
+                    width: `${Math.max(5, ((subInfo.grace_period_days_remaining || 0) / 7) * 100)}%`,
+                    backgroundColor: 'var(--db-status-lost-text)',
+                  }}
+                />
+              </div>
+            </div>
           ) : subInfo && subInfo.days_remaining !== undefined ? (
             <div className="db-sidebar__sub-card">
               <div className="db-sidebar__sub-row">
