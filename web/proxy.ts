@@ -5,6 +5,51 @@ const getBackendBaseUrl = (): string => {
   return process.env.BACKEND_INTERNAL_URL || process.env.API_BASE_URL || 'http://127.0.0.1:8080';
 };
 
+// Ad attribution: when a visitor lands from an ad (utm_* or Meta's fbclid in the URL), remember it for
+// 7 days (Meta's default click window) so the prospect form can report the source even if the visitor
+// browses other pages first. Last ad click wins. Read by components/ProspectModal.tsx.
+const ATTRIBUTION_COOKIE = 'ku_attr';
+const ATTRIBUTION_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid'] as const;
+
+function withAttribution(req: NextRequest, res: NextResponse): NextResponse {
+  const params = req.nextUrl.searchParams;
+  if (!ATTRIBUTION_KEYS.some((k) => params.get(k))) {
+    return res;
+  }
+  const attr: Record<string, string> = {};
+  for (const k of ATTRIBUTION_KEYS) {
+    const v = params.get(k);
+    if (v) attr[k] = v.slice(0, 255);
+  }
+  res.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attr), {
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+    httpOnly: false,
+    sameSite: 'lax',
+  });
+  return res;
+}
+
+// Agent referral: a link with ?ref=CODE (not only /ref/CODE) remembers the agent for 30 days, so the
+// referral is not lost when the visitor opens another page before filling in the form.
+// Read by components/ProspectModal.tsx; the backend decides whether the code is valid.
+const REFERRAL_COOKIE = 'ref_code';
+const REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{1,50}$/;
+
+function withReferral(req: NextRequest, res: NextResponse): NextResponse {
+  const code = req.nextUrl.searchParams.get('ref');
+  if (!code || !REFERRAL_CODE_PATTERN.test(code)) {
+    return res;
+  }
+  res.cookies.set(REFERRAL_COOKIE, code, {
+    maxAge: 60 * 60 * 24 * 30,
+    path: '/',
+    httpOnly: false,
+    sameSite: 'lax',
+  });
+  return res;
+}
+
 /**
  * Next.js Proxy for Subdomain to Custom Domain 301 Redirection.
  *
@@ -27,7 +72,7 @@ export async function proxy(req: NextRequest) {
     hostname.endsWith('.localhost');
 
   if (!isDefaultSubdomain) {
-    return NextResponse.next();
+    return withReferral(req, withAttribution(req, NextResponse.next()));
   }
 
   const backendUrl = getBackendBaseUrl();
@@ -63,7 +108,7 @@ export async function proxy(req: NextRequest) {
     console.error('Failed to query custom domain target:', err);
   }
 
-  return NextResponse.next();
+  return withReferral(req, withAttribution(req, NextResponse.next()));
 }
 
 export const config = {

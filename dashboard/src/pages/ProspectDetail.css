@@ -69,7 +69,7 @@
   border: 1px solid var(--db-border);
   border-radius: 10px;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--db-shadow-xs);
   overflow: hidden;
 }
 
@@ -201,13 +201,13 @@
   cursor: pointer;
   border: none;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--db-shadow-sm);
   transition: all 0.15s ease-in-out;
 }
 
 .db-whatsapp-btn:hover {
   opacity: 0.92;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--db-shadow-md);
   transform: translateY(-1px);
 }
 
@@ -228,7 +228,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--db-shadow-xs);
 }
 
 .db-pipeline-header {
@@ -419,7 +419,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--db-shadow-xs);
 }
 
 .db-detail-card-header {
@@ -825,4 +825,181 @@
   .db-pipeline-step-item {
     min-width: 80px;
   }
+}
+
+/* ─── Prospect audit additions (no inline styles) ─────────────────────────── */
+
+.db-prospect-detail-container {
+  max-width: 1400px;
+}
+
+.db-detail-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 320px;
+  color: var(--db-text-muted);
+}
+
+.db-detail-error-card {
+  padding: 36px;
+  text-align: center;
+}
+
+.db-detail-error-title {
+  margin: 0 0 8px;
+  font-family: var(--db-font-heading);
+  font-size: var(--db-text-md);
+  font-weight: var(--db-weight-bold);
+  color: var(--db-negative);
+}
+
+.db-detail-error-text {
+  margin: 0 0 16px;
+  font-size: var(--db-text-base);
+  color: var(--db-text-muted);
+}
+
+.db-detail-inline-error {
+  font-size: var(--db-text-xs);
+  font-weight: var(--db-weight-semibold);
+  color: var(--db-negative);
+}
+
+.db-detail-empty {
+  padding: 24px;
+  text-align: center;
+  background-color: var(--db-page-bg);
+  border: 1px dashed var(--db-border);
+  border-radius: 7px;
+}
+
+.db-detail-empty__icon {
+  display: block;
+  margin: 0 auto 6px;
+  color: var(--db-text-muted);
+}
+
+.db-detail-empty__text {
+  margin: 0;
+  font-size: var(--db-text-xs);
+  color: var(--db-text-muted);
+}
+
+.db-detail-danger-btn {
+  color: var(--db-negative);
+}
+
+.db-detail-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.db-detail-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.db-detail-modal-label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  font-weight: var(--db-weight-semibold);
+  color: var(--db-text-primary);
+}
+
+.db-detail-required {
+  color: var(--db-negative);
+}
+
+.db-detail-modal-text {
+  margin: 0;
+  font-size: var(--db-text-base);
+  line-height: var(--db-leading-relaxed);
+  color: var(--db-text-primary);
+}
+
+.db-status-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.db-status-choice {
+  padding: 10px 12px;
+  border: 1px solid var(--db-border);
+  border-radius: 6px;
+  background-color: var(--db-card-bg);
+  color: var(--db-text-primary);
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  font-weight: var(--db-weight-medium);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.db-status-choice--selected {
+  border: 2px solid var(--db-sidebar-bg);
+  background-color: var(--db-page-bg);
+  color: var(--db-sidebar-bg);
+  font-weight: var(--db-weight-bold);
+}
+
+.db-detail-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--db-border);
+  border-radius: 6px;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  outline: none;
+}
+
+.db-detail-modal-input:focus {
+  border-color: var(--db-text-primary);
+  box-shadow: 0 0 0 3px var(--db-focus-ring);
+}
+
+.db-detail-closing-warning {
+  padding: 12px 14px;
+  border: 1px solid var(--db-status-closing-border);
+  border-radius: 6px;
+  background-color: var(--db-status-closing-bg);
+  color: var(--db-status-closing);
+  font-size: var(--db-text-sm);
+  line-height: var(--db-leading-normal);
+}
+
+.db-detail-closing-warning--confirm {
+  border-color: var(--db-status-contacted-border);
+  background-color: var(--db-status-contacted-bg);
+  color: var(--db-status-contacted);
+}
+
+.db-detail-modal-input--spaced {
+  margin-top: 8px;
+}
+
+/* Notice on a prospect whose personal data was removed (UU PDP). Informational, no accent. */
+.db-prospect-anonymized-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--db-text-muted);
+}
+
+.db-prospect-anonymized-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }

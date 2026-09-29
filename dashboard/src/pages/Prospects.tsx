@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Download,
   RefreshCw,
   Edit3,
   AlertCircle,
+  AlertTriangle,
   MoreVertical,
   Eye,
   Lock,
@@ -32,36 +33,115 @@ import {
 import {
   type ProspectItem,
   type PackageItem,
-  fetchProspects,
+  type AgentItem,
+  type ProspectStatusSummary,
+  type FetchProspectsParams,
+  fetchProspectPage,
+  fetchProspectSummary,
   fetchPackages,
+  fetchDashboardAgents,
   updateProspectStatus,
   downloadProspectsCSV,
+  LOST_REASON_OPTIONS,
+  lostReasonCategoryLabel,
+  formatDeparturePlan,
+  departurePlanOptions,
   getStoredUser,
 } from '../services/api';
+import { formatDateWIB, formatTimeWIB } from '../utils/datetime';
+import { rememberProspectListQuery } from '../utils/prospectListQuery';
 import './Prospects.css';
+
+const STATUS_LABELS: Record<ProspectItem['status'], string> = {
+  baru: 'Baru',
+  dihubungi: 'Dihubungi',
+  tertarik: 'Tertarik',
+  closing: 'Closing',
+  tidak_lanjut: 'Tidak Lanjut',
+};
+
+const STATUS_OPTIONS = [
+  { value: 'baru', label: 'Baru' },
+  { value: 'dihubungi', label: 'Dihubungi' },
+  { value: 'tertarik', label: 'Tertarik' },
+  { value: 'closing', label: 'Closing' },
+  { value: 'tidak_lanjut', label: 'Tidak Lanjut' },
+];
+
+const sourceLabel = (source: string): string => {
+  if (source === 'agen') return 'Agen';
+  if (source === 'paid') return 'Meta Ads';
+  return 'Organik';
+};
+
+const EMPTY_SUMMARY: ProspectStatusSummary = {
+  total: 0,
+  baru: 0,
+  dihubungi: 0,
+  tertarik: 0,
+  closing: 0,
+  tidak_lanjut: 0,
+  stale_baru: 0,
+  awaiting_payoff: 0,
+  awaiting_payoff_with_agent: 0,
+};
+
+const SEARCH_DEBOUNCE_MS = 350;
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 export const ProspectsPage: React.FC = () => {
   const navigate = useNavigate();
+
   const [prospects, setProspects] = useState<ProspectItem[]>([]);
-  const [allProspects, setAllProspects] = useState<ProspectItem[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [summary, setSummary] = useState<ProspectStatusSummary>(EMPTY_SUMMARY);
   const [packages, setPackages] = useState<PackageItem[]>([]);
+  const [agents, setAgents] = useState<AgentItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [packageFilter, setPackageFilter] = useState<string>('all');
-  const [sourceFilter, setSourceFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Filters, search and page live in the URL, so a refresh or "Kembali" from a detail keeps them.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const param = (key: string, fallback: string) => searchParams.get(key) || fallback;
+  const [statusFilter, setStatusFilter] = useState<string>(() => param('status', 'all'));
+  const [packageFilter, setPackageFilter] = useState<string>(() => param('package', 'all'));
+  const [sourceFilter, setSourceFilter] = useState<string>(() => param('source', 'all'));
+  const [agentFilter, setAgentFilter] = useState<string>(() => param('agent', 'all'));
+  const [payoffFilter, setPayoffFilter] = useState<string>(() => param('payoff', 'all'));
+  const [departureFilter, setDepartureFilter] = useState<string>(() => param('departure', 'all'));
+  const [searchInput, setSearchInput] = useState<string>(() => param('q', ''));
+  const [searchQuery, setSearchQuery] = useState<string>(() => param('q', ''));
+  const [page, setPage] = useState<number>(() => Math.max(1, Number(param('page', '1')) || 1));
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const size = Number(param('size', '25'));
+    return PAGE_SIZE_OPTIONS.includes(size) ? size : 25;
+  });
   const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
 
-  // Status Change Modal State
+  // Status modal
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
   const [selectedProspect, setSelectedProspect] = useState<ProspectItem | null>(null);
   const [newStatus, setNewStatus] = useState<string>('baru');
   const [lostReason, setLostReason] = useState<string>('');
+  const [lostCategory, setLostCategory] = useState<string>('');
+  const [confirmClosing, setConfirmClosing] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Only the latest list request may update the table (typing fast must not show stale results).
+  const requestSeq = useRef(0);
+
   const currentUser = getStoredUser();
+
+  const filters: FetchProspectsParams = {
+    status: statusFilter,
+    package_id: packageFilter,
+    source: sourceFilter,
+    agent_id: agentFilter,
+    payoff: payoffFilter,
+    departure_plan: departureFilter,
+    search: searchQuery,
+  };
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -70,105 +150,117 @@ export const ProspectsPage: React.FC = () => {
     return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
 
-  // Load all prospects once to populate accurate pipeline counters
-  const loadAllForCounters = async () => {
-    try {
-      const allData = await fetchProspects({});
-      setAllProspects(allData);
-    } catch {
-      // silently ignore
-    }
-  };
+  // Debounce the search box (only a changed search goes back to page 1, not the restored one).
+  useEffect(() => {
+    if (searchInput === searchQuery) return;
+    const t = window.setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
-  // Load packages list for package filter dropdown
-  const loadPackagesList = async () => {
-    try {
-      const pkgs = await fetchPackages();
-      setPackages(pkgs);
-    } catch {
-      // silently ignore
-    }
-  };
+  // Mirror the list state into the URL (replace: no extra history entries) and remember it for "Kembali".
+  useEffect(() => {
+    const next = new URLSearchParams();
+    const put = (key: string, value: string, fallback: string) => {
+      if (value && value !== fallback) next.set(key, value);
+    };
+    put('status', statusFilter, 'all');
+    put('package', packageFilter, 'all');
+    put('source', sourceFilter, 'all');
+    put('agent', agentFilter, 'all');
+    put('payoff', payoffFilter, 'all');
+    put('departure', departureFilter, 'all');
+    put('q', searchQuery.trim(), '');
+    put('page', String(page), '1');
+    put('size', String(pageSize), '25');
+    setSearchParams(next, { replace: true });
+    rememberProspectListQuery(next.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, packageFilter, sourceFilter, agentFilter, payoffFilter, departureFilter, searchQuery, page, pageSize]);
 
-  const loadData = async (status?: string, packageId?: string, source?: string, search?: string) => {
+  const loadSummary = useCallback(() => {
+    fetchProspectSummary()
+      .then(setSummary)
+      .catch(() => {
+        // counters are secondary; the list shows its own error
+      });
+  }, []);
+
+  const loadPage = useCallback(async () => {
+    const seq = ++requestSeq.current;
+    const controller = new AbortController();
     try {
       setLoading(true);
       setError(null);
-      const activeStatus = status !== undefined ? status : statusFilter;
-      const activePackage = packageId !== undefined ? packageId : packageFilter;
-      const activeSource = source !== undefined ? source : sourceFilter;
-      const activeSearch = search !== undefined ? search : searchQuery;
-
-      const data = await fetchProspects({
-        status: activeStatus !== 'all' ? activeStatus : undefined,
-        package_id: activePackage !== 'all' ? activePackage : undefined,
-        source: activeSource !== 'all' ? activeSource : undefined,
-        search: activeSearch.trim() || undefined,
-      });
-      setProspects(data);
+      const data = await fetchProspectPage(filters, page, pageSize, controller.signal);
+      if (seq !== requestSeq.current) return;
+      setProspects(data.items);
+      setTotal(data.total);
     } catch (err: any) {
+      if (seq !== requestSeq.current || err?.name === 'AbortError') return;
       setError(err.message || 'Gagal memuat data prospek');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, packageFilter, sourceFilter, agentFilter, payoffFilter, departureFilter, searchQuery, page, pageSize]);
 
   useEffect(() => {
-    loadData();
-    loadAllForCounters();
-    loadPackagesList();
-  }, []);
+    loadPage();
+  }, [loadPage]);
 
-  const handleFilterSelect = (newStatusVal: string) => {
-    setStatusFilter(newStatusVal);
-    loadData(newStatusVal, packageFilter, sourceFilter, searchQuery);
-  };
+  useEffect(() => {
+    loadSummary();
+    fetchPackages().then(setPackages).catch(() => {});
+    fetchDashboardAgents('active').then(setAgents).catch(() => {});
+  }, [loadSummary]);
 
-  const handleStatusDropdownChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setStatusFilter(val);
-    loadData(val, packageFilter, sourceFilter, searchQuery);
+  const applyFilter = (setter: (v: string) => void) => (value: string) => {
+    setter(value);
+    setPage(1);
   };
-
-  const handlePackageFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setPackageFilter(val);
-    loadData(statusFilter, val, sourceFilter, searchQuery);
-  };
-
-  const handleSourceFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setSourceFilter(val);
-    loadData(statusFilter, packageFilter, val, searchQuery);
-  };
-
-  const handleSearchChange = (val: string) => {
-    setSearchQuery(val);
-    loadData(statusFilter, packageFilter, sourceFilter, val);
-  };
+  const selectStatus = applyFilter(setStatusFilter);
 
   const handleResetFilters = () => {
     setStatusFilter('all');
     setPackageFilter('all');
     setSourceFilter('all');
+    setAgentFilter('all');
+    setPayoffFilter('all');
+    setDepartureFilter('all');
+    setSearchInput('');
     setSearchQuery('');
-    loadData('all', 'all', 'all', '');
+    setPage(1);
   };
 
   const handleOpenStatusModal = (p: ProspectItem) => {
     setSelectedProspect(p);
     setNewStatus(p.status);
-    setLostReason(p.lost_reason || '');
+    setLostReason(p.lost_reason_category === 'lainnya' ? p.lost_reason || '' : '');
+    setLostCategory(p.lost_reason_category && p.lost_reason_category !== 'batal_setelah_dp' ? p.lost_reason_category : '');
+    setConfirmClosing(false);
     setModalError(null);
     setIsStatusModalOpen(true);
   };
 
-  const handleStatusSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProspect) return;
+  const handleStatusSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!selectedProspect || submitting) return;
 
-    if (newStatus === 'tidak_lanjut' && !lostReason.trim()) {
-      setModalError('Alasan tidak lanjut wajib diisi.');
+    if (newStatus === 'tidak_lanjut' && !lostCategory) {
+      setModalError('Pilih alasan tidak lanjut.');
+      return;
+    }
+    if (newStatus === 'tidak_lanjut' && lostCategory === 'lainnya' && !lostReason.trim()) {
+      setModalError('Jelaskan alasan untuk pilihan Lainnya.');
+      return;
+    }
+    // Closing is final and books the agent commission: require a second, explicit click.
+    if (newStatus === 'closing' && !confirmClosing) {
+      setConfirmClosing(true);
       return;
     }
 
@@ -178,13 +270,15 @@ export const ProspectsPage: React.FC = () => {
       await updateProspectStatus(
         selectedProspect.id,
         newStatus,
-        newStatus === 'tidak_lanjut' ? lostReason.trim() : undefined
+        newStatus === 'tidak_lanjut' ? lostReason.trim() || undefined : undefined,
+        newStatus === 'tidak_lanjut' ? lostCategory : undefined
       );
       setIsStatusModalOpen(false);
-      loadData();
-      loadAllForCounters();
+      loadPage();
+      loadSummary();
     } catch (err: any) {
       setModalError(err.message || 'Gagal memperbarui status');
+      setConfirmClosing(false);
     } finally {
       setSubmitting(false);
     }
@@ -192,54 +286,45 @@ export const ProspectsPage: React.FC = () => {
 
   const handleExportCSV = async () => {
     try {
-      await downloadProspectsCSV({
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        package_id: packageFilter !== 'all' ? packageFilter : undefined,
-        source: sourceFilter !== 'all' ? sourceFilter : undefined,
-        search: searchQuery.trim() || undefined,
-      });
+      await downloadProspectsCSV(filters);
     } catch (err: any) {
       setError(err.message || 'Gagal mengunduh CSV');
     }
   };
 
   const menuItems = getStandardMenuItems('prospects');
-
-  // Pipeline Counters Calculation
-  const counts = {
-    all: allProspects.length,
-    baru: allProspects.filter((p) => p.status === 'baru').length,
-    dihubungi: allProspects.filter((p) => p.status === 'dihubungi').length,
-    tertarik: allProspects.filter((p) => p.status === 'tertarik').length,
-    closing: allProspects.filter((p) => p.status === 'closing').length,
-    tidak_lanjut: allProspects.filter((p) => p.status === 'tidak_lanjut').length,
-  };
-
-  const now = new Date().getTime();
-  const staleNewProspectsCount = allProspects.filter(
-    (p) => p.status === 'baru' && now - new Date(p.created_at).getTime() >= 24 * 60 * 60 * 1000
-  ).length;
+  // Closing an agent's prospect books commission only with a package that has a commission set.
+  const closingCommissionGap = (() => {
+    if (!selectedProspect?.agent_id) return null;
+    const pkg = packages.find((p) => p.id === selectedProspect.package_id);
+    if (!selectedProspect.package_id || !pkg) return 'Prospek ini belum punya paket';
+    if (!pkg.commission_amount || pkg.commission_amount <= 0) return `Komisi paket ${pkg.name} belum diatur`;
+    return null;
+  })();
+  const lostReasonSummary = Object.entries(summary.lost_reasons ?? {})
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const hasActiveFilter =
+    statusFilter !== 'all' ||
+    packageFilter !== 'all' ||
+    sourceFilter !== 'all' ||
+    agentFilter !== 'all' ||
+    payoffFilter !== 'all' ||
+    departureFilter !== 'all' ||
+    searchInput.trim() !== '';
 
   const columns: Column<ProspectItem>[] = [
     {
       key: 'id',
       label: 'ID',
-      render: (row) => (
-        <span style={{ fontFamily: 'Roboto, sans-serif', fontWeight: 700, fontSize: '11px', color: 'var(--db-text-muted)' }}>
-          #{String(row.id).padStart(4, '0')}
-        </span>
-      ),
+      render: (row) => <span className="db-prospect-id-cell">#{String(row.id).padStart(4, '0')}</span>,
     },
     {
       key: 'name',
       label: 'PROSPEK',
       render: (row) => (
         <div className="db-prospect-person-info">
-          <Link
-            to={`/prospects/${row.id}`}
-            className="db-prospect-name-link"
-            title={`Buka detail prospek ${row.name}`}
-          >
+          <Link to={`/prospects/${row.id}`} className="db-prospect-name-link" title={`Buka detail prospek ${row.name}`}>
             {row.name}
           </Link>
           <span className="db-prospect-phone-sub">{row.phone}</span>
@@ -251,11 +336,13 @@ export const ProspectsPage: React.FC = () => {
       label: 'PAKET',
       render: (row) => (
         <div className="db-prospect-pkg-cell">
-          <span className="db-prospect-pkg-name" title={row.package_name || 'Umroh Reguler'}>
-            {row.package_name || 'Umroh Reguler'}
+          <span className="db-prospect-pkg-name" title={row.package_name || 'Umroh'}>
+            {row.package_name || 'Umroh'}
           </span>
           <span className="db-prospect-pkg-pax">
             {row.jumlah_jamaah && row.jumlah_jamaah > 0 ? `${row.jumlah_jamaah} jamaah` : '1 jamaah'}
+            {row.departure_plan ? ` · ${formatDeparturePlan(row.departure_plan)}` : ''}
+            {row.domicile ? ` · ${row.domicile}` : ''}
           </span>
         </div>
       ),
@@ -263,17 +350,13 @@ export const ProspectsPage: React.FC = () => {
     {
       key: 'source_channel',
       label: 'SUMBER',
-      render: (row) => {
-        let label = 'Organik';
-        if (row.source_channel === 'agent' || row.source_channel === 'agen') label = 'Agen';
-        else if (row.source_channel === 'paid' || row.source_channel === 'paid_ads' || row.source_channel === 'meta_ads') label = 'Meta Ads';
-
-        return (
-          <span style={{ fontFamily: 'Roboto, sans-serif', fontSize: '12px', fontWeight: 700, color: 'var(--db-text-primary)' }}>
-            {label}
-          </span>
-        );
-      },
+      render: (row) => (
+        <div className="db-prospect-source-cell">
+          <span className="db-prospect-source-label">{sourceLabel(row.source_channel)}</span>
+          {row.agent_name && <span className="db-prospect-source-sub">{row.agent_name}</span>}
+          {!row.agent_name && row.utm_campaign && <span className="db-prospect-source-sub">{row.utm_campaign}</span>}
+        </div>
+      ),
     },
     {
       key: 'status',
@@ -282,21 +365,17 @@ export const ProspectsPage: React.FC = () => {
         <div>
           <span className={`db-prospect-status-pill db-prospect-status-pill--${row.status}`}>
             <span className="db-prospect-status-pill__dot" />
-            <span>
-              {row.status === 'baru'
-                ? 'Baru'
-                : row.status === 'dihubungi'
-                ? 'Dihubungi'
-                : row.status === 'tertarik'
-                ? 'Tertarik'
-                : row.status === 'closing'
-                ? 'Closing'
-                : 'Tidak Lanjut'}
-            </span>
+            <span>{STATUS_LABELS[row.status] || row.status}</span>
           </span>
-          {row.status === 'tidak_lanjut' && row.lost_reason && (
-            <div style={{ fontSize: '11px', color: 'var(--db-negative)', marginTop: '3px', maxWidth: '180px' }}>
-              {row.lost_reason}
+          {row.status === 'tidak_lanjut' && (row.lost_reason_category || row.lost_reason) && (
+            <div className="db-prospect-lost-reason">
+              {lostReasonCategoryLabel(row.lost_reason_category) || row.lost_reason}
+              {row.lost_reason_category === 'lainnya' && row.lost_reason ? `: ${row.lost_reason}` : ''}
+            </div>
+          )}
+          {row.status === 'closing' && (
+            <div className={row.paid_off_at ? 'db-prospect-payoff db-prospect-payoff--done' : 'db-prospect-payoff'}>
+              {row.paid_off_at ? 'Lunas' : 'DP, menunggu lunas'}
             </div>
           )}
         </div>
@@ -307,16 +386,8 @@ export const ProspectsPage: React.FC = () => {
       label: 'TANGGAL',
       render: (row) => (
         <div className="db-prospect-date-cell">
-          <span className="db-prospect-date-main">
-            {row.created_at
-              ? new Date(row.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-              : '-'}
-          </span>
-          <span className="db-prospect-date-time">
-            {row.created_at
-              ? new Date(row.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
-              : ''}
-          </span>
+          <span className="db-prospect-date-main">{formatDateWIB(row.created_at)}</span>
+          <span className="db-prospect-date-time">{formatTimeWIB(row.created_at)}</span>
         </div>
       ),
     },
@@ -349,6 +420,7 @@ export const ProspectsPage: React.FC = () => {
                   <Eye size={13} />
                   <span>Lihat Detail</span>
                 </button>
+                {!row.anonymized_at && (
                 <button
                   type="button"
                   className="db-prospect-dropdown-item"
@@ -360,7 +432,8 @@ export const ProspectsPage: React.FC = () => {
                   <Edit3 size={13} />
                   <span>Edit Data</span>
                 </button>
-                {row.status !== 'closing' ? (
+                )}
+                {row.anonymized_at && row.status !== 'closing' ? null : row.status !== 'closing' ? (
                   <button
                     type="button"
                     className="db-prospect-dropdown-item"
@@ -373,20 +446,17 @@ export const ProspectsPage: React.FC = () => {
                     <span>Ubah Status</span>
                   </button>
                 ) : (
-                  <div
-                    style={{
-                      padding: '6px 10px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: 'var(--db-positive)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
+                  <button
+                    type="button"
+                    className="db-prospect-dropdown-item"
+                    onClick={() => {
+                      setActiveDropdownId(null);
+                      navigate(`/prospects/${row.id}`);
                     }}
                   >
-                    <Lock size={12} />
-                    <span>Closing (Final)</span>
-                  </div>
+                    <Lock size={13} />
+                    <span>Kelola Closing (Lunas / Batal)</span>
+                  </button>
                 )}
               </div>
             )}
@@ -396,13 +466,18 @@ export const ProspectsPage: React.FC = () => {
     },
   ];
 
+  const pipeline = [
+    { key: 'all', label: 'Semua', count: summary.total, Icon: ListFilter },
+    { key: 'baru', label: 'Baru', count: summary.baru, Icon: PlusCircle },
+    { key: 'dihubungi', label: 'Dihubungi', count: summary.dihubungi, Icon: PhoneCall },
+    { key: 'tertarik', label: 'Tertarik', count: summary.tertarik, Icon: Sparkles },
+    { key: 'closing', label: 'Closing', count: summary.closing, Icon: CheckCircle2 },
+    { key: 'tidak_lanjut', label: 'Tidak lanjut', count: summary.tidak_lanjut, Icon: XCircle },
+  ];
+
   return (
     <div className="db-main-layout">
-      <Sidebar
-        brandName="KlikUmroh.id"
-        menuItems={menuItems}
-        footerContent="KlikUmroh.id 1.0"
-      />
+      <Sidebar brandName="KlikUmroh.id" menuItems={menuItems} footerContent="KlikUmroh.id 1.0" />
 
       <div className="db-content-area">
         <Topbar
@@ -432,155 +507,156 @@ export const ProspectsPage: React.FC = () => {
               </div>
             )}
 
-            {/* 1. Pipeline Summary Segmented Counters */}
+            {/* 1. Pipeline Summary Segmented Counters (whole tenant, independent of filters) */}
             <div className="db-prospects-pipeline-bar">
-              <button
-                type="button"
-                className={`db-pipeline-segment ${statusFilter === 'all' ? 'db-pipeline-segment--active' : ''}`}
-                onClick={() => handleFilterSelect('all')}
-              >
-                <ListFilter size={18} className="db-pipeline-segment__icon db-pipeline-segment__icon--all" />
-                <div className="db-pipeline-segment__copy">
-                  <span className="db-pipeline-segment__count">{counts.all}</span>
-                  <span className="db-pipeline-segment__label">Semua</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className={`db-pipeline-segment ${statusFilter === 'baru' ? 'db-pipeline-segment--active' : ''}`}
-                onClick={() => handleFilterSelect('baru')}
-              >
-                <PlusCircle size={18} className="db-pipeline-segment__icon db-pipeline-segment__icon--baru" />
-                <div className="db-pipeline-segment__copy">
-                  <span className="db-pipeline-segment__count">{counts.baru}</span>
-                  <span className="db-pipeline-segment__label">Baru</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className={`db-pipeline-segment ${statusFilter === 'dihubungi' ? 'db-pipeline-segment--active' : ''}`}
-                onClick={() => handleFilterSelect('dihubungi')}
-              >
-                <PhoneCall size={18} className="db-pipeline-segment__icon db-pipeline-segment__icon--dihubungi" />
-                <div className="db-pipeline-segment__copy">
-                  <span className="db-pipeline-segment__count">{counts.dihubungi}</span>
-                  <span className="db-pipeline-segment__label">Dihubungi</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className={`db-pipeline-segment ${statusFilter === 'tertarik' ? 'db-pipeline-segment--active' : ''}`}
-                onClick={() => handleFilterSelect('tertarik')}
-              >
-                <Sparkles size={18} className="db-pipeline-segment__icon db-pipeline-segment__icon--tertarik" />
-                <div className="db-pipeline-segment__copy">
-                  <span className="db-pipeline-segment__count">{counts.tertarik}</span>
-                  <span className="db-pipeline-segment__label">Tertarik</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className={`db-pipeline-segment ${statusFilter === 'closing' ? 'db-pipeline-segment--active' : ''}`}
-                onClick={() => handleFilterSelect('closing')}
-              >
-                <CheckCircle2 size={18} className="db-pipeline-segment__icon db-pipeline-segment__icon--closing" />
-                <div className="db-pipeline-segment__copy">
-                  <span className="db-pipeline-segment__count">{counts.closing}</span>
-                  <span className="db-pipeline-segment__label">Closing</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className={`db-pipeline-segment ${statusFilter === 'tidak_lanjut' ? 'db-pipeline-segment--active' : ''}`}
-                onClick={() => handleFilterSelect('tidak_lanjut')}
-              >
-                <XCircle size={18} className="db-pipeline-segment__icon db-pipeline-segment__icon--tidak_lanjut" />
-                <div className="db-pipeline-segment__copy">
-                  <span className="db-pipeline-segment__count">{counts.tidak_lanjut}</span>
-                  <span className="db-pipeline-segment__label">Tidak lanjut</span>
-                </div>
-              </button>
+              {pipeline.map(({ key, label, count, Icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`db-pipeline-segment ${statusFilter === key ? 'db-pipeline-segment--active' : ''}`}
+                  onClick={() => selectStatus(key)}
+                >
+                  <Icon size={18} className={`db-pipeline-segment__icon db-pipeline-segment__icon--${key}`} />
+                  <div className="db-pipeline-segment__copy">
+                    <span className="db-pipeline-segment__count">{count}</span>
+                    <span className="db-pipeline-segment__label">{label}</span>
+                  </div>
+                </button>
+              ))}
             </div>
 
             {/* 2. Follow-Up Urgent Notice Bar */}
-            {staleNewProspectsCount > 0 && (
+            {summary.stale_baru > 0 && (
               <div className="db-prospect-notice">
                 <div className="db-prospect-notice__left">
                   <Clock size={16} className="db-prospect-notice__icon" />
                   <span className="db-prospect-notice__text">
-                    {staleNewProspectsCount} prospek baru belum dihubungi lebih dari 24 jam.
+                    {summary.stale_baru} prospek baru belum dihubungi lebih dari 24 jam.
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="db-prospect-notice__action"
-                  onClick={() => handleFilterSelect('baru')}
-                >
+                <button type="button" className="db-prospect-notice__action" onClick={() => selectStatus('baru')}>
                   <span>Lihat Prospek</span>
                   <ArrowRight size={12} />
                 </button>
               </div>
             )}
 
-            {/* 3. Main Data Table */}
+            {/* Closings (DP) waiting for "Tandai Lunas": the agent commission stays held until then. */}
+            {summary.awaiting_payoff > 0 && (
+              <div className="db-prospect-notice">
+                <div className="db-prospect-notice__left">
+                  <Clock size={16} className="db-prospect-notice__icon" />
+                  <span className="db-prospect-notice__text">
+                    {summary.awaiting_payoff} jamaah sudah DP dan menunggu ditandai lunas
+                    {summary.awaiting_payoff_with_agent > 0
+                      ? `, ${summary.awaiting_payoff_with_agent} di antaranya komisi agennya masih tertahan.`
+                      : '.'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="db-prospect-notice__action"
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setPayoffFilter('pending');
+                    setPage(1);
+                  }}
+                >
+                  <span>Lihat Jamaah</span>
+                  <ArrowRight size={12} />
+                </button>
+              </div>
+            )}
+
+            {/* Why prospects were lost: one line of counts per category, biggest first. */}
+            {lostReasonSummary.length > 0 && (
+              <p className="db-prospect-lost-summary">
+                <span className="db-prospect-lost-summary__title">Alasan Tidak Lanjut:</span>
+                {lostReasonSummary.map(([category, count]) => (
+                  <span key={category} className="db-prospect-lost-summary__item">
+                    {lostReasonCategoryLabel(category)} <strong>{count}</strong>
+                  </span>
+                ))}
+              </p>
+            )}
+
+            {/* 3. Main Data Table (server-side search, filter & pagination) */}
             <Table
               columns={columns}
               data={prospects}
               loading={loading}
-              emptyMessage="Belum ada data prospek."
-              searchPlaceholder="Cari nama, nomor WhatsApp, atau paket..."
-              searchValue={searchQuery}
-              onSearchChange={handleSearchChange}
+              emptyMessage={hasActiveFilter ? 'Tidak ada prospek yang cocok dengan filter.' : 'Belum ada data prospek.'}
+              searchPlaceholder="Cari nama, nomor WhatsApp, domisili, paket, atau agen..."
+              searchValue={searchInput}
+              onSearchChange={setSearchInput}
+              serverTotal={total}
+              currentPage={page}
+              onPageChange={setPage}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
               filterSlot={
                 <div className="db-prospect-toolbar-filters">
                   <FormInput
                     type="select"
                     value={statusFilter}
-                    onChange={handleStatusDropdownChange}
-                    options={[
-                      { value: 'all', label: 'Semua Status' },
-                      { value: 'baru', label: 'Baru' },
-                      { value: 'dihubungi', label: 'Dihubungi' },
-                      { value: 'tertarik', label: 'Tertarik' },
-                      { value: 'closing', label: 'Closing' },
-                      { value: 'tidak_lanjut', label: 'Tidak Lanjut' },
-                    ]}
+                    onChange={(e) => selectStatus(e.target.value)}
+                    options={[{ value: 'all', label: 'Semua Status' }, ...STATUS_OPTIONS]}
                   />
                   <FormInput
                     type="select"
                     value={packageFilter}
-                    onChange={handlePackageFilterChange}
+                    onChange={(e) => applyFilter(setPackageFilter)(e.target.value)}
                     options={[
                       { value: 'all', label: 'Semua Paket' },
-                      ...packages.map((pkg) => ({
-                        value: String(pkg.id),
-                        label: pkg.name,
-                      })),
+                      ...packages.map((pkg) => ({ value: String(pkg.id), label: pkg.name })),
                     ]}
                   />
                   <FormInput
                     type="select"
                     value={sourceFilter}
-                    onChange={handleSourceFilterChange}
+                    onChange={(e) => applyFilter(setSourceFilter)(e.target.value)}
                     options={[
                       { value: 'all', label: 'Semua Sumber' },
                       { value: 'organik', label: 'Organik' },
-                      { value: 'meta_ads', label: 'Meta Ads' },
+                      { value: 'paid', label: 'Meta Ads' },
                       { value: 'agen', label: 'Agen' },
                     ]}
                   />
-                  {(statusFilter !== 'all' || packageFilter !== 'all' || sourceFilter !== 'all' || searchQuery.trim() !== '') && (
-                    <button
-                      type="button"
-                      className="db-prospect-reset-btn"
-                      onClick={handleResetFilters}
-                      title="Reset Filter"
-                    >
+                  <FormInput
+                    type="select"
+                    value={payoffFilter}
+                    onChange={(e) => applyFilter(setPayoffFilter)(e.target.value)}
+                    options={[
+                      { value: 'all', label: 'Semua Pelunasan' },
+                      { value: 'pending', label: 'DP, menunggu lunas' },
+                      { value: 'done', label: 'Lunas' },
+                    ]}
+                  />
+                  <FormInput
+                    type="select"
+                    value={departureFilter}
+                    onChange={(e) => applyFilter(setDepartureFilter)(e.target.value)}
+                    options={[
+                      { value: 'all', label: 'Semua Rencana Berangkat' },
+                      { value: 'none', label: 'Rencana belum diisi' },
+                      ...departurePlanOptions().filter((o) => o.value !== ''),
+                    ]}
+                  />
+                  <FormInput
+                    type="select"
+                    value={agentFilter}
+                    onChange={(e) => applyFilter(setAgentFilter)(e.target.value)}
+                    options={[
+                      { value: 'all', label: 'Semua Agen' },
+                      ...agents.map((ag) => ({ value: String(ag.id), label: ag.name })),
+                    ]}
+                  />
+                  {hasActiveFilter && (
+                    <button type="button" className="db-prospect-reset-btn" onClick={handleResetFilters} title="Reset Filter">
                       <RotateCcw size={14} />
                     </button>
                   )}
@@ -598,52 +674,84 @@ export const ProspectsPage: React.FC = () => {
         title="Ubah Status Prospek"
         overflowVisible
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+          <div className="db-prospect-modal-footer">
             <Button variant="secondary" size="md" onClick={() => setIsStatusModalOpen(false)} disabled={submitting}>
               Batal
             </Button>
-            <Button variant="primary" size="md" onClick={handleStatusSubmit} disabled={submitting}>
-              {submitting ? 'Menyimpan...' : 'Simpan'}
+            <Button variant="primary" size="md" onClick={() => handleStatusSubmit()} disabled={submitting}>
+              {submitting
+                ? 'Menyimpan...'
+                : newStatus === 'closing'
+                ? confirmClosing
+                  ? 'Ya, Closing & Bukukan Komisi'
+                  : 'Lanjutkan'
+                : 'Simpan'}
             </Button>
           </div>
         }
       >
-        <form onSubmit={handleStatusSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <form onSubmit={handleStatusSubmit} className="db-prospect-modal-form">
           {modalError && (
-            <div className="db-alert db-alert--error" style={{ padding: '8px 12px', fontSize: '13px' }}>
+            <div className="db-alert db-alert--error db-prospect-modal-alert">
               <span>{modalError}</span>
             </div>
           )}
 
           <div>
-            <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--db-text-primary)' }}>
-              Status Baru
-            </label>
+            <label className="db-prospect-modal-label">Status Baru</label>
             <FormInput
               type="select"
               value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-              options={[
-                { value: 'baru', label: 'Baru' },
-                { value: 'dihubungi', label: 'Dihubungi' },
-                { value: 'tertarik', label: 'Tertarik' },
-                { value: 'closing', label: 'Closing' },
-                { value: 'tidak_lanjut', label: 'Tidak Lanjut' },
-              ]}
+              onChange={(e) => {
+                setNewStatus(e.target.value);
+                setConfirmClosing(false);
+              }}
+              options={STATUS_OPTIONS}
             />
           </div>
 
           {newStatus === 'tidak_lanjut' && (
             <div>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--db-text-primary)' }}>
-                Alasan Tidak Lanjut <span style={{ color: 'var(--db-negative)' }}>*</span>
+              <label className="db-prospect-modal-label">
+                Alasan Tidak Lanjut <span className="db-prospect-required">*</span>
               </label>
               <FormInput
-                type="text"
-                placeholder="Contoh: Menunda keberangkatan, memilih travel lain"
-                value={lostReason}
-                onChange={(e) => setLostReason(e.target.value)}
+                type="select"
+                value={lostCategory}
+                onChange={(e) => setLostCategory(e.target.value)}
+                options={[{ value: '', label: 'Pilih alasan' }, ...LOST_REASON_OPTIONS]}
               />
+              <div className="db-prospect-modal-subfield">
+                <FormInput
+                  type="text"
+                  placeholder={lostCategory === 'lainnya' ? 'Jelaskan alasannya (wajib)' : 'Keterangan tambahan (opsional)'}
+                  value={lostReason}
+                  onChange={(e) => setLostReason(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {newStatus === 'closing' && selectedProspect && (
+            <div className={`db-prospect-closing-warning ${confirmClosing ? 'db-prospect-closing-warning--confirm' : ''}`}>
+              <AlertTriangle size={16} />
+              <span>
+                {confirmClosing ? (
+                  <>
+                    Konfirmasi closing untuk <strong>{selectedProspect.name}</strong>: jamaah sudah membayar DP. Jika
+                    jamaah batal nanti, gunakan Batalkan Closing di halaman detail.
+                  </>
+                ) : closingCommissionGap ? (
+                  <>
+                    Closing = jamaah sudah membayar DP. <strong>{closingCommissionGap}, jadi komisi agen tidak dibukukan.</strong>{' '}
+                    Isi paket lewat Edit Data dulu jika agen berhak komisi.
+                  </>
+                ) : selectedProspect.agent_id ? (
+                  'Closing = jamaah sudah membayar DP. Komisi agen langsung dibukukan dan tertahan sampai jamaah ditandai lunas.'
+                ) : (
+                  'Closing = jamaah sudah membayar DP.'
+                )}
+              </span>
             </div>
           )}
         </form>

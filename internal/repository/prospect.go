@@ -4,51 +4,105 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
 
+// OpenProspectStatuses are the pipeline stages where a prospect is still being worked on. A jamaah who
+// submits again while one of their prospects is in these stages keeps that prospect (first owner wins).
+var OpenProspectStatuses = []string{"baru", "dihubungi", "tertarik"}
+
 // Prospect represents the data model for the prospects table.
 type Prospect struct {
-	ID            uint64    `json:"id"`
-	TenantID      uint64    `json:"tenant_id"`
-	PackageID     *uint64   `json:"package_id"`
-	PackageName   string    `json:"package_name"`
-	AgentID       *uint64   `json:"agent_id"`
-	Name          string    `json:"name"`
-	Phone         string    `json:"phone"`
-	JumlahJamaah  *int      `json:"jumlah_jamaah"`
-	Email         *string   `json:"email"`
-	SourceChannel string    `json:"source_channel"`
-	EntryMethod   string    `json:"entry_method"`
-	Status        string    `json:"status"`
-	LostReason    *string   `json:"lost_reason"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID              uint64  `json:"id"`
+	TenantID        uint64  `json:"tenant_id"`
+	PackageID       *uint64 `json:"package_id"`
+	PackageName     string  `json:"package_name"`
+	AgentID         *uint64 `json:"agent_id"`
+	AgentName       string  `json:"agent_name"`
+	Name            string  `json:"name"`
+	Phone           string  `json:"phone"`
+	PhoneNormalized *string `json:"-"`
+	JumlahJamaah    *int    `json:"jumlah_jamaah"`
+	// DeparturePlan is the planned departure month ("YYYY-MM"), Domicile the jamaah's city.
+	DeparturePlan *string `json:"departure_plan"`
+	Domicile      *string `json:"domicile"`
+	Email         *string `json:"email"`
+	SourceChannel string  `json:"source_channel"`
+	EntryMethod   string  `json:"entry_method"`
+	UTMSource     *string `json:"utm_source"`
+	UTMMedium     *string `json:"utm_medium"`
+	UTMCampaign   *string `json:"utm_campaign"`
+	Fbclid        *string `json:"-"`
+	// MetaFbp / MetaFbc: the visitor's _fbp / _fbc cookies at lead time, for Meta Conversions API matching.
+	MetaFbp *string `json:"-"`
+	MetaFbc *string `json:"-"`
+	// ConsentAt: when the jamaah agreed to be contacted (UU PDP), from the public interest form.
+	ConsentAt  *time.Time `json:"consent_at"`
+	Status     string     `json:"status"`
+	LostReason *string    `json:"lost_reason"`
+	// LostReasonCategory is the fixed reason for 'tidak_lanjut' (see service.LostReasonCategories).
+	LostReasonCategory *string `json:"lost_reason_category"`
+	// PaidOffAt: kapan admin menandai jamaah lunas (komisi agen dilepas). Bukan status pipeline.
+	PaidOffAt *time.Time `json:"paid_off_at"`
+	// AnonymizedAt: personal data removed on the jamaah's request (UU PDP right to erasure).
+	AnonymizedAt *time.Time `json:"anonymized_at"`
+	ClosedAt     *time.Time `json:"closed_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 // ProspectFilter defines optional filtering parameters for listing prospects.
+// Limit 0 means "no limit" (used by the CSV export).
 type ProspectFilter struct {
 	Status    *string
 	Source    *string
 	Search    *string
 	PackageID *uint64
+	AgentID   *uint64
+	// Payoff filters closed prospects: "pending" = DP, belum lunas; "done" = lunas.
+	Payoff *string
+	// DeparturePlan filters on the planned departure month ("YYYY-MM"), or "none" for not filled in.
+	DeparturePlan *string
+	Limit         int
+	Offset        int
+}
+
+// ProspectStatusSummary holds pipeline counters for the whole tenant (independent of list filters).
+type ProspectStatusSummary struct {
+	Total       int `json:"total"`
+	Baru        int `json:"baru"`
+	Dihubungi   int `json:"dihubungi"`
+	Tertarik    int `json:"tertarik"`
+	Closing     int `json:"closing"`
+	TidakLanjut int `json:"tidak_lanjut"`
+	// StaleBaru counts prospects still 'baru' more than 24 hours after they came in.
+	StaleBaru int `json:"stale_baru"`
+	// AwaitingPayoff counts closings (DP) not yet marked lunas; AwaitingPayoffWithAgent is the part of
+	// them that belongs to an agent (whose commission is still held).
+	AwaitingPayoff          int `json:"awaiting_payoff"`
+	AwaitingPayoffWithAgent int `json:"awaiting_payoff_with_agent"`
+	// LostReasons counts 'tidak_lanjut' prospects per reason category (see service.LostReasonCategories).
+	LostReasons map[string]int `json:"lost_reasons"`
 }
 
 // AgentProspectItem represents a prospect row in the agent jamaah list with package details.
 type AgentProspectItem struct {
-	ID           uint64    `json:"id"`
-	TenantID     uint64    `json:"tenant_id"`
-	PackageID    *uint64   `json:"package_id"`
-	PackageName  string    `json:"package_name"`
-	AgentID      uint64    `json:"agent_id"`
-	Name         string    `json:"name"`
-	Phone        string    `json:"phone"`
-	JumlahJamaah int       `json:"jumlah_jamaah"`
-	Status       string    `json:"status"`
-	EntryMethod  string    `json:"entry_method"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           uint64  `json:"id"`
+	TenantID     uint64  `json:"tenant_id"`
+	PackageID    *uint64 `json:"package_id"`
+	PackageName  string  `json:"package_name"`
+	AgentID      uint64  `json:"agent_id"`
+	Name         string  `json:"name"`
+	Phone        string  `json:"phone"`
+	JumlahJamaah int     `json:"jumlah_jamaah"`
+	Status       string  `json:"status"`
+	EntryMethod  string  `json:"entry_method"`
+	// PaidOffAt: jamaah sudah ditandai lunas (komisi dilepas).
+	PaidOffAt *time.Time `json:"paid_off_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // AgentFunnelSummary represents the funnel aggregation for a specific agent.
@@ -56,6 +110,8 @@ type AgentFunnelSummary struct {
 	Baru     int `json:"baru"`
 	Diproses int `json:"diproses"`
 	Closing  int `json:"closing"`
+	// Batal counts prospects that reached closing (DP) and were cancelled afterwards.
+	Batal int `json:"batal"`
 }
 
 // AgentClosingStat represents total closing jamaah for an agent.
@@ -71,9 +127,21 @@ type ProspectRepository interface {
 	GetByID(ctx context.Context, tenantID uint64, id uint64) (*Prospect, error)
 	List(ctx context.Context, tenantID uint64, statusFilter *string) ([]Prospect, error)
 	ListWithFilter(ctx context.Context, tenantID uint64, filter ProspectFilter) ([]Prospect, error)
+	CountWithFilter(ctx context.Context, tenantID uint64, filter ProspectFilter) (int, error)
+	StatusSummary(ctx context.Context, tenantID uint64) (*ProspectStatusSummary, error)
+	FindOpenByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*Prospect, error)
 	ListByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter *string) ([]AgentProspectItem, error)
 	Update(ctx context.Context, tenantID uint64, prospect *Prospect) error
 	UpdateStatus(ctx context.Context, tenantID uint64, id uint64, newStatus string, lostReason *string) error
+	// TransitionStatus changes the status only while the prospect is still in fromStatus. It returns
+	// ErrStatusConflict when another request changed it first, so side effects (commission) run once.
+	TransitionStatus(ctx context.Context, tenantID uint64, id uint64, fromStatus, toStatus string, lostReason, lostReasonCategory *string) error
+	// FindLatestClosingByPhone returns the most recent prospect with this phone that is (still) closing.
+	FindLatestClosingByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*Prospect, error)
+	// ListByAgentPage is ListByAgent with an optional search (name, phone, package), paging and the total count.
+	ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, limit, offset int) ([]AgentProspectItem, int, error)
+	// MarkPaidOff sets paid_off_at on a closed prospect exactly once (ErrStatusConflict if not closing or already set).
+	MarkPaidOff(ctx context.Context, tenantID uint64, id uint64) error
 	Delete(ctx context.Context, tenantID uint64, id uint64) error
 	GetAgentFunnelSummary(ctx context.Context, tenantID uint64, agentID uint64) (*AgentFunnelSummary, error)
 	GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]AgentClosingStat, error)
@@ -93,14 +161,104 @@ func NewProspectRepository(db *sql.DB) ProspectRepository {
 	return &mysqlProspectRepository{db: db}
 }
 
+// prospectSelect is shared by every read so the scan order stays in one place.
+// closed_at comes from the status history (latest transition into 'closing').
+const prospectSelect = `
+	SELECT
+		p.id, p.tenant_id, p.package_id, p.agent_id, p.name, p.phone, p.phone_normalized, p.jumlah_jamaah,
+		p.departure_plan, p.domicile, p.email,
+		p.source_channel, p.entry_method, p.utm_source, p.utm_medium, p.utm_campaign, p.fbclid, p.meta_fbp, p.meta_fbc, p.consent_at,
+		p.status, p.lost_reason, p.lost_reason_category, p.paid_off_at, p.anonymized_at, p.created_at, p.updated_at,
+		COALESCE(pkg.name, '') AS package_name,
+		COALESCE(ag.name, '') AS agent_name,
+		(SELECT MAX(h.changed_at) FROM prospect_status_history h
+			WHERE h.tenant_id = p.tenant_id AND h.prospect_id = p.id AND h.new_status = 'closing') AS closed_at
+	FROM prospects p
+	LEFT JOIN packages pkg ON pkg.id = p.package_id AND pkg.tenant_id = p.tenant_id
+	LEFT JOIN agents ag ON ag.id = p.agent_id AND ag.tenant_id = p.tenant_id
+`
+
+type rowScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+func scanProspectRow(row rowScanner) (*Prospect, error) {
+	var p Prospect
+	var packageID, agentID, jumlahJamaah sql.NullInt64
+	var phoneNorm, departurePlan, domicile, email, utmSource, utmMedium, utmCampaign, fbclid, metaFbp, metaFbc, lostReason, lostCategory sql.NullString
+	var closedAt, paidOffAt, consentAt, anonymizedAt sql.NullTime
+
+	if err := row.Scan(
+		&p.ID, &p.TenantID, &packageID, &agentID, &p.Name, &p.Phone, &phoneNorm, &jumlahJamaah,
+		&departurePlan, &domicile, &email,
+		&p.SourceChannel, &p.EntryMethod, &utmSource, &utmMedium, &utmCampaign, &fbclid, &metaFbp, &metaFbc, &consentAt,
+		&p.Status, &lostReason, &lostCategory, &paidOffAt, &anonymizedAt, &p.CreatedAt, &p.UpdatedAt,
+		&p.PackageName, &p.AgentName, &closedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	if packageID.Valid {
+		v := uint64(packageID.Int64)
+		p.PackageID = &v
+	}
+	if agentID.Valid {
+		v := uint64(agentID.Int64)
+		p.AgentID = &v
+	}
+	if jumlahJamaah.Valid {
+		v := int(jumlahJamaah.Int64)
+		p.JumlahJamaah = &v
+	}
+	p.PhoneNormalized = nullStringPtr(phoneNorm)
+	p.Email = nullStringPtr(email)
+	p.UTMSource = nullStringPtr(utmSource)
+	p.UTMMedium = nullStringPtr(utmMedium)
+	p.UTMCampaign = nullStringPtr(utmCampaign)
+	p.Fbclid = nullStringPtr(fbclid)
+	p.MetaFbp = nullStringPtr(metaFbp)
+	p.MetaFbc = nullStringPtr(metaFbc)
+	p.LostReason = nullStringPtr(lostReason)
+	p.LostReasonCategory = nullStringPtr(lostCategory)
+	p.DeparturePlan = nullStringPtr(departurePlan)
+	p.Domicile = nullStringPtr(domicile)
+	if consentAt.Valid {
+		t := consentAt.Time
+		p.ConsentAt = &t
+	}
+	if paidOffAt.Valid {
+		t := paidOffAt.Time
+		p.PaidOffAt = &t
+	}
+	if anonymizedAt.Valid {
+		t := anonymizedAt.Time
+		p.AnonymizedAt = &t
+	}
+	if closedAt.Valid {
+		t := closedAt.Time
+		p.ClosedAt = &t
+	}
+	return &p, nil
+}
+
+func nullStringPtr(v sql.NullString) *string {
+	if !v.Valid {
+		return nil
+	}
+	s := v.String
+	return &s
+}
+
 func (r *mysqlProspectRepository) Create(ctx context.Context, tenantID uint64, prospect *Prospect) error {
 	if prospect.EntryMethod == "" {
 		prospect.EntryMethod = "web_form"
 	}
 	query := `
 		INSERT INTO prospects (
-			tenant_id, package_id, agent_id, name, phone, jumlah_jamaah, email, source_channel, entry_method, status, lost_reason
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			tenant_id, package_id, agent_id, name, phone, phone_normalized, jumlah_jamaah, departure_plan, domicile,
+			email, source_channel, entry_method, utm_source, utm_medium, utm_campaign, fbclid, meta_fbp, meta_fbc, consent_at,
+			status, lost_reason, lost_reason_category
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	prospect.TenantID = tenantID
 	if prospect.Status == "" {
@@ -113,12 +271,23 @@ func (r *mysqlProspectRepository) Create(ctx context.Context, tenantID uint64, p
 		prospect.AgentID,
 		prospect.Name,
 		prospect.Phone,
+		prospect.PhoneNormalized,
 		prospect.JumlahJamaah,
+		prospect.DeparturePlan,
+		prospect.Domicile,
 		prospect.Email,
 		prospect.SourceChannel,
 		prospect.EntryMethod,
+		prospect.UTMSource,
+		prospect.UTMMedium,
+		prospect.UTMCampaign,
+		prospect.Fbclid,
+		prospect.MetaFbp,
+		prospect.MetaFbc,
+		prospect.ConsentAt,
 		prospect.Status,
 		prospect.LostReason,
+		prospect.LostReasonCategory,
 	)
 	if err != nil {
 		return err
@@ -133,65 +302,162 @@ func (r *mysqlProspectRepository) Create(ctx context.Context, tenantID uint64, p
 }
 
 func (r *mysqlProspectRepository) GetByID(ctx context.Context, tenantID uint64, id uint64) (*Prospect, error) {
-	query := `
-		SELECT 
-			p.id, p.tenant_id, p.package_id, p.agent_id, p.name, p.phone, p.jumlah_jamaah, p.email, p.source_channel, p.entry_method, p.status, p.lost_reason, p.created_at, p.updated_at,
-			COALESCE(pkg.name, '') as package_name
-		FROM prospects p
-		LEFT JOIN packages pkg ON p.package_id = pkg.id AND pkg.tenant_id = p.tenant_id
-		WHERE p.id = ? AND p.tenant_id = ?
-	`
-	row := r.db.QueryRowContext(ctx, query, id, tenantID)
-	return r.scanProspect(row)
+	row := r.db.QueryRowContext(ctx, prospectSelect+` WHERE p.id = ? AND p.tenant_id = ?`, id, tenantID)
+	p, err := scanProspectRow(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return p, nil
+}
+
+func (r *mysqlProspectRepository) FindOpenByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*Prospect, error) {
+	if phoneNormalized == "" {
+		return nil, ErrNotFound
+	}
+	row := r.db.QueryRowContext(ctx,
+		prospectSelect+` WHERE p.tenant_id = ? AND p.phone_normalized = ? AND p.status IN ('baru', 'dihubungi', 'tertarik')
+		ORDER BY p.created_at ASC, p.id ASC LIMIT 1`,
+		tenantID, phoneNormalized)
+	p, err := scanProspectRow(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return p, nil
+}
+
+func (r *mysqlProspectRepository) FindLatestClosingByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*Prospect, error) {
+	if phoneNormalized == "" {
+		return nil, ErrNotFound
+	}
+	row := r.db.QueryRowContext(ctx,
+		prospectSelect+` WHERE p.tenant_id = ? AND p.phone_normalized = ? AND p.status = 'closing'
+		ORDER BY p.created_at DESC, p.id DESC LIMIT 1`,
+		tenantID, phoneNormalized)
+	p, err := scanProspectRow(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return p, nil
 }
 
 func (r *mysqlProspectRepository) List(ctx context.Context, tenantID uint64, statusFilter *string) ([]Prospect, error) {
 	return r.ListWithFilter(ctx, tenantID, ProspectFilter{Status: statusFilter})
 }
 
-func (r *mysqlProspectRepository) ListWithFilter(ctx context.Context, tenantID uint64, filter ProspectFilter) ([]Prospect, error) {
-	query := `
-		SELECT 
-			p.id, p.tenant_id, p.package_id, p.agent_id, p.name, p.phone, p.jumlah_jamaah, p.email, p.source_channel, p.entry_method, p.status, p.lost_reason, p.created_at, p.updated_at,
-			COALESCE(pkg.name, '') as package_name
-		FROM prospects p
-		LEFT JOIN packages pkg ON p.package_id = pkg.id AND pkg.tenant_id = p.tenant_id
-		WHERE p.tenant_id = ?
-	`
+// buildFilterWhere returns the WHERE clause (always scoped to tenant) and its args.
+func buildFilterWhere(tenantID uint64, filter ProspectFilter) (string, []interface{}) {
+	where := " WHERE p.tenant_id = ?"
 	args := []interface{}{tenantID}
 
 	if filter.Status != nil && *filter.Status != "" && *filter.Status != "all" {
-		query += " AND p.status = ?"
+		where += " AND p.status = ?"
 		args = append(args, *filter.Status)
 	}
 
 	if filter.Source != nil && *filter.Source != "" && *filter.Source != "all" {
-		src := strings.ToLower(strings.TrimSpace(*filter.Source))
-		switch src {
+		switch strings.ToLower(strings.TrimSpace(*filter.Source)) {
 		case "agent", "agen":
-			query += " AND (p.agent_id IS NOT NULL OR p.source_channel = 'agen')"
+			where += " AND p.source_channel = 'agen'"
 		case "paid", "paid_ads", "meta_ads", "ads":
-			query += " AND (p.source_channel IN ('paid', 'paid_ads', 'meta_ads', 'google_ads', 'ads'))"
+			where += " AND p.source_channel = 'paid'"
 		case "organik", "organic":
-			query += " AND (p.agent_id IS NULL AND (p.source_channel = 'organik' OR p.source_channel IS NULL OR p.source_channel = ''))"
+			where += " AND p.source_channel = 'organik'"
 		default:
-			query += " AND p.source_channel = ?"
-			args = append(args, src)
+			where += " AND 1 = 0"
 		}
 	}
 
 	if filter.Search != nil && strings.TrimSpace(*filter.Search) != "" {
-		s := "%" + strings.TrimSpace(*filter.Search) + "%"
-		query += " AND (p.name LIKE ? OR p.phone LIKE ? OR p.email LIKE ? OR COALESCE(pkg.name, '') LIKE ?)"
-		args = append(args, s, s, s, s)
+		s := "%" + escapeLike(strings.TrimSpace(*filter.Search)) + "%"
+		where += " AND (p.name LIKE ? OR p.phone LIKE ? OR p.email LIKE ? OR p.domicile LIKE ? OR COALESCE(pkg.name, '') LIKE ? OR COALESCE(ag.name, '') LIKE ?"
+		args = append(args, s, s, s, s, s, s)
+		if phone := phoneSearchPattern(*filter.Search); phone != "" {
+			where += " OR p.phone_normalized LIKE ?"
+			args = append(args, phone)
+		}
+		where += ")"
 	}
 
 	if filter.PackageID != nil && *filter.PackageID > 0 {
-		query += " AND p.package_id = ?"
+		where += " AND p.package_id = ?"
 		args = append(args, *filter.PackageID)
 	}
 
-	query += " ORDER BY p.created_at DESC"
+	if filter.AgentID != nil && *filter.AgentID > 0 {
+		where += " AND p.agent_id = ?"
+		args = append(args, *filter.AgentID)
+	}
+
+	if filter.DeparturePlan != nil {
+		if *filter.DeparturePlan == "none" {
+			where += " AND p.departure_plan IS NULL"
+		} else {
+			where += " AND p.departure_plan = ?"
+			args = append(args, *filter.DeparturePlan)
+		}
+	}
+
+	if filter.Payoff != nil {
+		switch *filter.Payoff {
+		case "pending":
+			where += " AND p.status = 'closing' AND p.paid_off_at IS NULL"
+		case "done":
+			where += " AND p.status = 'closing' AND p.paid_off_at IS NOT NULL"
+		}
+	}
+
+	return where, args
+}
+
+// phoneSearchPattern turns a search text that looks like a phone number into a LIKE pattern on
+// phone_normalized (62xxxxxxxx): "0812 3456" and "+62 812-3456" both become "%628123456%".
+// It returns "" when the text has fewer than 4 digits or contains letters.
+func phoneSearchPattern(search string) string {
+	var digits strings.Builder
+	for _, r := range strings.TrimSpace(search) {
+		switch {
+		case r >= '0' && r <= '9':
+			digits.WriteRune(r)
+		case r == ' ' || r == '-' || r == '.' || r == '+' || r == '(' || r == ')':
+		default:
+			return ""
+		}
+	}
+	d := digits.String()
+	if len(d) < 4 {
+		return ""
+	}
+	if strings.HasPrefix(d, "0") {
+		d = "62" + d[1:]
+	}
+	return "%" + d + "%"
+}
+
+// escapeLike makes user input match literally inside a LIKE pattern.
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
+func (r *mysqlProspectRepository) ListWithFilter(ctx context.Context, tenantID uint64, filter ProspectFilter) ([]Prospect, error) {
+	where, args := buildFilterWhere(tenantID, filter)
+	query := prospectSelect + where + " ORDER BY p.created_at DESC, p.id DESC"
+	if filter.Limit > 0 {
+		query += " LIMIT ? OFFSET ?"
+		offset := filter.Offset
+		if offset < 0 {
+			offset = 0
+		}
+		args = append(args, filter.Limit, offset)
+	}
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -199,87 +465,154 @@ func (r *mysqlProspectRepository) ListWithFilter(ctx context.Context, tenantID u
 	}
 	defer rows.Close()
 
-	var prospects []Prospect
+	prospects := []Prospect{}
 	for rows.Next() {
-		var p Prospect
-		var packageID, agentID, jumlahJamaah sql.NullInt64
-		var email, lostReason sql.NullString
-
-		if err := rows.Scan(
-			&p.ID,
-			&p.TenantID,
-			&packageID,
-			&agentID,
-			&p.Name,
-			&p.Phone,
-			&jumlahJamaah,
-			&email,
-			&p.SourceChannel,
-			&p.EntryMethod,
-			&p.Status,
-			&lostReason,
-			&p.CreatedAt,
-			&p.UpdatedAt,
-			&p.PackageName,
-		); err != nil {
+		p, err := scanProspectRow(rows)
+		if err != nil {
 			return nil, err
 		}
-
-		if packageID.Valid {
-			pkgID := uint64(packageID.Int64)
-			p.PackageID = &pkgID
-		}
-		if agentID.Valid {
-			agID := uint64(agentID.Int64)
-			p.AgentID = &agID
-		}
-		if jumlahJamaah.Valid {
-			jj := int(jumlahJamaah.Int64)
-			p.JumlahJamaah = &jj
-		}
-		if email.Valid {
-			p.Email = &email.String
-		}
-		if lostReason.Valid {
-			p.LostReason = &lostReason.String
-		}
-		prospects = append(prospects, p)
+		prospects = append(prospects, *p)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return prospects, nil
 }
 
-func (r *mysqlProspectRepository) ListByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter *string) ([]AgentProspectItem, error) {
-	var query string
-	var args []interface{}
+func (r *mysqlProspectRepository) CountWithFilter(ctx context.Context, tenantID uint64, filter ProspectFilter) (int, error) {
+	where, args := buildFilterWhere(tenantID, filter)
+	query := `SELECT COUNT(*) FROM prospects p
+		LEFT JOIN packages pkg ON pkg.id = p.package_id AND pkg.tenant_id = p.tenant_id
+		LEFT JOIN agents ag ON ag.id = p.agent_id AND ag.tenant_id = p.tenant_id` + where
+	var total int
+	if err := r.db.QueryRowContext(ctx, query, args...).Scan(&total); err != nil {
+		return 0, err
+	}
+	return total, nil
+}
 
+func (r *mysqlProspectRepository) StatusSummary(ctx context.Context, tenantID uint64) (*ProspectStatusSummary, error) {
+	query := `
+		SELECT
+			COUNT(*),
+			COALESCE(SUM(status = 'baru'), 0),
+			COALESCE(SUM(status = 'dihubungi'), 0),
+			COALESCE(SUM(status = 'tertarik'), 0),
+			COALESCE(SUM(status = 'closing'), 0),
+			COALESCE(SUM(status = 'tidak_lanjut'), 0),
+			COALESCE(SUM(status = 'baru' AND created_at <= NOW() - INTERVAL 24 HOUR), 0),
+			COALESCE(SUM(status = 'closing' AND paid_off_at IS NULL), 0),
+			COALESCE(SUM(status = 'closing' AND paid_off_at IS NULL AND agent_id IS NOT NULL), 0)
+		FROM prospects
+		WHERE tenant_id = ?
+	`
+	var s ProspectStatusSummary
+	if err := r.db.QueryRowContext(ctx, query, tenantID).Scan(
+		&s.Total, &s.Baru, &s.Dihubungi, &s.Tertarik, &s.Closing, &s.TidakLanjut, &s.StaleBaru, &s.AwaitingPayoff, &s.AwaitingPayoffWithAgent,
+	); err != nil {
+		return nil, err
+	}
+
+	s.LostReasons = map[string]int{}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT COALESCE(lost_reason_category, 'lainnya'), COUNT(*)
+		FROM prospects
+		WHERE tenant_id = ? AND status = 'tidak_lanjut'
+		GROUP BY COALESCE(lost_reason_category, 'lainnya')`, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var category string
+		var n int
+		if err := rows.Scan(&category, &n); err != nil {
+			return nil, err
+		}
+		s.LostReasons[category] = n
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *mysqlProspectRepository) ListByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter *string) ([]AgentProspectItem, error) {
+	return r.listByAgent(ctx, tenantID, agentID, statusFilter, nil, 0, 0)
+}
+
+// agentListWhere is the WHERE clause of an agent's jamaah list: always scoped to tenant and agent.
+func agentListWhere(tenantID, agentID uint64, statusFilter, search *string) (string, []interface{}) {
+	where := " WHERE pr.tenant_id = ? AND pr.agent_id = ?"
+	args := []interface{}{tenantID, agentID}
 	if statusFilter != nil && *statusFilter != "" {
-		query = `
-			SELECT 
-				pr.id, pr.tenant_id, pr.package_id, COALESCE(pk.name, 'Umroh') AS package_name,
-				pr.agent_id, pr.name, pr.phone, COALESCE(pr.jumlah_jamaah, 1) AS jumlah_jamaah,
-				pr.status, pr.entry_method, pr.created_at, pr.updated_at
-			FROM prospects pr
-			LEFT JOIN packages pk ON pk.id = pr.package_id AND pk.tenant_id = pr.tenant_id
-			WHERE pr.tenant_id = ? AND pr.agent_id = ? AND pr.status = ?
-			ORDER BY pr.created_at DESC
-		`
-		args = append(args, tenantID, agentID, *statusFilter)
-	} else {
-		query = `
-			SELECT 
-				pr.id, pr.tenant_id, pr.package_id, COALESCE(pk.name, 'Umroh') AS package_name,
-				pr.agent_id, pr.name, pr.phone, COALESCE(pr.jumlah_jamaah, 1) AS jumlah_jamaah,
-				pr.status, pr.entry_method, pr.created_at, pr.updated_at
-			FROM prospects pr
-			LEFT JOIN packages pk ON pk.id = pr.package_id AND pk.tenant_id = pr.tenant_id
-			WHERE pr.tenant_id = ? AND pr.agent_id = ?
-			ORDER BY pr.created_at DESC
-		`
-		args = append(args, tenantID, agentID)
+		where += " AND pr.status = ?"
+		args = append(args, *statusFilter)
+	}
+	if search != nil && strings.TrimSpace(*search) != "" {
+		s := "%" + escapeLike(strings.TrimSpace(*search)) + "%"
+		where += " AND (pr.name LIKE ? OR pr.phone LIKE ? OR COALESCE(pk.name, '') LIKE ?"
+		args = append(args, s, s, s)
+		if phone := phoneSearchPattern(*search); phone != "" {
+			where += " OR pr.phone_normalized LIKE ?"
+			args = append(args, phone)
+		}
+		where += ")"
+	}
+	return where, args
+}
+
+func (r *mysqlProspectRepository) ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, limit, offset int) ([]AgentProspectItem, int, error) {
+	where, args := agentListWhere(tenantID, agentID, statusFilter, search)
+	countQuery := `SELECT COUNT(*) FROM prospects pr
+		LEFT JOIN packages pk ON pk.id = pr.package_id AND pk.tenant_id = pr.tenant_id` + where
+	var total int
+	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	items, err := r.listByAgent(ctx, tenantID, agentID, statusFilter, search, limit, offset)
+	return items, total, err
+}
+
+// AgentStatusCounts counts all of an agent's jamaah per pipeline status (for the status tabs),
+// independent of the page being shown. The "total" key holds the overall count.
+func (r *mysqlProspectRepository) AgentStatusCounts(ctx context.Context, tenantID uint64, agentID uint64) (map[string]int, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT status, COUNT(*) FROM prospects WHERE tenant_id = ? AND agent_id = ? GROUP BY status`, tenantID, agentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := map[string]int{"total": 0}
+	for rows.Next() {
+		var status string
+		var n int
+		if err := rows.Scan(&status, &n); err != nil {
+			return nil, err
+		}
+		counts[status] = n
+		counts["total"] += n
+	}
+	return counts, rows.Err()
+}
+
+func (r *mysqlProspectRepository) listByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, limit, offset int) ([]AgentProspectItem, error) {
+	where, args := agentListWhere(tenantID, agentID, statusFilter, search)
+	query := `
+		SELECT
+			pr.id, pr.tenant_id, pr.package_id, COALESCE(pk.name, 'Umroh') AS package_name,
+			pr.agent_id, pr.name, pr.phone, COALESCE(pr.jumlah_jamaah, 1) AS jumlah_jamaah,
+			pr.status, pr.entry_method, pr.paid_off_at, pr.created_at, pr.updated_at
+		FROM prospects pr
+		LEFT JOIN packages pk ON pk.id = pr.package_id AND pk.tenant_id = pr.tenant_id
+	` + where
+	query += " ORDER BY pr.created_at DESC, pr.id DESC"
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		query += " LIMIT ? OFFSET ?"
+		args = append(args, limit, offset)
 	}
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
@@ -288,10 +621,11 @@ func (r *mysqlProspectRepository) ListByAgent(ctx context.Context, tenantID uint
 	}
 	defer rows.Close()
 
-	var items []AgentProspectItem
+	items := []AgentProspectItem{}
 	for rows.Next() {
 		var item AgentProspectItem
 		var packageID sql.NullInt64
+		var paidOffAt sql.NullTime
 		if err := rows.Scan(
 			&item.ID,
 			&item.TenantID,
@@ -303,10 +637,15 @@ func (r *mysqlProspectRepository) ListByAgent(ctx context.Context, tenantID uint
 			&item.JumlahJamaah,
 			&item.Status,
 			&item.EntryMethod,
+			&paidOffAt,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 		); err != nil {
 			return nil, err
+		}
+		if paidOffAt.Valid {
+			t := paidOffAt.Time
+			item.PaidOffAt = &t
 		}
 		if packageID.Valid {
 			pkgID := uint64(packageID.Int64)
@@ -317,145 +656,245 @@ func (r *mysqlProspectRepository) ListByAgent(ctx context.Context, tenantID uint
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	if items == nil {
-		items = []AgentProspectItem{}
-	}
 	return items, nil
 }
 
 func (r *mysqlProspectRepository) Update(ctx context.Context, tenantID uint64, prospect *Prospect) error {
 	query := `
 		UPDATE prospects
-		SET name = ?, phone = ?, package_id = ?, jumlah_jamaah = ?
-		WHERE id = ? AND tenant_id = ?
+		SET name = ?, phone = ?, phone_normalized = ?, package_id = ?, jumlah_jamaah = ?, departure_plan = ?, domicile = ?
+		WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL
 	`
 	res, err := r.db.ExecContext(ctx, query,
 		prospect.Name,
 		prospect.Phone,
+		prospect.PhoneNormalized,
 		prospect.PackageID,
 		prospect.JumlahJamaah,
+		prospect.DeparturePlan,
+		prospect.Domicile,
 		prospect.ID,
 		tenantID,
 	)
 	if err != nil {
 		return err
 	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rowsAffected == 0 {
-		var exists int
-		err := r.db.QueryRowContext(ctx, "SELECT 1 FROM prospects WHERE id = ? AND tenant_id = ?", prospect.ID, tenantID).Scan(&exists)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
-		return nil
-	}
-	return nil
+	return r.existsIfUnchanged(ctx, res, tenantID, prospect.ID)
 }
 
 func (r *mysqlProspectRepository) UpdateStatus(ctx context.Context, tenantID uint64, id uint64, newStatus string, lostReason *string) error {
-	query := `
-		UPDATE prospects
-		SET status = ?, lost_reason = ?
-		WHERE id = ? AND tenant_id = ?
-	`
-	res, err := r.db.ExecContext(ctx, query,
-		newStatus,
-		lostReason,
-		id,
-		tenantID,
-	)
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE prospects SET status = ?, lost_reason = ? WHERE id = ? AND tenant_id = ?`,
+		newStatus, lostReason, id, tenantID)
 	if err != nil {
 		return err
 	}
-	rowsAffected, err := res.RowsAffected()
+	return r.existsIfUnchanged(ctx, res, tenantID, id)
+}
+
+func (r *mysqlProspectRepository) TransitionStatus(ctx context.Context, tenantID uint64, id uint64, fromStatus, toStatus string, lostReason, lostReasonCategory *string) error {
+	res, err := r.db.ExecContext(ctx,
+		// "Lunas" belongs to a closing: leaving closing (Batalkan Closing) clears it, so a later
+		// re-closing books held commission again instead of releasing it straight away.
+		`UPDATE prospects
+		 SET status = ?, lost_reason = ?, lost_reason_category = ?, paid_off_at = IF(? = 'closing', paid_off_at, NULL)
+		 WHERE id = ? AND tenant_id = ? AND status = ?`,
+		toStatus, lostReason, lostReasonCategory, toStatus, id, tenantID, fromStatus)
 	if err != nil {
 		return err
 	}
-	if rowsAffected == 0 {
-		var exists int
-		err := r.db.QueryRowContext(ctx, "SELECT 1 FROM prospects WHERE id = ? AND tenant_id = ?", id, tenantID).Scan(&exists)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return ErrNotFound
-			}
-			return err
-		}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected > 0 {
 		return nil
 	}
-	return nil
-}
-
-func (r *mysqlProspectRepository) Delete(ctx context.Context, tenantID uint64, id uint64) error {
-	query := `DELETE FROM prospects WHERE id = ? AND tenant_id = ?`
-	res, err := r.db.ExecContext(ctx, query, id, tenantID)
+	var current string
+	err = r.db.QueryRowContext(ctx, "SELECT status FROM prospects WHERE id = ? AND tenant_id = ?", id, tenantID).Scan(&current)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
 		return err
 	}
+	if current == fromStatus {
+		// Same status and same values: MySQL reports 0 affected rows for a no-op update.
+		return nil
+	}
+	return ErrStatusConflict
+}
+
+// existsIfUnchanged turns "0 rows affected" into ErrNotFound only when the row really is missing
+// (MySQL also reports 0 for an update that sets identical values).
+func (r *mysqlProspectRepository) existsIfUnchanged(ctx context.Context, res sql.Result, tenantID, id uint64) error {
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
-	if rowsAffected == 0 {
-		return ErrNotFound
+	if rowsAffected > 0 {
+		return nil
+	}
+	var exists int
+	err = r.db.QueryRowContext(ctx, "SELECT 1 FROM prospects WHERE id = ? AND tenant_id = ?", id, tenantID).Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
 	}
 	return nil
 }
 
-func (r *mysqlProspectRepository) scanProspect(row *sql.Row) (*Prospect, error) {
-	var p Prospect
-	var packageID, agentID, jumlahJamaah sql.NullInt64
-	var email, lostReason sql.NullString
+// FillMissingDetails completes an open prospect with details the jamaah gave when submitting again.
+// Only empty columns are filled: nothing the admin or agent already recorded is overwritten.
+func (r *mysqlProspectRepository) FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt *time.Time) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE prospects
+		SET package_id = COALESCE(package_id, ?),
+		    jumlah_jamaah = COALESCE(jumlah_jamaah, ?),
+		    departure_plan = COALESCE(departure_plan, ?),
+		    domicile = COALESCE(domicile, ?),
+		    consent_at = COALESCE(consent_at, ?)
+		WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL`,
+		packageID, jumlahJamaah, departurePlan, domicile, consentAt, id, tenantID)
+	return err
+}
 
-	err := row.Scan(
-		&p.ID,
-		&p.TenantID,
-		&packageID,
-		&agentID,
-		&p.Name,
-		&p.Phone,
-		&jumlahJamaah,
-		&email,
-		&p.SourceChannel,
-		&p.EntryMethod,
-		&p.Status,
-		&lostReason,
-		&p.CreatedAt,
-		&p.UpdatedAt,
-		&p.PackageName,
-	)
+// ClaimMetaPurchase marks that the Meta Purchase event of this prospect is being reported. It returns
+// true only the first time, so a closing that is cancelled and closed again is reported once.
+func (r *mysqlProspectRepository) ClaimMetaPurchase(ctx context.Context, tenantID uint64, id uint64) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE prospects SET meta_purchase_sent_at = NOW() WHERE id = ? AND tenant_id = ? AND meta_purchase_sent_at IS NULL`,
+		id, tenantID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n == 1, nil
+}
+
+// AnonymizedName replaces the jamaah's name after their personal data was removed.
+const AnonymizedName = "Data dihapus (UU PDP)"
+
+// anonymizedMention replaces the jamaah's name inside notification texts.
+const anonymizedMention = "jamaah (data dihapus)"
+
+// jamaahNotificationTypes are the notification types whose text can name a jamaah.
+const jamaahNotificationTypes = `'prospect_new', 'prospect_repeat', 'prospect_already_closed', 'prospect_status_updated',
+	'prospect_closing_cancelled', 'commission_earned', 'commission_override_earned', 'commission_released'`
+
+// Anonymize removes a jamaah's personal data (UU PDP right to erasure) but keeps the prospect row,
+// its status history and its commission ledger, so the agent's earnings trail stays intact.
+// Free-text notes and linked notifications are deleted because they can contain personal data.
+// Returns ErrNotFound for another tenant's prospect and ErrStatusConflict if already anonymized.
+func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64, id uint64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// The current name is needed to scrub it from notifications that do not link to this prospect
+	// (e.g. commission notifications linking to the agent's commission history).
+	var oldName string
+	var anonymized sql.NullTime
+	err = tx.QueryRowContext(ctx, `SELECT name, anonymized_at FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&oldName, &anonymized)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if anonymized.Valid {
+		return ErrStatusConflict
+	}
+
+	res, err := tx.ExecContext(ctx, `
+		UPDATE prospects
+		SET name = ?, phone = '', phone_normalized = NULL, email = NULL, domicile = NULL,
+		    fbclid = NULL, meta_fbp = NULL, meta_fbc = NULL, lost_reason = NULL, anonymized_at = NOW()
+		WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL`, AnonymizedName, id, tenantID)
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return err
+	} else if n == 0 {
+		var exists int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM prospects WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&exists); err != nil {
+			return err
 		}
-		return nil, err
+		if exists == 0 {
+			return ErrNotFound
+		}
+		return ErrStatusConflict
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM prospect_notes WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE referral_clicks SET prospect_id = NULL, ip_address = NULL WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
+		return err
+	}
+	if err := scrubProspectNotifications(ctx, tx, tenantID, id, oldName); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
 
-	if packageID.Valid {
-		pkgID := uint64(packageID.Int64)
-		p.PackageID = &pkgID
+// scrubProspectNotifications removes the traces of a jamaah from the tenant's notifications when their
+// prospect is anonymized or deleted: notifications linking to the prospect are deleted, and the name is
+// replaced in the other jamaah-related notifications (e.g. commission ones linking to the commission
+// history). Limited to jamaah-related types so unrelated notifications are never touched.
+func scrubProspectNotifications(ctx context.Context, tx *sql.Tx, tenantID, id uint64, name string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM notifications WHERE tenant_id = ? AND link_url IN (?, ?)`,
+		tenantID, fmt.Sprintf("/prospects/%d", id), fmt.Sprintf("/agen/jamaah/%d", id)); err != nil {
+		return err
 	}
-	if agentID.Valid {
-		agID := uint64(agentID.Int64)
-		p.AgentID = &agID
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil
 	}
-	if jumlahJamaah.Valid {
-		jj := int(jumlahJamaah.Int64)
-		p.JumlahJamaah = &jj
-	}
-	if email.Valid {
-		p.Email = &email.String
-	}
-	if lostReason.Valid {
-		p.LostReason = &lostReason.String
-	}
+	_, err := tx.ExecContext(ctx, `
+		UPDATE notifications
+		SET title = REPLACE(title, ?, ?), body = REPLACE(body, ?, ?)
+		WHERE tenant_id = ? AND type IN (`+jamaahNotificationTypes+`) AND (title LIKE ? OR body LIKE ?)`,
+		name, anonymizedMention, name, anonymizedMention, tenantID,
+		"%"+escapeLike(name)+"%", "%"+escapeLike(name)+"%")
+	return err
+}
 
-	return &p, nil
+// Delete removes a prospect (spam, test data, or a jamaah without commission history asking to be
+// forgotten), including its notifications and the jamaah's name in other notifications.
+func (r *mysqlProspectRepository) Delete(ctx context.Context, tenantID uint64, id uint64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var name string
+	err = tx.QueryRowContext(ctx, `SELECT name FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	// referral_clicks.prospect_id has no ON DELETE rule; detach clicks first so the delete can't fail.
+	if _, err := tx.ExecContext(ctx, `UPDATE referral_clicks SET prospect_id = NULL, ip_address = NULL WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM prospects WHERE id = ? AND tenant_id = ?`, id, tenantID); err != nil {
+		return err
+	}
+	if err := scrubProspectNotifications(ctx, tx, tenantID, id, name); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *mysqlProspectRepository) GetAgentFunnelSummary(ctx context.Context, tenantID uint64, agentID uint64) (*AgentFunnelSummary, error) {
@@ -463,12 +902,16 @@ func (r *mysqlProspectRepository) GetAgentFunnelSummary(ctx context.Context, ten
 		SELECT
 			COALESCE(SUM(CASE WHEN status = 'baru' THEN 1 ELSE 0 END), 0) AS baru,
 			COALESCE(SUM(CASE WHEN status IN ('dihubungi', 'tertarik') THEN 1 ELSE 0 END), 0) AS diproses,
-			COALESCE(SUM(CASE WHEN status = 'closing' THEN 1 ELSE 0 END), 0) AS closing
+			COALESCE(SUM(CASE WHEN status = 'closing' THEN 1 ELSE 0 END), 0) AS closing,
+			COALESCE(SUM(CASE WHEN status = 'tidak_lanjut' AND EXISTS (
+				SELECT 1 FROM prospect_status_history h
+				WHERE h.tenant_id = prospects.tenant_id AND h.prospect_id = prospects.id AND h.old_status = 'closing'
+			) THEN 1 ELSE 0 END), 0) AS batal
 		FROM prospects
 		WHERE tenant_id = ? AND agent_id = ?
 	`
 	var summary AgentFunnelSummary
-	err := r.db.QueryRowContext(ctx, query, tenantID, agentID).Scan(&summary.Baru, &summary.Diproses, &summary.Closing)
+	err := r.db.QueryRowContext(ctx, query, tenantID, agentID).Scan(&summary.Baru, &summary.Diproses, &summary.Closing, &summary.Batal)
 	if err != nil {
 		return nil, err
 	}
@@ -527,15 +970,19 @@ func (r *mysqlProspectRepository) GetAgentPendingCommissionAndCount(ctx context.
 }
 
 func (r *mysqlProspectRepository) GetAgentTargetProgress(ctx context.Context, tenantID uint64, agentID uint64, startDate string, endDate string) (int, error) {
+	// Only prospects that are still closing count (a closing cancelled after DP must not count towards
+	// the target), each once, dated by its latest move into closing (a re-closed prospect is not
+	// counted twice or in two periods).
 	query := `
 		SELECT COALESCE(SUM(COALESCE(p.jumlah_jamaah, 1)), 0)
-		FROM prospect_status_history h
-		JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
-		WHERE h.tenant_id = ?
+		FROM prospects p
+		WHERE p.tenant_id = ?
 		  AND p.agent_id = ?
-		  AND h.new_status = 'closing'
-		  AND DATE(h.changed_at) >= ?
-		  AND DATE(h.changed_at) <= ?
+		  AND p.status = 'closing'
+		  AND DATE((
+			SELECT MAX(h.changed_at) FROM prospect_status_history h
+			WHERE h.tenant_id = p.tenant_id AND h.prospect_id = p.id AND h.new_status = 'closing'
+		  )) BETWEEN ? AND ?
 	`
 	var progress int
 	err := r.db.QueryRowContext(ctx, query, tenantID, agentID, startDate, endDate).Scan(&progress)
@@ -555,11 +1002,22 @@ func (r *mysqlProspectRepository) GetAgentReferralClicksCount(ctx context.Contex
 }
 
 func (r *mysqlProspectRepository) RecordReferralClick(ctx context.Context, tenantID uint64, agentID uint64, ipAddress string) error {
+	// One click per visitor (IP) per agent per 24 hours: refreshing or re-opening the link must not
+	// inflate the agent's click count and distort the click → prospect funnel.
 	query := `
 		INSERT INTO referral_clicks (tenant_id, agent_id, ip_address, clicked_at)
-		VALUES (?, ?, ?, NOW())
+		SELECT ?, ?, ?, NOW()
+		FROM DUAL
+		WHERE NOT EXISTS (
+			SELECT 1 FROM referral_clicks
+			WHERE tenant_id = ? AND agent_id = ? AND ip_address <=> ? AND clicked_at > NOW() - INTERVAL 24 HOUR
+		)
 	`
-	_, err := r.db.ExecContext(ctx, query, tenantID, agentID, ipAddress)
+	var ip interface{}
+	if ipAddress != "" {
+		ip = ipAddress
+	}
+	_, err := r.db.ExecContext(ctx, query, tenantID, agentID, ip, tenantID, agentID, ip)
 	return err
 }
 
@@ -572,4 +1030,51 @@ func (r *mysqlProspectRepository) CountByTenant(ctx context.Context, tenantID ui
 	return count, nil
 }
 
+// WithPhoneLock runs fn while holding a MySQL advisory lock for (tenant, normalized phone), so the
+// duplicate check + insert of two simultaneous submissions of the same jamaah cannot interleave.
+// The lock is tenant-scoped by name; if it cannot be taken within 5 seconds, fn is not run.
+func (r *mysqlProspectRepository) WithPhoneLock(ctx context.Context, tenantID uint64, phoneNormalized string, fn func() error) error {
+	conn, err := r.db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
+	name := fmt.Sprintf("ku_prospect_%d_%s", tenantID, phoneNormalized)
+	var got sql.NullInt64
+	if err := conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 5)", name).Scan(&got); err != nil {
+		return err
+	}
+	if !got.Valid || got.Int64 != 1 {
+		return errors.New("prospect phone lock timeout")
+	}
+	defer func() {
+		// Release on the same connection; use a fresh context so a cancelled request still releases.
+		_, _ = conn.ExecContext(context.Background(), "SELECT RELEASE_LOCK(?)", name)
+	}()
+	return fn()
+}
+
+func (r *mysqlProspectRepository) MarkPaidOff(ctx context.Context, tenantID uint64, id uint64) error {
+	res, err := r.db.ExecContext(ctx,
+		"UPDATE prospects SET paid_off_at = NOW() WHERE id = ? AND tenant_id = ? AND status = 'closing' AND paid_off_at IS NULL",
+		id, tenantID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected > 0 {
+		return nil
+	}
+	var exists int
+	if err := r.db.QueryRowContext(ctx, "SELECT 1 FROM prospects WHERE id = ? AND tenant_id = ?", id, tenantID).Scan(&exists); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	return ErrStatusConflict
+}

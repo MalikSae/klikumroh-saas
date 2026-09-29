@@ -114,7 +114,7 @@
   background-color: var(--db-primary-button);
   border: none;
   border-radius: var(--radius-sm, 6px);
-  color: #FFFFFF;
+  color: var(--db-text-on-dark);
   font-family: var(--db-font-body);
   font-size: var(--font-size-sm);
   font-weight: var(--db-weight-semibold, 600);
@@ -124,7 +124,7 @@
 
 .db-btn-save:hover:not(:disabled) {
   background-color: var(--db-accent-teal);
-  box-shadow: 0 2px 8px rgba(0, 110, 103, 0.25);
+  box-shadow: var(--db-shadow-accent);
 }
 
 .db-btn-save:disabled {
@@ -507,7 +507,7 @@
 }
 
 .db-edit-financial-stat:last-child {
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 1px solid var(--db-divider-on-dark);
 }
 
 .db-edit-financial-stat__label {
@@ -520,7 +520,7 @@
   font-family: var(--db-font-heading);
   font-size: var(--font-size-xl);
   font-weight: var(--db-weight-bold, 700);
-  color: #FFFFFF;
+  color: var(--db-text-on-dark);
 }
 
 /* Card Footer */
@@ -851,14 +851,14 @@
 }
 
 .db-edit-audit-notice__icon {
-  color: #10B981;
+  color: var(--db-positive);
   flex-shrink: 0;
 }
 
 .db-edit-audit-notice__text {
   font-family: var(--db-font-body);
   font-size: var(--font-size-sm);
-  color: #FFFFFF;
+  color: var(--db-text-on-dark);
   line-height: 1.4;
 }
 
@@ -896,6 +896,38 @@
 
   .db-edit-financial-stat:last-child {
     border-left: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid var(--db-divider-on-dark);
   }
+}
+
+/* ─── Prospect audit additions (no inline styles) ─────────────────────────── */
+
+.db-edit-container {
+  max-width: 1200px;
+}
+
+.db-edit-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 360px;
+  color: var(--db-text-muted);
+}
+
+.db-edit-alert {
+  margin-bottom: 0;
+}
+
+.db-edit-field--correction {
+  margin-top: 4px;
+}
+
+.db-edit-field__input-wrap--textarea {
+  height: auto;
+  padding: 10px 12px;
+}
+
+.db-edit-field__textarea {
+  resize: vertical;
 }

@@ -19,8 +19,11 @@ import {
   FileText,
   Send,
   History,
-  Lock,
-  X,
+  Trash2,
+  BadgeCheck,
+  MapPin,
+  Undo2,
+  UserX,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -28,6 +31,7 @@ import {
   PageHeader,
   Button,
   Badge,
+  Modal,
   getStandardMenuItems,
 } from '../components';
 import {
@@ -35,8 +39,17 @@ import {
   fetchProspectDetail,
   updateProspectStatus,
   addProspectNote,
+  deleteProspect,
+  markProspectPaidOff,
+  LOST_REASON_OPTIONS,
+  lostReasonCategoryLabel,
+  formatDeparturePlan,
+  cancelProspectClosing,
+  anonymizeProspect,
   getStoredUser,
 } from '../services/api';
+import { formatDateWIB, formatDateTimeWIB, formatTimeWIB } from '../utils/datetime';
+import { prospectListPath } from '../utils/prospectListQuery';
 import './ProspectDetail.css';
 
 const statusBadgeVariant = (
@@ -86,61 +99,14 @@ const formatIDR = (val: number): string => {
 
 const formatShortDate = (dateStr: string): string => {
   if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-  } catch {
-    return '—';
-  }
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' });
 };
 
-const formatFullDate = (dateStr: string): string => {
-  if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-};
+const formatFullDate = (dateStr: string): string => (dateStr ? formatDateWIB(dateStr) : '—');
 
-const formatDateTime = (dateStr: string): string => {
-  if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    const datePart = d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    const timePart = d.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    return `${datePart}, ${timePart}`;
-  } catch {
-    return dateStr;
-  }
-};
-
-const formatTimeWIB = (dateStr: string): string => {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    return (
-      d.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }) + ' WIB'
-    );
-  } catch {
-    return '';
-  }
-};
+const formatDateTime = (dateStr: string): string => (dateStr ? formatDateTimeWIB(dateStr) : '—');
 
 const PIPELINE_STAGES = [
   { key: 'baru', label: 'Baru' },
@@ -163,8 +129,27 @@ export const ProspectDetailPage: React.FC = () => {
   const [statusModalOpen, setStatusModalOpen] = useState<boolean>(false);
   const [targetStatus, setTargetStatus] = useState<string>('dihubungi');
   const [lostReason, setLostReason] = useState<string>('');
+  const [lostCategory, setLostCategory] = useState<string>('');
   const [submittingStatus, setSubmittingStatus] = useState<boolean>(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [confirmClosing, setConfirmClosing] = useState<boolean>(false);
+
+  // Delete (spam / test data)
+  const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // UU PDP: remove the jamaah's personal data when the prospect cannot be deleted (commission history).
+  const [anonymizeModalOpen, setAnonymizeModalOpen] = useState<boolean>(false);
+  const [anonymizing, setAnonymizing] = useState<boolean>(false);
+  const [anonymizeError, setAnonymizeError] = useState<string | null>(null);
+
+  // Closing = DP. "Tandai Lunas" releases the held agent commission; "Batalkan Closing" reverses it.
+  const [paidOffModalOpen, setPaidOffModalOpen] = useState<boolean>(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState<boolean>(false);
+  const [cancelReason, setCancelReason] = useState<string>('');
+  const [closingActionBusy, setClosingActionBusy] = useState<boolean>(false);
+  const [closingActionError, setClosingActionError] = useState<string | null>(null);
 
   // Note Submission State
   const [noteText, setNoteText] = useState<string>('');
@@ -181,7 +166,9 @@ export const ProspectDetailPage: React.FC = () => {
       const detail = await fetchProspectDetail(prospectId);
       setData(detail);
       setTargetStatus(detail.prospect.status);
-      setLostReason(detail.prospect.lost_reason || '');
+      const cat = detail.prospect.lost_reason_category;
+      setLostCategory(cat && cat !== 'batal_setelah_dp' ? cat : '');
+      setLostReason(cat === 'lainnya' ? detail.prospect.lost_reason || '' : '');
     } catch (err: any) {
       setError(err.message || 'Gagal memuat detail prospek');
     } finally {
@@ -193,9 +180,23 @@ export const ProspectDetailPage: React.FC = () => {
     loadDetail();
   }, [prospectId]);
 
-  const handleStatusSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!data) return;
+  const handleStatusSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!data || submittingStatus) return;
+
+    if (targetStatus === 'tidak_lanjut' && !lostCategory) {
+      setStatusError('Pilih alasan tidak lanjut.');
+      return;
+    }
+    if (targetStatus === 'tidak_lanjut' && lostCategory === 'lainnya' && !lostReason.trim()) {
+      setStatusError('Jelaskan alasan untuk pilihan Lainnya.');
+      return;
+    }
+    // Closing is final and books the agent commission: require a second, explicit click.
+    if (targetStatus === 'closing' && !confirmClosing) {
+      setConfirmClosing(true);
+      return;
+    }
 
     try {
       setSubmittingStatus(true);
@@ -203,15 +204,89 @@ export const ProspectDetailPage: React.FC = () => {
       await updateProspectStatus(
         prospectId,
         targetStatus,
-        targetStatus === 'tidak_lanjut' ? lostReason : undefined
+        targetStatus === 'tidak_lanjut' ? lostReason.trim() || undefined : undefined,
+        targetStatus === 'tidak_lanjut' ? lostCategory : undefined
       );
       setStatusModalOpen(false);
       await loadDetail();
     } catch (err: any) {
       setStatusError(err.message || 'Gagal mengubah status');
+      setConfirmClosing(false);
     } finally {
       setSubmittingStatus(false);
     }
+  };
+
+  const openStatusModal = () => {
+    setStatusError(null);
+    setConfirmClosing(false);
+    setStatusModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      setDeleteError(null);
+      await deleteProspect(prospectId);
+      navigate(prospectListPath());
+    } catch (err: any) {
+      setDeleteError(err.message || 'Gagal menghapus prospek');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleAnonymize = async () => {
+    try {
+      setAnonymizing(true);
+      setAnonymizeError(null);
+      await anonymizeProspect(prospectId);
+      setAnonymizeModalOpen(false);
+      await loadDetail();
+    } catch (err: any) {
+      setAnonymizeError(err.message || 'Gagal menghapus data pribadi');
+    } finally {
+      setAnonymizing(false);
+    }
+  };
+
+  const handleMarkPaidOff = async () => {
+    try {
+      setClosingActionBusy(true);
+      setClosingActionError(null);
+      await markProspectPaidOff(prospectId);
+      setPaidOffModalOpen(false);
+      await loadDetail();
+    } catch (err: any) {
+      setClosingActionError(err.message || 'Gagal menandai lunas');
+    } finally {
+      setClosingActionBusy(false);
+    }
+  };
+
+  const handleCancelClosing = async () => {
+    if (!cancelReason.trim()) {
+      setClosingActionError('Alasan pembatalan wajib diisi.');
+      return;
+    }
+    try {
+      setClosingActionBusy(true);
+      setClosingActionError(null);
+      await cancelProspectClosing(prospectId, cancelReason.trim());
+      setCancelModalOpen(false);
+      setCancelReason('');
+      await loadDetail();
+    } catch (err: any) {
+      setClosingActionError(err.message || 'Gagal membatalkan closing');
+    } finally {
+      setClosingActionBusy(false);
+    }
+  };
+
+  const openClosingAction = (which: 'paid' | 'cancel') => {
+    setClosingActionError(null);
+    if (which === 'paid') setPaidOffModalOpen(true);
+    else setCancelModalOpen(true);
   };
 
   const handleNoteSubmit = async (e: React.FormEvent) => {
@@ -232,6 +307,18 @@ export const ProspectDetailPage: React.FC = () => {
   };
 
   const menuItems = getStandardMenuItems('prospects');
+  // Commission history (closing, or a cancelled closing) means the prospect cannot be deleted.
+  const hasCommissionHistory =
+    data?.prospect.status === 'closing' || data?.info_komisi?.type === 'dibatalkan';
+  const isAnonymized = !!data?.prospect.anonymized_at;
+  // Closing an agent's prospect books commission only with a package that has a commission set.
+  const closingCommissionGap = !data?.agent
+    ? null
+    : !data.package
+    ? 'Prospek ini belum punya paket'
+    : !data.package.commission_amount || data.package.commission_amount <= 0
+    ? `Komisi paket ${data.package.name} belum diatur`
+    : null;
 
   const waNormalized = data?.prospect.phone
     ? data.prospect.phone.replace(/\D/g, '')
@@ -336,7 +423,7 @@ export const ProspectDetailPage: React.FC = () => {
           }
         />
 
-        <main className="db-page-container" style={{ maxWidth: '1400px' }}>
+        <main className="db-page-container db-prospect-detail-container">
           {/* Top Page Header */}
           <PageHeader
             title="Detail Prospek"
@@ -345,7 +432,7 @@ export const ProspectDetailPage: React.FC = () => {
               <button
                 type="button"
                 className="db-back-btn"
-                onClick={() => navigate('/prospects')}
+                onClick={() => navigate(prospectListPath())}
                 aria-label="Kembali ke Daftar Prospek"
                 title="Kembali ke Daftar Prospek"
               >
@@ -354,74 +441,95 @@ export const ProspectDetailPage: React.FC = () => {
             }
             actions={
               <div className="db-prospect-header-actions">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => navigate(`/prospects/${prospectId}/edit`)}
-                >
-                  <Pencil size={14} />
-                  <span>Edit Data</span>
-                </Button>
+                {data && !hasCommissionHistory && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="db-detail-danger-btn"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteModalOpen(true);
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    <span>Hapus</span>
+                  </Button>
+                )}
+                {data && hasCommissionHistory && !isAnonymized && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="db-detail-danger-btn"
+                    onClick={() => {
+                      setAnonymizeError(null);
+                      setAnonymizeModalOpen(true);
+                    }}
+                  >
+                    <UserX size={14} />
+                    <span>Hapus Data Pribadi</span>
+                  </Button>
+                )}
+                {!isAnonymized && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate(`/prospects/${prospectId}/edit`)}
+                  >
+                    <Pencil size={14} />
+                    <span>Edit Data</span>
+                  </Button>
+                )}
 
-                {data?.prospect.status !== 'closing' ? (
+                {isAnonymized && data?.prospect.status !== 'closing' ? null : data?.prospect.status !== 'closing' ? (
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => setStatusModalOpen(true)}
+                    onClick={openStatusModal}
                   >
                     <RefreshCw size={14} />
                     <span>Ubah Status</span>
                   </Button>
                 ) : (
-                  <div className="db-status-final-badge">
-                    <Lock size={13} />
-                    <span>Closing (Terkunci)</span>
-                  </div>
+                  <>
+                    <Button variant="secondary" size="sm" className="db-detail-danger-btn" onClick={() => openClosingAction('cancel')}>
+                      <Undo2 size={14} />
+                      <span>Batalkan Closing</span>
+                    </Button>
+                    {data?.prospect.paid_off_at ? (
+                      <div className="db-status-final-badge">
+                        <BadgeCheck size={13} />
+                        <span>Lunas</span>
+                      </div>
+                    ) : (
+                      <Button variant="primary" size="sm" onClick={() => openClosingAction('paid')}>
+                        <BadgeCheck size={14} />
+                        <span>Tandai Lunas</span>
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             }
           />
 
           {loading ? (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '320px',
-                color: 'var(--db-text-muted)',
-                gap: '10px',
-              }}
-            >
+            <div className="db-detail-loading">
               <RefreshCw size={22} className="db-spin" />
               <span>Memuat data prospek...</span>
             </div>
           ) : error || !data ? (
-            <div className="db-detail-card" style={{ padding: '36px', textAlign: 'center' }}>
-              <p
-                style={{
-                  fontWeight: 700,
-                  fontSize: '16px',
-                  color: 'var(--db-negative)',
-                  marginBottom: '8px',
-                }}
-              >
+            <div className="db-detail-card db-detail-error-card">
+              <p className="db-detail-error-title">
                 Terjadi Kesalahan
               </p>
-              <p
-                style={{
-                  color: 'var(--db-text-muted)',
-                  fontSize: '14px',
-                  marginBottom: '16px',
-                }}
-              >
+              <p className="db-detail-error-text">
                 {error || 'Prospek tidak ditemukan'}
               </p>
               <div>
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => navigate('/prospects')}
+                  onClick={() => navigate(prospectListPath())}
                 >
                   Kembali ke Daftar Prospek
                 </Button>
@@ -429,6 +537,15 @@ export const ProspectDetailPage: React.FC = () => {
             </div>
           ) : (
             <div className="db-prospect-detail-page">
+              {isAnonymized && (
+                <p className="db-prospect-anonymized-note">
+                  <UserX size={14} />
+                  <span>
+                    Data pribadi jamaah ini dihapus pada {formatDateTime(data.prospect.anonymized_at!)} atas permintaan
+                    jamaah (UU PDP). Riwayat status dan komisi tetap disimpan.
+                  </span>
+                </p>
+              )}
               {/* 1. Identity Summary Banner Card */}
               <div className="db-prospect-id-card">
                 <div className="db-prospect-id-card__main">
@@ -456,6 +573,14 @@ export const ProspectDetailPage: React.FC = () => {
                             ? `${data.prospect.jumlah_jamaah} jamaah`
                             : '1 jamaah'}
                         </span>
+                      </span>
+                      <span className="db-prospect-id-meta-item">
+                        <CalendarDays size={12} />
+                        <span>Berangkat: {formatDeparturePlan(data.prospect.departure_plan)}</span>
+                      </span>
+                      <span className="db-prospect-id-meta-item">
+                        <MapPin size={12} />
+                        <span>{data.prospect.domicile || 'Domisili belum diisi'}</span>
                       </span>
                       <span className="db-prospect-id-meta-item">
                         <Clock size={12} />
@@ -607,17 +732,23 @@ export const ProspectDetailPage: React.FC = () => {
                           <span className="db-info-field__label">SUMBER</span>
                         </div>
                         <span className="db-info-field__value">
-                          {data.agent
+                          {data.prospect.entry_method === 'agent_manual'
+                            ? 'Input Manual Agen'
+                            : data.agent
                             ? 'Referral Agen'
-                            : data.prospect.source_channel === 'meta_ads'
-                            ? 'Meta Ads'
-                            : data.prospect.source_channel === 'google'
-                            ? 'Google Search'
+                            : data.prospect.source_channel === 'paid'
+                            ? 'Iklan'
                             : 'Website (Organik)'}
                         </span>
                         <span className="db-info-field__supporting">
                           {data.agent
                             ? `Kode ${data.agent.referral_code}`
+                            : data.prospect.source_channel === 'paid'
+                            ? data.prospect.utm_campaign
+                              ? `Kampanye ${data.prospect.utm_campaign}`
+                              : data.prospect.utm_source
+                              ? `Sumber ${data.prospect.utm_source}`
+                              : 'Kampanye tidak tercatat'
                             : 'Langsung via website'}
                         </span>
                       </div>
@@ -671,17 +802,20 @@ export const ProspectDetailPage: React.FC = () => {
                           <span className="db-info-field__label">TERDAFTAR</span>
                         </div>
                         <span className="db-info-field__value">
-                          {formatFullDate(data.prospect.created_at)}
+                          {formatFullDate(data.prospect.created_at)}, {formatTimeWIB(data.prospect.created_at)}
                         </span>
                         <span className="db-info-field__supporting">
-                          {formatTimeWIB(data.prospect.created_at)}
+                          {data.prospect.consent_at
+                            ? `Setuju dihubungi ${formatDateTime(data.prospect.consent_at)}`
+                            : 'Persetujuan kontak tidak tercatat'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Card Komisi Agen: Only displayed if agent exists */}
-                  {data.agent && (
+                  {/* Card Komisi Agen: only when there is an agent and a commission to show
+                      (a Tidak Lanjut prospect without booked commission has none). */}
+                  {data.agent && data.info_komisi && (
                     <div className="db-detail-card">
                       <div className="db-detail-card-header">
                         <span className="db-detail-card-title">
@@ -697,6 +831,8 @@ export const ProspectDetailPage: React.FC = () => {
                         >
                           {data.info_komisi?.type === 'final'
                             ? 'FINAL'
+                            : data.info_komisi?.type === 'dibatalkan'
+                            ? 'DIBATALKAN'
                             : 'ESTIMASI'}
                         </Badge>
                       </div>
@@ -740,9 +876,13 @@ export const ProspectDetailPage: React.FC = () => {
                       <div className="db-commission-notice">
                         <Info size={14} />
                         <span>
-                          {data.info_komisi?.type === 'final'
-                            ? 'Nominal komisi terkunci permanen karena prospek sudah Closing.'
-                            : 'Nominal komisi akan dikunci permanen saat prospek berstatus Closing.'}
+                          {data.info_komisi?.type === 'dibatalkan'
+                            ? 'Closing dibatalkan: komisi agen sudah dibalik dengan entri koreksi.'
+                            : data.info_komisi?.type !== 'final'
+                            ? 'Komisi dibukukan saat prospek Closing (jamaah sudah membayar DP).'
+                            : (data.info_komisi?.held_amount || 0) > 0
+                            ? `Komisi ${formatIDR(data.info_komisi?.held_amount || 0)} tertahan sampai jamaah ditandai lunas.`
+                            : 'Komisi sudah dapat dicairkan agen.'}
                         </span>
                       </div>
                     </div>
@@ -763,6 +903,7 @@ export const ProspectDetailPage: React.FC = () => {
                       </span>
                     </div>
 
+                    {!isAnonymized && (
                     <form onSubmit={handleNoteSubmit} className="db-note-composer">
                       <textarea
                         rows={2}
@@ -772,14 +913,7 @@ export const ProspectDetailPage: React.FC = () => {
                         className="db-note-textarea"
                       />
                       {noteError && (
-                        <span
-                          style={{
-                            color: 'var(--db-negative)',
-                            fontSize: '11px',
-                          }}
-                        >
-                          {noteError}
-                        </span>
+                        <span className="db-detail-inline-error">{noteError}</span>
                       )}
                       <div className="db-note-composer-footer">
                         <Button
@@ -797,36 +931,18 @@ export const ProspectDetailPage: React.FC = () => {
                         </Button>
                       </div>
                     </form>
+                    )}
 
                     <div className="db-notes-list">
                       {data.notes.length === 0 ? (
-                        <div
-                          style={{
-                            padding: '24px',
-                            textAlign: 'center',
-                            backgroundColor: 'var(--db-page-bg)',
-                            borderRadius: '7px',
-                            border: '1px dashed var(--db-border)',
-                          }}
-                        >
-                          <FileText
-                            size={20}
-                            color="var(--db-text-muted)"
-                            style={{ margin: '0 auto 6px' }}
-                          />
-                          <p
-                            style={{
-                              color: 'var(--db-text-muted)',
-                              fontSize: '12px',
-                              margin: 0,
-                            }}
-                          >
-                            Belum ada catatan follow-up.
-                          </p>
+                        <div className="db-detail-empty">
+                          <FileText size={20} className="db-detail-empty__icon" />
+                          <p className="db-detail-empty__text">Belum ada catatan follow-up.</p>
                         </div>
                       ) : (
                         data.notes.map((note) => {
                           const isAdmin = note.author_type === 'admin';
+                          const isSystem = note.author_type === 'system';
                           const timeStr = formatDateTime(note.created_at);
                           return (
                             <div key={note.id} className="db-note-item">
@@ -834,17 +950,17 @@ export const ProspectDetailPage: React.FC = () => {
                                 <div className="db-note-author-wrap">
                                   <div
                                     className={`db-note-author-dot ${
-                                      isAdmin
+                                      isAdmin || isSystem
                                         ? 'db-note-author-dot--admin'
                                         : 'db-note-author-dot--agent'
                                     }`}
                                   />
                                   <span className="db-note-author-name">
                                     {note.author_name ||
-                                      (isAdmin ? 'Admin Travel' : 'Agen')}
+                                      (isSystem ? 'Sistem' : isAdmin ? 'Admin Travel' : 'Agen')}
                                   </span>
                                   <span className="db-note-role-badge">
-                                    {isAdmin ? 'ADMIN' : 'AGEN'}
+                                    {isSystem ? 'OTOMATIS' : isAdmin ? 'ADMIN' : 'AGEN'}
                                   </span>
                                 </div>
                                 <span className="db-note-time">{timeStr}</span>
@@ -871,29 +987,9 @@ export const ProspectDetailPage: React.FC = () => {
 
                     <div className="db-status-timeline">
                       {data.status_history.length === 0 ? (
-                        <div
-                          style={{
-                            padding: '24px',
-                            textAlign: 'center',
-                            backgroundColor: 'var(--db-page-bg)',
-                            borderRadius: '7px',
-                            border: '1px dashed var(--db-border)',
-                          }}
-                        >
-                          <History
-                            size={20}
-                            color="var(--db-text-muted)"
-                            style={{ margin: '0 auto 6px' }}
-                          />
-                          <p
-                            style={{
-                              color: 'var(--db-text-muted)',
-                              fontSize: '12px',
-                              margin: 0,
-                            }}
-                          >
-                            Belum ada riwayat perubahan status.
-                          </p>
+                        <div className="db-detail-empty">
+                          <History size={20} className="db-detail-empty__icon" />
+                          <p className="db-detail-empty__text">Belum ada riwayat perubahan status.</p>
                         </div>
                       ) : (
                         data.status_history.map((hist) => {
@@ -926,7 +1022,13 @@ export const ProspectDetailPage: React.FC = () => {
                                 {hist.new_status === 'tidak_lanjut' &&
                                   data.prospect.lost_reason && (
                                     <div className="db-timeline-reason">
-                                      Alasan: {data.prospect.lost_reason}
+                                      Alasan:{' '}
+                                      {lostReasonCategoryLabel(data.prospect.lost_reason_category) || data.prospect.lost_reason}
+                                      {data.prospect.lost_reason_category &&
+                                      data.prospect.lost_reason &&
+                                      data.prospect.lost_reason !== lostReasonCategoryLabel(data.prospect.lost_reason_category)
+                                        ? ` (${data.prospect.lost_reason})`
+                                        : ''}
                                     </div>
                                   )}
                               </div>
@@ -944,222 +1046,235 @@ export const ProspectDetailPage: React.FC = () => {
       </div>
 
       {/* Ubah Status Modal */}
-      {statusModalOpen && data?.prospect.status !== 'closing' && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'var(--db-modal-overlay)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            padding: '16px',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--db-card-bg)',
-              borderRadius: 'var(--radius-lg)',
-              maxWidth: '480px',
-              width: '100%',
-              padding: '24px',
-              boxShadow: 'var(--db-modal-shadow)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: 'var(--font-size-xl, 18px)',
-                  fontWeight: 700,
-                  color: 'var(--db-text-primary)',
-                  margin: 0,
-                }}
-              >
-                Ubah Status Prospek
-              </h3>
-              <button
-                type="button"
-                onClick={() => setStatusModalOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--db-text-muted)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '4px',
-                }}
-                aria-label="Tutup"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleStatusSubmit}
-              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-            >
-              <div>
-                <label
-                  style={{
-                    fontSize: 'var(--font-size-sm, 13px)',
-                    fontWeight: 700,
-                    color: 'var(--db-text-primary)',
-                    display: 'block',
-                    marginBottom: '8px',
-                  }}
-                >
-                  Pilih Status Baru
-                </label>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                    gap: '8px',
-                  }}
-                >
-                  {[
-                    { val: 'baru', label: 'Baru' },
-                    { val: 'dihubungi', label: 'Dihubungi' },
-                    { val: 'tertarik', label: 'Tertarik' },
-                    { val: 'closing', label: 'Closing' },
-                    { val: 'tidak_lanjut', label: 'Tidak Lanjut' },
-                  ].map((item) => {
-                    const isSelected = targetStatus === item.val;
-                    return (
-                      <button
-                        key={item.val}
-                        type="button"
-                        onClick={() => setTargetStatus(item.val)}
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: '6px',
-                          border: isSelected
-                            ? '2px solid var(--db-sidebar-bg)'
-                            : '1px solid var(--db-border)',
-                          backgroundColor: isSelected
-                            ? 'var(--db-page-bg)'
-                            : 'var(--db-card-bg)',
-                          color: isSelected
-                            ? 'var(--db-sidebar-bg)'
-                            : 'var(--db-text-primary)',
-                          fontWeight: isSelected ? 800 : 500,
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {targetStatus === 'tidak_lanjut' && (
-                <div>
-                  <label
-                    style={{
-                      fontSize: 'var(--font-size-sm, 13px)',
-                      fontWeight: 700,
-                      color: 'var(--db-text-primary)',
-                      display: 'block',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    Alasan Tidak Lanjut
-                  </label>
-                  <input
-                    type="text"
-                    value={lostReason}
-                    onChange={(e) => setLostReason(e.target.value)}
-                    placeholder="Contoh: Menunda keberangkatan, memilih travel lain"
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--db-border)',
-                      fontSize: '13px',
-                      boxSizing: 'border-box',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-              )}
-
-              {targetStatus === 'closing' && (
-                <div
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '6px',
-                    backgroundColor: 'color-mix(in srgb, var(--db-positive) 10%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--db-positive) 30%, transparent)',
-                    color: 'var(--db-positive)',
-                    fontSize: '12px',
-                    lineHeight: '1.5',
-                  }}
-                >
-                  <strong>Perhatian:</strong> Status Closing akan membukukan komisi agen secara permanen dan mengunci data transaksi.
-                </div>
-              )}
-
-              {statusError && (
-                <div
-                  style={{
-                    color: 'var(--db-negative)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {statusError}
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: '10px',
-                  marginTop: '8px',
-                }}
-              >
-                <Button
-                  variant="secondary"
-                  size="md"
-                  type="button"
-                  onClick={() => setStatusModalOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  type="submit"
-                  disabled={submittingStatus}
-                >
-                  {submittingStatus ? (
-                    <RefreshCw size={15} className="db-spin" />
-                  ) : (
-                    <Check size={15} />
-                  )}
-                  <span>Simpan Status</span>
-                </Button>
-              </div>
-            </form>
+      <Modal
+        isOpen={statusModalOpen && data?.prospect.status !== 'closing'}
+        onClose={() => setStatusModalOpen(false)}
+        title="Ubah Status Prospek"
+        footer={
+          <div className="db-detail-modal-footer">
+            <Button variant="secondary" size="md" type="button" onClick={() => setStatusModalOpen(false)} disabled={submittingStatus}>
+              Batal
+            </Button>
+            <Button variant="primary" size="md" type="button" onClick={() => handleStatusSubmit()} disabled={submittingStatus}>
+              {submittingStatus ? <RefreshCw size={15} className="db-spin" /> : <Check size={15} />}
+              <span>
+                {targetStatus === 'closing'
+                  ? confirmClosing
+                    ? 'Ya, Closing & Bukukan Komisi'
+                    : 'Lanjutkan'
+                  : 'Simpan Status'}
+              </span>
+            </Button>
           </div>
+        }
+      >
+        <form onSubmit={handleStatusSubmit} className="db-detail-modal-form">
+          <div>
+            <span className="db-detail-modal-label">Pilih Status Baru</span>
+            <div className="db-status-choice-grid">
+              {PIPELINE_STAGES.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    setTargetStatus(item.key);
+                    setConfirmClosing(false);
+                  }}
+                  className={`db-status-choice ${targetStatus === item.key ? 'db-status-choice--selected' : ''}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {targetStatus === 'tidak_lanjut' && (
+            <div>
+              <label className="db-detail-modal-label" htmlFor="prospect-lost-category">
+                Alasan Tidak Lanjut <span className="db-detail-required">*</span>
+              </label>
+              <select
+                id="prospect-lost-category"
+                value={lostCategory}
+                onChange={(e) => setLostCategory(e.target.value)}
+                className="db-detail-modal-input"
+              >
+                <option value="">Pilih alasan</option>
+                {LOST_REASON_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                id="prospect-lost-reason"
+                type="text"
+                value={lostReason}
+                maxLength={255}
+                onChange={(e) => setLostReason(e.target.value)}
+                placeholder={lostCategory === 'lainnya' ? 'Jelaskan alasannya (wajib)' : 'Keterangan tambahan (opsional)'}
+                className="db-detail-modal-input db-detail-modal-input--spaced"
+                aria-label="Keterangan alasan"
+              />
+            </div>
+          )}
+
+          {targetStatus === 'closing' && (
+            <div className={`db-detail-closing-warning ${confirmClosing ? 'db-detail-closing-warning--confirm' : ''}`}>
+              {confirmClosing ? (
+                <span>
+                  Konfirmasi closing untuk <strong>{data?.prospect.name}</strong>: jamaah sudah membayar DP. Jika jamaah batal nanti, gunakan tombol Batalkan Closing.
+                </span>
+              ) : closingCommissionGap ? (
+                <span>
+                  <strong>Closing = jamaah sudah membayar DP.</strong> <strong>{closingCommissionGap}, jadi komisi agen tidak dibukukan.</strong>{' '}
+                  Isi paket lewat Edit Data dulu jika agen berhak komisi.
+                </span>
+              ) : data?.agent ? (
+                <span>
+                  <strong>Closing = jamaah sudah membayar DP.</strong> Komisi agen langsung dibukukan dan tertahan sampai jamaah ditandai lunas (sesuai pengaturan pencairan komisi).
+                </span>
+              ) : (
+                <span>
+                  <strong>Closing = jamaah sudah membayar DP.</strong>
+                </span>
+              )}
+            </div>
+          )}
+
+          {statusError && <div className="db-detail-inline-error">{statusError}</div>}
+        </form>
+      </Modal>
+
+      {/* Tandai Lunas Modal */}
+      <Modal
+        isOpen={paidOffModalOpen}
+        onClose={() => setPaidOffModalOpen(false)}
+        title="Tandai Jamaah Lunas"
+        footer={
+          <div className="db-detail-modal-footer">
+            <Button variant="secondary" size="md" type="button" onClick={() => setPaidOffModalOpen(false)} disabled={closingActionBusy}>
+              Batal
+            </Button>
+            <Button variant="primary" size="md" type="button" onClick={handleMarkPaidOff} disabled={closingActionBusy}>
+              {closingActionBusy ? <RefreshCw size={15} className="db-spin" /> : <BadgeCheck size={15} />}
+              <span>Ya, Jamaah Sudah Lunas</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="db-detail-modal-form">
+          <p className="db-detail-modal-text">
+            Pastikan <strong>{data?.prospect.name}</strong> sudah melunasi pembayaran paket.
+            {data?.agent ? (
+              <>
+                {' '}Komisi agen
+                {data?.info_komisi?.held_amount ? <> sebesar <strong>{formatIDR(data.info_komisi.held_amount)}</strong></> : null}{' '}
+                akan bisa dicairkan setelah ini.
+              </>
+            ) : null}
+          </p>
+          {closingActionError && <div className="db-detail-inline-error">{closingActionError}</div>}
         </div>
-      )}
+      </Modal>
+
+      {/* Batalkan Closing Modal (jamaah batal setelah DP) */}
+      <Modal
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        title="Batalkan Closing"
+        footer={
+          <div className="db-detail-modal-footer">
+            <Button variant="secondary" size="md" type="button" onClick={() => setCancelModalOpen(false)} disabled={closingActionBusy}>
+              Kembali
+            </Button>
+            <Button variant="secondary" size="md" type="button" className="db-detail-danger-btn" onClick={handleCancelClosing} disabled={closingActionBusy}>
+              {closingActionBusy ? <RefreshCw size={15} className="db-spin" /> : <Undo2 size={15} />}
+              <span>Batalkan Closing</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="db-detail-modal-form">
+          <p className="db-detail-modal-text">
+            Status <strong>{data?.prospect.name}</strong> akan menjadi Tidak Lanjut dan komisi agen dibatalkan.
+          </p>
+          {(data?.info_komisi?.released_amount || 0) > 0 && (
+            <div className="db-detail-closing-warning db-detail-closing-warning--confirm">
+              Komisi {formatIDR(data?.info_komisi?.released_amount || 0)} sudah bisa dicairkan agen. Jumlah ini akan
+              dipotong dari komisi agen berikutnya.
+            </div>
+          )}
+          <div>
+            <label className="db-detail-modal-label" htmlFor="cancel-closing-reason">
+              Alasan Pembatalan <span className="db-detail-required">*</span>
+            </label>
+            <input
+              id="cancel-closing-reason"
+              type="text"
+              value={cancelReason}
+              maxLength={200}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Contoh: Visa ditolak, jamaah sakit, refund"
+              className="db-detail-modal-input"
+            />
+          </div>
+          {closingActionError && <div className="db-detail-inline-error">{closingActionError}</div>}
+        </div>
+      </Modal>
+
+      {/* Hapus Data Pribadi Modal (UU PDP) for prospects with commission history. */}
+      <Modal
+        isOpen={anonymizeModalOpen}
+        onClose={() => setAnonymizeModalOpen(false)}
+        title="Hapus Data Pribadi Jamaah"
+        footer={
+          <div className="db-detail-modal-footer">
+            <Button variant="secondary" size="md" type="button" onClick={() => setAnonymizeModalOpen(false)} disabled={anonymizing}>
+              Batal
+            </Button>
+            <Button variant="secondary" size="md" type="button" className="db-detail-danger-btn" onClick={handleAnonymize} disabled={anonymizing}>
+              {anonymizing ? <RefreshCw size={15} className="db-spin" /> : <UserX size={15} />}
+              <span>Hapus Data Pribadi</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="db-detail-modal-form">
+          <p className="db-detail-modal-text">
+            Gunakan hanya jika <strong>{data?.prospect.name}</strong> meminta datanya dihapus (UU PDP). Nama, nomor
+            WhatsApp, email, domisili, dan semua catatan follow-up akan dihapus permanen. Status, paket, jumlah jamaah,
+            dan riwayat komisi agen tetap disimpan. Tindakan ini tidak dapat dibatalkan.
+          </p>
+          {anonymizeError && <div className="db-detail-inline-error">{anonymizeError}</div>}
+        </div>
+      </Modal>
+
+      {/* Hapus Prospek Modal (spam / data uji). Prospek closing tidak bisa dihapus. */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Hapus Prospek"
+        footer={
+          <div className="db-detail-modal-footer">
+            <Button variant="secondary" size="md" type="button" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
+              Batal
+            </Button>
+            <Button variant="secondary" size="md" type="button" className="db-detail-danger-btn" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <RefreshCw size={15} className="db-spin" /> : <Trash2 size={15} />}
+              <span>Hapus Permanen</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="db-detail-modal-form">
+          <p className="db-detail-modal-text">
+            Hapus prospek <strong>{data?.prospect.name}</strong> beserta catatan dan riwayat statusnya? Gunakan untuk data
+            spam atau data uji. Tindakan ini tidak dapat dibatalkan.
+          </p>
+          {deleteError && <div className="db-detail-inline-error">{deleteError}</div>}
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -135,7 +136,29 @@ func (m *mockProspectRepo) ListWithFilter(ctx context.Context, tenantID uint64, 
 				continue
 			}
 		}
+		if filter.AgentID != nil && *filter.AgentID > 0 {
+			if p.AgentID == nil || *p.AgentID != *filter.AgentID {
+				continue
+			}
+		}
 		list = append(list, *p)
+	}
+	sort.Slice(list, func(i, j int) bool {
+		if list[i].CreatedAt.Equal(list[j].CreatedAt) {
+			return list[i].ID > list[j].ID
+		}
+		return list[i].CreatedAt.After(list[j].CreatedAt)
+	})
+	if filter.Limit > 0 {
+		start := filter.Offset
+		if start > len(list) {
+			start = len(list)
+		}
+		end := start + filter.Limit
+		if end > len(list) {
+			end = len(list)
+		}
+		list = list[start:end]
 	}
 	return list, nil
 }
@@ -463,6 +486,7 @@ func setupProspectRouter() (*chi.Mux, *mockProspectRepo, *mockPackageRepo, *mock
 		nil,
 		nil,
 	)
+	prospectService.SetCommissionPolicyRepo(&mockCommissionPolicyRepo{policies: map[uint64]string{}})
 	prospectHandler := handler.NewProspectHandler(prospectService)
 
 	sessionRepo := &mockSessionRepo{
@@ -519,7 +543,7 @@ func setupProspectRouter() (*chi.Mux, *mockProspectRepo, *mockPackageRepo, *mock
 }
 
 func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
-	r, _, pkgRepo, _, _, _, _ := setupProspectRouter()
+	r, prospectRepo, pkgRepo, _, _, _, _ := setupProspectRouter()
 	ctx := context.Background()
 
 	// Seed package for Tenant A (ID=10)
@@ -533,6 +557,7 @@ func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
 	// 1. Positive: Valid submission to Tenant A with Tenant A's package_id
 	t.Run("Valid public prospect submission with valid tenant package_id", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
+			"consent":        true,
 			"name":           "Ahmad Subagio",
 			"phone":          "08123456789",
 			"package_id":     pkgA.ID,
@@ -546,9 +571,21 @@ func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
 		if rr.Code != http.StatusCreated {
 			t.Fatalf("Expected 201, got %d (%s)", rr.Code, rr.Body.String())
 		}
-		var created repository.Prospect
-		_ = json.Unmarshal(rr.Body.Bytes(), &created)
-		if created.TenantID != 10 || created.Status != "baru" {
+		// The public response carries no record data (no ids / tenant id).
+		var resp map[string]interface{}
+		_ = json.Unmarshal(rr.Body.Bytes(), &resp)
+		for _, leaked := range []string{"id", "tenant_id", "phone", "agent_id"} {
+			if _, ok := resp[leaked]; ok {
+				t.Errorf("public response must not expose %q: %s", leaked, rr.Body.String())
+			}
+		}
+		var created *repository.Prospect
+		for _, p := range prospectRepo.prospects {
+			if p.Name == "Ahmad Subagio" {
+				created = p
+			}
+		}
+		if created == nil || created.TenantID != 10 || created.Status != "baru" || created.SourceChannel != "organik" {
 			t.Errorf("Unexpected created prospect: %+v", created)
 		}
 	})
@@ -556,6 +593,7 @@ func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
 	// 2. CRITICAL VALIDATION: Submitting to Tenant A with Tenant B's package_id MUST BE REJECTED (400)
 	t.Run("CRITICAL: Cross-tenant package_id is rejected with 400 Bad Request", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
+			"consent":        true,
 			"name":           "Penyusup Cross-Tenant",
 			"phone":          "08999999999",
 			"package_id":     pkgB.ID, // Package belongs to Tenant B (20), but submitting to Tenant A (10)
@@ -712,7 +750,7 @@ func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
 			t.Errorf("Expected Content-Disposition '%s', got '%s'", expectedPrefix, dispHeader)
 		}
 		csvContent := rr.Body.String()
-		if !strings.HasPrefix(csvContent, "id,name,phone,jumlah_jamaah,email,source_channel,status,lost_reason,created_at") {
+		if !strings.HasPrefix(csvContent, "\xEF\xBB\xBFID,Tanggal Masuk (WIB),Nama,No. WhatsApp,Email,Paket,Jumlah Jamaah,Rencana Berangkat,Domisili,Sumber,Agen,Cara Masuk,Status,Kategori Alasan,Alasan Tidak Lanjut,Tanggal Closing (WIB),Tanggal Lunas (WIB),UTM Source,UTM Medium,UTM Campaign,Persetujuan Kontak (WIB)") {
 			t.Errorf("CSV header mismatch: %s", csvContent)
 		}
 		if !strings.Contains(csvContent, "Jamaah Tenant A") {
@@ -729,9 +767,6 @@ func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
 		if !strings.Contains(csvContent, "'+62812345678") {
 			t.Errorf("Expected phone with '+' to be sanitized to ''+62812345678', got: %s", csvContent)
 		}
-		if !strings.Contains(csvContent, "'@twitter") {
-			t.Errorf("Expected source with '@' to be sanitized to ''@twitter', got: %s", csvContent)
-		}
 		if !strings.Contains(csvContent, "'-Ditolak karena mahal") {
 			t.Errorf("Expected lost reason with '-' to be sanitized to ''-Ditolak karena mahal', got: %s", csvContent)
 		}
@@ -739,7 +774,7 @@ func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
 }
 
 func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *testing.T) {
-	r, _, pkgRepo, _, _, agentRepo, tenantRepo := setupProspectRouter()
+	r, prospectRepo, pkgRepo, _, _, agentRepo, tenantRepo := setupProspectRouter()
 	ctx := context.Background()
 
 	// Tenant A (ID=10) has whatsapp_number
@@ -780,6 +815,7 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 	// 1. POST /api/public/prospects with jumlah_jamaah = 0 or -1 returns 400
 	t.Run("Submitting with jumlah_jamaah = 0 returns 400", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
+			"consent":       true,
 			"name":          "Rofi Test",
 			"phone":         "08129999999",
 			"package_id":    pkgA.ID,
@@ -797,6 +833,7 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 
 	t.Run("Submitting with jumlah_jamaah = -1 returns 400", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
+			"consent":       true,
 			"name":          "Rofi Test",
 			"phone":         "08129999999",
 			"package_id":    pkgA.ID,
@@ -815,6 +852,7 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 	// 2. POST /api/public/prospects with valid referral_code belongs to the tenant -> redirect URL has AGENT's number & message encoded with jumlah_jamaah
 	t.Run("Valid referral_code returns AGENT WhatsApp number with correctly encoded message", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
+			"consent":       true,
 			"name":          "Budi Santoso",
 			"phone":         "08123456789",
 			"package_id":    pkgA.ID,
@@ -851,15 +889,22 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 			t.Errorf("Expected redirect URL to contain encoded message for %q, got URL: %s", expectedMsgText, redirectURL)
 		}
 
-		// Check saved jumlah_jamaah
-		if jj, ok := resp["jumlah_jamaah"].(float64); !ok || int(jj) != 3 {
-			t.Errorf("Expected saved jumlah_jamaah 3, got: %v", resp["jumlah_jamaah"])
+		// Check saved jumlah_jamaah (read from the store: the public response carries no record data)
+		var saved *repository.Prospect
+		for _, p := range prospectRepo.prospects {
+			if p.Name == "Budi Santoso" {
+				saved = p
+			}
+		}
+		if saved == nil || saved.JumlahJamaah == nil || *saved.JumlahJamaah != 3 {
+			t.Errorf("Expected saved jumlah_jamaah 3, got: %+v", saved)
 		}
 	})
 
 	// 3. POST /api/public/prospects WITHOUT referral_code, tenant has whatsapp_number -> redirect URL has TENANT's number
 	t.Run("Without referral_code returns TENANT WhatsApp number", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
+			"consent":    true,
 			"name":       "Dewi Lestari",
 			"phone":      "08134567890",
 			"package_id": pkgA.ID,
@@ -896,8 +941,9 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 	// 4. POST /api/public/prospects without referral AND tenant has no whatsapp_number -> whatsapp_redirect_url is null, status 201
 	t.Run("Without referral and without tenant whatsapp_number returns null redirect URL", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
-			"name":  "Hendra Gunawan",
-			"phone": "08198765432",
+			"consent": true,
+			"name":    "Hendra Gunawan",
+			"phone":   "08198765432",
 		})
 		// travelb.klikumroh.local has Tenant B (ID=20) which has whatsapp_number = nil
 		req := httptest.NewRequest(http.MethodPost, "/api/public/prospects", bytes.NewBuffer(body))
@@ -1302,3 +1348,390 @@ func TestProspectHandler_ClosingStatusImmutable(t *testing.T) {
 	})
 }
 
+func (m *mockProspectRepo) CountWithFilter(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) (int, error) {
+	filter.Limit, filter.Offset = 0, 0
+	list, err := m.ListWithFilter(ctx, tenantID, filter)
+	return len(list), err
+}
+
+func (m *mockProspectRepo) StatusSummary(ctx context.Context, tenantID uint64) (*repository.ProspectStatusSummary, error) {
+	s := &repository.ProspectStatusSummary{}
+	for _, p := range m.prospects {
+		if p.TenantID != tenantID {
+			continue
+		}
+		s.Total++
+		switch p.Status {
+		case "baru":
+			s.Baru++
+			if time.Since(p.CreatedAt) >= 24*time.Hour {
+				s.StaleBaru++
+			}
+		case "dihubungi":
+			s.Dihubungi++
+		case "tertarik":
+			s.Tertarik++
+		case "closing":
+			s.Closing++
+		case "tidak_lanjut":
+			s.TidakLanjut++
+		}
+	}
+	return s, nil
+}
+
+func (m *mockProspectRepo) FindOpenByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*repository.Prospect, error) {
+	var found *repository.Prospect
+	for _, p := range m.prospects {
+		if p.TenantID != tenantID || p.PhoneNormalized == nil || *p.PhoneNormalized != phoneNormalized {
+			continue
+		}
+		if p.Status != "baru" && p.Status != "dihubungi" && p.Status != "tertarik" {
+			continue
+		}
+		if found == nil || p.ID < found.ID {
+			found = p
+		}
+	}
+	if found == nil {
+		return nil, repository.ErrNotFound
+	}
+	cp := *found
+	return &cp, nil
+}
+
+func (m *mockProspectRepo) TransitionStatus(ctx context.Context, tenantID uint64, id uint64, fromStatus, toStatus string, lostReason, lostReasonCategory *string) error {
+	p, ok := m.prospects[id]
+	if !ok || p.TenantID != tenantID {
+		return repository.ErrNotFound
+	}
+	if p.Status != fromStatus {
+		return repository.ErrStatusConflict
+	}
+	if toStatus != "closing" {
+		p.PaidOffAt = nil // mirrors the MySQL repository: leaving closing clears "lunas"
+	}
+	return m.UpdateStatus(ctx, tenantID, id, toStatus, lostReason)
+}
+
+// Prospect audit (29 Sep 2026): HTTP contract of the new/changed prospect endpoints.
+func TestProspectHandler_AuditHTTPContract(t *testing.T) {
+	r, prospectRepo, _, _, _, _, _ := setupProspectRouter()
+	ctx := context.Background()
+
+	post := func(body map[string]interface{}) *httptest.ResponseRecorder {
+		b, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/public/prospects", bytes.NewBuffer(b))
+		req.Host = "travela.klikumroh.local"
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		return rr
+	}
+
+	t.Run("invalid public input is 400, never 500", func(t *testing.T) {
+		for name, body := range map[string]map[string]interface{}{
+			"letters in phone": {"name": "Budi", "phone": "abc"},
+			"phone 30 digits":  {"name": "Budi", "phone": strings.Repeat("1", 30)},
+			"name 300 chars":   {"name": strings.Repeat("A", 300), "phone": "081299990005"},
+			"100000 jamaah":    {"name": "Budi", "phone": "081299990006", "jumlah_jamaah": 100000},
+		} {
+			if rr := post(body); rr.Code != http.StatusBadRequest {
+				t.Errorf("%s: expected 400, got %d (%s)", name, rr.Code, rr.Body.String())
+			}
+		}
+	})
+
+	t.Run("honeypot submission stores nothing", func(t *testing.T) {
+		before := len(prospectRepo.prospects)
+		rr := post(map[string]interface{}{"name": "Bot", "phone": "081299990007", "website": "http://spam.example"})
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("expected 201 for honeypot, got %d", rr.Code)
+		}
+		if len(prospectRepo.prospects) != before {
+			t.Fatalf("honeypot submission must not create a prospect")
+		}
+	})
+
+	t.Run("public submissions are rate limited per IP", func(t *testing.T) {
+		limited := false
+		for i := 0; i < 15; i++ {
+			if rr := post(map[string]interface{}{"name": "Flood", "phone": fmt.Sprintf("0812999970%02d", i)}); rr.Code == http.StatusTooManyRequests {
+				limited = true
+				break
+			}
+		}
+		if !limited {
+			t.Fatalf("expected 429 after the per-IP limit")
+		}
+	})
+
+	t.Run("summary and paginated list stay tenant scoped", func(t *testing.T) {
+		for i := 0; i < 3; i++ {
+			_ = prospectRepo.Create(ctx, 20, &repository.Prospect{Name: fmt.Sprintf("B%d", i), Phone: "081200000000", SourceChannel: "organik"})
+		}
+		req := httptest.NewRequest(http.MethodGet, "/api/dashboard/prospects?page=1&page_size=2", nil)
+		req.Header.Set("Authorization", "Bearer token_tenant_b")
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		var page struct {
+			Items    []repository.Prospect `json:"items"`
+			Total    int                   `json:"total"`
+			PageSize int                   `json:"page_size"`
+		}
+		_ = json.Unmarshal(rr.Body.Bytes(), &page)
+		if rr.Code != http.StatusOK || len(page.Items) != 2 || page.PageSize != 2 {
+			t.Fatalf("unexpected page: %d %s", rr.Code, rr.Body.String())
+		}
+		for _, p := range page.Items {
+			if p.TenantID != 20 {
+				t.Fatalf("CRITICAL: tenant B list contains tenant %d prospect", p.TenantID)
+			}
+		}
+
+		req = httptest.NewRequest(http.MethodGet, "/api/dashboard/prospects/summary", nil)
+		req.Header.Set("Authorization", "Bearer token_tenant_b")
+		rr = httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		var sum repository.ProspectStatusSummary
+		_ = json.Unmarshal(rr.Body.Bytes(), &sum)
+		if sum.Total != page.Total {
+			t.Fatalf("summary total %d != list total %d", sum.Total, page.Total)
+		}
+	})
+
+	t.Run("delete is tenant scoped and refuses closed prospects", func(t *testing.T) {
+		spam := &repository.Prospect{Name: "Spam", Phone: "081200000001", SourceChannel: "organik", Status: "baru"}
+		_ = prospectRepo.Create(ctx, 10, spam)
+		closed := &repository.Prospect{Name: "Closed", Phone: "081200000002", SourceChannel: "organik", Status: "closing"}
+		_ = prospectRepo.Create(ctx, 10, closed)
+
+		del := func(id uint64, token string) int {
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/dashboard/prospects/%d", id), nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+			return rr.Code
+		}
+		if code := del(spam.ID, "token_tenant_b"); code != http.StatusNotFound {
+			t.Fatalf("CRITICAL: tenant B deleting tenant A prospect must be 404, got %d", code)
+		}
+		if code := del(closed.ID, "token_tenant_a"); code != http.StatusConflict {
+			t.Fatalf("closed prospect delete must be 409, got %d", code)
+		}
+		if code := del(spam.ID, "token_tenant_a"); code != http.StatusOK {
+			t.Fatalf("spam delete must be 200, got %d", code)
+		}
+	})
+
+	t.Run("stale status transition returns 409", func(t *testing.T) {
+		p := &repository.Prospect{Name: "Race", Phone: "081200000003", SourceChannel: "organik", Status: "baru"}
+		_ = prospectRepo.Create(ctx, 10, p)
+		// Another request moves it first, between our read and our write.
+		svcErr := prospectRepo.TransitionStatus(ctx, 10, p.ID, "dihubungi", "tertarik", nil, nil)
+		if !errors.Is(svcErr, repository.ErrStatusConflict) {
+			t.Fatalf("mock must report conflict for a stale from-status, got %v", svcErr)
+		}
+	})
+}
+
+func (m *mockCommissionLedgerRepo) SumReleasedByAgent(ctx context.Context, tenantID uint64, agentID uint64) (float64, error) {
+	var total float64
+	for _, l := range m.ledgers {
+		if l.AgentID == agentID && l.TenantID == tenantID && l.ReleasedAt != nil {
+			total += l.Amount
+		}
+	}
+	return total, nil
+}
+
+func (m *mockCommissionLedgerRepo) SumHeldByAgent(ctx context.Context, tenantID uint64, agentID uint64) (float64, error) {
+	var total float64
+	for _, l := range m.ledgers {
+		if l.AgentID == agentID && l.TenantID == tenantID && l.ReleasedAt == nil {
+			total += l.Amount
+		}
+	}
+	return total, nil
+}
+
+func (m *mockCommissionLedgerRepo) ReleaseByProspect(ctx context.Context, tenantID uint64, prospectID uint64) (int64, error) {
+	var n int64
+	now := time.Now()
+	for i := range m.ledgers {
+		if m.ledgers[i].TenantID == tenantID && m.ledgers[i].ProspectID == prospectID && m.ledgers[i].ReleasedAt == nil {
+			m.ledgers[i].ReleasedAt = &now
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockProspectRepo) MarkPaidOff(ctx context.Context, tenantID uint64, id uint64) error {
+	p, ok := m.prospects[id]
+	if !ok || p.TenantID != tenantID {
+		return repository.ErrNotFound
+	}
+	if p.Status != "closing" || p.PaidOffAt != nil {
+		return repository.ErrStatusConflict
+	}
+	now := time.Now()
+	p.PaidOffAt = &now
+	return nil
+}
+
+// releasedNow marks a seeded commission entry as withdrawable (jamaah already paid off).
+func releasedNow() *time.Time {
+	now := time.Now()
+	return &now
+}
+
+// mockCommissionPolicyRepo stores the commission release policy per tenant.
+type mockCommissionPolicyRepo struct {
+	policies map[uint64]string
+}
+
+func (m *mockCommissionPolicyRepo) GetReleaseOn(ctx context.Context, tenantID uint64) (string, error) {
+	if v, ok := m.policies[tenantID]; ok {
+		return v, nil
+	}
+	return repository.CommissionReleaseOnLunas, nil
+}
+
+func (m *mockCommissionPolicyRepo) SetReleaseOn(ctx context.Context, tenantID uint64, releaseOn string) error {
+	m.policies[tenantID] = releaseOn
+	return nil
+}
+
+// Re-audit R8: the closing endpoints (Tandai Lunas, Batalkan Closing) and the release policy are
+// tenant-scoped at the HTTP level.
+func TestProspectHandler_ClosingEndpointsCrossTenant(t *testing.T) {
+	r, prospectRepo, _, _, _, _, _ := setupProspectRouter()
+	ctx := context.Background()
+
+	do := func(method, path, token, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		return rr
+	}
+
+	pA := &repository.Prospect{Name: "Jamaah A", Phone: "081244440001", SourceChannel: "organik", Status: "closing"}
+	_ = prospectRepo.Create(ctx, 10, pA)
+
+	if rr := do(http.MethodPatch, fmt.Sprintf("/api/dashboard/prospects/%d/paid-off", pA.ID), "token_tenant_b", ""); rr.Code != http.StatusNotFound {
+		t.Fatalf("CRITICAL: tenant B marking tenant A's jamaah lunas must be 404, got %d", rr.Code)
+	}
+	if rr := do(http.MethodPost, fmt.Sprintf("/api/dashboard/prospects/%d/cancel-closing", pA.ID), "token_tenant_b", `{"reason":"coba"}`); rr.Code != http.StatusNotFound {
+		t.Fatalf("CRITICAL: tenant B cancelling tenant A's closing must be 404, got %d", rr.Code)
+	}
+	if prospectRepo.prospects[pA.ID].Status != "closing" || prospectRepo.prospects[pA.ID].PaidOffAt != nil {
+		t.Fatalf("CRITICAL: tenant A prospect changed by tenant B requests")
+	}
+
+	if rr := do(http.MethodPatch, fmt.Sprintf("/api/dashboard/prospects/%d/paid-off", pA.ID), "token_tenant_a", ""); rr.Code != http.StatusOK {
+		t.Fatalf("tenant A mark lunas: expected 200, got %d (%s)", rr.Code, rr.Body.String())
+	}
+	if rr := do(http.MethodPatch, fmt.Sprintf("/api/dashboard/prospects/%d/paid-off", pA.ID), "token_tenant_a", ""); rr.Code != http.StatusConflict {
+		t.Fatalf("second mark lunas: expected 409, got %d", rr.Code)
+	}
+	if rr := do(http.MethodPost, fmt.Sprintf("/api/dashboard/prospects/%d/cancel-closing", pA.ID), "token_tenant_a", `{"reason":""}`); rr.Code != http.StatusBadRequest {
+		t.Fatalf("cancel without reason: expected 400, got %d", rr.Code)
+	}
+	if rr := do(http.MethodPost, fmt.Sprintf("/api/dashboard/prospects/%d/cancel-closing", pA.ID), "token_tenant_a", `{"reason":"visa ditolak"}`); rr.Code != http.StatusOK {
+		t.Fatalf("tenant A cancel closing: expected 200, got %d (%s)", rr.Code, rr.Body.String())
+	}
+	if p := prospectRepo.prospects[pA.ID]; p.Status != "tidak_lanjut" || p.PaidOffAt != nil {
+		t.Fatalf("expected tidak_lanjut with lunas cleared, got %s %v", p.Status, p.PaidOffAt)
+	}
+
+	// Release policy is per tenant.
+	if rr := do(http.MethodPut, "/api/dashboard/commission-release-policy", "token_tenant_a", `{"commission_release_on":"dp"}`); rr.Code != http.StatusOK {
+		t.Fatalf("set policy: expected 200, got %d", rr.Code)
+	}
+	if rr := do(http.MethodPut, "/api/dashboard/commission-release-policy", "token_tenant_a", `{"commission_release_on":"besok"}`); rr.Code != http.StatusBadRequest {
+		t.Fatalf("invalid policy: expected 400, got %d", rr.Code)
+	}
+	rr := do(http.MethodGet, "/api/dashboard/commission-release-policy", "token_tenant_b", "")
+	if !strings.Contains(rr.Body.String(), `"lunas"`) {
+		t.Fatalf("CRITICAL: tenant B policy must stay 'lunas', got %s", rr.Body.String())
+	}
+}
+
+func (m *mockProspectRepo) FindLatestClosingByPhone(ctx context.Context, tenantID uint64, phoneNormalized string) (*repository.Prospect, error) {
+	var found *repository.Prospect
+	for _, p := range m.prospects {
+		if p.TenantID == tenantID && p.PhoneNormalized != nil && *p.PhoneNormalized == phoneNormalized && p.Status == "closing" {
+			if found == nil || p.ID > found.ID {
+				found = p
+			}
+		}
+	}
+	if found == nil {
+		return nil, repository.ErrNotFound
+	}
+	cp := *found
+	return &cp, nil
+}
+
+func (m *mockProspectRepo) ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, limit, offset int) ([]repository.AgentProspectItem, int, error) {
+	all, err := m.ListByAgent(ctx, tenantID, agentID, statusFilter)
+	if err != nil {
+		return nil, 0, err
+	}
+	total := len(all)
+	if offset > total {
+		offset = total
+	}
+	end := total
+	if limit > 0 && offset+limit < total {
+		end = offset + limit
+	}
+	return all[offset:end], total, nil
+}
+
+func (m *mockProspectRepo) Anonymize(ctx context.Context, tenantID uint64, id uint64) error {
+	p, ok := m.prospects[id]
+	if !ok || p.TenantID != tenantID {
+		return repository.ErrNotFound
+	}
+	if p.AnonymizedAt != nil {
+		return repository.ErrStatusConflict
+	}
+	now := time.Now()
+	p.Name, p.Phone, p.PhoneNormalized, p.Email, p.Domicile, p.AnonymizedAt = repository.AnonymizedName, "", nil, nil, nil, &now
+	return nil
+}
+
+// T7: the anonymize endpoint is tenant-scoped and refuses a second run.
+func TestProspectHandler_AnonymizeCrossTenant(t *testing.T) {
+	r, prospectRepo, _, _, _, _, _ := setupProspectRouter()
+	ctx := context.Background()
+	do := func(token string, id uint64) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/dashboard/prospects/%d/anonymize", id), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		return rr
+	}
+
+	pA := &repository.Prospect{Name: "Jamaah A", Phone: "081244440009", SourceChannel: "organik", Status: "closing"}
+	_ = prospectRepo.Create(ctx, 10, pA)
+
+	if rr := do("token_tenant_b", pA.ID); rr.Code != http.StatusNotFound {
+		t.Fatalf("CRITICAL: tenant B anonymizing tenant A's jamaah must be 404, got %d", rr.Code)
+	}
+	if p := prospectRepo.prospects[pA.ID]; p.Name != "Jamaah A" || p.AnonymizedAt != nil {
+		t.Fatalf("CRITICAL: tenant A prospect changed by a tenant B request")
+	}
+	if rr := do("token_tenant_a", pA.ID); rr.Code != http.StatusOK {
+		t.Fatalf("tenant A anonymize: expected 200, got %d (%s)", rr.Code, rr.Body.String())
+	}
+	if p := prospectRepo.prospects[pA.ID]; p.Name != repository.AnonymizedName || p.Phone != "" {
+		t.Fatalf("expected personal data removed, got %+v", p)
+	}
+	if rr := do("token_tenant_a", pA.ID); rr.Code != http.StatusConflict {
+		t.Fatalf("second anonymize: expected 409, got %d", rr.Code)
+	}
+}

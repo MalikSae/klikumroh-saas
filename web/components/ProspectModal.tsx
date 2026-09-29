@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { FormInput } from './FormInput';
 import { Button } from './Button';
+import { getMetaBrowserContext, isMetaPixelActive, trackMetaEvent } from '../lib/metaPixel';
 import './ProspectModal.css';
 
 const WhatsAppIcon: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = '' }) => (
@@ -24,13 +25,29 @@ export interface ProspectModalProps {
   onClose: () => void;
   selectedPackage?: { id: number; name: string } | null;
   waNumber?: string;
+  /** Travel name shown in the consent text (UU PDP). */
+  tenantName?: string;
 }
+
+// Next 24 months as "YYYY-MM" options for the planned departure (plus "belum tahu").
+const departureOptions = (): { value: string; label: string }[] => {
+  const opts = [{ value: '', label: 'Belum tahu' }];
+  const d = new Date();
+  d.setDate(1);
+  for (let i = 0; i < 24; i++) {
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    opts.push({ value, label });
+    d.setMonth(d.getMonth() + 1);
+  }
+  return opts;
+};
 
 export const ProspectModal: React.FC<ProspectModalProps> = ({
   isOpen,
   onClose,
   selectedPackage,
-  waNumber = '6281234567890',
+  tenantName,
 }) => {
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
@@ -39,6 +56,17 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waRedirectUrl, setWaRedirectUrl] = useState<string | null>(null);
+  // Honeypot: hidden from people (and screen readers), bots fill it in. The server then stores nothing.
+  const [website, setWebsite] = useState<string>('');
+  const [departurePlan, setDeparturePlan] = useState<string>('');
+  const [domicile, setDomicile] = useState<string>('');
+  // UU PDP 27/2022: explicit consent before the travel may contact the visitor.
+  const [consent, setConsent] = useState<boolean>(false);
+  // The travel measures its ads with Meta: the consent text then says so (UU PDP transparency).
+  const [adsMeasured, setAdsMeasured] = useState<boolean>(false);
+  useEffect(() => {
+    if (isOpen) setAdsMeasured(isMetaPixelActive());
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -49,6 +77,10 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
     setName('');
     setPhone('');
     setJamaahCount('');
+    setWebsite('');
+    setDeparturePlan('');
+    setDomicile('');
+    setConsent(false);
     onClose();
   };
 
@@ -73,6 +105,27 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
     return null;
   };
 
+  // Ad attribution captured by proxy.ts when the visitor landed (utm_* / fbclid), or the current URL.
+  const getAttribution = (): Record<string, string> | null => {
+    if (typeof window === 'undefined') return null;
+    const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid'];
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl: Record<string, string> = {};
+    keys.forEach((k) => {
+      const v = params.get(k);
+      if (v) fromUrl[k] = v;
+    });
+    if (Object.keys(fromUrl).length > 0) return fromUrl;
+    const match = document.cookie.match(/(?:^|;\s*)ku_attr=([^;]+)/);
+    if (!match) return null;
+    try {
+      const parsed = JSON.parse(decodeURIComponent(match[1]));
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -84,8 +137,17 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
       return;
     }
     const cleanDigits = phone.replace(/\D/g, '');
-    if (cleanDigits.length < 9 || cleanDigits.length > 15) {
-      setErrorMessage('Nomor WhatsApp tidak valid (masukkan 9-15 digit angka, contoh: 081234567890)');
+    if (cleanDigits.length < 10 || cleanDigits.length > 15) {
+      setErrorMessage('Nomor WhatsApp tidak valid (10-15 digit angka, contoh: 081234567890)');
+      return;
+    }
+    if (!consent) {
+      setErrorMessage('Centang persetujuan agar tim travel boleh menghubungi Anda');
+      return;
+    }
+    const countVal = jamaahCount.trim() ? parseInt(jamaahCount.trim(), 10) : null;
+    if (countVal !== null && (Number.isNaN(countVal) || countVal < 1 || countVal > 50)) {
+      setErrorMessage('Rencana jumlah jamaah 1-50 orang');
       return;
     }
 
@@ -93,7 +155,6 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
       setSubmitting(true);
       setErrorMessage(null);
 
-      const countVal = jamaahCount.trim() ? parseInt(jamaahCount.trim(), 10) : null;
       const refCode = getReferralCode();
 
       const payload = {
@@ -102,8 +163,14 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
         email: null,
         package_id: selectedPackage ? selectedPackage.id : null,
         referral_code: refCode,
-        source_channel: refCode ? 'agen' : 'organik',
         jumlah_jamaah: countVal && countVal > 0 ? countVal : null,
+        attribution: getAttribution(),
+        departure_plan: departurePlan || null,
+        domicile: domicile.trim() || null,
+        consent,
+        website,
+        // Meta browser identifiers (_fbp/_fbc) so the server-side Lead matches this visitor.
+        meta: getMetaBrowserContext(),
       };
 
       const res = await fetch('/api/prospects', {
@@ -120,13 +187,42 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
       // Sesuai instruksi: cek response.whatsapp_redirect_url
       // Kalau ada isinya, langsung window.location.href ke situ (redirect WhatsApp).
       // Kalau null, tampilkan pesan sukses sederhana di dalam modal tanpa redirect apa pun.
+      // Show the success state first (and clear the form) so that coming back from WhatsApp shows
+      // "Terima kasih" instead of a filled-in form that invites a second submission.
+      setName('');
+      setPhone('');
+      setJamaahCount('');
+      setDeparturePlan('');
+      setDomicile('');
+      setConsent(false);
+      setSuccessMessage(data.message || 'Terima kasih, tim kami akan segera menghubungi Anda');
+      // Meta standard event Lead, only for a new lead (the backend returns an event ID then). The same
+      // ID is used by the server-side event, so Meta counts this lead once.
+      if (typeof data.meta_event_id === 'string' && data.meta_event_id) {
+        trackMetaEvent(
+          'Lead',
+          {
+            content_name: selectedPackage?.name || 'Umroh',
+            content_category: 'umroh',
+            ...(selectedPackage ? { content_ids: [String(selectedPackage.id)], content_type: 'product' } : {}),
+            currency: 'IDR',
+          },
+          data.meta_event_id
+        );
+      }
       if (data.whatsapp_redirect_url) {
         setWaRedirectUrl(data.whatsapp_redirect_url);
         if (typeof window !== 'undefined') {
-          window.location.href = data.whatsapp_redirect_url;
+          const redirectUrl: string = data.whatsapp_redirect_url;
+          // Give the pixel a moment to send the Lead before the page is left for WhatsApp.
+          if (isMetaPixelActive()) {
+            window.setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 400);
+          } else {
+            window.location.href = redirectUrl;
+          }
         }
-      } else {
-        setSuccessMessage('Terima kasih, tim kami akan segera menghubungi Anda');
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan saat memproses data');
@@ -162,7 +258,7 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
             </div>
             <h3 className="tw-modal-success__title">Terima Kasih!</h3>
             <p className="tw-modal-success__desc">{successMessage}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '12px' }}>
+            <div className="tw-modal-success__actions">
               {waRedirectUrl && (
                 <Button
                   variant="primary"
@@ -182,7 +278,7 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <form onSubmit={handleSubmit} className="tw-modal-form">
             {selectedPackage && (
               <div className="tw-modal-selected-pkg">
                 <div className="tw-modal-selected-pkg__label">Paket yang diminati:</div>
@@ -220,13 +316,61 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
             <FormInput
               label="Rencana Jumlah Jamaah"
               type="number"
+              inputMode="numeric"
               placeholder="Contoh: 2"
+              hint="Maksimal 50 orang"
               value={jamaahCount}
-              onChange={(e) => setJamaahCount(e.target.value)}
+              onChange={(e) => setJamaahCount(e.target.value.replace(/\D/g, '').slice(0, 2))}
             />
 
-            <div style={{ marginTop: '8px' }}>
-              <Button variant="primary" type="submit" disabled={submitting}>
+            <FormInput
+              label="Rencana Berangkat"
+              type="select"
+              value={departurePlan}
+              onChange={(e) => setDeparturePlan(e.target.value)}
+              options={departureOptions()}
+            />
+
+            <FormInput
+              label="Domisili (Kota)"
+              placeholder="Contoh: Bandung"
+              maxLength={100}
+              value={domicile}
+              onChange={(e) => setDomicile(e.target.value)}
+            />
+
+            <label className="tw-modal-consent" htmlFor="prospect-consent">
+              <input
+                id="prospect-consent"
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => {
+                  setConsent(e.target.checked);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+              />
+              <span>
+                Saya setuju nama dan nomor WhatsApp saya digunakan oleh {tenantName || 'travel ini'} untuk menghubungi
+                saya terkait informasi paket umroh.
+                {adsMeasured &&
+                  ' Data ini juga dikirim ke Meta dalam bentuk tersamarkan (hash) untuk mengukur efektivitas iklan travel.'}
+              </span>
+            </label>
+
+            <div className="tw-modal-honeypot" aria-hidden="true">
+              <label htmlFor="prospect-website">Website</label>
+              <input
+                id="prospect-website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+              />
+            </div>
+
+            <div className="tw-modal-submit">
+              <Button variant="primary" type="submit" disabled={submitting || !consent}>
                 <WhatsAppIcon size={18} />
                 <span>{submitting ? 'Menghubungkan...' : 'Konsultasi Sekarang'}</span>
               </Button>

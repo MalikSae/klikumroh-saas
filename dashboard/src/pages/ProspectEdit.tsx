@@ -30,6 +30,7 @@ import {
   fetchProspectDetail,
   fetchPackages,
   updateProspect,
+  departurePlanOptions,
   getStoredUser,
 } from '../services/api';
 import './ProspectEdit.css';
@@ -95,6 +96,8 @@ export const ProspectEditPage: React.FC = () => {
   const [phone, setPhone] = useState<string>('');
   const [packageId, setPackageId] = useState<string>('');
   const [jumlahJamaah, setJumlahJamaah] = useState<number>(1);
+  const [departurePlan, setDeparturePlan] = useState<string>('');
+  const [domicile, setDomicile] = useState<string>('');
   const [correctionReason, setCorrectionReason] = useState<string>('');
 
   const currentUser = getStoredUser();
@@ -114,6 +117,8 @@ export const ProspectEditPage: React.FC = () => {
       setName(detail.prospect.name || '');
       setPhone(detail.prospect.phone || '');
       setPackageId(detail.prospect.package_id ? String(detail.prospect.package_id) : '');
+      setDeparturePlan(detail.prospect.departure_plan || '');
+      setDomicile(detail.prospect.domicile || '');
       setJumlahJamaah(
         detail.prospect.jumlah_jamaah && detail.prospect.jumlah_jamaah > 0
           ? detail.prospect.jumlah_jamaah
@@ -135,7 +140,9 @@ export const ProspectEditPage: React.FC = () => {
     initialDetail?.prospect.jumlah_jamaah && initialDetail.prospect.jumlah_jamaah > 0
       ? initialDetail.prospect.jumlah_jamaah
       : 1;
-  const isJamaahChangedOnClosing = isClosing && jumlahJamaah !== initialJamaahVal;
+  const initialPackageVal = initialDetail?.prospect.package_id ? String(initialDetail.prospect.package_id) : '';
+  // Changing the package or jamaah count of a closed prospect books a commission correction.
+  const isJamaahChangedOnClosing = isClosing && (jumlahJamaah !== initialJamaahVal || packageId !== initialPackageVal);
 
   const selectedPkg = packages.find((p) => String(p.id) === packageId);
   const unitPrice = selectedPkg?.price || 0;
@@ -148,7 +155,7 @@ export const ProspectEditPage: React.FC = () => {
   };
 
   const handleIncrement = () => {
-    setJumlahJamaah((prev) => prev + 1);
+    setJumlahJamaah((prev) => Math.min(50, prev + 1));
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -162,7 +169,7 @@ export const ProspectEditPage: React.FC = () => {
       return;
     }
     if (isJamaahChangedOnClosing && !correctionReason.trim()) {
-      setError('Alasan koreksi komisi wajib diisi saat mengubah jumlah jamaah pada prospek closing');
+      setError('Alasan koreksi komisi wajib diisi saat mengubah paket atau jumlah jamaah pada prospek closing');
       return;
     }
 
@@ -175,6 +182,8 @@ export const ProspectEditPage: React.FC = () => {
         phone: phone.trim(),
         package_id: packageId ? parseInt(packageId, 10) : null,
         jumlah_jamaah: jumlahJamaah || 1,
+        departure_plan: departurePlan || null,
+        domicile: domicile.trim() || null,
         correction_reason: isJamaahChangedOnClosing ? correctionReason.trim() : undefined,
       };
 
@@ -206,18 +215,9 @@ export const ProspectEditPage: React.FC = () => {
           userInitial={currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AD'}
         />
 
-        <main className="db-page-container" style={{ maxWidth: '1200px' }}>
+        <main className="db-page-container db-edit-container">
           {loading ? (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '360px',
-                color: 'var(--db-text-muted)',
-                gap: '10px',
-              }}
-            >
+            <div className="db-edit-loading">
               <RefreshCw size={24} className="db-spin" />
               <span>Memuat formulir edit prospek...</span>
             </div>
@@ -284,14 +284,14 @@ export const ProspectEditPage: React.FC = () => {
                       Perhatian: Prospek Berstatus Closing
                     </span>
                     <span className="db-edit-closing-warning__desc">
-                      Prospek ini sudah Closing. Perubahan <strong>Jumlah Jamaah</strong> akan otomatis membuat entri koreksi komisi di buku kas tanpa menghapus catatan awal.
+                      Prospek ini sudah Closing. Perubahan <strong>Paket</strong> atau <strong>Jumlah Jamaah</strong> akan otomatis membuat entri koreksi komisi di buku kas tanpa menghapus catatan awal.
                     </span>
                   </div>
                 </div>
               )}
 
               {error && (
-                <div className="db-alert db-alert--error" style={{ marginBottom: '0' }}>
+                <div className="db-alert db-alert--error db-edit-alert">
                   <span>{error}</span>
                 </div>
               )}
@@ -359,6 +359,49 @@ export const ProspectEditPage: React.FC = () => {
                             <span className="db-edit-field__hint">
                               Nomor WhatsApp aktif (contoh: 08123456789).
                             </span>
+                          </div>
+
+                          {/* Rencana Berangkat */}
+                          <div className="db-edit-field">
+                            <div className="db-edit-field__label-row">
+                              <label className="db-edit-field__label" htmlFor="edit-departure">
+                                Rencana Berangkat
+                              </label>
+                            </div>
+                            <div className="db-edit-field__input-wrap">
+                              <select
+                                id="edit-departure"
+                                value={departurePlan}
+                                onChange={(e) => setDeparturePlan(e.target.value)}
+                                className="db-edit-field__input"
+                              >
+                                {departurePlanOptions(departurePlan).map((o) => (
+                                  <option key={o.value} value={o.value}>
+                                    {o.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Domisili */}
+                          <div className="db-edit-field">
+                            <div className="db-edit-field__label-row">
+                              <label className="db-edit-field__label" htmlFor="edit-domicile">
+                                Domisili (Kota)
+                              </label>
+                            </div>
+                            <div className="db-edit-field__input-wrap">
+                              <input
+                                id="edit-domicile"
+                                type="text"
+                                maxLength={100}
+                                value={domicile}
+                                onChange={(e) => setDomicile(e.target.value)}
+                                placeholder="Contoh: Bandung"
+                                className="db-edit-field__input"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -439,25 +482,21 @@ export const ProspectEditPage: React.FC = () => {
 
                         {/* Alasan Koreksi (if Closing & Jamaah changed) */}
                         {isJamaahChangedOnClosing && (
-                          <div className="db-edit-field" style={{ marginTop: '4px' }}>
+                          <div className="db-edit-field db-edit-field--correction">
                             <div className="db-edit-field__label-row">
                               <label className="db-edit-field__label">
                                 Alasan Koreksi Komisi *
                               </label>
                               <span className="db-edit-field__required">Wajib</span>
                             </div>
-                            <div
-                              className="db-edit-field__input-wrap"
-                              style={{ height: 'auto', padding: '10px 12px' }}
-                            >
+                            <div className="db-edit-field__input-wrap db-edit-field__input-wrap--textarea">
                               <textarea
                                 required
                                 rows={2}
                                 value={correctionReason}
                                 onChange={(e) => setCorrectionReason(e.target.value)}
                                 placeholder="Contoh: Penambahan 1 anggota keluarga sesuai bukti transfer susulan"
-                                className="db-edit-field__input"
-                                style={{ resize: 'vertical' }}
+                                className="db-edit-field__input db-edit-field__textarea"
                               />
                             </div>
                             <span className="db-edit-field__hint">

@@ -31,6 +31,27 @@ var (
 	ErrAgentCannotClose = errors.New("Hanya admin yang dapat mengubah status menjadi Closing")
 	// ErrProspectAlreadyClosed is returned when attempting to change status of an already closed prospect.
 	ErrProspectAlreadyClosed = errors.New("Status closing bersifat final dan tidak dapat diubah lagi")
+	// ErrProspectStatusConflict is returned when another request changed the status first.
+	ErrProspectStatusConflict = errors.New("status prospek baru saja diubah oleh pengguna lain, muat ulang halaman lalu coba lagi")
+	// ErrProspectCannotDelete is returned when deleting a prospect that already carries commission records.
+	ErrProspectCannotDelete = errors.New("prospek yang sudah Closing atau memiliki catatan komisi tidak dapat dihapus")
+	// ErrCorrectionReasonRequired is returned when editing commission-relevant data of a closed prospect without a reason.
+	ErrCorrectionReasonRequired = errors.New("alasan koreksi wajib diisi saat mengubah paket atau jumlah jamaah pada prospek yang sudah closing")
+	// ErrProspectAlreadyInYourList is returned when an agent adds a jamaah who is already in their open list.
+	ErrProspectAlreadyInYourList = errors.New("calon jamaah dengan nomor ini sudah ada di daftar Anda dan masih diproses")
+	// ErrProspectOwnedByOther is returned when an agent adds a jamaah who is already an open prospect of the travel.
+	// The owner is intentionally not revealed.
+	ErrProspectOwnedByOther = errors.New("nomor ini sudah terdaftar sebagai calon jamaah yang sedang diproses travel, hubungi admin travel")
+	// ErrProspectNotClosing is returned for closing-only actions (tandai lunas, batalkan closing).
+	ErrProspectNotClosing = errors.New("aksi ini hanya untuk prospek berstatus Closing")
+	// ErrProspectAlreadyPaidOff is returned when the jamaah was already marked as paid off.
+	ErrProspectAlreadyPaidOff = errors.New("jamaah ini sudah ditandai lunas")
+	// ErrCancelReasonRequired is returned when cancelling a closing without a reason.
+	ErrCancelReasonRequired = errors.New("alasan pembatalan wajib diisi (maksimal 200 karakter)")
+	// ErrProspectAnonymized is returned when changing a prospect whose personal data was removed (UU PDP).
+	ErrProspectAnonymized = errors.New("data pribadi jamaah ini sudah dihapus (UU PDP), datanya tidak dapat diubah lagi")
+	// ErrInvalidReleasePolicy is returned for an unknown commission release policy.
+	ErrInvalidReleasePolicy = errors.New("pilihan pencairan komisi tidak valid, gunakan 'lunas' atau 'dp'")
 )
 
 // Pipeline status whitelist per AGENTS.md Bagian 3.6:
@@ -43,31 +64,65 @@ var validProspectStatuses = map[string]bool{
 	"tidak_lanjut": true,
 }
 
+// Default and maximum page sizes for the dashboard prospect list.
+const (
+	DefaultProspectPageSize = 25
+	MaxProspectPageSize     = 100
+)
+
 // AgentCreateProspectInput is used when an agent manually adds a prospect.
 type AgentCreateProspectInput struct {
-	Name         string  `json:"name"`
-	Phone        string  `json:"phone"`
-	JumlahJamaah *int    `json:"jumlah_jamaah"`
-	PackageID    *uint64 `json:"package_id"`
-	CatatanAwal  *string `json:"catatan_awal"`
+	Name          string  `json:"name"`
+	Phone         string  `json:"phone"`
+	JumlahJamaah  *int    `json:"jumlah_jamaah"`
+	DeparturePlan *string `json:"departure_plan"`
+	Domicile      *string `json:"domicile"`
+	// Consent: the agent confirms the jamaah agreed to be contacted by the travel (UU PDP). Required.
+	Consent     bool    `json:"consent"`
+	PackageID   *uint64 `json:"package_id"`
+	CatatanAwal *string `json:"catatan_awal"`
 }
 
 // PublicProspectInput is the payload submitted by leads on the public web portal.
+// source_channel is decided server-side (referral agent / ad attribution); a client value is ignored.
 type PublicProspectInput struct {
-	Name          string  `json:"name"`
-	Phone         string  `json:"phone"`
-	Email         *string `json:"email"`
-	PackageID     *uint64 `json:"package_id"`
-	AgentID       *uint64 `json:"agent_id"`
-	ReferralCode  *string `json:"referral_code"`
-	JumlahJamaah  *int    `json:"jumlah_jamaah"`
-	SourceChannel string  `json:"source_channel"`
+	Name          string               `json:"name"`
+	Phone         string               `json:"phone"`
+	Email         *string              `json:"email"`
+	PackageID     *uint64              `json:"package_id"`
+	AgentID       *uint64              `json:"agent_id"`
+	ReferralCode  *string              `json:"referral_code"`
+	JumlahJamaah  *int                 `json:"jumlah_jamaah"`
+	SourceChannel string               `json:"source_channel"`
+	Attribution   *ProspectAttribution `json:"attribution"`
+	// Consent: the visitor ticked "saya setuju dihubungi" (UU PDP). Required.
+	Consent       bool    `json:"consent"`
+	DeparturePlan *string `json:"departure_plan"`
+	Domicile      *string `json:"domicile"`
+	// Website is a honeypot field: hidden from people, filled in by bots.
+	Website string `json:"website"`
+	// Meta holds the visitor's Meta browser identifiers for Conversions API matching (optional).
+	Meta *PublicMetaContext `json:"meta"`
+	// ClientIP and UserAgent are set by the handler from the request, never from the JSON body.
+	ClientIP  string `json:"-"`
+	UserAgent string `json:"-"`
 }
 
-// PublicProspectResponse is returned after successful prospect creation.
+// PublicMetaContext is sent by the public site: the _fbp / _fbc cookies and the page URL.
+type PublicMetaContext struct {
+	Fbp            string `json:"fbp"`
+	Fbc            string `json:"fbc"`
+	EventSourceURL string `json:"event_source_url"`
+}
+
+// PublicProspectResponse is returned after a public submission. It deliberately carries no record data
+// (ids, tenant id) — the visitor only needs where to continue the conversation.
 type PublicProspectResponse struct {
-	*repository.Prospect
+	Message             string  `json:"message"`
 	WhatsAppRedirectURL *string `json:"whatsapp_redirect_url"`
+	// MetaEventID is set only for a new lead: the browser pixel sends its Lead event with this ID so
+	// Meta deduplicates it against the server (CAPI) Lead event. A random value, not a record id.
+	MetaEventID string `json:"meta_event_id,omitempty"`
 }
 
 // UpdateProspectInput is used when admin updates prospect details.
@@ -76,6 +131,8 @@ type UpdateProspectInput struct {
 	Phone            string  `json:"phone"`
 	PackageID        *uint64 `json:"package_id"`
 	JumlahJamaah     *int    `json:"jumlah_jamaah"`
+	DeparturePlan    *string `json:"departure_plan"`
+	Domicile         *string `json:"domicile"`
 	CorrectionReason *string `json:"correction_reason"`
 }
 
@@ -86,6 +143,18 @@ type ProspectCommissionInfo struct {
 	OverrideAmount float64 `json:"override_amount"`
 	TotalAmount    float64 `json:"total_amount"`
 	RatePerJamaah  float64 `json:"rate_per_jamaah"`
+	// For final commission: part still held (jamaah belum lunas) and part withdrawable.
+	HeldAmount     float64 `json:"held_amount"`
+	ReleasedAmount float64 `json:"released_amount"`
+	// The owning agent's own share only (without the upline's override): what the agent sees.
+	AgentHeldAmount     float64 `json:"agent_held_amount"`
+	AgentReleasedAmount float64 `json:"agent_released_amount"`
+}
+
+// CancelClosingResult tells the admin what happened to the commission of a cancelled closing.
+type CancelClosingResult struct {
+	ReversedHeld     float64 `json:"reversed_held"`
+	ReversedReleased float64 `json:"reversed_released"`
 }
 
 // ProspectDetailResponse is the detailed view returned for a single prospect.
@@ -98,22 +167,43 @@ type ProspectDetailResponse struct {
 	Notes         []repository.ProspectNote          `json:"notes"`
 }
 
+// ProspectListPage is one page of the dashboard prospect list.
+type ProspectListPage struct {
+	Items    []repository.Prospect `json:"items"`
+	Total    int                   `json:"total"`
+	Page     int                   `json:"page"`
+	PageSize int                   `json:"page_size"`
+}
+
 // ProspectService defines business logic for managing Prospects.
 type ProspectService interface {
 	CreatePublic(ctx context.Context, tenantID uint64, input PublicProspectInput) (*PublicProspectResponse, error)
 	GetByID(ctx context.Context, tenantID uint64, id uint64) (*repository.Prospect, error)
 	List(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]repository.Prospect, error)
-	UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason *string) error
+	ListPage(ctx context.Context, tenantID uint64, filter repository.ProspectFilter, page, pageSize int) (*ProspectListPage, error)
+	Summary(ctx context.Context, tenantID uint64) (*repository.ProspectStatusSummary, error)
+	UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason, lostReasonCategory *string) error
 	ExportCSV(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]byte, error)
 	CalculateAndRecordCommission(ctx context.Context, tenantID uint64, prospectID uint64) error
 	GetDetail(ctx context.Context, tenantID uint64, id uint64) (*ProspectDetailResponse, error)
 	UpdateDetail(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, input UpdateProspectInput) error
 	AddNote(ctx context.Context, tenantID uint64, prospectID uint64, adminUserID uint64, noteText string) (*repository.ProspectNote, error)
+	Delete(ctx context.Context, tenantID uint64, id uint64) error
+	MarkPaidOff(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
+	CancelClosing(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, reason string) (*CancelClosingResult, error)
+	GetCommissionReleaseOn(ctx context.Context, tenantID uint64) (string, error)
+	SetCommissionReleaseOn(ctx context.Context, tenantID uint64, releaseOn string) error
+	SetCommissionPolicyRepo(repo repository.CommissionPolicyRepository)
+	// SetMetaTracker enables Meta Conversions API events (Lead, Purchase) for travels that configured it.
+	SetMetaTracker(tracker MetaEventTracker)
+	// Anonymize removes the jamaah's personal data on their request (UU PDP) and keeps the commission trail.
+	Anonymize(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
 
 	// Agent-specific methods
 	ListByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter *string) ([]repository.AgentProspectItem, error)
+	ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, page, pageSize int) (*AgentProspectPage, error)
 	GetDetailForAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64) (*ProspectDetailResponse, error)
-	UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason *string) error
+	UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason, lostReasonCategory *string) error
 	AddNoteByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, noteText string) (*repository.ProspectNote, error)
 	CreateManualByAgent(ctx context.Context, tenantID uint64, agentID uint64, input AgentCreateProspectInput) (*repository.Prospect, error)
 	RecordReferralClick(ctx context.Context, tenantID uint64, referralCode string, ipAddress string) error
@@ -129,6 +219,12 @@ type prospectService struct {
 	noteRepo             repository.ProspectNoteRepository
 	adminUserRepo        repository.AdminUserRepository
 	notifService         NotificationService
+	policyRepo           repository.CommissionPolicyRepository
+	meta                 MetaEventTracker
+}
+
+func (s *prospectService) SetMetaTracker(tracker MetaEventTracker) {
+	s.meta = tracker
 }
 
 // NewProspectService creates a new ProspectService instance.
@@ -156,32 +252,198 @@ func NewProspectService(
 	}
 }
 
-func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, input PublicProspectInput) (*PublicProspectResponse, error) {
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		return nil, ErrProspectNameRequired
+// notifyActiveAdmins sends an in-app notification to every active admin of the tenant.
+func (s *prospectService) notifyActiveAdmins(ctx context.Context, tenantID uint64, kind, title, body, link string) {
+	if s.notifService == nil || s.adminUserRepo == nil {
+		return
 	}
+	admins, err := s.adminUserRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		log.Printf("[Notification] Failed to list admins for tenant %d: %v", tenantID, err)
+		return
+	}
+	for _, admin := range admins {
+		if admin.Status != "active" {
+			continue
+		}
+		tID := tenantID
+		if _, err := s.notifService.CreateNotification(ctx, &tID, "admin", admin.ID, kind, title, body, link); err != nil {
+			log.Printf("[Notification] Failed to notify admin %d: %v", admin.ID, err)
+		}
+	}
+}
 
-	phone := strings.TrimSpace(input.Phone)
+func (s *prospectService) notifyAgent(ctx context.Context, tenantID, agentID uint64, kind, title, body, link string) {
+	if s.notifService == nil {
+		return
+	}
+	tID := tenantID
+	if _, err := s.notifService.CreateNotification(ctx, &tID, "agent", agentID, kind, title, body, link); err != nil {
+		log.Printf("[Notification] Failed to notify agent %d: %v", agentID, err)
+	}
+}
+
+func (s *prospectService) recordHistory(ctx context.Context, tenantID, prospectID uint64, byType string, byID uint64, oldStatus, newStatus string) {
+	if s.statusHistoryRepo == nil {
+		return
+	}
+	history := &repository.ProspectStatusHistory{
+		TenantID:      tenantID,
+		ProspectID:    prospectID,
+		ChangedByType: byType,
+		ChangedByID:   byID,
+		OldStatus:     oldStatus,
+		NewStatus:     newStatus,
+	}
+	if err := s.statusHistoryRepo.Create(ctx, tenantID, history); err != nil {
+		log.Printf("[Prospect] Failed to record status history for prospect %d (%s -> %s): %v", prospectID, oldStatus, newStatus, err)
+	}
+}
+
+func (s *prospectService) addSystemNote(ctx context.Context, tenantID, prospectID uint64, text string) {
+	if s.noteRepo == nil {
+		return
+	}
+	note := &repository.ProspectNote{
+		TenantID:   tenantID,
+		ProspectID: prospectID,
+		AuthorType: "system",
+		AuthorID:   0,
+		NoteText:   text,
+	}
+	if err := s.noteRepo.Create(ctx, tenantID, note); err != nil {
+		log.Printf("[Prospect] Failed to add system note to prospect %d: %v", prospectID, err)
+	}
+}
+
+// phoneLocker is implemented by the MySQL prospect repository: it serialises the duplicate check +
+// insert for one (tenant, phone) so two simultaneous submissions cannot both create a prospect.
+type phoneLocker interface {
+	WithPhoneLock(ctx context.Context, tenantID uint64, phoneNormalized string, fn func() error) error
+}
+
+func (s *prospectService) withPhoneLock(ctx context.Context, tenantID uint64, phoneNormalized string, fn func() error) error {
+	if locker, ok := s.prospectRepo.(phoneLocker); ok {
+		return locker.WithPhoneLock(ctx, tenantID, phoneNormalized, fn)
+	}
+	return fn()
+}
+
+// Optional repository capabilities implemented by the MySQL prospect repository.
+type prospectDetailFiller interface {
+	FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt *time.Time) error
+}
+
+type prospectAnonymizer interface {
+	Anonymize(ctx context.Context, tenantID uint64, id uint64) error
+}
+
+type agentStatusCounter interface {
+	AgentStatusCounts(ctx context.Context, tenantID uint64, agentID uint64) (map[string]int, error)
+}
+
+// flagEarlierClosing marks a new prospect whose phone already has a closing (DP) prospect, e.g. the
+// same jamaah coming back through another agent's link. The prospect is kept (it can be a family
+// member or a next umroh), but admins see it before closing it, so commission is not paid twice.
+func (s *prospectService) flagEarlierClosing(ctx context.Context, tenantID uint64, prospect *repository.Prospect) {
+	if prospect.PhoneNormalized == nil {
+		return
+	}
+	prior, err := s.prospectRepo.FindLatestClosingByPhone(ctx, tenantID, *prospect.PhoneNormalized)
+	if err != nil || prior == nil || prior.ID == prospect.ID {
+		return
+	}
+	owner := "tanpa agen"
+	if prior.AgentName != "" {
+		owner = "agen " + prior.AgentName
+	}
+	since := ""
+	if prior.ClosedAt != nil {
+		since = " sejak " + formatWIB(*prior.ClosedAt) + " WIB"
+	}
+	s.addSystemNote(ctx, tenantID, prospect.ID, fmt.Sprintf(
+		"Perhatian: nomor ini sudah Closing (DP)%s di prospek #%d (%s, %s). Pastikan ini bukan jamaah yang sama sebelum closing, agar komisi tidak dibayar dua kali.",
+		since, prior.ID, prior.Name, owner))
+	s.notifyActiveAdmins(ctx, tenantID, "prospect_already_closed", "Nomor sudah pernah closing",
+		fmt.Sprintf("%s masuk sebagai prospek baru, padahal nomornya sudah Closing di prospek #%d.", prospect.Name, prior.ID),
+		fmt.Sprintf("/prospects/%d", prospect.ID))
+}
+
+// whatsAppTarget picks who the visitor chats with: the owning agent, otherwise the travel's number.
+func (s *prospectService) whatsAppTarget(ctx context.Context, tenantID uint64, agent *repository.Agent) string {
+	if agent != nil && agent.Phone != nil && strings.TrimSpace(*agent.Phone) != "" {
+		if p := NormalizePhoneToWhatsApp(*agent.Phone); p != "" {
+			return p
+		}
+	}
+	if s.tenantRepo != nil {
+		tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+		if err == nil && tenant != nil && tenant.WhatsAppNumber != nil && strings.TrimSpace(*tenant.WhatsAppNumber) != "" {
+			return NormalizePhoneToWhatsApp(*tenant.WhatsAppNumber)
+		}
+	}
+	return ""
+}
+
+func buildWhatsAppURL(phone, name, packageName string, jumlahJamaah *int) *string {
 	if phone == "" {
-		return nil, ErrProspectPhoneRequired
+		return nil
 	}
-
-	if input.JumlahJamaah != nil && *input.JumlahJamaah <= 0 {
-		return nil, ErrInvalidJumlahJamaah
+	var msg string
+	if jumlahJamaah != nil && *jumlahJamaah > 0 {
+		msg = fmt.Sprintf("Halo, saya %s tertarik dengan paket %s untuk %d orang. Mohon informasinya.", name, packageName, *jumlahJamaah)
+	} else {
+		msg = fmt.Sprintf("Halo, saya %s tertarik dengan paket %s. Mohon informasinya.", name, packageName)
 	}
+	u := fmt.Sprintf("https://wa.me/%s?text=%s", phone, url.QueryEscape(msg))
+	return &u
+}
 
-	// Check if tenant service is suspended (after 7 days grace period)
-	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
-	if err == nil && tenant != nil {
-		if tenant.Status == "inactive" || (tenant.SubscriptionExpiresAt != nil && time.Now().After(tenant.SubscriptionExpiresAt.AddDate(0, 0, 7))) {
-			return nil, errors.New("layanan pendaftaran sementara tidak aktif karena masa layanan biro travel sedang ditangguhkan")
+func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, input PublicProspectInput) (*PublicProspectResponse, error) {
+	name, err := validateProspectName(input.Name)
+	if err != nil {
+		return nil, err
+	}
+	phone, phoneNormalized, err := validateProspectPhone(input.Phone)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateJumlahJamaah(input.JumlahJamaah); err != nil {
+		return nil, err
+	}
+	emailPtr, err := validateProspectEmail(input.Email)
+	if err != nil {
+		return nil, err
+	}
+	departurePlan, err := validateDeparturePlan(input.DeparturePlan)
+	if err != nil {
+		return nil, err
+	}
+	domicile, err := validateDomicile(input.Domicile)
+	if err != nil {
+		return nil, err
+	}
+	// UU PDP 27/2022: personal data is collected only with the visitor's explicit consent.
+	if !input.Consent {
+		return nil, ErrConsentRequired
+	}
+	consentAt := time.Now()
+
+	// Tenant service suspended (after the 7-day grace period)
+	if s.tenantRepo != nil {
+		tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+		if err == nil && tenant != nil {
+			if tenant.Status == "inactive" || (tenant.SubscriptionExpiresAt != nil && time.Now().After(tenant.SubscriptionExpiresAt.AddDate(0, 0, 7))) {
+				return nil, ErrTenantServiceSuspended
+			}
 		}
 	}
 
-	// MANDATORY CROSS-TENANT VALIDATION:
-	// If package_id is supplied, verify that it belongs strictly to this tenant_id.
-	var packageName string
+	// MANDATORY CROSS-TENANT VALIDATION: the package must belong strictly to this tenant.
+	// A package that is not (or no longer) published is not linked, but the lead is still kept: the
+	// visitor may have had the page open while the travel unpublished it.
+	packageName := "Umroh"
+	packageID := input.PackageID
 	if input.PackageID != nil {
 		pkg, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID)
 		if err != nil {
@@ -190,143 +452,259 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 			}
 			return nil, err
 		}
-		packageName = pkg.Name
-	} else {
-		packageName = "Umroh"
-	}
-
-	sourceChannel := strings.TrimSpace(input.SourceChannel)
-	if sourceChannel == "" {
-		sourceChannel = "organik"
-	}
-
-	var emailPtr *string
-	if input.Email != nil {
-		trimmedEmail := strings.TrimSpace(*input.Email)
-		if trimmedEmail != "" {
-			emailPtr = &trimmedEmail
+		if pkg.Status == "published" {
+			packageName = pkg.Name
+		} else {
+			packageID = nil
 		}
 	}
 
-	// Agent & referral validation
-	var agentID *uint64
-	var targetAgent *repository.Agent
-
-	if input.ReferralCode != nil && strings.TrimSpace(*input.ReferralCode) != "" {
-		refCode := strings.TrimSpace(*input.ReferralCode)
-		if s.agentRepo != nil {
-			agent, err := s.agentRepo.GetByReferralCode(ctx, refCode)
+	// Referral agent (must be active and of this tenant)
+	var referralAgent *repository.Agent
+	if s.agentRepo != nil {
+		if input.ReferralCode != nil && strings.TrimSpace(*input.ReferralCode) != "" {
+			agent, err := s.agentRepo.GetByReferralCode(ctx, strings.TrimSpace(*input.ReferralCode))
 			if err == nil && agent != nil && agent.TenantID == tenantID && agent.Status == "active" {
-				agentID = &agent.ID
-				sourceChannel = "agen"
-				targetAgent = agent
+				referralAgent = agent
 			}
-		}
-	} else if input.AgentID != nil {
-		if s.agentRepo != nil {
+		} else if input.AgentID != nil {
 			agent, err := s.agentRepo.GetByID(ctx, tenantID, *input.AgentID)
 			if err == nil && agent != nil && agent.Status == "active" {
-				agentID = &agent.ID
-				sourceChannel = "agen"
-				targetAgent = agent
+				referralAgent = agent
 			}
 		}
 	}
 
-	prospect := &repository.Prospect{
-		TenantID:      tenantID,
-		PackageID:     input.PackageID,
-		AgentID:       agentID,
-		Name:          name,
-		Phone:         phone,
-		JumlahJamaah:  input.JumlahJamaah,
-		Email:         emailPtr,
-		SourceChannel: sourceChannel,
-		Status:        "baru", // Force initial status to 'baru' server-side
-		LostReason:    nil,
+	// Source is decided here, never taken from the client: agent referral > ad click > organic.
+	var attribution ProspectAttribution
+	if input.Attribution != nil {
+		attribution = *input.Attribution
+	}
+	sourceChannel := "organik"
+	if referralAgent != nil {
+		sourceChannel = "agen"
+	} else if attribution.isPaid() {
+		sourceChannel = "paid"
 	}
 
-	if err := s.prospectRepo.Create(ctx, tenantID, prospect); err != nil {
+	// First owner wins: the same jamaah submitting again while their prospect is still open does not
+	// create a second prospect (and cannot move it to another agent). The admins and the owning agent
+	// are told, and the chat goes to whoever already handles this jamaah.
+	var agentID *uint64
+	if referralAgent != nil {
+		agentID = &referralAgent.ID
+	}
+	prospect := &repository.Prospect{
+		TenantID:        tenantID,
+		PackageID:       packageID,
+		AgentID:         agentID,
+		Name:            name,
+		Phone:           phone,
+		PhoneNormalized: &phoneNormalized,
+		JumlahJamaah:    input.JumlahJamaah,
+		DeparturePlan:   departurePlan,
+		Domicile:        domicile,
+		ConsentAt:       &consentAt,
+		Email:           emailPtr,
+		SourceChannel:   sourceChannel,
+		UTMSource:       truncatedPtr(attribution.UTMSource, 100),
+		UTMMedium:       truncatedPtr(attribution.UTMMedium, 100),
+		UTMCampaign:     truncatedPtr(attribution.UTMCampaign, 150),
+		Fbclid:          truncatedPtr(attribution.Fbclid, 255),
+		Status:          "baru", // Force initial status to 'baru' server-side
+	}
+	var eventSourceURL string
+	if input.Meta != nil {
+		prospect.MetaFbp = cleanMetaCookie(input.Meta.Fbp)
+		prospect.MetaFbc = cleanMetaCookie(input.Meta.Fbc)
+		if u := strings.TrimSpace(input.Meta.EventSourceURL); strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
+			eventSourceURL = truncate(u, 1000)
+		}
+	}
+	// No _fbc cookie but the visitor came from a Meta ad click: build fbc from fbclid as Meta documents.
+	if prospect.MetaFbc == nil && prospect.Fbclid != nil {
+		prospect.MetaFbc = cleanMetaCookie(fmt.Sprintf("fb.1.%d.%s", time.Now().UnixMilli(), *prospect.Fbclid))
+	}
+
+	var existing *repository.Prospect
+	err = s.withPhoneLock(ctx, tenantID, phoneNormalized, func() error {
+		found, err := s.prospectRepo.FindOpenByPhone(ctx, tenantID, phoneNormalized)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return err
+		}
+		if found != nil {
+			existing = found
+			return nil
+		}
+		return s.prospectRepo.Create(ctx, tenantID, prospect)
+	})
+	if err != nil {
 		return nil, err
 	}
-
-	// Trigger 1: In-app notification to all active admin users of this tenant
-	if s.notifService != nil && s.adminUserRepo != nil {
-		admins, err := s.adminUserRepo.ListByTenant(ctx, tenantID)
-		if err != nil {
-			log.Printf("[Notification] Failed to list admins for tenant %d: %v", tenantID, err)
-		} else {
-			for _, admin := range admins {
-				if admin.Status != "active" {
-					continue
-				}
-				tID := tenantID
-				_, notifErr := s.notifService.CreateNotification(
-					ctx,
-					&tID,
-					"admin",
-					admin.ID,
-					"prospect_new",
-					"Prospek baru",
-					fmt.Sprintf("%s tertarik paket %s", name, packageName),
-					fmt.Sprintf("/prospects/%d", prospect.ID),
-				)
-				if notifErr != nil {
-					log.Printf("[Notification] Failed to create prospect notification for admin %d: %v", admin.ID, notifErr)
-				}
-			}
-		}
+	if existing != nil {
+		return s.handleRepeatSubmission(ctx, tenantID, existing, prospect, packageName, referralAgent)
 	}
+	s.flagEarlierClosing(ctx, tenantID, prospect)
 
-	// Trigger 2: In-app notification to the referral agent if prospect came via agent referral
-	if s.notifService != nil && targetAgent != nil {
-		tID := tenantID
-		_, notifErr := s.notifService.CreateNotification(
-			ctx,
-			&tID,
-			"agent",
-			targetAgent.ID,
-			"prospect_new",
-			"Prospek Baru Masuk",
+	s.notifyActiveAdmins(ctx, tenantID, "prospect_new", "Prospek baru",
+		fmt.Sprintf("%s tertarik paket %s", name, packageName),
+		fmt.Sprintf("/prospects/%d", prospect.ID))
+
+	if referralAgent != nil {
+		s.notifyAgent(ctx, tenantID, referralAgent.ID, "prospect_new", "Prospek Baru Masuk",
 			fmt.Sprintf("%s mendaftar melalui link referral Anda (Paket %s)", name, packageName),
-			fmt.Sprintf("/agen/jamaah/%d", prospect.ID),
-		)
-		if notifErr != nil {
-			log.Printf("[Notification] Failed to create prospect notification for agent %d: %v", targetAgent.ID, notifErr)
-		}
+			fmt.Sprintf("/agen/jamaah/%d", prospect.ID))
 	}
 
-	// Determine WhatsApp destination:
-	// 1. Referral agent's phone (normalized)
-	// 2. Fallback: Tenant's whatsapp_number
-	// 3. Fallback: nil
-	var targetPhone string
-	if targetAgent != nil && targetAgent.Phone != nil && strings.TrimSpace(*targetAgent.Phone) != "" {
-		targetPhone = NormalizePhoneToWhatsApp(*targetAgent.Phone)
-	}
-
-	if targetPhone == "" && s.tenantRepo != nil {
-		tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
-		if err == nil && tenant != nil && tenant.WhatsAppNumber != nil && strings.TrimSpace(*tenant.WhatsAppNumber) != "" {
-			targetPhone = strings.TrimSpace(*tenant.WhatsAppNumber)
+	eventID := newMetaEventID()
+	if s.meta != nil {
+		ev := MetaLeadEvent{
+			EventID:     eventID,
+			EventTime:   consentAt,
+			SourceURL:   eventSourceURL,
+			User:        metaUserFromProspect(tenantID, prospect),
+			ContentName: packageName,
 		}
-	}
-
-	var whatsappRedirectURL *string
-	if targetPhone != "" {
-		var msg string
-		if input.JumlahJamaah != nil && *input.JumlahJamaah > 0 {
-			msg = fmt.Sprintf("Halo, saya %s tertarik dengan paket %s untuk %d orang. Mohon informasinya.", name, packageName, *input.JumlahJamaah)
-		} else {
-			msg = fmt.Sprintf("Halo, saya %s tertarik dengan paket %s. Mohon informasinya.", name, packageName)
+		ev.User.ClientIP = strings.TrimSpace(input.ClientIP)
+		ev.User.UserAgent = truncate(strings.TrimSpace(input.UserAgent), 500)
+		if prospect.PackageID != nil {
+			ev.ContentID = strconv.FormatUint(*prospect.PackageID, 10)
 		}
-		urlStr := fmt.Sprintf("https://wa.me/%s?text=%s", targetPhone, url.QueryEscape(msg))
-		whatsappRedirectURL = &urlStr
+		s.meta.TrackLead(tenantID, ev)
 	}
 
 	return &PublicProspectResponse{
-		Prospect:            prospect,
-		WhatsAppRedirectURL: whatsappRedirectURL,
+		Message:             "Terima kasih, tim kami akan segera menghubungi Anda",
+		WhatsAppRedirectURL: buildWhatsAppURL(s.whatsAppTarget(ctx, tenantID, referralAgent), name, packageName, input.JumlahJamaah),
+		MetaEventID:         eventID,
+	}, nil
+}
+
+// metaUserFromProspect is the Meta matching data of a prospect (hashed later by the Meta service).
+func metaUserFromProspect(tenantID uint64, p *repository.Prospect) MetaUserData {
+	u := MetaUserData{Name: p.Name, ExternalID: metaExternalID(tenantID, p.ID)}
+	if p.PhoneNormalized != nil {
+		u.Phone = *p.PhoneNormalized
+	}
+	if p.Email != nil {
+		u.Email = *p.Email
+	}
+	if p.Domicile != nil {
+		u.City = *p.Domicile
+	}
+	if p.MetaFbp != nil {
+		u.Fbp = *p.MetaFbp
+	}
+	if p.MetaFbc != nil {
+		u.Fbc = *p.MetaFbc
+	}
+	return u
+}
+
+// metaPurchaseClaimer is implemented by the MySQL prospect repository (one Purchase per prospect).
+type metaPurchaseClaimer interface {
+	ClaimMetaPurchase(ctx context.Context, tenantID uint64, id uint64) (bool, error)
+}
+
+// trackPurchase sends the Meta Purchase event for a closing (DP paid) of a web-form lead with consent.
+// Leads typed in by agents never came through the website/ads, so they are not reported. It is sent
+// once per prospect: a closing cancelled and closed again does not count twice in the ad reports.
+func (s *prospectService) trackPurchase(ctx context.Context, tenantID uint64, p *repository.Prospect) {
+	if s.meta == nil || p.EntryMethod != "web_form" || p.ConsentAt == nil || p.AnonymizedAt != nil {
+		return
+	}
+	if !s.meta.Enabled(ctx, tenantID) {
+		return
+	}
+	claimer, ok := s.prospectRepo.(metaPurchaseClaimer)
+	if !ok {
+		return
+	}
+	if first, err := claimer.ClaimMetaPurchase(ctx, tenantID, p.ID); err != nil || !first {
+		if err != nil {
+			log.Printf("[Meta] tenant %d: cannot claim Purchase for prospect %d: %v", tenantID, p.ID, err)
+		}
+		return
+	}
+	jamaah := 1
+	if p.JumlahJamaah != nil && *p.JumlahJamaah > 0 {
+		jamaah = *p.JumlahJamaah
+	}
+	ev := MetaPurchaseEvent{
+		EventID:   fmt.Sprintf("purchase-%d-%d", tenantID, p.ID),
+		EventTime: time.Now(),
+		User:      metaUserFromProspect(tenantID, p),
+		NumItems:  jamaah,
+	}
+	if p.PackageID != nil {
+		ev.ContentID = strconv.FormatUint(*p.PackageID, 10)
+		if pkg, err := s.packageRepo.GetByID(ctx, tenantID, *p.PackageID); err == nil {
+			ev.ContentName = pkg.Name
+			if pkg.Price != nil && *pkg.Price > 0 {
+				ev.Value = *pkg.Price * float64(jamaah)
+			}
+		}
+	}
+	s.meta.TrackPurchase(tenantID, ev)
+}
+
+// handleRepeatSubmission handles a jamaah who submits again while their prospect is still open:
+// no second prospect, but the details they gave now complete the empty fields of the open one.
+func (s *prospectService) handleRepeatSubmission(
+	ctx context.Context,
+	tenantID uint64,
+	existing *repository.Prospect,
+	incoming *repository.Prospect,
+	packageName string,
+	referralAgent *repository.Agent,
+) (*PublicProspectResponse, error) {
+	name, jumlahJamaah := incoming.Name, incoming.JumlahJamaah
+	via := "form web"
+	switch {
+	case referralAgent != nil && (existing.AgentID == nil || *existing.AgentID != referralAgent.ID):
+		via = fmt.Sprintf("link agen %s (bukan pemilik prospek, prospek tetap di pemilik awal)", referralAgent.Name)
+	case referralAgent != nil:
+		via = "link agen yang sama"
+	case incoming.SourceChannel == "paid":
+		via = "iklan"
+	}
+	detail := fmt.Sprintf("paket diminati: %s", packageName)
+	if jumlahJamaah != nil && *jumlahJamaah > 0 {
+		detail += fmt.Sprintf(", jumlah jamaah: %d", *jumlahJamaah)
+	}
+	if incoming.DeparturePlan != nil {
+		detail += ", rencana berangkat: " + formatDeparturePlanLabel(*incoming.DeparturePlan)
+	}
+	if incoming.Domicile != nil {
+		detail += ", domisili: " + *incoming.Domicile
+	}
+	if filler, ok := s.prospectRepo.(prospectDetailFiller); ok {
+		if err := filler.FillMissingDetails(ctx, tenantID, existing.ID, incoming.PackageID, incoming.JumlahJamaah,
+			incoming.DeparturePlan, incoming.Domicile, incoming.ConsentAt); err != nil {
+			log.Printf("[Prospect] Failed to complete prospect %d from repeat submission: %v", existing.ID, err)
+		}
+	}
+	s.addSystemNote(ctx, tenantID, existing.ID, fmt.Sprintf("Calon jamaah mendaftar lagi lewat %s (%s). Nama yang diisi: %s. Kolom yang masih kosong dilengkapi dari pendaftaran ini.", via, detail, name))
+
+	s.notifyActiveAdmins(ctx, tenantID, "prospect_repeat", "Prospek mendaftar lagi",
+		fmt.Sprintf("%s mendaftar lagi (paket %s). Prospek lama tetap dipakai.", existing.Name, packageName),
+		fmt.Sprintf("/prospects/%d", existing.ID))
+
+	var owner *repository.Agent
+	if existing.AgentID != nil {
+		s.notifyAgent(ctx, tenantID, *existing.AgentID, "prospect_repeat", "Calon jamaah Anda menghubungi lagi",
+			fmt.Sprintf("%s mendaftar lagi (paket %s). Segera follow up.", existing.Name, packageName),
+			fmt.Sprintf("/agen/jamaah/%d", existing.ID))
+		if s.agentRepo != nil {
+			if a, err := s.agentRepo.GetByID(ctx, tenantID, *existing.AgentID); err == nil && a != nil && a.Status == "active" {
+				owner = a
+			}
+		}
+	}
+
+	return &PublicProspectResponse{
+		Message:             "Terima kasih, tim kami akan segera menghubungi Anda",
+		WhatsAppRedirectURL: buildWhatsAppURL(s.whatsAppTarget(ctx, tenantID, owner), name, packageName, jumlahJamaah),
 	}, nil
 }
 
@@ -334,21 +712,74 @@ func (s *prospectService) GetByID(ctx context.Context, tenantID uint64, id uint6
 	return s.prospectRepo.GetByID(ctx, tenantID, id)
 }
 
-func (s *prospectService) List(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]repository.Prospect, error) {
+func normalizeStatusFilter(filter *repository.ProspectFilter) error {
 	if filter.Status != nil && *filter.Status != "" && *filter.Status != "all" {
 		status := strings.ToLower(strings.TrimSpace(*filter.Status))
 		if !validProspectStatuses[status] {
-			return nil, ErrInvalidProspectStatus
+			return ErrInvalidProspectStatus
 		}
 		filter.Status = &status
+	}
+	return nil
+}
+
+func (s *prospectService) List(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]repository.Prospect, error) {
+	if err := normalizeStatusFilter(&filter); err != nil {
+		return nil, err
 	}
 	return s.prospectRepo.ListWithFilter(ctx, tenantID, filter)
 }
 
-func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason *string) error {
+func (s *prospectService) ListPage(ctx context.Context, tenantID uint64, filter repository.ProspectFilter, page, pageSize int) (*ProspectListPage, error) {
+	if err := normalizeStatusFilter(&filter); err != nil {
+		return nil, err
+	}
+	if pageSize <= 0 {
+		pageSize = DefaultProspectPageSize
+	}
+	if pageSize > MaxProspectPageSize {
+		pageSize = MaxProspectPageSize
+	}
+	if page <= 0 {
+		page = 1
+	}
+	filter.Limit = pageSize
+	filter.Offset = (page - 1) * pageSize
+
+	total, err := s.prospectRepo.CountWithFilter(ctx, tenantID, filter)
+	if err != nil {
+		return nil, err
+	}
+	items, err := s.prospectRepo.ListWithFilter(ctx, tenantID, filter)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		items = []repository.Prospect{}
+	}
+	return &ProspectListPage{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
+}
+
+func (s *prospectService) Summary(ctx context.Context, tenantID uint64) (*repository.ProspectStatusSummary, error) {
+	return s.prospectRepo.StatusSummary(ctx, tenantID)
+}
+
+func sameStringPtr(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
+}
+
+func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason, lostReasonCategory *string) error {
 	prospect, err := s.prospectRepo.GetByID(ctx, tenantID, id)
 	if err != nil {
 		return err
+	}
+
+	// Personal data removed (UU PDP): the prospect stays as a record only, it never re-enters the pipeline.
+	if prospect.AnonymizedAt != nil {
+		return ErrProspectAnonymized
 	}
 
 	// GUARD PALING AWAL: kalau status LAMA prospek sudah 'closing', tolak
@@ -360,63 +791,93 @@ func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id 
 	if !validProspectStatuses[status] {
 		return ErrInvalidProspectStatus
 	}
-
-	oldStatus := prospect.Status
-
-	var cleanLostReason *string
-	if status == "tidak_lanjut" && lostReason != nil {
-		trimmed := strings.TrimSpace(*lostReason)
-		if trimmed != "" {
-			cleanLostReason = &trimmed
-		}
-	}
-
-	if err := s.prospectRepo.UpdateStatus(ctx, tenantID, id, status, cleanLostReason); err != nil {
+	reason, category, err := cleanLostReasonWithCategory(status, lostReason, lostReasonCategory, false)
+	if err != nil {
 		return err
 	}
 
-	// Record status history if status actually changed
-	if oldStatus != status && s.statusHistoryRepo != nil {
-		history := &repository.ProspectStatusHistory{
-			TenantID:      tenantID,
-			ProspectID:    id,
-			ChangedByType: "admin",
-			ChangedByID:   adminUserID,
-			OldStatus:     oldStatus,
-			NewStatus:     status,
-		}
-		_ = s.statusHistoryRepo.Create(ctx, tenantID, history)
+	oldStatus := prospect.Status
+	if oldStatus == status && sameStringPtr(reason, prospect.LostReason) && sameStringPtr(category, prospect.LostReasonCategory) {
+		return nil
 	}
 
-	// Trigger commission calculation only when changing into 'closing' from non-closing
-	if oldStatus != "closing" && status == "closing" {
+	// Claim the transition atomically: only one of several concurrent requests (double click, two
+	// admins) moves the prospect out of oldStatus, so commission is booked exactly once.
+	if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, oldStatus, status, reason, category); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return ErrProspectStatusConflict
+		}
+		return err
+	}
+
+	if status == "closing" {
 		if err := s.CalculateAndRecordCommission(ctx, tenantID, id); err != nil {
+			// Commission could not be booked: give the closing back so the admin can retry, instead of
+			// leaving a final 'closing' without commission.
+			if revertErr := s.prospectRepo.TransitionStatus(ctx, tenantID, id, "closing", oldStatus, prospect.LostReason, prospect.LostReasonCategory); revertErr != nil {
+				log.Printf("[Prospect] CRITICAL: failed to revert prospect %d to %s after commission error (%v): %v", id, oldStatus, err, revertErr)
+			}
 			return err
 		}
 	}
 
-	// Trigger in-app notification to agent if prospect belongs to an agent
-	if oldStatus != status && prospect.AgentID != nil && s.notifService != nil {
-		tID := tenantID
-		title := fmt.Sprintf("Status Prospek: %s", strings.ToUpper(status))
-		body := fmt.Sprintf("Status calon jamaah %s diperbarui menjadi %s", prospect.Name, status)
+	if oldStatus != status {
+		s.recordHistory(ctx, tenantID, id, "admin", adminUserID, oldStatus, status)
+	}
+	if status == "closing" {
+		s.trackPurchase(ctx, tenantID, prospect)
+	}
+
+	// In-app notification to the agent who owns the prospect
+	if oldStatus != status && prospect.AgentID != nil {
+		title := fmt.Sprintf("Status Prospek: %s", humanProspectStatus(status))
+		body := fmt.Sprintf("Status calon jamaah %s diperbarui menjadi %s", prospect.Name, humanProspectStatus(status))
 		if status == "closing" {
 			title = "Alhamdulillah! Prospek Closing"
 			body = fmt.Sprintf("Calon jamaah %s telah berhasil closing!", prospect.Name)
 		}
-		_, _ = s.notifService.CreateNotification(
-			ctx,
-			&tID,
-			"agent",
-			*prospect.AgentID,
-			"prospect_status_updated",
-			title,
-			body,
-			fmt.Sprintf("/agen/jamaah/%d", prospect.ID),
-		)
+		s.notifyAgent(ctx, tenantID, *prospect.AgentID, "prospect_status_updated", title, body, fmt.Sprintf("/agen/jamaah/%d", prospect.ID))
 	}
 
 	return nil
+}
+
+// ledgerBatchCreator is implemented by the MySQL ledger repository: all entries of one booking are
+// written in a single transaction (all or nothing).
+type ledgerBatchCreator interface {
+	CreateBatch(ctx context.Context, tenantID uint64, entries []*repository.CommissionLedger) error
+}
+
+func (s *prospectService) createLedgers(ctx context.Context, tenantID uint64, entries []*repository.CommissionLedger) error {
+	if s.commissionLedgerRepo == nil || len(entries) == 0 {
+		return nil
+	}
+	if batch, ok := s.commissionLedgerRepo.(ledgerBatchCreator); ok {
+		return batch.CreateBatch(ctx, tenantID, entries)
+	}
+	for _, e := range entries {
+		if err := s.commissionLedgerRepo.Create(ctx, tenantID, e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// overridePercentage returns the tenant's override percentage for a sub-agent, or 0 when override is
+// off or the agent has no parent.
+func (s *prospectService) overrideFor(ctx context.Context, tenantID uint64, agentID uint64) (parentID *uint64, pct float64) {
+	if s.tenantRepo == nil || s.agentRepo == nil {
+		return nil, 0
+	}
+	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+	if err != nil || tenant == nil || !tenant.CommissionOverrideEnabled || tenant.CommissionOverridePercentage == nil || *tenant.CommissionOverridePercentage <= 0 {
+		return nil, 0
+	}
+	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+	if err != nil || agent == nil || agent.ParentAgentID == nil {
+		return nil, 0
+	}
+	return agent.ParentAgentID, *tenant.CommissionOverridePercentage
 }
 
 func (s *prospectService) CalculateAndRecordCommission(ctx context.Context, tenantID uint64, prospectID uint64) error {
@@ -425,13 +886,8 @@ func (s *prospectService) CalculateAndRecordCommission(ctx context.Context, tena
 		return err
 	}
 
-	// Only prospects with an assigned agent receive commissions.
-	if prospect.AgentID == nil {
-		return nil
-	}
-
-	// Must have a package to calculate commission.
-	if prospect.PackageID == nil {
+	// Only prospects with an assigned agent and a package receive commissions.
+	if prospect.AgentID == nil || prospect.PackageID == nil {
 		return nil
 	}
 
@@ -439,7 +895,6 @@ func (s *prospectService) CalculateAndRecordCommission(ctx context.Context, tena
 	if err != nil {
 		return err
 	}
-
 	if pkg.CommissionAmount == nil || *pkg.CommissionAmount <= 0 {
 		return nil
 	}
@@ -448,195 +903,229 @@ func (s *prospectService) CalculateAndRecordCommission(ctx context.Context, tena
 	if prospect.JumlahJamaah != nil && *prospect.JumlahJamaah > 0 {
 		jamaah = *prospect.JumlahJamaah
 	}
-
 	directAmount := *pkg.CommissionAmount * float64(jamaah)
-
 	pkgID := pkg.ID
-	// 1. Direct commission ledger entry
-	directLedger := &repository.CommissionLedger{
+	releasedAt := s.releaseTimeFor(ctx, tenantID, prospect)
+
+	entries := []*repository.CommissionLedger{{
 		TenantID:   tenantID,
 		AgentID:    *prospect.AgentID,
 		ProspectID: prospect.ID,
 		PackageID:  &pkgID,
 		Type:       "direct",
 		Amount:     directAmount,
-		Notes:      nil,
+		ReleasedAt: releasedAt,
+	}}
+
+	var overrideAmount float64
+	parentID, pct := s.overrideFor(ctx, tenantID, *prospect.AgentID)
+	if parentID != nil {
+		overrideAmount = (pct / 100.0) * directAmount
+		entries = append(entries, &repository.CommissionLedger{
+			TenantID:   tenantID,
+			AgentID:    *parentID,
+			ProspectID: prospect.ID,
+			PackageID:  &pkgID,
+			Type:       "override",
+			Amount:     overrideAmount,
+			ReleasedAt: releasedAt,
+		})
 	}
-	if s.commissionLedgerRepo != nil {
-		if err := s.commissionLedgerRepo.Create(ctx, tenantID, directLedger); err != nil {
-			return err
+
+	if err := s.createLedgers(ctx, tenantID, entries); err != nil {
+		return err
+	}
+
+	if directAmount > 0 {
+		body := fmt.Sprintf("Komisi Rp %s dari closing jamaah %s sudah bisa dicairkan.", util.FormatRupiah(directAmount), prospect.Name)
+		if releasedAt == nil {
+			body = fmt.Sprintf("Komisi Rp %s dari closing (DP) jamaah %s tercatat. Komisi tertahan dan bisa dicairkan setelah jamaah lunas.", util.FormatRupiah(directAmount), prospect.Name)
 		}
+		s.notifyAgent(ctx, tenantID, *prospect.AgentID, "commission_earned", "Komisi baru tercatat", body, "/agen/riwayat-komisi")
 	}
-
-	// Trigger 4: In-app notification for direct agent
-	if s.notifService != nil && directAmount > 0 && prospect.AgentID != nil {
-		tID := tenantID
-		_, notifErr := s.notifService.CreateNotification(
-			ctx,
-			&tID,
-			"agent",
-			*prospect.AgentID,
-			"commission_earned",
-			"Komisi baru masuk",
-			fmt.Sprintf("Komisi Rp %s dari closing jamaah %s", util.FormatRupiah(directAmount), prospect.Name),
-			"/agen/riwayat-komisi",
-		)
-		if notifErr != nil {
-			log.Printf("[Notification] Failed to notify agent %d of commission: %v", *prospect.AgentID, notifErr)
+	if parentID != nil && overrideAmount > 0 {
+		body := fmt.Sprintf("Komisi override Rp %s dari jaringan Anda sudah bisa dicairkan.", util.FormatRupiah(overrideAmount))
+		if releasedAt == nil {
+			body = fmt.Sprintf("Komisi override Rp %s dari jaringan Anda tercatat dan tertahan sampai jamaah lunas.", util.FormatRupiah(overrideAmount))
 		}
+		s.notifyAgent(ctx, tenantID, *parentID, "commission_override_earned", "Komisi override tercatat", body, "/agen/riwayat-komisi")
 	}
-
-	// 2. Check override commission for parent agent
-	if s.tenantRepo != nil && s.agentRepo != nil && s.commissionLedgerRepo != nil {
-		tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
-		if err == nil && tenant != nil && tenant.CommissionOverrideEnabled && tenant.CommissionOverridePercentage != nil && *tenant.CommissionOverridePercentage > 0 {
-			agent, err := s.agentRepo.GetByID(ctx, tenantID, *prospect.AgentID)
-			if err == nil && agent != nil && agent.ParentAgentID != nil {
-				overrideAmount := (*tenant.CommissionOverridePercentage / 100.0) * directAmount
-				overrideLedger := &repository.CommissionLedger{
-					TenantID:   tenantID,
-					AgentID:    *agent.ParentAgentID,
-					ProspectID: prospect.ID,
-					PackageID:  &pkgID,
-					Type:       "override",
-					Amount:     overrideAmount,
-					Notes:      nil,
-				}
-				if err := s.commissionLedgerRepo.Create(ctx, tenantID, overrideLedger); err != nil {
-					return err
-				}
-
-				if s.notifService != nil && overrideAmount > 0 {
-					tID := tenantID
-					_, notifErr := s.notifService.CreateNotification(
-						ctx,
-						&tID,
-						"agent",
-						*agent.ParentAgentID,
-						"commission_override_earned",
-						"Komisi override baru masuk",
-						fmt.Sprintf("Komisi override Rp %s dari jaringan Anda", util.FormatRupiah(overrideAmount)),
-						"/agen/riwayat-komisi",
-					)
-					if notifErr != nil {
-						log.Printf("[Notification] Failed to notify parent agent %d of override commission: %v", *agent.ParentAgentID, notifErr)
-					}
-				}
-			}
-		}
-	}
-
 	return nil
 }
 
 func (s *prospectService) UpdateDetail(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, input UpdateProspectInput) error {
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		return ErrProspectNameRequired
+	name, err := validateProspectName(input.Name)
+	if err != nil {
+		return err
+	}
+	phone, phoneNormalized, err := validateProspectPhone(input.Phone)
+	if err != nil {
+		return err
+	}
+	if err := validateJumlahJamaah(input.JumlahJamaah); err != nil {
+		return err
+	}
+	domicile, err := validateDomicile(input.Domicile)
+	if err != nil {
+		return err
 	}
 
-	phone := strings.TrimSpace(input.Phone)
-	if phone == "" {
-		return ErrProspectPhoneRequired
-	}
-
-	if input.JumlahJamaah != nil && *input.JumlahJamaah <= 0 {
-		return ErrInvalidJumlahJamaah
-	}
-
-	// Verify package if provided
+	var newPkg *repository.Package
 	if input.PackageID != nil {
-		_, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID)
+		p, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return ErrPackageNotFound
 			}
 			return err
 		}
+		newPkg = p
 	}
 
 	prospect, err := s.prospectRepo.GetByID(ctx, tenantID, id)
 	if err != nil {
 		return err
 	}
+	if prospect.AnonymizedAt != nil {
+		return ErrProspectAnonymized
+	}
 
-	// If prospect is already closing, check if jumlah_jamaah changed
-	if prospect.Status == "closing" && s.commissionLedgerRepo != nil {
-		oldJamaah := 1
-		if prospect.JumlahJamaah != nil && *prospect.JumlahJamaah > 0 {
-			oldJamaah = *prospect.JumlahJamaah
+	// An unchanged planned month is kept even if it is in the past by now; the "upcoming month" rule
+	// only applies when the admin picks a new month (otherwise an old prospect could never be edited).
+	departurePlan := prospect.DeparturePlan
+	if !sameStringPtr(trimmedPtr(input.DeparturePlan), prospect.DeparturePlan) {
+		departurePlan, err = validateDeparturePlan(input.DeparturePlan)
+		if err != nil {
+			return err
 		}
+	}
 
-		newJamaah := 1
-		if input.JumlahJamaah != nil && *input.JumlahJamaah > 0 {
-			newJamaah = *input.JumlahJamaah
+	// A new number must not collide with another prospect that is still being worked on.
+	if prospect.PhoneNormalized == nil || *prospect.PhoneNormalized != phoneNormalized {
+		other, err := s.prospectRepo.FindOpenByPhone(ctx, tenantID, phoneNormalized)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return err
 		}
+		if other != nil && other.ID != prospect.ID {
+			return fmt.Errorf("%w (prospek #%d atas nama %s)", ErrPhoneUsedByOpenProspect, other.ID, other.Name)
+		}
+	}
 
-		if oldJamaah != newJamaah {
-			var reason string
-			if input.CorrectionReason != nil {
-				reason = strings.TrimSpace(*input.CorrectionReason)
-			}
-			if reason == "" {
-				return errors.New("alasan koreksi wajib diisi saat mengubah jumlah jamaah pada prospek yang sudah closing")
-			}
-
-			// Find existing direct and override ledgers
-			ledgers, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, id)
-			if err == nil && len(ledgers) > 0 {
-				var directLedger *repository.CommissionLedger
-				var overrideLedger *repository.CommissionLedger
-
-				for i := range ledgers {
-					if ledgers[i].Type == "direct" && directLedger == nil {
-						directLedger = &ledgers[i]
-					} else if ledgers[i].Type == "override" && overrideLedger == nil {
-						overrideLedger = &ledgers[i]
-					}
-				}
-
-				if directLedger != nil && oldJamaah > 0 {
-					ratePerJamaah := directLedger.Amount / float64(oldJamaah)
-					selisihJamaah := newJamaah - oldJamaah
-					selisihDirect := ratePerJamaah * float64(selisihJamaah)
-
-					correctionDirect := &repository.CommissionLedger{
-						TenantID:   tenantID,
-						AgentID:    directLedger.AgentID,
-						ProspectID: id,
-						PackageID:  directLedger.PackageID,
-						Type:       "correction",
-						Amount:     selisihDirect,
-						Notes:      &reason,
-					}
-					_ = s.commissionLedgerRepo.Create(ctx, tenantID, correctionDirect)
-
-					if overrideLedger != nil && directLedger.Amount > 0 {
-						overrideRatio := overrideLedger.Amount / directLedger.Amount
-						selisihOverride := selisihDirect * overrideRatio
-
-						correctionOverride := &repository.CommissionLedger{
-							TenantID:   tenantID,
-							AgentID:    overrideLedger.AgentID,
-							ProspectID: id,
-							PackageID:  overrideLedger.PackageID,
-							Type:       "correction",
-							Amount:     selisihOverride,
-							Notes:      &reason,
-						}
-						_ = s.commissionLedgerRepo.Create(ctx, tenantID, correctionOverride)
-					}
-				}
-			}
+	if prospect.Status == "closing" {
+		if err := s.correctClosedCommission(ctx, tenantID, prospect, newPkg, input); err != nil {
+			return err
 		}
 	}
 
 	prospect.Name = name
 	prospect.Phone = phone
+	prospect.PhoneNormalized = &phoneNormalized
 	prospect.PackageID = input.PackageID
 	prospect.JumlahJamaah = input.JumlahJamaah
+	prospect.DeparturePlan = departurePlan
+	prospect.Domicile = domicile
 
 	return s.prospectRepo.Update(ctx, tenantID, prospect)
+}
+
+// correctClosedCommission books correction entries when the package or jamaah count of a closed
+// prospect changes, so the agent's commission always equals (package commission × jamaah).
+// Earlier entries are never edited or deleted (audit trail).
+func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID uint64, prospect *repository.Prospect, newPkg *repository.Package, input UpdateProspectInput) error {
+	oldJamaah := 1
+	if prospect.JumlahJamaah != nil && *prospect.JumlahJamaah > 0 {
+		oldJamaah = *prospect.JumlahJamaah
+	}
+	newJamaah := 1
+	if input.JumlahJamaah != nil && *input.JumlahJamaah > 0 {
+		newJamaah = *input.JumlahJamaah
+	}
+	packageChanged := !sameUint64Ptr(prospect.PackageID, input.PackageID)
+	if oldJamaah == newJamaah && !packageChanged {
+		return nil
+	}
+
+	var reason string
+	if input.CorrectionReason != nil {
+		reason = strings.TrimSpace(*input.CorrectionReason)
+	}
+	if reason == "" {
+		return ErrCorrectionReasonRequired
+	}
+
+	if prospect.AgentID == nil || s.commissionLedgerRepo == nil {
+		return nil
+	}
+	agentID := *prospect.AgentID
+
+	ledgers, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, prospect.ID)
+	if err != nil {
+		return err
+	}
+
+	var directTotal, overrideTotal float64
+	var overrideAgentID *uint64
+	for i := range ledgers {
+		l := ledgers[i]
+		switch {
+		case l.Type == "direct" || (l.Type == "correction" && l.AgentID == agentID):
+			directTotal += l.Amount
+		default:
+			overrideTotal += l.Amount
+			if overrideAgentID == nil {
+				a := l.AgentID
+				overrideAgentID = &a
+			}
+		}
+	}
+
+	rate := 0.0
+	var pkgID *uint64
+	if newPkg != nil {
+		id := newPkg.ID
+		pkgID = &id
+		if newPkg.CommissionAmount != nil && *newPkg.CommissionAmount > 0 {
+			rate = *newPkg.CommissionAmount
+		}
+	}
+	targetDirect := rate * float64(newJamaah)
+
+	// Keep the override share the prospect was closed with; if it had none yet, use the tenant's
+	// current override setting.
+	var targetOverride float64
+	if overrideAgentID != nil && directTotal > 0 {
+		targetOverride = targetDirect * (overrideTotal / directTotal)
+	} else if overrideAgentID == nil {
+		if parentID, pct := s.overrideFor(ctx, tenantID, agentID); parentID != nil {
+			overrideAgentID = parentID
+			targetOverride = (pct / 100.0) * targetDirect
+		}
+	}
+
+	releasedAt := s.releaseTimeFor(ctx, tenantID, prospect)
+	var entries []*repository.CommissionLedger
+	if diff := targetDirect - directTotal; diff != 0 {
+		entries = append(entries, &repository.CommissionLedger{
+			TenantID: tenantID, AgentID: agentID, ProspectID: prospect.ID, PackageID: pkgID,
+			Type: "correction", Amount: diff, Notes: &reason, ReleasedAt: releasedAt,
+		})
+	}
+	if overrideAgentID != nil {
+		if diff := targetOverride - overrideTotal; diff != 0 {
+			entries = append(entries, &repository.CommissionLedger{
+				TenantID: tenantID, AgentID: *overrideAgentID, ProspectID: prospect.ID, PackageID: pkgID,
+				Type: "correction", Amount: diff, Notes: &reason, ReleasedAt: releasedAt,
+			})
+		}
+	}
+	return s.createLedgers(ctx, tenantID, entries)
+}
+
+func sameUint64Ptr(a, b *uint64) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }
 
 func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uint64) (*ProspectDetailResponse, error) {
@@ -691,11 +1180,23 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 			jamaah = *prospect.JumlahJamaah
 		}
 
-		if prospect.Status == "closing" && s.commissionLedgerRepo != nil {
+		if (prospect.Status == "closing" || prospect.Status == "tidak_lanjut") && s.commissionLedgerRepo != nil {
 			ledgers, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, id)
 			if err == nil && len(ledgers) > 0 {
-				var directTotal, overrideTotal float64
+				var directTotal, overrideTotal, heldTotal, releasedTotal, agentHeld, agentReleased float64
 				for _, l := range ledgers {
+					if l.ReleasedAt == nil {
+						heldTotal += l.Amount
+					} else {
+						releasedTotal += l.Amount
+					}
+					if l.AgentID == *prospect.AgentID {
+						if l.ReleasedAt == nil {
+							agentHeld += l.Amount
+						} else {
+							agentReleased += l.Amount
+						}
+					}
 					if l.Type == "direct" {
 						directTotal += l.Amount
 					} else if l.Type == "override" {
@@ -712,18 +1213,27 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 				if jamaah > 0 {
 					rate = directTotal / float64(jamaah)
 				}
+				infoType := "final"
+				if prospect.Status == "tidak_lanjut" {
+					// Closing cancelled after DP: the commission was reversed (net amounts, usually 0).
+					infoType = "dibatalkan"
+				}
 				commissionInfo = &ProspectCommissionInfo{
-					Type:           "final",
-					DirectAmount:   directTotal,
-					OverrideAmount: overrideTotal,
-					TotalAmount:    directTotal + overrideTotal,
-					RatePerJamaah:  rate,
+					Type:                infoType,
+					DirectAmount:        directTotal,
+					OverrideAmount:      overrideTotal,
+					TotalAmount:         directTotal + overrideTotal,
+					RatePerJamaah:       rate,
+					HeldAmount:          heldTotal,
+					ReleasedAmount:      releasedTotal,
+					AgentHeldAmount:     agentHeld,
+					AgentReleasedAmount: agentReleased,
 				}
 			}
 		}
 
-		// If not closing or no ledger found, calculate potential only for non-closing prospects
-		if commissionInfo == nil && prospect.Status != "closing" {
+		// Potential commission only for prospects still in progress (never for 'tidak_lanjut').
+		if commissionInfo == nil && prospect.Status != "closing" && prospect.Status != "tidak_lanjut" {
 			rate := 0.0
 			if pkg != nil && pkg.CommissionAmount != nil {
 				rate = *pkg.CommissionAmount
@@ -761,15 +1271,18 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 }
 
 func (s *prospectService) AddNote(ctx context.Context, tenantID uint64, prospectID uint64, adminUserID uint64, noteText string) (*repository.ProspectNote, error) {
-	trimmed := strings.TrimSpace(noteText)
-	if trimmed == "" {
-		return nil, errors.New("catatan tidak boleh kosong")
+	trimmed, err := validateNoteText(noteText)
+	if err != nil {
+		return nil, err
 	}
 
 	// Verify prospect belongs to tenant
-	_, err := s.prospectRepo.GetByID(ctx, tenantID, prospectID)
+	existing, err := s.prospectRepo.GetByID(ctx, tenantID, prospectID)
 	if err != nil {
 		return nil, err
+	}
+	if existing.AnonymizedAt != nil {
+		return nil, ErrProspectAnonymized
 	}
 
 	note := &repository.ProspectNote{
@@ -779,12 +1292,57 @@ func (s *prospectService) AddNote(ctx context.Context, tenantID uint64, prospect
 		AuthorID:   adminUserID,
 		NoteText:   trimmed,
 	}
-
 	if err := s.noteRepo.Create(ctx, tenantID, note); err != nil {
 		return nil, err
 	}
-
 	return note, nil
+}
+
+// Delete removes a prospect (e.g. spam or test entries). Closed prospects and prospects with commission
+// records are never deletable: that would erase the agent's earnings history.
+func (s *prospectService) Delete(ctx context.Context, tenantID uint64, id uint64) error {
+	prospect, err := s.prospectRepo.GetByID(ctx, tenantID, id)
+	if err != nil {
+		return err
+	}
+	if prospect.Status == "closing" {
+		return ErrProspectCannotDelete
+	}
+	if s.commissionLedgerRepo != nil {
+		ledgers, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, id)
+		if err != nil {
+			return err
+		}
+		if len(ledgers) > 0 {
+			return ErrProspectCannotDelete
+		}
+	}
+	return s.prospectRepo.Delete(ctx, tenantID, id)
+}
+
+// Anonymize removes the jamaah's personal data on their request (UU PDP right to erasure). The
+// prospect row, its status history and commission ledger stay, so the agent's earnings trail is kept.
+func (s *prospectService) Anonymize(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error {
+	prospect, err := s.prospectRepo.GetByID(ctx, tenantID, id)
+	if err != nil {
+		return err
+	}
+	if prospect.AnonymizedAt != nil {
+		return ErrProspectAnonymized
+	}
+	anonymizer, ok := s.prospectRepo.(prospectAnonymizer)
+	if !ok {
+		return errors.New("anonimisasi tidak didukung oleh penyimpanan data ini")
+	}
+	if err := anonymizer.Anonymize(ctx, tenantID, id); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return ErrProspectAnonymized
+		}
+		return err
+	}
+	s.addSystemNote(ctx, tenantID, id, fmt.Sprintf(
+		"Data pribadi jamaah dihapus atas permintaan jamaah (UU PDP) oleh admin #%d. Riwayat status dan komisi tetap disimpan.", adminUserID))
+	return nil
 }
 
 // sanitizeCSVField mitigates CSV Injection (formula injection) by prefixing an apostrophe
@@ -801,52 +1359,108 @@ func sanitizeCSVField(val string) string {
 	}
 }
 
-func (s *prospectService) ExportCSV(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]byte, error) {
-	if filter.Status != nil && *filter.Status != "" && *filter.Status != "all" {
-		status := strings.ToLower(strings.TrimSpace(*filter.Status))
-		if !validProspectStatuses[status] {
-			return nil, ErrInvalidProspectStatus
-		}
-		filter.Status = &status
+var jakartaLocation = func() *time.Location {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		return time.FixedZone("WIB", 7*60*60)
 	}
+	return loc
+}()
+
+func formatWIB(t time.Time) string {
+	return t.In(jakartaLocation).Format("2006-01-02 15:04")
+}
+
+func humanSourceChannel(source string) string {
+	switch source {
+	case "agen":
+		return "Agen"
+	case "paid":
+		return "Iklan"
+	default:
+		return "Organik"
+	}
+}
+
+func humanEntryMethod(method string) string {
+	if method == "agent_manual" {
+		return "Input manual agen"
+	}
+	return "Form web"
+}
+
+func strOrEmpty(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+
+func (s *prospectService) ExportCSV(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]byte, error) {
+	if err := normalizeStatusFilter(&filter); err != nil {
+		return nil, err
+	}
+	filter.Limit = 0
+	filter.Offset = 0
 	prospects, err := s.prospectRepo.ListWithFilter(ctx, tenantID, filter)
 	if err != nil {
 		return nil, err
 	}
 
 	var buf bytes.Buffer
+	// UTF-8 BOM so Excel shows names with non-ASCII characters correctly.
+	buf.Write([]byte{0xEF, 0xBB, 0xBF})
 	writer := csv.NewWriter(&buf)
 
-	// Write CSV header
-	header := []string{"id", "name", "phone", "jumlah_jamaah", "email", "source_channel", "status", "lost_reason", "created_at"}
+	header := []string{
+		"ID", "Tanggal Masuk (WIB)", "Nama", "No. WhatsApp", "Email", "Paket", "Jumlah Jamaah",
+		"Rencana Berangkat", "Domisili",
+		"Sumber", "Agen", "Cara Masuk", "Status", "Kategori Alasan", "Alasan Tidak Lanjut", "Tanggal Closing (WIB)",
+		"Tanggal Lunas (WIB)", "UTM Source", "UTM Medium", "UTM Campaign", "Persetujuan Kontak (WIB)",
+	}
 	if err := writer.Write(header); err != nil {
 		return nil, err
 	}
 
 	for _, p := range prospects {
-		jumlahJamaahStr := ""
-		if p.JumlahJamaah != nil {
-			jumlahJamaahStr = strconv.Itoa(*p.JumlahJamaah)
+		jumlah := "1"
+		if p.JumlahJamaah != nil && *p.JumlahJamaah > 0 {
+			jumlah = strconv.Itoa(*p.JumlahJamaah)
 		}
-		emailStr := ""
-		if p.Email != nil {
-			emailStr = *p.Email
+		// Closing/lunas dates only for prospects that are still closing (a cancelled closing has none).
+		closedAt, paidOffAt := "", ""
+		if p.Status == "closing" && p.ClosedAt != nil {
+			closedAt = formatWIB(*p.ClosedAt)
 		}
-		lostReasonStr := ""
-		if p.LostReason != nil {
-			lostReasonStr = *p.LostReason
+		if p.Status == "closing" && p.PaidOffAt != nil {
+			paidOffAt = formatWIB(*p.PaidOffAt)
 		}
-
+		consentAt := ""
+		if p.ConsentAt != nil {
+			consentAt = formatWIB(*p.ConsentAt)
+		}
 		row := []string{
 			strconv.FormatUint(p.ID, 10),
+			formatWIB(p.CreatedAt),
 			sanitizeCSVField(p.Name),
 			sanitizeCSVField(p.Phone),
-			sanitizeCSVField(jumlahJamaahStr),
-			sanitizeCSVField(emailStr),
-			sanitizeCSVField(p.SourceChannel),
-			p.Status,
-			sanitizeCSVField(lostReasonStr),
-			p.CreatedAt.Format(time.RFC3339),
+			sanitizeCSVField(strOrEmpty(p.Email)),
+			sanitizeCSVField(p.PackageName),
+			jumlah,
+			strOrEmpty(p.DeparturePlan),
+			sanitizeCSVField(strOrEmpty(p.Domicile)),
+			humanSourceChannel(p.SourceChannel),
+			sanitizeCSVField(p.AgentName),
+			humanEntryMethod(p.EntryMethod),
+			humanProspectStatus(p.Status),
+			humanLostReasonCategory(p.LostReasonCategory),
+			sanitizeCSVField(strOrEmpty(p.LostReason)),
+			closedAt,
+			paidOffAt,
+			sanitizeCSVField(strOrEmpty(p.UTMSource)),
+			sanitizeCSVField(strOrEmpty(p.UTMMedium)),
+			sanitizeCSVField(strOrEmpty(p.UTMCampaign)),
+			consentAt,
 		}
 		if err := writer.Write(row); err != nil {
 			return nil, err
@@ -857,7 +1471,6 @@ func (s *prospectService) ExportCSV(ctx context.Context, tenantID uint64, filter
 	if err := writer.Error(); err != nil {
 		return nil, err
 	}
-
 	return buf.Bytes(), nil
 }
 
@@ -876,6 +1489,52 @@ func (s *prospectService) verifyActiveAgent(ctx context.Context, tenantID, agent
 		return ErrAgentNotActive
 	}
 	return nil
+}
+
+// AgentProspectPage is one page of an agent's jamaah list.
+type AgentProspectPage struct {
+	Items    []repository.AgentProspectItem `json:"items"`
+	Total    int                            `json:"total"`
+	Page     int                            `json:"page"`
+	PageSize int                            `json:"page_size"`
+	// StatusCounts counts all of the agent's jamaah per status ("total" = all), for the status tabs.
+	StatusCounts map[string]int `json:"status_counts"`
+}
+
+func (s *prospectService) ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, page, pageSize int) (*AgentProspectPage, error) {
+	if err := s.verifyActiveAgent(ctx, tenantID, agentID); err != nil {
+		return nil, err
+	}
+	var status *string
+	if statusFilter != nil && *statusFilter != "" {
+		v := strings.ToLower(strings.TrimSpace(*statusFilter))
+		if !validProspectStatuses[v] {
+			return nil, ErrInvalidProspectStatus
+		}
+		status = &v
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > MaxProspectPageSize {
+		pageSize = MaxProspectPageSize
+	}
+	if page <= 0 {
+		page = 1
+	}
+	items, total, err := s.prospectRepo.ListByAgentPage(ctx, tenantID, agentID, status, search, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, err
+	}
+	result := &AgentProspectPage{Items: items, Total: total, Page: page, PageSize: pageSize, StatusCounts: map[string]int{}}
+	if counter, ok := s.prospectRepo.(agentStatusCounter); ok {
+		counts, err := counter.AgentStatusCounts(ctx, tenantID, agentID)
+		if err != nil {
+			return nil, err
+		}
+		result.StatusCounts = counts
+	}
+	return result, nil
 }
 
 func (s *prospectService) ListByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter *string) ([]repository.AgentProspectItem, error) {
@@ -909,10 +1568,32 @@ func (s *prospectService) GetDetailForAgent(ctx context.Context, tenantID uint64
 		return nil, repository.ErrNotFound
 	}
 
-	return s.GetDetail(ctx, tenantID, id)
+	detail, err := s.GetDetail(ctx, tenantID, id)
+	if err != nil {
+		return nil, err
+	}
+	// System notes are for the travel's admins: they can name other agents and other jamaah
+	// (e.g. "nomor ini sudah Closing di prospek #X milik agen Y"), which an agent must not see.
+	agentNotes := make([]repository.ProspectNote, 0, len(detail.Notes))
+	for _, n := range detail.Notes {
+		if n.AuthorType != "system" {
+			agentNotes = append(agentNotes, n)
+		}
+	}
+	detail.Notes = agentNotes
+	// The agent only sees their own commission: the upline's override is not theirs.
+	if info := detail.InfoKomisi; info != nil {
+		info.OverrideAmount = 0
+		info.TotalAmount = info.DirectAmount
+		if info.Type != "potensi" {
+			info.HeldAmount = info.AgentHeldAmount
+			info.ReleasedAmount = info.AgentReleasedAmount
+		}
+	}
+	return detail, nil
 }
 
-func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason *string) error {
+func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason, lostReasonCategory *string) error {
 	if err := s.verifyActiveAgent(ctx, tenantID, agentID); err != nil {
 		return err
 	}
@@ -925,6 +1606,10 @@ func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint
 	// VALIDASI KRITIS: prospect.agent_id HARUS SAMA PERSIS dengan agent yang login
 	if prospect.AgentID == nil || *prospect.AgentID != agentID {
 		return repository.ErrNotFound
+	}
+
+	if prospect.AnonymizedAt != nil {
+		return ErrProspectAnonymized
 	}
 
 	// GUARD PALING AWAL: kalau status LAMA prospek sudah 'closing', tolak 400 untuk perubahan status apa pun
@@ -940,33 +1625,26 @@ func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint
 	if !validProspectStatuses[status] {
 		return ErrInvalidProspectStatus
 	}
-
-	oldStatus := prospect.Status
-
-	var cleanLostReason *string
-	if status == "tidak_lanjut" && lostReason != nil {
-		trimmed := strings.TrimSpace(*lostReason)
-		if trimmed != "" {
-			cleanLostReason = &trimmed
-		}
-	}
-
-	if err := s.prospectRepo.UpdateStatus(ctx, tenantID, id, status, cleanLostReason); err != nil {
+	reason, category, err := cleanLostReasonWithCategory(status, lostReason, lostReasonCategory, false)
+	if err != nil {
 		return err
 	}
 
-	if oldStatus != status && s.statusHistoryRepo != nil {
-		history := &repository.ProspectStatusHistory{
-			TenantID:      tenantID,
-			ProspectID:    id,
-			ChangedByType: "agent",
-			ChangedByID:   agentID,
-			OldStatus:     oldStatus,
-			NewStatus:     status,
-		}
-		_ = s.statusHistoryRepo.Create(ctx, tenantID, history)
+	oldStatus := prospect.Status
+	if oldStatus == status && sameStringPtr(reason, prospect.LostReason) && sameStringPtr(category, prospect.LostReasonCategory) {
+		return nil
 	}
 
+	if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, oldStatus, status, reason, category); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return ErrProspectStatusConflict
+		}
+		return err
+	}
+
+	if oldStatus != status {
+		s.recordHistory(ctx, tenantID, id, "agent", agentID, oldStatus, status)
+	}
 	return nil
 }
 
@@ -975,9 +1653,9 @@ func (s *prospectService) AddNoteByAgent(ctx context.Context, tenantID uint64, a
 		return nil, err
 	}
 
-	trimmed := strings.TrimSpace(noteText)
-	if trimmed == "" {
-		return nil, errors.New("catatan tidak boleh kosong")
+	trimmed, err := validateNoteText(noteText)
+	if err != nil {
+		return nil, err
 	}
 
 	prospect, err := s.prospectRepo.GetByID(ctx, tenantID, id)
@@ -989,6 +1667,9 @@ func (s *prospectService) AddNoteByAgent(ctx context.Context, tenantID uint64, a
 	if prospect.AgentID == nil || *prospect.AgentID != agentID {
 		return nil, repository.ErrNotFound
 	}
+	if prospect.AnonymizedAt != nil {
+		return nil, ErrProspectAnonymized
+	}
 
 	note := &repository.ProspectNote{
 		TenantID:   tenantID,
@@ -997,11 +1678,9 @@ func (s *prospectService) AddNoteByAgent(ctx context.Context, tenantID uint64, a
 		AuthorID:   agentID,
 		NoteText:   trimmed,
 	}
-
 	if err := s.noteRepo.Create(ctx, tenantID, note); err != nil {
 		return nil, err
 	}
-
 	return note, nil
 }
 
@@ -1010,29 +1689,36 @@ func (s *prospectService) CreateManualByAgent(ctx context.Context, tenantID uint
 		return nil, err
 	}
 
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		return nil, ErrProspectNameRequired
+	name, err := validateProspectName(input.Name)
+	if err != nil {
+		return nil, err
 	}
-
-	phone := strings.TrimSpace(input.Phone)
-	if phone == "" {
-		return nil, ErrProspectPhoneRequired
+	phone, phoneNormalized, err := validateProspectPhone(input.Phone)
+	if err != nil {
+		return nil, err
 	}
-	cleanDigits := strings.TrimPrefix(phone, "+")
-	cleanDigits = strings.ReplaceAll(cleanDigits, "-", "")
-	cleanDigits = strings.ReplaceAll(cleanDigits, " ", "")
-	for _, ch := range cleanDigits {
-		if ch < '0' || ch > '9' {
-			return nil, errors.New("format nomor WhatsApp tidak valid, hanya boleh berisi angka")
+	if err := validateJumlahJamaah(input.JumlahJamaah); err != nil {
+		return nil, err
+	}
+	departurePlan, err := validateDeparturePlan(input.DeparturePlan)
+	if err != nil {
+		return nil, err
+	}
+	domicile, err := validateDomicile(input.Domicile)
+	if err != nil {
+		return nil, err
+	}
+	// UU PDP: the agent confirms the jamaah agreed to be contacted before their data is stored.
+	if !input.Consent {
+		return nil, ErrAgentConsentRequired
+	}
+	consentAt := time.Now()
+	var catatan string
+	if input.CatatanAwal != nil && strings.TrimSpace(*input.CatatanAwal) != "" {
+		catatan, err = validateNoteText(*input.CatatanAwal)
+		if err != nil {
+			return nil, err
 		}
-	}
-	if len(cleanDigits) < 8 || len(cleanDigits) > 16 {
-		return nil, errors.New("panjang nomor WhatsApp tidak valid")
-	}
-
-	if input.JumlahJamaah != nil && *input.JumlahJamaah <= 0 {
-		return nil, ErrInvalidJumlahJamaah
 	}
 
 	jj := 1
@@ -1041,8 +1727,7 @@ func (s *prospectService) CreateManualByAgent(ctx context.Context, tenantID uint
 	}
 
 	if input.PackageID != nil {
-		_, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID)
-		if err != nil {
+		if _, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return nil, ErrPackageNotFound
 			}
@@ -1051,43 +1736,52 @@ func (s *prospectService) CreateManualByAgent(ctx context.Context, tenantID uint
 	}
 
 	prospect := &repository.Prospect{
-		TenantID:      tenantID,
-		PackageID:     input.PackageID,
-		AgentID:       &agentID,
-		Name:          name,
-		Phone:         phone,
-		JumlahJamaah:  &jj,
-		SourceChannel: "agen",
-		EntryMethod:   "agent_manual",
-		Status:        "baru",
+		TenantID:        tenantID,
+		PackageID:       input.PackageID,
+		AgentID:         &agentID,
+		Name:            name,
+		Phone:           phone,
+		PhoneNormalized: &phoneNormalized,
+		JumlahJamaah:    &jj,
+		DeparturePlan:   departurePlan,
+		Domicile:        domicile,
+		ConsentAt:       &consentAt,
+		SourceChannel:   "agen",
+		EntryMethod:     "agent_manual",
+		Status:          "baru",
 	}
 
-	if err := s.prospectRepo.Create(ctx, tenantID, prospect); err != nil {
+	// First owner wins: an agent cannot register a jamaah the travel is already working on.
+	err = s.withPhoneLock(ctx, tenantID, phoneNormalized, func() error {
+		existing, err := s.prospectRepo.FindOpenByPhone(ctx, tenantID, phoneNormalized)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return err
+		}
+		if existing != nil {
+			if existing.AgentID != nil && *existing.AgentID == agentID {
+				return ErrProspectAlreadyInYourList
+			}
+			return ErrProspectOwnedByOther
+		}
+		return s.prospectRepo.Create(ctx, tenantID, prospect)
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	if s.statusHistoryRepo != nil {
-		history := &repository.ProspectStatusHistory{
-			TenantID:      tenantID,
-			ProspectID:    prospect.ID,
-			ChangedByType: "agent",
-			ChangedByID:   agentID,
-			OldStatus:     "",
-			NewStatus:     "baru",
-		}
-		_ = s.statusHistoryRepo.Create(ctx, tenantID, history)
-	}
+	s.recordHistory(ctx, tenantID, prospect.ID, "agent", agentID, "", "baru")
+	s.flagEarlierClosing(ctx, tenantID, prospect)
 
-	if input.CatatanAwal != nil && strings.TrimSpace(*input.CatatanAwal) != "" {
-		if s.noteRepo != nil {
-			note := &repository.ProspectNote{
-				TenantID:   tenantID,
-				ProspectID: prospect.ID,
-				AuthorType: "agent",
-				AuthorID:   agentID,
-				NoteText:   strings.TrimSpace(*input.CatatanAwal),
-			}
-			_ = s.noteRepo.Create(ctx, tenantID, note)
+	if catatan != "" && s.noteRepo != nil {
+		note := &repository.ProspectNote{
+			TenantID:   tenantID,
+			ProspectID: prospect.ID,
+			AuthorType: "agent",
+			AuthorID:   agentID,
+			NoteText:   catatan,
+		}
+		if err := s.noteRepo.Create(ctx, tenantID, note); err != nil {
+			log.Printf("[Prospect] Failed to save initial note for prospect %d: %v", prospect.ID, err)
 		}
 	}
 

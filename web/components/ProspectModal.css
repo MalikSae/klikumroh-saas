@@ -57,7 +57,7 @@
 }
 
 .tw-modal-selected-pkg {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 6%, #F8F9FA);
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-page-bg));
   border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -79,10 +79,10 @@
 
 .tw-modal-error {
   padding: 8px 12px;
-  background-color: #FEF2F2;
-  border: 1px solid #FECACA;
+  background-color: var(--tw-badge-danger-bg);
+  border: 1px solid color-mix(in srgb, var(--tw-badge-danger-text) 25%, transparent);
   border-radius: var(--radius-sm);
-  color: #991B1B;
+  color: var(--tw-badge-danger-text);
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -123,4 +123,50 @@
   color: var(--tw-text-secondary);
   margin-top: 8px;
   line-height: 1.4;
+}
+
+/* ─── Prospect audit additions ─────────────────────────────────────────────── */
+
+.tw-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tw-modal-submit {
+  margin-top: 8px;
+}
+
+.tw-modal-success__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Honeypot field: off-screen for people and assistive tech, still present for bots. */
+.tw-modal-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Consent (UU PDP): left-aligned checkbox + text. */
+.tw-modal-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-text-secondary);
+  cursor: pointer;
+}
+
+.tw-modal-consent input {
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--tw-brand-primary);
 }

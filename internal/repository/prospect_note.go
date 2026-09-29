@@ -11,7 +11,7 @@ type ProspectNote struct {
 	ID         uint64    `json:"id"`
 	TenantID   uint64    `json:"tenant_id"`
 	ProspectID uint64    `json:"prospect_id"`
-	AuthorType string    `json:"author_type"` // 'admin', 'agent'
+	AuthorType string    `json:"author_type"` // 'admin', 'agent', 'system'
 	AuthorID   uint64    `json:"author_id"`
 	AuthorName *string   `json:"author_name,omitempty"`
 	NoteText   string    `json:"note_text"`
@@ -64,8 +64,9 @@ func (r *mysqlProspectNoteRepository) ListByProspect(ctx context.Context, tenant
 		SELECT n.id, n.tenant_id, n.prospect_id, n.author_type, n.author_id,
 			n.note_text, n.created_at,
 			CASE 
-				WHEN n.author_type = 'admin' THEN u.name 
-				ELSE NULL 
+				WHEN n.author_type = 'admin' THEN u.name
+				WHEN n.author_type = 'system' THEN 'Sistem'
+				ELSE NULL
 			END as author_name
 		FROM prospect_notes n
 		LEFT JOIN admin_users u ON n.author_type = 'admin' AND n.author_id = u.id AND u.tenant_id = n.tenant_id

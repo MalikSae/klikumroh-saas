@@ -22,7 +22,7 @@
   border-radius: 9px;
   overflow: hidden;
   box-sizing: border-box;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--db-shadow-xs);
 }
 
 .db-pipeline-segment {
@@ -522,4 +522,146 @@
     flex: 1;
     min-width: 120px;
   }
+}
+
+/* ─── Prospect audit additions (server list, closing confirmation) ────────── */
+
+.db-prospect-id-cell {
+  font-family: var(--db-font-body);
+  font-weight: var(--db-weight-bold);
+  font-size: var(--db-text-xs);
+  color: var(--db-text-muted);
+}
+
+.db-prospect-source-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.db-prospect-source-label {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  font-weight: var(--db-weight-semibold);
+  color: var(--db-text-primary);
+}
+
+.db-prospect-source-sub {
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-xs);
+  color: var(--db-text-muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-prospect-lost-reason {
+  font-size: var(--db-text-xs);
+  color: var(--db-negative);
+  margin-top: 3px;
+  max-width: 180px;
+  white-space: normal;
+}
+
+.db-prospect-dropdown-final {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font-size: var(--db-text-xs);
+  font-weight: var(--db-weight-bold);
+  color: var(--db-positive);
+}
+
+.db-prospect-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.db-prospect-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.db-prospect-modal-alert {
+  padding: 8px 12px;
+  font-size: var(--db-text-sm);
+}
+
+.db-prospect-modal-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--db-font-body);
+  font-size: var(--db-text-sm);
+  font-weight: var(--db-weight-semibold);
+  color: var(--db-text-primary);
+}
+
+.db-prospect-required {
+  color: var(--db-negative);
+}
+
+.db-prospect-closing-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--db-status-closing-border);
+  background-color: var(--db-status-closing-bg);
+  color: var(--db-status-closing);
+  font-size: var(--db-text-sm);
+  line-height: var(--db-leading-normal);
+}
+
+.db-prospect-closing-warning svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.db-prospect-closing-warning--confirm {
+  border-color: var(--db-status-contacted-border);
+  background-color: var(--db-status-contacted-bg);
+  color: var(--db-status-contacted);
+}
+
+.db-prospect-payoff {
+  margin-top: 3px;
+  font-size: var(--db-text-xs);
+  color: var(--db-status-contacted);
+}
+
+.db-prospect-payoff--done {
+  color: var(--db-status-closing);
+  font-weight: var(--db-weight-semibold);
+}
+
+.db-prospect-modal-subfield {
+  margin-top: 8px;
+}
+
+/* Lost-reason breakdown line (T5): informational, so no accent or card. */
+.db-prospect-lost-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--db-text-muted);
+}
+
+.db-prospect-lost-summary__title {
+  font-weight: 500;
+  color: var(--db-text-primary);
+}
+
+.db-prospect-lost-summary__item strong {
+  font-weight: 600;
+  color: var(--db-text-primary);
 }
