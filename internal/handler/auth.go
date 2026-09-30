@@ -5,9 +5,11 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"klikumroh/internal/middleware"
 	"klikumroh/internal/service"
 )
 
@@ -19,18 +21,23 @@ type loginRequest struct {
 // AuthHandler handles HTTP endpoints for authentication.
 type AuthHandler struct {
 	authService service.AuthService
+	// Brute-force protection: failed logins per email, plus a per-IP cap on login calls.
+	loginFailures *middleware.LoginFailureLimiter
+	loginLimiter  func(http.Handler) http.Handler
 }
 
 // NewAuthHandler creates a new AuthHandler instance.
 func NewAuthHandler(authService service.AuthService) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
+		authService:   authService,
+		loginFailures: middleware.NewLoginFailureLimiter(5, 15*time.Minute),
+		loginLimiter:  middleware.NewIPRateLimiter(20, time.Minute),
 	}
 }
 
 // RegisterRoutes mounts the auth routes onto the chi router.
 func (h *AuthHandler) RegisterRoutes(r chi.Router) {
-	r.Post("/api/auth/login", h.Login)
+	r.With(h.loginLimiter).Post("/api/auth/login", h.Login)
 	r.Post("/api/auth/logout", h.Logout)
 }
 
@@ -48,9 +55,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	key := middleware.LoginKey("admin", req.Email)
+	if h.loginFailures != nil && h.loginFailures.Blocked(key) {
+		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": middleware.LoginLockedMessage})
+		return
+	}
+
 	res, err := h.authService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
+			if h.loginFailures != nil {
+				h.loginFailures.Fail(key)
+			}
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 			return
 		}
@@ -58,6 +74,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.loginFailures != nil {
+		h.loginFailures.Reset(key)
+	}
 	respondJSON(w, http.StatusOK, res)
 }
 
