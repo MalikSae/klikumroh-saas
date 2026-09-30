@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -128,12 +129,34 @@ func (m *mockDomainRepoDedicated) FindByHostname(ctx context.Context, hostname s
 type mockDNSResolver struct {
 	responses map[string]string
 	errors    map[string]error
+	txt       map[string][]string
+	ips       map[string][]string
+}
+
+func (r *mockDNSResolver) LookupIP(host string) ([]net.IP, error) {
+	if ips, ok := r.ips[strings.TrimSpace(strings.ToLower(host))]; ok {
+		var out []net.IP
+		for _, ip := range ips {
+			out = append(out, net.ParseIP(ip))
+		}
+		return out, nil
+	}
+	return nil, errors.New("no such host")
+}
+
+func (r *mockDNSResolver) LookupTXT(name string) ([]string, error) {
+	if recs, ok := r.txt[strings.TrimSpace(strings.ToLower(name))]; ok {
+		return recs, nil
+	}
+	return nil, errors.New("no such host")
 }
 
 func newMockDNSResolver() *mockDNSResolver {
 	return &mockDNSResolver{
 		responses: make(map[string]string),
 		errors:    make(map[string]error),
+		txt:       make(map[string][]string),
+		ips:       make(map[string][]string),
 	}
 }
 
@@ -211,8 +234,46 @@ func TestDomainHandler_VerifyDNS_MockResolver(t *testing.T) {
 		}
 	})
 
+	verify := func(t *testing.T) repository.Domain {
+		t.Helper()
+		req := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/domains/%d/verify", customDom.ID), nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		var resp repository.Domain
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		return resp
+	}
+
+	// D1: a CNAME alone does not prove this travel owns the domain.
+	t.Run("CNAME match without the TXT token stays failed and returns the token to publish", func(t *testing.T) {
+		dnsResolver.responses["umroh.berkah.com"] = "cname.klikumroh.id."
+		resp := verify(t)
+		if resp.Status != "failed" {
+			t.Fatalf("expected status 'failed', got '%s'", resp.Status)
+		}
+		if resp.VerificationFailureReason == nil || !strings.Contains(*resp.VerificationFailureReason, "TXT record") {
+			t.Fatalf("expected a TXT failure reason, got %v", resp.VerificationFailureReason)
+		}
+		if resp.VerificationToken != service.DomainVerificationToken(tenantID, "umroh.berkah.com") {
+			t.Fatalf("expected verification token in response, got %q", resp.VerificationToken)
+		}
+	})
+
+	t.Run("another travel's TXT token does not activate the domain", func(t *testing.T) {
+		dnsResolver.txt["_klikumroh-verify.umroh.berkah.com"] = []string{service.DomainVerificationToken(tenantID+1, "umroh.berkah.com")}
+		if resp := verify(t); resp.Status != "failed" {
+			t.Fatalf("expected status 'failed', got '%s'", resp.Status)
+		}
+	})
+
 	t.Run("CNAME match sets status to active and sets dns_verified_at", func(t *testing.T) {
 		dnsResolver.responses["umroh.berkah.com"] = "cname.klikumroh.id."
+		dnsResolver.txt["_klikumroh-verify.umroh.berkah.com"] = []string{"v=spf1 -all", service.DomainVerificationToken(tenantID, "umroh.berkah.com")}
 
 		req := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/domains/%d/verify", customDom.ID), nil)
 		rec := httptest.NewRecorder()
@@ -237,6 +298,74 @@ func TestDomainHandler_VerifyDNS_MockResolver(t *testing.T) {
 			t.Errorf("expected verified_at timestamp to be set")
 		}
 	})
+
+	// D3/D4: re-checking an active domain during a DNS failure keeps it active; after 3 failures in a row
+	// the default subdomain stops redirecting to it, and one success resets the counter.
+	t.Run("failed re-check of an active domain keeps it active and counts failures", func(t *testing.T) {
+		sub := &repository.Domain{TenantID: tenantID, Hostname: "berkah.klikumroh.id", Type: "subdomain", Status: "active"}
+		_ = repo.Create(context.Background(), tenantID, sub)
+		target := func() *repository.Domain {
+			d, _ := domainSvc.GetActiveCustomDomainByHost(context.Background(), "berkah.klikumroh.id")
+			return d
+		}
+		if target() == nil {
+			t.Fatal("expected subdomain to redirect to the active custom domain")
+		}
+
+		dnsResolver.responses["umroh.berkah.com"] = "somewhere-else.example."
+		for i := 1; i <= service.MaxDomainCheckFailures; i++ {
+			resp := verify(t)
+			if resp.Status != "active" || resp.CheckFailures != i {
+				t.Fatalf("check %d: expected active with %d failures, got %s / %d", i, i, resp.Status, resp.CheckFailures)
+			}
+			if i < service.MaxDomainCheckFailures && target() == nil {
+				t.Fatalf("redirect stopped too early after %d failures", i)
+			}
+		}
+		if target() != nil {
+			t.Fatal("expected subdomain redirect to stop after repeated DNS failures")
+		}
+
+		dnsResolver.responses["umroh.berkah.com"] = "cname.klikumroh.id."
+		if resp := verify(t); resp.CheckFailures != 0 {
+			t.Fatalf("expected counter reset after a successful check, got %d", resp.CheckFailures)
+		}
+		if target() == nil {
+			t.Fatal("expected redirect to resume after DNS is fixed")
+		}
+	})
+}
+
+// D1: an unverified claim by another travel does not block the travel that really owns the domain;
+// an active domain still does.
+func TestDomainHandler_UnverifiedClaimDoesNotBlock(t *testing.T) {
+	repo := newMockDomainRepoDedicated()
+	domainSvc := service.NewDomainService(repo, newMockDNSResolver())
+	ctx := context.Background()
+
+	if _, err := domainSvc.RegisterCustomDomain(ctx, 1, "rebutan.com"); err != nil {
+		t.Fatalf("squatter register: %v", err)
+	}
+	res, err := domainSvc.RegisterCustomDomain(ctx, 2, "rebutan.com")
+	if err != nil {
+		t.Fatalf("owner register must not be blocked by an unverified claim: %v", err)
+	}
+	if res.TXTName != "_klikumroh-verify.rebutan.com" || res.TXTValue != service.DomainVerificationToken(2, "rebutan.com") {
+		t.Fatalf("unexpected TXT instruction: %s = %s", res.TXTName, res.TXTValue)
+	}
+	if list, _ := domainSvc.ListDomains(ctx, 1); len(list) != 0 {
+		t.Fatalf("squatter's unverified claim should be released, still has %d", len(list))
+	}
+	if _, err := domainSvc.RegisterCustomDomain(ctx, 2, "rebutan.com"); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+		t.Fatalf("registering own domain twice: expected ErrDomainAlreadyUsed, got %v", err)
+	}
+
+	d, _ := repo.FindByHostname(ctx, "rebutan.com")
+	d.Status = "active"
+	_ = repo.Update(ctx, 2, d)
+	if _, err := domainSvc.RegisterCustomDomain(ctx, 1, "rebutan.com"); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+		t.Fatalf("active domain of another travel: expected ErrDomainAlreadyUsed, got %v", err)
+	}
 }
 
 // 2. /internal/domain-ask: domain custom yang status='active' → 200. Status 'pending' → 404. Hostname yang sama sekali tidak terdaftar → 404
@@ -583,4 +712,78 @@ func TestDomainHandler_RegisterCustomDomain_Validation(t *testing.T) {
 			t.Errorf("expected initial status 'pending', got '%s'", resp.Domain.Status)
 		}
 	})
+}
+
+func (m *mockDomainRepoDedicated) ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for id, d := range m.domains {
+		if d.Hostname == hostname && d.Type == "custom" && d.Status != "active" && d.TenantID != exceptTenantID {
+			delete(m.domains, id)
+		}
+	}
+	return nil
+}
+
+func (m *mockDomainRepoDedicated) ListActiveCustom(ctx context.Context) ([]repository.Domain, error) {
+	return nil, nil
+}
+
+// D5: a root domain (no CNAME possible) is verified by A records that all point to the platform server.
+func TestDomainHandler_RootDomainARecord(t *testing.T) {
+	repo := newMockDomainRepoDedicated()
+	dns := newMockDNSResolver()
+	dns.ips["cname.klikumroh.id"] = []string{"203.0.113.10"}
+	domainSvc := service.NewDomainService(repo, dns)
+	ctx := context.Background()
+	tenantID := uint64(5)
+
+	res, err := domainSvc.RegisterCustomDomain(ctx, tenantID, "namatravel.com")
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	if len(res.ARecordTargets) != 1 || res.ARecordTargets[0] != "203.0.113.10" {
+		t.Fatalf("expected A-record target 203.0.113.10, got %v", res.ARecordTargets)
+	}
+	// A root domain has no CNAME: the resolver returns the name itself.
+	dns.responses["namatravel.com"] = "namatravel.com."
+	dns.txt["_klikumroh-verify.namatravel.com"] = []string{service.DomainVerificationToken(tenantID, "namatravel.com")}
+
+	cases := []struct {
+		name   string
+		ips    []string
+		active bool
+		reason string
+	}{
+		{"A record to another server", []string{"198.51.100.7"}, false, "198.51.100.7"},
+		{"A records mixing platform and another server", []string{"203.0.113.10", "198.51.100.7"}, false, "198.51.100.7"},
+		{"no address records", nil, false, "belum mengarah"},
+		{"A record to the platform server", []string{"203.0.113.10"}, true, ""},
+	}
+	for _, c := range cases {
+		if c.ips == nil {
+			delete(dns.ips, "namatravel.com")
+		} else {
+			dns.ips["namatravel.com"] = c.ips
+		}
+		d, err := domainSvc.VerifyDomain(ctx, tenantID, res.Domain.ID)
+		if err != nil {
+			t.Fatalf("%s: verify: %v", c.name, err)
+		}
+		if (d.Status == "active") != c.active {
+			t.Fatalf("%s: expected active=%v, got %s (%v)", c.name, c.active, d.Status, d.VerificationFailureReason)
+		}
+		if !c.active && (d.VerificationFailureReason == nil || !strings.Contains(*d.VerificationFailureReason, c.reason)) {
+			t.Fatalf("%s: expected reason containing %q, got %v", c.name, c.reason, d.VerificationFailureReason)
+		}
+	}
+
+	// A CNAME to somewhere else is still rejected, even if the addresses happen to match.
+	sub, _ := domainSvc.RegisterCustomDomain(ctx, tenantID, "www.namatravel.com")
+	dns.responses["www.namatravel.com"] = "other-host.example."
+	dns.ips["www.namatravel.com"] = []string{"203.0.113.10"}
+	dns.txt["_klikumroh-verify.www.namatravel.com"] = []string{service.DomainVerificationToken(tenantID, "www.namatravel.com")}
+	if d, _ := domainSvc.VerifyDomain(ctx, tenantID, sub.Domain.ID); d.Status == "active" {
+		t.Fatal("CNAME to a foreign host must not verify")
+	}
 }

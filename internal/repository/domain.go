@@ -20,8 +20,12 @@ type Domain struct {
 	LastVerificationAttemptAt *time.Time `json:"last_verification_attempt_at,omitempty"`
 	VerifiedAt                *time.Time `json:"verified_at,omitempty"`   // legacy alias
 	LastCheckAt               *time.Time `json:"last_check_at,omitempty"` // legacy alias
-	CreatedAt                 time.Time  `json:"created_at"`
-	UpdatedAt                 time.Time  `json:"updated_at"`
+	// CheckFailures counts consecutive failed DNS checks of an active custom domain (reset on success).
+	CheckFailures int `json:"check_failures"`
+	// VerificationToken is the TXT value proving DNS control (computed per tenant+hostname, not stored).
+	VerificationToken string    `json:"verification_token,omitempty"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // DomainRepository defines access methods for domain records.
@@ -42,6 +46,15 @@ type DomainRepository interface {
 	// incoming TLS certificate issuance requests for an unknown hostname belong to any
 	// valid tenant in the system.
 	FindByHostname(ctx context.Context, hostname string) (*Domain, error)
+
+	// ReleaseUnverifiedClaim deletes another tenant's custom-domain row for hostname that was never
+	// verified (pending/failed). SPECIAL EXCEPTION (cross-tenant): an unproven claim must not block the
+	// travel that really controls the domain's DNS. Active domains are never touched.
+	ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error
+
+	// ListActiveCustom lists active custom domains of all tenants. SPECIAL EXCEPTION (cross-tenant):
+	// used only by the background DNS recheck job.
+	ListActiveCustom(ctx context.Context) ([]Domain, error)
 }
 
 type mysqlDomainRepository struct {
@@ -93,7 +106,7 @@ func (r *mysqlDomainRepository) Create(ctx context.Context, tenantID uint64, dom
 
 func (r *mysqlDomainRepository) GetByID(ctx context.Context, tenantID uint64, id uint64) (*Domain, error) {
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
 		FROM domains
 		WHERE id = ? AND tenant_id = ?
 	`
@@ -103,7 +116,7 @@ func (r *mysqlDomainRepository) GetByID(ctx context.Context, tenantID uint64, id
 
 func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint64) ([]Domain, error) {
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
 		FROM domains
 		WHERE tenant_id = ?
 		ORDER BY created_at DESC
@@ -128,6 +141,7 @@ func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint6
 			&failureReason,
 			&verifiedAt,
 			&lastCheckAt,
+			&d.CheckFailures,
 			&d.CreatedAt,
 			&d.UpdatedAt,
 		); err != nil {
@@ -156,7 +170,7 @@ func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint6
 func (r *mysqlDomainRepository) Update(ctx context.Context, tenantID uint64, domain *Domain) error {
 	query := `
 		UPDATE domains
-		SET hostname = ?, type = ?, status = ?, verification_failure_reason = ?, verified_at = ?, last_check_at = ?
+		SET hostname = ?, type = ?, status = ?, verification_failure_reason = ?, verified_at = ?, last_check_at = ?, check_failures = ?
 		WHERE id = ? AND tenant_id = ?
 	`
 	if domain.VerifiedAt == nil && domain.DNSVerifiedAt != nil {
@@ -173,6 +187,7 @@ func (r *mysqlDomainRepository) Update(ctx context.Context, tenantID uint64, dom
 		domain.VerificationFailureReason,
 		domain.VerifiedAt,
 		domain.LastCheckAt,
+		domain.CheckFailures,
 		domain.ID,
 		tenantID,
 	)
@@ -207,7 +222,7 @@ func (r *mysqlDomainRepository) Delete(ctx context.Context, tenantID uint64, id 
 
 func (r *mysqlDomainRepository) GetActiveCustomDomain(ctx context.Context, tenantID uint64) (*Domain, error) {
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
 		FROM domains
 		WHERE tenant_id = ? AND type = 'custom' AND status = 'active'
 		LIMIT 1
@@ -219,7 +234,7 @@ func (r *mysqlDomainRepository) GetActiveCustomDomain(ctx context.Context, tenan
 func (r *mysqlDomainRepository) FindByHostname(ctx context.Context, hostname string) (*Domain, error) {
 	// SPECIAL EXCEPTION for Caddy ask-endpoint lookup across all tenants
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
 		FROM domains
 		WHERE hostname = ?
 	`
@@ -269,6 +284,7 @@ func (r *mysqlDomainRepository) scanDomain(row *sql.Row) (*Domain, error) {
 		&failureReason,
 		&verifiedAt,
 		&lastCheckAt,
+		&d.CheckFailures,
 		&d.CreatedAt,
 		&d.UpdatedAt,
 	)
@@ -292,4 +308,45 @@ func (r *mysqlDomainRepository) scanDomain(row *sql.Row) (*Domain, error) {
 	}
 
 	return &d, nil
+}
+
+func (r *mysqlDomainRepository) ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error {
+	_, err := r.db.ExecContext(ctx,
+		"DELETE FROM domains WHERE hostname = ? AND type = 'custom' AND status <> 'active' AND tenant_id <> ?",
+		hostname, exceptTenantID)
+	return err
+}
+
+func (r *mysqlDomainRepository) ListActiveCustom(ctx context.Context) ([]Domain, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
+		FROM domains
+		WHERE type = 'custom' AND status = 'active'
+		ORDER BY id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Domain
+	for rows.Next() {
+		var d Domain
+		var failureReason sql.NullString
+		var verifiedAt, lastCheckAt sql.NullTime
+		if err := rows.Scan(&d.ID, &d.TenantID, &d.Hostname, &d.Type, &d.Status, &failureReason, &verifiedAt, &lastCheckAt, &d.CheckFailures, &d.CreatedAt, &d.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if failureReason.Valid {
+			d.VerificationFailureReason = &failureReason.String
+		}
+		if verifiedAt.Valid {
+			d.VerifiedAt = &verifiedAt.Time
+			d.DNSVerifiedAt = &verifiedAt.Time
+		}
+		if lastCheckAt.Valid {
+			d.LastCheckAt = &lastCheckAt.Time
+			d.LastVerificationAttemptAt = &lastCheckAt.Time
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
 }

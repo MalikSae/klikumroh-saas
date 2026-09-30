@@ -92,6 +92,9 @@ func (h *DomainHandler) ListDomains(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"domains": domains,
+		// A-record target for root domains (namatravel.com) that cannot use a CNAME.
+		"cname_target":     service.ExpectedCNAMETarget,
+		"a_record_targets": h.domainService.PlatformIPs(),
 	})
 }
 
