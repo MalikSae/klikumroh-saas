@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -156,6 +157,17 @@ func main() {
 		n.StartRenewalReminderLoop(context.Background(), 6*time.Hour)
 	}
 
+	// Daily DNS recheck of active custom domains: a domain whose CNAME keeps failing stops receiving the
+	// subdomain redirect (the site stays reachable on its subdomain) until DNS is fixed.
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			checked, failing := domainService.RecheckActiveDomains(context.Background())
+			log.Printf("[Domain] daily recheck: %d active custom domains checked, %d failing", checked, failing)
+		}
+	}()
+
 	// Initialize handlers
 	notifHandler := handler.NewNotificationHandler(notifService)
 	tenantHandler := handler.NewTenantHandler(tenantService)
@@ -233,6 +245,7 @@ func main() {
 		staffProtected.Use(appMiddleware.StaffAuthMiddleware(staffRepo, sessionRepo))
 
 		staffProtected.Get("/api/staff/me", staffHandler.Me)
+		staffProtected.Get("/api/staff/files", handler.ServeStaffPrivateFile)
 		staffProtected.Get("/api/staff/overview", staffHandler.GetOverview)
 		staffProtected.Get("/api/staff/tenants", staffHandler.ListTenants)
 		staffProtected.Get("/api/staff/tenants/{id}", staffHandler.GetTenantDetail)
@@ -283,6 +296,7 @@ func main() {
 		protected.Get("/api/dashboard/subscription/payment-verifications/{id}", subscriptionHandler.GetPaymentVerification)
 		protected.Post("/api/dashboard/subscription/payment-verifications/{id}/proof", subscriptionHandler.UploadRenewalProof)
 		protected.Get("/api/dashboard/platform-settings", platformSettingsHandler.GetDashboard)
+		protected.Get("/api/dashboard/files", handler.ServeDashboardPrivateFile)
 
 		// Team, Profile, Package, Prospect, Tenant, Content, Agent, Domain & Overview Dashboard Routes
 		dashboardOverviewHandler.RegisterDashboardRoutes(protected)
@@ -305,6 +319,7 @@ func main() {
 		// Read-only while the travel is suspended (same policy as the travel dashboard).
 		agentProtected.Use(appMiddleware.AgentSuspensionMiddleware(tenantRepo))
 		agentHandler.RegisterAgentProtectedRoutes(agentProtected)
+		agentProtected.Get("/api/agent/files", handler.ServeAgentPrivateFile)
 		agentJamaahHandler.RegisterRoutes(agentProtected)
 		notifHandler.RegisterAgentRoutes(agentProtected)
 	})
@@ -331,11 +346,17 @@ func main() {
 
 	// DEV ONLY: di production, folder ini di-serve langsung oleh Nginx sebagai static file (lihat Arsitektur-Teknis-KlikUmroh.md),
 	// BUKAN oleh Go backend — backend production tidak boleh diakses publik langsung (AGENTS.md Bagian 3.5).
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+	// Private files (transfer proofs) and directory listings are never served here.
+	r.Handle("/uploads/*", handler.PublicUploadsHandler("./uploads"))
 
 	host := os.Getenv("HOST")
 	if host == "" {
 		host = "127.0.0.1"
+	}
+	// AGENTS.md 3.5: the API trusts X-Forwarded-Host from Next.js, which is only safe while it cannot be
+	// reached from outside this machine. Refuse to start on any non-loopback address.
+	if ip := net.ParseIP(host); host != "localhost" && (ip == nil || !ip.IsLoopback()) {
+		log.Fatalf("HOST=%q is not a loopback address; the API must bind to 127.0.0.1 only", host)
 	}
 	addr := fmt.Sprintf("%s:%s", host, port)
 	log.Printf("Server running on http://%s", addr)

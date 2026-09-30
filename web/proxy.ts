@@ -5,6 +5,15 @@ const getBackendBaseUrl = (): string => {
   return process.env.BACKEND_INTERNAL_URL || process.env.API_BASE_URL || 'http://127.0.0.1:8080';
 };
 
+// Hosts that serve KlikUmroh itself (same list as the marketing check in app/page.tsx).
+const PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id', 'klikumroh.local', 'localhost', '127.0.0.1']);
+const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing'];
+
+// Where platform pages live. Unset in development: the dev server would turn a redirect to its own
+// origin (localhost:3000) into a relative one and loop on the travel host, so dev answers 404 instead.
+const getPlatformOrigin = (): string | null =>
+  process.env.PLATFORM_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://klikumroh.id' : null);
+
 // Ad attribution: when a visitor lands from an ad (utm_* or Meta's fbclid in the URL), remember it for
 // 7 days (Meta's default click window) so the prospect form can report the source even if the visitor
 // browses other pages first. Last ad click wins. Read by components/ProspectModal.tsx.
@@ -51,12 +60,12 @@ function withReferral(req: NextRequest, res: NextResponse): NextResponse {
 }
 
 /**
- * Next.js Proxy for Subdomain to Custom Domain 301 Redirection.
+ * Next.js Proxy for Subdomain to Custom Domain Redirection (307, temporary).
  *
  * Rules:
  * 1. If incoming Host is a default subdomain ({slug}.klikumroh.id or .local for dev)
  *    AND the tenant has an active custom domain:
- *    301 redirect to https://{custom_domain}{path}{query}.
+ *    307 redirect to https://{custom_domain}{path}{query}.
  *    FULL path and query string MUST be preserved (critical for referral tracking).
  * 2. If custom domain is pending, failed, or none exists:
  *    DO NOT redirect. Subdomain remains normally accessible.
@@ -64,6 +73,21 @@ function withReferral(req: NextRequest, res: NextResponse): NextResponse {
 export async function proxy(req: NextRequest) {
   const hostHeader = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.host;
   const hostname = hostHeader.split(':')[0].trim().toLowerCase();
+
+  // KlikUmroh's own pages (travel admin login, platform sign-up/checkout, marketing) live only on the
+  // platform host, never on a travel's subdomain or custom domain (AGENTS.md 3.5, whitelabel).
+  const pathname = req.nextUrl.pathname;
+  const isPlatformOnlyPath = PLATFORM_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+  if (isPlatformOnlyPath && !PLATFORM_HOSTS.has(hostname)) {
+    const origin = getPlatformOrigin();
+    return origin
+      ? NextResponse.redirect(`${origin}${pathname}${req.nextUrl.search}`, 307)
+      : new NextResponse(null, { status: 404 });
+  }
+  // Internal component showcase: development only.
+  if (process.env.NODE_ENV === 'production' && (pathname === '/dev' || pathname.startsWith('/dev/'))) {
+    return new NextResponse(null, { status: 404 });
+  }
 
   // Check if current hostname is a default subdomain
   const isDefaultSubdomain =
@@ -99,7 +123,9 @@ export async function proxy(req: NextRequest) {
           redirectUrl.protocol = 'https';
           redirectUrl.port = '';
 
-          return NextResponse.redirect(redirectUrl, 301);
+          // Temporary redirect: a 301 is cached by browsers forever, so visitors and old referral links would
+          // keep going to the custom domain even after it is removed or its DNS breaks.
+          return NextResponse.redirect(redirectUrl, 307);
         }
       }
     }

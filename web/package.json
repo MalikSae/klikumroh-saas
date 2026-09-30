@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:tokens": "node ../scripts/check-hardcoded-colors.js components",
+    "lint:tokens": "node ../scripts/check-hardcoded-colors.js components app/agen",
     "lint:no-emoji": "node ../scripts/check-no-emoji.js",
     "test:redirect": "node --experimental-strip-types test/proxy-redirect.test.mjs"
   },

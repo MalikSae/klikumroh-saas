@@ -13,6 +13,8 @@ if (args.length > 0) {
   targetDirs = [
     path.join(rootDir, 'dashboard', 'src', 'components'),
     path.join(rootDir, 'web', 'components'),
+    // Agent portal pages carry their own styles; they must use --tw-* tokens too (AGENTS.md 3.3).
+    path.join(rootDir, 'web', 'app', 'agen'),
   ];
 }
 

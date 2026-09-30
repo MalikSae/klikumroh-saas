@@ -45,3 +45,6 @@ uploads/
 # Scratch
 scratch/
 
+
+# Private files (transfer proofs): never committed, never served from /uploads
+storage/

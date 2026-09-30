@@ -24,6 +24,8 @@ export interface PackageItem {
   price?: number | null;
   departure_date?: string | null;
   quota?: number | null;
+  /** Jamaah already booked (Closing / DP paid) on this package. */
+  seats_taken?: number;
   commission_amount?: number | null;
   status: 'draft' | 'published' | 'archived';
   itinerary?: string | null;
@@ -1746,6 +1748,10 @@ export interface DomainItem {
   last_verification_attempt_at?: string | null;
   verified_at?: string | null;
   last_check_at?: string | null;
+  /** Consecutive failed DNS checks of an active custom domain (redirect stops at 3). */
+  check_failures?: number;
+  /** TXT value proving DNS control, shown while the domain is not active yet. */
+  verification_token?: string;
   created_at: string;
   updated_at: string;
 }
@@ -1765,8 +1771,13 @@ export const fetchDomains = async (): Promise<DomainItem[]> => {
     throw new Error(err.error || 'Gagal memuat domain');
   }
   const data = await res.json();
+  lastDomainARecordTargets = Array.isArray(data.a_record_targets) ? data.a_record_targets : [];
   return data.domains || [];
 };
+
+// Server IP(s) a root domain's A record must point to, from the last fetchDomains() call.
+let lastDomainARecordTargets: string[] = [];
+export const getDomainARecordTargets = (): string[] => lastDomainARecordTargets;
 
 export const registerCustomDomain = async (hostname: string): Promise<RegisterDomainResult> => {
   const headers = await getAuthHeaders();

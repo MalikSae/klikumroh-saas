@@ -34,7 +34,6 @@ export default function DevComponentsPage() {
               name="Umroh Reguler Syawal 1448H (9 Hari)"
               price={29500000}
               departureDateRaw="2027-04-18"
-              quota={12}
               badge="Paling Diminati"
               onSelect={() => alert('Paket Reguler dipilih')}
             />
@@ -43,7 +42,6 @@ export default function DevComponentsPage() {
               name="Umroh VIP Bintang 5 Plus Kereta Cepat (12 Hari)"
               price={44900000}
               departureDateRaw="2027-05-02"
-              quota={4}
               badge="Sisa 4 Kursi"
               onSelect={() => alert('Paket VIP dipilih')}
             />
