@@ -6,7 +6,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { PackageCard } from './PackageCard';
 
 import { Button } from './Button';
-import type { PublicPackage } from './publicPackage';
+import { seatsLabel, type PublicPackage } from './publicPackage';
 import { selectHomePackages, type PackageOrder } from './home-package-selection';
 import './PackageTabsSection.css';
 
@@ -79,8 +79,7 @@ export const PackageTabsSection: React.FC<PackageTabsSectionProps> = ({ packages
               name={pkg.name}
               price={pkg.price || undefined}
               departureDateRaw={pkg.departure_date}
-              quota={pkg.quota ?? undefined}
-              badge={pkg.quota !== null && pkg.quota !== undefined ? `Sisa ${pkg.quota} Kursi` : undefined}
+              badge={seatsLabel(pkg) ?? undefined}
               imageUrl={pkg.photos?.[0]?.file_path}
               onSelect={() => onSelectPackage(pkg)}
               className="tw-package-card--ota"

@@ -95,20 +95,34 @@ func (m *mockPackageRepo) CountByTenant(ctx context.Context, tenantID uint64) (i
 
 type mockPackagePhotoRepo struct{}
 
-func (m *mockPackagePhotoRepo) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error { return nil }
-func (m *mockPackagePhotoRepo) ListByPackage(ctx context.Context, tenantID, packageID uint64) ([]repository.PackagePhoto, error) { return nil, nil }
+func (m *mockPackagePhotoRepo) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error {
+	return nil
+}
+func (m *mockPackagePhotoRepo) ListByPackage(ctx context.Context, tenantID, packageID uint64) ([]repository.PackagePhoto, error) {
+	return nil, nil
+}
 func (m *mockPackagePhotoRepo) Delete(ctx context.Context, tenantID, id uint64) error { return nil }
-func (m *mockPackagePhotoRepo) GetByID(ctx context.Context, tenantID, id uint64) (*repository.PackagePhoto, error) { return nil, repository.ErrNotFound }
-func (m *mockPackagePhotoRepo) UpdateSortOrder(ctx context.Context, tenantID, id uint64, sortOrder int) error { return nil }
+func (m *mockPackagePhotoRepo) GetByID(ctx context.Context, tenantID, id uint64) (*repository.PackagePhoto, error) {
+	return nil, repository.ErrNotFound
+}
+func (m *mockPackagePhotoRepo) UpdateSortOrder(ctx context.Context, tenantID, id uint64, sortOrder int) error {
+	return nil
+}
 
 type mockPackagePhotoService struct{}
 
-func (m *mockPackagePhotoService) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error { return nil }
-func (m *mockPackagePhotoService) ListByPackage(ctx context.Context, tenantID uint64, packageID uint64) ([]repository.PackagePhoto, error) { return nil, nil }
-func (m *mockPackagePhotoService) Delete(ctx context.Context, tenantID, photoID uint64) (*repository.PackagePhoto, error) { return nil, nil }
-func (m *mockPackagePhotoService) Move(ctx context.Context, tenantID, photoID uint64, direction string) error { return nil }
-
-
+func (m *mockPackagePhotoService) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error {
+	return nil
+}
+func (m *mockPackagePhotoService) ListByPackage(ctx context.Context, tenantID uint64, packageID uint64) ([]repository.PackagePhoto, error) {
+	return nil, nil
+}
+func (m *mockPackagePhotoService) Delete(ctx context.Context, tenantID, photoID uint64) (*repository.PackagePhoto, error) {
+	return nil, nil
+}
+func (m *mockPackagePhotoService) Move(ctx context.Context, tenantID, photoID uint64, direction string) error {
+	return nil
+}
 
 func setupPackageRouter() (*chi.Mux, *mockPackageRepo, *mockSessionRepo, *mockDomainRepo) {
 	pkgRepo := newMockPackageRepo()
@@ -222,6 +236,8 @@ func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
 			"name":   "Hijacked Name",
 			"status": "published",
+			// A valid payload, so the request reaches the tenant check (a published package needs a price).
+			"price": 30000000,
 		})
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/dashboard/packages/%d", pkgA.ID), bytes.NewBuffer(body))
 		req.Header.Set("Authorization", "Bearer token_tenant_b")
@@ -357,7 +373,7 @@ func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {
 		}
 		var errResp map[string]string
 		_ = json.Unmarshal(rr.Body.Bytes(), &errResp)
-		expectedErr := "Paket tidak bisa dihapus karena masih memiliki data prospek terkait. Arsipkan paket ini alih-alih menghapusnya."
+		expectedErr := service.ErrPackageInUse.Error()
 		if errResp["error"] != expectedErr {
 			t.Errorf("Expected error '%s', got '%s'", expectedErr, errResp["error"])
 		}
@@ -383,6 +399,7 @@ func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {
 		updateBody, _ := json.Marshal(map[string]interface{}{
 			"name":              pkgA.Name,
 			"status":            pkgA.Status,
+			"price":             30000000,
 			"commission_amount": commRate,
 		})
 		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/dashboard/packages/%d", pkgA.ID), bytes.NewBuffer(updateBody))

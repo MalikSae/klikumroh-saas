@@ -3,7 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -124,7 +127,7 @@ func (h *PackageHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.packageService.Create(r.Context(), tenantID, pkg); err != nil {
-		if errors.Is(err, service.ErrPackageNameRequired) || errors.Is(err, service.ErrInvalidPackageStatus) {
+		if service.IsPackageInputError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -232,7 +235,8 @@ func (h *PackageHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if pkg.Status != "published" {
+	// Visitors only see published packages that have not departed yet.
+	if pkg.Status != "published" || service.PackageDeparted(pkg, time.Now()) {
 		respondJSON(w, http.StatusNotFound, map[string]string{"error": "paket tidak ditemukan"})
 		return
 	}
@@ -295,7 +299,7 @@ func (h *PackageHandler) Update(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "paket tidak ditemukan"})
 			return
 		}
-		if errors.Is(err, service.ErrPackageNameRequired) || errors.Is(err, service.ErrInvalidPackageStatus) {
+		if service.IsPackageInputError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -333,6 +337,9 @@ func (h *PackageHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
+
+	// The photo rows are gone with the package (ON DELETE CASCADE); remove their files too.
+	_ = os.RemoveAll(filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "packages", fmt.Sprintf("%d", id)))
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "paket berhasil dihapus"})
 }

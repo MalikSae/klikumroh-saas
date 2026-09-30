@@ -549,6 +549,15 @@
   background-color: var(--db-card-bg);
 }
 
+/* Photo limit reached: the area stays visible (with the counter) but no longer opens the file picker. */
+.pkg-upload-area--full,
+.pkg-upload-area--full:hover {
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: var(--db-border);
+  background-color: var(--db-page-bg);
+}
+
 .pkg-upload-text {
   font-size: var(--font-size-sm);
   font-weight: 700;

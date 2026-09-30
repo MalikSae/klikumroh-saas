@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image as ImageIcon, Calendar, Users, ChevronRight } from 'lucide-react';
+import { Image as ImageIcon, Calendar, ChevronRight } from 'lucide-react';
 import './PackageCard.css';
 
 export interface PackageCardProps {
@@ -7,7 +7,6 @@ export interface PackageCardProps {
   name: string;
   price?: number;
   departureDateRaw?: string | null;
-  quota?: number;
   imageUrl?: string;
   badge?: string;
   onSelect?: () => void;
@@ -19,7 +18,6 @@ export const PackageCard: React.FC<PackageCardProps> = ({
   name,
   price,
   departureDateRaw,
-  quota,
   imageUrl,
   badge,
   onSelect,
@@ -66,19 +64,12 @@ export const PackageCard: React.FC<PackageCardProps> = ({
       <div className="tw-package-card__content">
         <h3 className="tw-package-card__title">{name}</h3>
 
-        {(formattedDate || (quota !== undefined && !badge)) && (
+        {formattedDate && (
           <div className="tw-package-card__meta">
             {formattedDate && (
               <span className="tw-package-card__meta-item">
                 <Calendar size={13} />
                 <span>{formattedDate}</span>
-              </span>
-            )}
-            {formattedDate && quota !== undefined && !badge && <span className="tw-package-card__meta-separator">•</span>}
-            {quota !== undefined && !badge && (
-              <span className="tw-package-card__meta-item">
-                <Users size={13} />
-                <span>Sisa {quota} Kursi</span>
               </span>
             )}
           </div>

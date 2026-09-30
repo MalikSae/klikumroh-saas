@@ -22,19 +22,28 @@ func NewPackagePhotoService(photoRepo repository.PackagePhotoRepository, package
 	return &packagePhotoService{photoRepo: photoRepo, packageRepo: packageRepo}
 }
 
+// MaxPackagePhotos caps one package's gallery (page weight and storage).
+const MaxPackagePhotos = 10
+
+// ErrTooManyPackagePhotos is returned when the package already has MaxPackagePhotos photos.
+var ErrTooManyPackagePhotos = errors.New("maksimal 10 foto per paket; hapus foto lama sebelum menambah yang baru")
+
 func (s *packagePhotoService) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error {
 	// Verify package belongs to tenant
 	_, err := s.packageRepo.GetByID(ctx, tenantID, photo.PackageID)
 	if err != nil {
 		return err
 	}
-	
+
 	// Get max sort_order
 	photos, err := s.photoRepo.ListByPackage(ctx, tenantID, photo.PackageID)
 	if err != nil {
 		return err
 	}
-	
+	if len(photos) >= MaxPackagePhotos {
+		return ErrTooManyPackagePhotos
+	}
+
 	maxSort := 0
 	for _, p := range photos {
 		if p.SortOrder > maxSort {

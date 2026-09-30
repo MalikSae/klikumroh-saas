@@ -16,7 +16,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import type { PublicPackage } from './publicPackage';
+import { seatsLabel, type PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { MobileContainer } from './MobileContainer';
 import { PublicFooter } from './PublicFooter';
@@ -296,9 +296,9 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
             />
 
             {/* Floating Quota Badge (top-left, frosted glass matching Home) */}
-            {pkg.quota !== undefined && pkg.quota !== null && pkg.quota > 0 && (
+            {seatsLabel(pkg) && (
               <div className="tw-pkg-gallery__badge">
-                <span>Sisa {pkg.quota} Kursi</span>
+                <span>{seatsLabel(pkg)}</span>
               </div>
             )}
 
@@ -362,7 +362,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
               <span className="tw-pkg-price-card__sublabel">/ jamaah (Sekamar berempat)</span>
             </div>
             <div className="tw-pkg-price-card__badge">
-              <span>{pkg.quota && pkg.quota > 0 ? `Sisa ${pkg.quota} Kursi` : 'Tersedia'}</span>
+              <span>{seatsLabel(pkg) ?? 'Tersedia'}</span>
             </div>
           </div>
 

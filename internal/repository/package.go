@@ -19,13 +19,16 @@ type Package struct {
 	Price         *float64   `json:"price"`
 	DepartureDate *time.Time `json:"departure_date"`
 	Quota         *int       `json:"quota"`
-	Status             string     `json:"status"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-	Itinerary          *string    `json:"itinerary"`
-	FacilitiesIncluded *string    `json:"facilities_included"`
-	FacilitiesExcluded *string    `json:"facilities_excluded"`
-	HotelInfo          *string    `json:"hotel_info"`
+	// SeatsTaken counts the jamaah of this package's Closing (DP paid) prospects, so the remaining seats
+	// shown to visitors are real (quota - seats_taken). A cancelled closing no longer counts.
+	SeatsTaken         int            `json:"seats_taken"`
+	Status             string         `json:"status"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+	Itinerary          *string        `json:"itinerary"`
+	FacilitiesIncluded *string        `json:"facilities_included"`
+	FacilitiesExcluded *string        `json:"facilities_excluded"`
+	HotelInfo          *string        `json:"hotel_info"`
 	FlightInfo         *string        `json:"flight_info"`
 	TermsConditions    *string        `json:"terms_conditions"`
 	CommissionAmount   *float64       `json:"commission_amount"`
@@ -51,6 +54,16 @@ type mysqlPackageRepository struct {
 func NewPackageRepository(db *sql.DB) PackageRepository {
 	return &mysqlPackageRepository{db: db}
 }
+
+// packageSelect is shared by every read so the column order and the seats count stay in one place.
+const packageSelect = `
+	SELECT p.id, p.tenant_id, p.name, p.description, p.price, p.departure_date, p.quota, p.status,
+		p.created_at, p.updated_at, p.itinerary, p.facilities_included, p.facilities_excluded,
+		p.hotel_info, p.flight_info, p.terms_conditions, p.commission_amount,
+		(SELECT COALESCE(SUM(COALESCE(pr.jumlah_jamaah, 1)), 0) FROM prospects pr
+			WHERE pr.tenant_id = p.tenant_id AND pr.package_id = p.id AND pr.status = 'closing') AS seats_taken
+	FROM packages p
+`
 
 func (r *mysqlPackageRepository) Create(ctx context.Context, tenantID uint64, pkg *Package) error {
 	query := `
@@ -94,42 +107,25 @@ func (r *mysqlPackageRepository) Create(ctx context.Context, tenantID uint64, pk
 }
 
 func (r *mysqlPackageRepository) GetByID(ctx context.Context, tenantID uint64, id uint64) (*Package, error) {
-	query := `
-		SELECT id, tenant_id, name, description, price, departure_date, quota, status, created_at, updated_at,
-			itinerary, facilities_included, facilities_excluded, hotel_info, flight_info, terms_conditions,
-			commission_amount
-		FROM packages
-		WHERE id = ? AND tenant_id = ?
-	`
-	row := r.db.QueryRowContext(ctx, query, id, tenantID)
-	return r.scanPackage(row)
+	row := r.db.QueryRowContext(ctx, packageSelect+` WHERE p.id = ? AND p.tenant_id = ?`, id, tenantID)
+	p, err := scanPackageRow(row)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return p, nil
 }
 
 func (r *mysqlPackageRepository) List(ctx context.Context, tenantID uint64, statusFilter *string) ([]Package, error) {
-	var query string
-	var args []interface{}
-
+	query := packageSelect + ` WHERE p.tenant_id = ?`
+	args := []interface{}{tenantID}
 	if statusFilter != nil && *statusFilter != "" {
-		query = `
-			SELECT id, tenant_id, name, description, price, departure_date, quota, status, created_at, updated_at,
-				itinerary, facilities_included, facilities_excluded, hotel_info, flight_info, terms_conditions,
-				commission_amount
-			FROM packages
-			WHERE tenant_id = ? AND status = ?
-			ORDER BY created_at DESC
-		`
-		args = append(args, tenantID, *statusFilter)
-	} else {
-		query = `
-			SELECT id, tenant_id, name, description, price, departure_date, quota, status, created_at, updated_at,
-				itinerary, facilities_included, facilities_excluded, hotel_info, flight_info, terms_conditions,
-				commission_amount
-			FROM packages
-			WHERE tenant_id = ?
-			ORDER BY created_at DESC
-		`
-		args = append(args, tenantID)
+		query += ` AND p.status = ?`
+		args = append(args, *statusFilter)
 	}
+	query += ` ORDER BY p.created_at DESC`
 
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -139,59 +135,12 @@ func (r *mysqlPackageRepository) List(ctx context.Context, tenantID uint64, stat
 
 	var packages []Package
 	for rows.Next() {
-		var p Package
-		var description sql.NullString
-		var price sql.NullFloat64
-		var departureDate sql.NullTime
-		var quota sql.NullInt32
-		var itinerary, facilitiesIncluded, facilitiesExcluded, hotelInfo, flightInfo, termsConditions sql.NullString
-		var commissionAmount sql.NullFloat64
-
-		if err := rows.Scan(
-			&p.ID,
-			&p.TenantID,
-			&p.Name,
-			&description,
-			&price,
-			&departureDate,
-			&quota,
-			&p.Status,
-			&p.CreatedAt,
-			&p.UpdatedAt,
-			&itinerary,
-			&facilitiesIncluded,
-			&facilitiesExcluded,
-			&hotelInfo,
-			&flightInfo,
-			&termsConditions,
-			&commissionAmount,
-		); err != nil {
+		p, err := scanPackageRow(rows)
+		if err != nil {
 			return nil, err
 		}
-
-		if description.Valid {
-			p.Description = &description.String
-		}
-		if price.Valid {
-			p.Price = &price.Float64
-		}
-		if departureDate.Valid {
-			p.DepartureDate = &departureDate.Time
-		}
-		if quota.Valid {
-			q := int(quota.Int32)
-			p.Quota = &q
-		}
-		if itinerary.Valid { p.Itinerary = &itinerary.String }
-		if facilitiesIncluded.Valid { p.FacilitiesIncluded = &facilitiesIncluded.String }
-		if facilitiesExcluded.Valid { p.FacilitiesExcluded = &facilitiesExcluded.String }
-		if hotelInfo.Valid { p.HotelInfo = &hotelInfo.String }
-		if flightInfo.Valid { p.FlightInfo = &flightInfo.String }
-		if termsConditions.Valid { p.TermsConditions = &termsConditions.String }
-		if commissionAmount.Valid { p.CommissionAmount = &commissionAmount.Float64 }
-		packages = append(packages, p)
+		packages = append(packages, *p)
 	}
-
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -244,6 +193,8 @@ func (r *mysqlPackageRepository) Update(ctx context.Context, tenantID uint64, pk
 	return nil
 }
 
+// Delete removes a package. It fails with ErrForeignKeyViolation while prospects or commission history
+// (RESTRICT, migration 053) still reference it: such a package can only be archived.
 func (r *mysqlPackageRepository) Delete(ctx context.Context, tenantID uint64, id uint64) error {
 	query := `DELETE FROM packages WHERE id = ? AND tenant_id = ?`
 	res, err := r.db.ExecContext(ctx, query, id, tenantID)
@@ -267,17 +218,14 @@ func (r *mysqlPackageRepository) Delete(ctx context.Context, tenantID uint64, id
 	return nil
 }
 
-func (r *mysqlPackageRepository) scanPackage(row *sql.Row) (*Package, error) {
+func scanPackageRow(row rowScanner) (*Package, error) {
 	var p Package
-	var description sql.NullString
-	var price sql.NullFloat64
+	var description, itinerary, facilitiesIncluded, facilitiesExcluded, hotelInfo, flightInfo, termsConditions sql.NullString
+	var price, commissionAmount sql.NullFloat64
 	var departureDate sql.NullTime
 	var quota sql.NullInt32
-	var commissionAmount sql.NullFloat64
 
-	var itinerary, facilitiesIncluded, facilitiesExcluded, hotelInfo, flightInfo, termsConditions sql.NullString
-
-	err := row.Scan(
+	if err := row.Scan(
 		&p.ID,
 		&p.TenantID,
 		&p.Name,
@@ -295,17 +243,12 @@ func (r *mysqlPackageRepository) scanPackage(row *sql.Row) (*Package, error) {
 		&flightInfo,
 		&termsConditions,
 		&commissionAmount,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
-		}
+		&p.SeatsTaken,
+	); err != nil {
 		return nil, err
 	}
 
-	if description.Valid {
-		p.Description = &description.String
-	}
+	p.Description = nullStringPtr(description)
 	if price.Valid {
 		p.Price = &price.Float64
 	}
@@ -316,14 +259,15 @@ func (r *mysqlPackageRepository) scanPackage(row *sql.Row) (*Package, error) {
 		q := int(quota.Int32)
 		p.Quota = &q
 	}
-	if itinerary.Valid { p.Itinerary = &itinerary.String }
-	if facilitiesIncluded.Valid { p.FacilitiesIncluded = &facilitiesIncluded.String }
-	if facilitiesExcluded.Valid { p.FacilitiesExcluded = &facilitiesExcluded.String }
-	if hotelInfo.Valid { p.HotelInfo = &hotelInfo.String }
-	if flightInfo.Valid { p.FlightInfo = &flightInfo.String }
-	if termsConditions.Valid { p.TermsConditions = &termsConditions.String }
-	if commissionAmount.Valid { p.CommissionAmount = &commissionAmount.Float64 }
-
+	p.Itinerary = nullStringPtr(itinerary)
+	p.FacilitiesIncluded = nullStringPtr(facilitiesIncluded)
+	p.FacilitiesExcluded = nullStringPtr(facilitiesExcluded)
+	p.HotelInfo = nullStringPtr(hotelInfo)
+	p.FlightInfo = nullStringPtr(flightInfo)
+	p.TermsConditions = nullStringPtr(termsConditions)
+	if commissionAmount.Valid {
+		p.CommissionAmount = &commissionAmount.Float64
+	}
 	return &p, nil
 }
 

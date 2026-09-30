@@ -11,7 +11,7 @@ import { BottomNavbar } from './BottomNavbar';
 import { MenuBottomSheet } from './MenuBottomSheet';
 import { ProspectModal } from './ProspectModal';
 import { Button } from './Button';
-import type { PublicPackage } from './publicPackage';
+import { seatsLabel, type PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { selectHomePackages, type PackageOrder } from './home-package-selection';
 import designTokens from '../../design-tokens.json';
@@ -200,8 +200,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
                   name={pkg.name}
                   price={pkg.price || undefined}
                   departureDateRaw={pkg.departure_date}
-                  quota={pkg.quota ?? undefined}
-                  badge={pkg.quota !== null && pkg.quota !== undefined ? `Sisa ${pkg.quota} Kursi` : undefined}
+                  badge={seatsLabel(pkg) ?? undefined}
                   imageUrl={pkg.photos?.[0]?.file_path}
                   onSelect={() => router.push(`/paket/${pkg.id}`)}
                   className="tw-package-card--ota"

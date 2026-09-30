@@ -15,6 +15,7 @@ import (
 
 	"klikumroh/internal/middleware"
 	"klikumroh/internal/repository"
+	"klikumroh/internal/service"
 	"klikumroh/internal/util"
 )
 
@@ -89,6 +90,10 @@ func (h *PackageHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		os.Remove(absPath)
 		if errors.Is(err, repository.ErrNotFound) { // from package check
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "paket tidak ditemukan"})
+			return
+		}
+		if errors.Is(err, service.ErrTooManyPackagePhotos) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})

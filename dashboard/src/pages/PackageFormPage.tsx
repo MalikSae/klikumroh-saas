@@ -35,9 +35,13 @@ import {
   getStoredUser,
   uploadPackagePhoto,
   deletePackagePhoto,
+  getFullImageUrl,
 } from '../services/api';
 
 import './PackageFormPage.css';
+
+// Mirrors service.MaxPackagePhotos in the backend.
+const MAX_PACKAGE_PHOTOS = 10;
 
 export const PackageFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -182,6 +186,16 @@ export const PackageFormPage: React.FC = () => {
       setFormError('Nama paket wajib diisi');
       return;
     }
+    const priceVal = formData.price ? parseFloat(formData.price) : null;
+    const commissionVal = formData.commission_amount ? parseFloat(formData.commission_amount) : null;
+    if (priceVal !== null && commissionVal !== null && commissionVal > priceVal) {
+      setFormError('Komisi agen per jamaah tidak boleh melebihi harga paket');
+      return;
+    }
+    if ((forceStatus || formData.status) === 'published' && (!priceVal || priceVal <= 0)) {
+      setFormError('Isi harga paket sebelum menayangkannya di website');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -242,10 +256,20 @@ export const PackageFormPage: React.FC = () => {
 
 
 
+  // Same limit as the backend (service.MaxPackagePhotos); counts saved photos or, on a new package, pending ones.
+  const photoCount = isEditing ? editingPackage?.photos?.length ?? 0 : pendingPhotos.length;
+  const photosFull = photoCount >= MAX_PACKAGE_PHOTOS;
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    
+
+    if (photoCount >= MAX_PACKAGE_PHOTOS) {
+      setFormError(`Maksimal ${MAX_PACKAGE_PHOTOS} foto per paket. Hapus salah satu foto untuk menambah yang baru.`);
+      if (e.target) e.target.value = '';
+      return;
+    }
+
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setFormError('Format file tidak didukung. Gunakan JPG, PNG, atau WEBP.');
       return;
@@ -600,18 +624,18 @@ export const PackageFormPage: React.FC = () => {
                   </div>
                   <div className="pkg-card-body">
                     {/* File Upload */}
-                    <label className="pkg-upload-area">
+                    <label className={`pkg-upload-area${photosFull ? ' pkg-upload-area--full' : ''}`} aria-disabled={photosFull}>
                       <ImageIcon size={24} color="var(--db-text-muted)" style={{ marginBottom: '8px' }} />
-                      <span className="pkg-upload-text">Klik untuk unggah foto</span>
-                      <span className="pkg-hint">JPG, PNG, WEBP (Max 8MB)</span>
-                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} style={{ display: 'none' }} disabled={uploadingPhoto} />
+                      <span className="pkg-upload-text">{photosFull ? 'Batas foto tercapai' : 'Klik untuk unggah foto'}</span>
+                      <span className="pkg-hint">JPG, PNG, WEBP (Max 8MB) · {photoCount}/{MAX_PACKAGE_PHOTOS} foto</span>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} style={{ display: 'none' }} disabled={uploadingPhoto || photosFull} />
                     </label>
 
                     {/* Photos Grid */}
                     <div className="pkg-gallery-grid">
                       {isEditing && editingPackage?.photos && editingPackage.photos.map((photo) => (
                         <div key={photo.id} className="pkg-gallery-item">
-                          <img src={`http://localhost:8080${photo.file_path}`} alt="Galeri" />
+                          <img src={getFullImageUrl(photo.file_path)} alt="Galeri" />
                           <button type="button" className="pkg-gallery-del" onClick={() => handlePhotoDelete(photo.id)}><Trash2 size={12} /></button>
                         </div>
                       ))}
@@ -640,9 +664,9 @@ export const PackageFormPage: React.FC = () => {
                       value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value as any})}
                     >
-                      <option value="draft">Draft (Disembunyikan)</option>
-                      <option value="published">Published (Tayang)</option>
-                      <option value="archived">Archived (Diarsipkan)</option>
+                      <option value="draft">Draf (tidak tampil di website)</option>
+                      <option value="published">Tayang di website</option>
+                      <option value="archived">Diarsipkan</option>
                     </select>
                   </div>
                 </div>

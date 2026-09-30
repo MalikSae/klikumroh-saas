@@ -91,6 +91,14 @@ export const PackagesPage: React.FC = () => {
 
   const menuItems = getStandardMenuItems('packages');
 
+  // Departure date (calendar day) before today: no longer offered on the website.
+  const isDeparted = (date?: string | null) => {
+    if (!date) return false;
+    const d = new Date(date);
+    const today = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  };
+
   const columns: Column<PackageItem>[] = [
     {
       key: 'id',
@@ -155,24 +163,37 @@ export const PackagesPage: React.FC = () => {
     },
     {
       key: 'quota',
-      label: 'Sisa Kuota',
-      render: (row) => (
-        <span>
-          {row.quota !== null && row.quota !== undefined ? `${row.quota} Kursi` : '-'}
-        </span>
-      ),
+      label: 'Kursi Terisi',
+      render: (row) => {
+        if (row.quota === null || row.quota === undefined || row.quota <= 0) return <span>-</span>;
+        const taken = row.seats_taken ?? 0;
+        return (
+          <span>
+            {taken} / {row.quota}
+            {taken >= row.quota && <span style={{ color: 'var(--db-text-muted)' }}> · penuh</span>}
+          </span>
+        );
+      },
     },
     {
       key: 'status',
       label: 'Status',
       render: (row) => {
         if (row.status === 'published') {
-          return <Badge variant="positive" showArrow={false}>Published</Badge>;
+          // A departed package is hidden from the website even while it is still "Tayang".
+          return isDeparted(row.departure_date) ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+              <Badge variant="neutral" showArrow={false}>Sudah berangkat</Badge>
+              <span style={{ fontSize: '12px', color: 'var(--db-text-muted)' }}>Tidak tampil di website, arsipkan</span>
+            </div>
+          ) : (
+            <Badge variant="positive" showArrow={false}>Tayang</Badge>
+          );
         }
         if (row.status === 'draft') {
-          return <Badge variant="neutral" showArrow={false}>Draft</Badge>;
+          return <Badge variant="neutral" showArrow={false}>Draf</Badge>;
         }
-        return <Badge variant="negative" showArrow={false}>Archived</Badge>;
+        return <Badge variant="neutral" showArrow={false}>Diarsipkan</Badge>;
       },
     },
     {
@@ -251,9 +272,9 @@ export const PackagesPage: React.FC = () => {
                 onChange={handleFilterChange}
                 options={[
                   { value: '', label: 'Semua Status' },
-                  { value: 'published', label: 'Published' },
-                  { value: 'draft', label: 'Draft' },
-                  { value: 'archived', label: 'Archived' },
+                  { value: 'published', label: 'Tayang' },
+                  { value: 'draft', label: 'Draf' },
+                  { value: 'archived', label: 'Diarsipkan' },
                 ]}
               />
             }
