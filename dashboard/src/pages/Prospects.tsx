@@ -50,6 +50,7 @@ import {
 } from '../services/api';
 import { formatDateWIB, formatTimeWIB } from '../utils/datetime';
 import { rememberProspectListQuery } from '../utils/prospectListQuery';
+import { closingSeatsWarning } from '../utils/packageSeats';
 import './Prospects.css';
 
 const STATUS_LABELS: Record<ProspectItem['status'], string> = {
@@ -301,6 +302,12 @@ export const ProspectsPage: React.FC = () => {
     if (!pkg.commission_amount || pkg.commission_amount <= 0) return `Komisi paket ${pkg.name} belum diatur`;
     return null;
   })();
+  const closingSeatsMessage = selectedProspect
+    ? closingSeatsWarning(
+        packages.find((p) => p.id === selectedProspect.package_id),
+        selectedProspect.jumlah_jamaah
+      )
+    : null;
   const lostReasonSummary = Object.entries(summary.lost_reasons ?? {})
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1]);
@@ -752,6 +759,13 @@ export const ProspectsPage: React.FC = () => {
                   'Closing = jamaah sudah membayar DP.'
                 )}
               </span>
+            </div>
+          )}
+
+          {newStatus === 'closing' && closingSeatsMessage && (
+            <div className="db-prospect-closing-warning db-prospect-closing-warning--confirm">
+              <AlertTriangle size={16} />
+              <span>{closingSeatsMessage}</span>
             </div>
           )}
         </form>

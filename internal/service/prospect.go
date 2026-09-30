@@ -443,8 +443,8 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 	}
 
 	// MANDATORY CROSS-TENANT VALIDATION: the package must belong strictly to this tenant.
-	// A package that is not (or no longer) published is not linked, but the lead is still kept: the
-	// visitor may have had the page open while the travel unpublished it.
+	// A package that is not (or no longer) published, or has already departed, is not linked, but the
+	// lead is still kept: the visitor may have had the page open while the package went offline.
 	packageName := "Umroh"
 	packageID := input.PackageID
 	if input.PackageID != nil {
@@ -455,7 +455,7 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 			}
 			return nil, err
 		}
-		if pkg.Status == "published" {
+		if pkg.Status == "published" && !PackageDeparted(pkg, time.Now()) {
 			packageName = pkg.Name
 		} else {
 			packageID = nil
@@ -892,6 +892,13 @@ func (s *prospectService) overrideFor(ctx context.Context, tenantID uint64, agen
 	if err != nil || agent == nil || agent.ParentAgentID == nil {
 		return nil, 0
 	}
+	// An upline earns override only while active (founder decision, 30 Sep 2026): a deactivated upline
+	// gets nothing for closings made while inactive, and nothing is paid back after reactivation.
+	// Override booked before the deactivation stays theirs.
+	parent, err := s.agentRepo.GetByID(ctx, tenantID, *agent.ParentAgentID)
+	if err != nil || parent == nil || parent.Status != "active" {
+		return nil, 0
+	}
 	return agent.ParentAgentID, *tenant.CommissionOverridePercentage
 }
 
@@ -1256,12 +1263,10 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 			directPotential := rate * float64(jamaah)
 			overridePotential := 0.0
 
-			if s.tenantRepo != nil && directPotential > 0 {
-				tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
-				if err == nil && tenant != nil && tenant.CommissionOverrideEnabled && tenant.CommissionOverridePercentage != nil && *tenant.CommissionOverridePercentage > 0 {
-					if ag != nil && ag.ParentAgentID != nil {
-						overridePotential = (*tenant.CommissionOverridePercentage / 100.0) * directPotential
-					}
+			// Same rule as the booking at closing (overrideFor): no override for an inactive upline.
+			if ag != nil && directPotential > 0 {
+				if parentID, pct := s.overrideFor(ctx, tenantID, ag.ID); parentID != nil {
+					overridePotential = (pct / 100.0) * directPotential
 				}
 			}
 
@@ -1742,11 +1747,16 @@ func (s *prospectService) CreateManualByAgent(ctx context.Context, tenantID uint
 	}
 
 	if input.PackageID != nil {
-		if _, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID); err != nil {
+		pkg, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID)
+		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return nil, ErrPackageNotFound
 			}
 			return nil, err
+		}
+		// Same rule as the public interest form: only a package on sale (published, not departed yet).
+		if pkg.Status != "published" || PackageDeparted(pkg, time.Now()) {
+			return nil, ErrPackageNotFound
 		}
 	}
 

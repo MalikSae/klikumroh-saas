@@ -50,6 +50,7 @@ import {
 } from '../services/api';
 import { formatDateWIB, formatDateTimeWIB, formatTimeWIB } from '../utils/datetime';
 import { prospectListPath } from '../utils/prospectListQuery';
+import { closingSeatsWarning } from '../utils/packageSeats';
 import './ProspectDetail.css';
 
 const statusBadgeVariant = (
@@ -319,6 +320,7 @@ export const ProspectDetailPage: React.FC = () => {
     : !data.package.commission_amount || data.package.commission_amount <= 0
     ? `Komisi paket ${data.package.name} belum diatur`
     : null;
+  const closingSeatsMessage = closingSeatsWarning(data?.package, data?.prospect.jumlah_jamaah);
 
   const waNormalized = data?.prospect.phone
     ? data.prospect.phone.replace(/\D/g, '')
@@ -1142,7 +1144,13 @@ export const ProspectDetailPage: React.FC = () => {
             </div>
           )}
 
-          {statusError && <div className="db-detail-inline-error">{statusError}</div>}
+          {targetStatus === 'closing' && closingSeatsMessage && (
+            <div className="db-detail-closing-warning db-detail-closing-warning--confirm">
+              <span>{closingSeatsMessage}</span>
+            </div>
+          )}
+
+          {statusError &&<div className="db-detail-inline-error">{statusError}</div>}
         </form>
       </Modal>
 
