@@ -172,7 +172,7 @@ func (m *mockPVRepo) UpdateStatus(ctx context.Context, id uint64, status string,
 	return nil
 }
 
-func (m *mockPVRepo) UpdateProofURL(ctx context.Context, id uint64, proofURL string) error {
+func (m *mockPVRepo) UpdateProofURL(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	pv, ok := m.verifications[id]
 	if !ok {
 		return repository.ErrNotFound
@@ -181,7 +181,7 @@ func (m *mockPVRepo) UpdateProofURL(ctx context.Context, id uint64, proofURL str
 	return nil
 }
 
-func (m *mockPVRepo) ResetToPendingWithProof(ctx context.Context, id uint64, proofURL string) error {
+func (m *mockPVRepo) ResetToPendingWithProof(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	pv, ok := m.verifications[id]
 	if !ok {
 		return repository.ErrNotFound
@@ -211,7 +211,7 @@ func (m *mockPVRepo) TransitionStatus(ctx context.Context, id uint64, fromStatus
 	return nil
 }
 
-func (m *mockPVRepo) ReplaceDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+func (m *mockPVRepo) ReplaceDetails(ctx context.Context, tenantID uint64, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
 	pv, ok := m.verifications[id]
 	if !ok {
 		return repository.ErrNotFound

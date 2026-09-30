@@ -8,7 +8,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -231,7 +230,7 @@ func (s *subscriptionService) CreateRenewalRequest(
 		// and any proof already uploaded. Only attach a new proof if this request carries one.
 		if existing.PlanID == planID && existing.Amount == baseAmount && sameCouponCode(existing.CouponCode, validCouponCode) {
 			if proofURL != nil {
-				if err := s.pvRepo.UpdateProofURL(ctx, existing.ID, *proofURL); err != nil {
+				if err := s.pvRepo.UpdateProofURL(ctx, tenantID, existing.ID, *proofURL); err != nil {
 					return nil, err
 				}
 				existing.ProofURL = proofURL
@@ -243,7 +242,7 @@ func (s *subscriptionService) CreateRenewalRequest(
 		// The billed amount changes: an old transfer proof no longer matches this invoice and must be
 		// cleared, otherwise a proof for a cheaper plan could be approved against a pricier one.
 		// Only a proof uploaded in this same request (for the new amount) is kept.
-		if err := s.pvRepo.ReplaceDetails(ctx, existing.ID, planID, validCouponCode, baseAmount, finalAmount, uniqueCode, proofURL); err != nil {
+		if err := s.pvRepo.ReplaceDetails(ctx, tenantID, existing.ID, planID, validCouponCode, baseAmount, finalAmount, uniqueCode, proofURL); err != nil {
 			return nil, mapVerificationConflict(err)
 		}
 		existing.PlanID = planID
@@ -335,19 +334,20 @@ func (s *subscriptionService) UploadRenewalProof(
 
 	fileName := uuid.New().String() + ".webp"
 	relPath := fmt.Sprintf("/uploads/%d/subscription-proofs/%s", tenantID, fileName)
-	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "subscription-proofs", fileName)
+	// Private: served by /api/dashboard/files and /api/staff/files, never /uploads.
+	absPath := util.PrivateUploadAbsPath(relPath)
 
 	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
 		return "", err
 	}
 
 	if pv.Status == "rejected" {
-		if err := s.pvRepo.ResetToPendingWithProof(ctx, verificationID, relPath); err != nil {
+		if err := s.pvRepo.ResetToPendingWithProof(ctx, tenantID, verificationID, relPath); err != nil {
 			_ = os.Remove(absPath)
 			return "", err
 		}
 	} else {
-		if err := s.pvRepo.UpdateProofURL(ctx, verificationID, relPath); err != nil {
+		if err := s.pvRepo.UpdateProofURL(ctx, tenantID, verificationID, relPath); err != nil {
 			_ = os.Remove(absPath)
 			return "", err
 		}

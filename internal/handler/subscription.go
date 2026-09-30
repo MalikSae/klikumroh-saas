@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -118,7 +117,8 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 
 		fileName := uuid.New().String() + ".webp"
 		relPath := fmt.Sprintf("/uploads/%d/subscription-proofs/%s", tenantID, fileName)
-		absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "subscription-proofs", fileName)
+		// Private: served by /api/dashboard/files and /api/staff/files, never /uploads.
+		absPath := util.PrivateUploadAbsPath(relPath)
 
 		if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
 			if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {

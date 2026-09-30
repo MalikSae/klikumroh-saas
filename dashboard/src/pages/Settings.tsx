@@ -68,6 +68,7 @@ import {
   uploadTenantOGImage,
   deleteTenantOGImage,
   fetchDomains,
+  getDomainARecordTargets,
   registerCustomDomain,
   verifyCustomDomain,
   deleteCustomDomain,
@@ -84,10 +85,10 @@ import {
   fetchPricingPlansForRenewal,
   type TenantSubscriptionInfo,
   type SubscriptionPricingPlan,
-  API_BASE,
 } from '../services/api';
 import { MetaIntegrationPanel } from './MetaIntegrationPanel';
 import './Settings.css';
+import { usePrivateFileURL } from '../hooks/usePrivateFile';
 
 const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/;
 
@@ -193,6 +194,8 @@ export const SettingsPage: React.FC = () => {
   const [verifyingDomainId, setVerifyingDomainId] = useState<number | null>(null);
   const [deletingDomainId, setDeletingDomainId] = useState<number | null>(null);
   const [copiedTarget, setCopiedTarget] = useState<boolean>(false);
+  const [copiedTxtId, setCopiedTxtId] = useState<number | null>(null);
+  const [aRecordTargets, setARecordTargets] = useState<string[]>([]);
   const [domainToDelete, setDomainToDelete] = useState<DomainItem | null>(null);
 
   // Team Management state
@@ -212,6 +215,8 @@ export const SettingsPage: React.FC = () => {
   const [loadingSub, setLoadingSub] = useState<boolean>(false);
   const [subLoadError, setSubLoadError] = useState<string | null>(null);
   const [previewProofURL, setPreviewProofURL] = useState<string | null>(null);
+  // Subscription transfer proofs are private files (authenticated download, not /uploads).
+  const previewProofFile = usePrivateFileURL(previewProofURL);
 
   const currentPlan = pricingPlans.find((p) => p.id === subInfo?.current_plan_id);
   // A travel that has not paid yet has no active plan: its card shows the plan of the pending invoice.
@@ -348,6 +353,7 @@ export const SettingsPage: React.FC = () => {
       ]);
 
       setDomains(domainsData || []);
+      setARecordTargets(getDomainARecordTargets());
       setTeamMembers(teamData || []);
       setLoadingTeam(false);
 
@@ -835,7 +841,7 @@ export const SettingsPage: React.FC = () => {
       const res = await registerCustomDomain(trimmed);
       setDomains((prev) => [res.domain, ...prev]);
       setCustomDomainInput('');
-      setSuccessMessage(`Custom domain ${trimmed} berhasil didaftarkan. Silakan atur CNAME DNS Anda dan klik Verifikasi Sekarang.`);
+      setSuccessMessage(`Custom domain ${trimmed} berhasil didaftarkan. Silakan tambahkan CNAME dan TXT record di DNS Anda, lalu klik Verifikasi Sekarang.`);
       setSuccessMessage(`Domain ${trimmed} berhasil ditambahkan. Silakan atur DNS CNAME.`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
@@ -851,8 +857,9 @@ export const SettingsPage: React.FC = () => {
       setErrorMessage(null);
       const updated = await verifyCustomDomain(id);
       setDomains((prev) => prev.map((d) => (d.id === id ? updated : d)));
-      if (updated.status === 'active') {
-        setSuccessMessage(`Verifikasi DNS berhasil! Domain ${updated.hostname} kini berstatus Aktif.`);
+      if (updated.status === 'active' && (updated.check_failures ?? 0) > 0) {
+        setErrorMessage(`Domain ${updated.hostname} tetap aktif, tetapi DNS-nya bermasalah: ${updated.verification_failure_reason || 'CNAME tidak mengarah ke cname.klikumroh.id'}`);
+      } else if (updated.status === 'active') {
         setSuccessMessage(`Verifikasi DNS berhasil. Domain ${updated.hostname} aktif.`);
       } else {
         setErrorMessage(`Verifikasi DNS belum berhasil: ${updated.verification_failure_reason || 'CNAME belum mengarah ke cname.klikumroh.id'}`);
@@ -879,6 +886,13 @@ export const SettingsPage: React.FC = () => {
     } finally {
       setDeletingDomainId(null);
     }
+  };
+
+  const handleCopyTXT = (dom: DomainItem) => {
+    if (!dom.verification_token) return;
+    navigator.clipboard.writeText(dom.verification_token);
+    setCopiedTxtId(dom.id);
+    setTimeout(() => setCopiedTxtId(null), 2000);
   };
 
   const handleCopyCNAME = () => {
@@ -2309,7 +2323,7 @@ export const SettingsPage: React.FC = () => {
                               Aktifkan Skema Komisi Override (1-Tier)
                             </label>
                             <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--db-text-muted)', lineHeight: '1.5' }}>
-                              Jika diaktifkan, saat sub-agent berhasil closing jamaah, master agent (parent) akan otomatis mendapatkan bonus komisi sebesar persentase yang ditentukan di bawah ini dari nilai komisi sub-agent.
+                              Jika diaktifkan, saat sub-agent berhasil closing jamaah, master agent (parent) akan otomatis mendapatkan bonus komisi sebesar persentase yang ditentukan di bawah ini dari nilai komisi sub-agent. Bonus hanya dicatat selama master agent berstatus aktif.
                             </p>
                           </div>
                         </div>
@@ -2497,6 +2511,19 @@ export const SettingsPage: React.FC = () => {
                               </div>
                             </div>
 
+                            {/* Active domain whose DNS checks are failing: still online, redirect stops after 3. */}
+                            {dom.status === 'active' && (dom.check_failures ?? 0) > 0 && (
+                              <div className="db-alert db-alert--error">
+                                <AlertCircle size={16} />
+                                <span>
+                                  Pemeriksaan DNS gagal {dom.check_failures}x berturut-turut: {dom.verification_failure_reason}.{' '}
+                                  {(dom.check_failures ?? 0) >= 3
+                                    ? 'Pengunjung subdomain tidak lagi diarahkan ke domain ini sampai DNS diperbaiki.'
+                                    : 'Setelah 3 kali gagal, pengunjung subdomain tidak lagi diarahkan ke domain ini.'}
+                                </span>
+                              </div>
+                            )}
+
                             {/* Failure reason explanation */}
                             {dom.status === 'failed' && dom.verification_failure_reason && (
                               <div
@@ -2522,7 +2549,8 @@ export const SettingsPage: React.FC = () => {
                               </div>
                             )}
 
-                            {/* CNAME Instruction Box */}
+                            {/* DNS Instruction Box (CNAME + TXT ownership proof), until the domain is active */}
+                            {dom.status !== 'active' && (
                             <div
                               style={{
                                 backgroundColor: 'var(--db-chart-area-fill)',
@@ -2535,7 +2563,7 @@ export const SettingsPage: React.FC = () => {
                                 PANDUAN PENGATURAN DNS (CLOUDFLARE / REGISTRAR DOMAIN):
                               </div>
                               <div style={{ fontSize: '13px', color: 'var(--db-text-primary)', marginBottom: '10px' }}>
-                                Buat <strong>CNAME Record</strong> di pengaturan DNS domain Anda yang mengarah ke target di bawah ini:
+                                Untuk subdomain seperti <strong>www.namatravel.com</strong>, buat <strong>CNAME Record</strong> yang mengarah ke:
                               </div>
                               <div
                                 style={{
@@ -2567,7 +2595,68 @@ export const SettingsPage: React.FC = () => {
                                   <span>{copiedTarget ? 'Tersalin' : 'Salin Target CNAME'}</span>
                                 </Button>
                               </div>
+
+                              <div style={{ fontSize: '13px', color: 'var(--db-text-primary)', margin: '14px 0 10px' }}>
+                                Untuk domain utama seperti <strong>namatravel.com</strong> (tidak bisa CNAME), buat <strong>A Record</strong> ke IP server berikut.
+                                Jika memakai Cloudflare, set ke <strong>DNS only</strong> (awan abu-abu).
+                              </div>
+                              <div
+                                style={{
+                                  padding: '10px 14px',
+                                  backgroundColor: 'var(--db-card-bg)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  border: '1px solid var(--db-border)',
+                                  fontFamily: 'monospace',
+                                  fontSize: '13px',
+                                  overflowWrap: 'anywhere',
+                                }}
+                              >
+                                <span style={{ color: 'var(--db-text-muted)' }}>{dom.hostname}</span>
+                                <ArrowRight size={13} style={{ margin: '0 8px', color: 'var(--db-text-muted)', display: 'inline-block', verticalAlign: 'middle' }} />
+                                <strong style={{ color: 'var(--db-text-primary)' }}>
+                                  {aRecordTargets.length > 0 ? aRecordTargets.join(', ') : 'IP server belum tersedia, hubungi tim KlikUmroh'}
+                                </strong>
+                              </div>
+
+                              {dom.verification_token && (
+                                <>
+                                  <div style={{ fontSize: '13px', color: 'var(--db-text-primary)', margin: '14px 0 10px' }}>
+                                    Lalu buat <strong>TXT Record</strong> berikut sebagai bukti bahwa domain ini milik travel Anda:
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '10px 14px',
+                                      backgroundColor: 'var(--db-card-bg)',
+                                      borderRadius: 'var(--radius-sm)',
+                                      border: '1px solid var(--db-border)',
+                                      fontFamily: 'monospace',
+                                      fontSize: '13px',
+                                      gap: '12px',
+                                      flexWrap: 'wrap',
+                                    }}
+                                  >
+                                    <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                                      <span style={{ color: 'var(--db-text-muted)' }}>_klikumroh-verify.{dom.hostname}</span>
+                                      <ArrowRight size={13} style={{ margin: '0 8px', color: 'var(--db-text-muted)', display: 'inline-block', verticalAlign: 'middle' }} />
+                                      <strong style={{ color: 'var(--db-text-primary)' }}>{dom.verification_token}</strong>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      onClick={() => handleCopyTXT(dom)}
+                                      style={{ padding: '6px 12px', fontSize: '12px', height: 'auto' }}
+                                    >
+                                      {copiedTxtId === dom.id ? <Check size={14} /> : <Copy size={14} />}
+                                      <span>{copiedTxtId === dom.id ? 'Tersalin' : 'Salin Nilai TXT'}</span>
+                                    </Button>
+                                  </div>
+                                </>
+                              )}
                             </div>
+                            )}
 
                             {/* Action Buttons */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>
@@ -2578,7 +2667,13 @@ export const SettingsPage: React.FC = () => {
                                 disabled={verifyingDomainId === dom.id}
                               >
                                 <RefreshCw size={15} className={verifyingDomainId === dom.id ? 'db-spin' : ''} />
-                                <span>{verifyingDomainId === dom.id ? 'Memeriksa DNS...' : 'Verifikasi Sekarang'}</span>
+                                <span>
+                                  {verifyingDomainId === dom.id
+                                    ? 'Memeriksa DNS...'
+                                    : dom.status === 'active'
+                                    ? 'Periksa Ulang DNS'
+                                    : 'Verifikasi Sekarang'}
+                                </span>
                               </Button>
 
                               <Button
@@ -3424,7 +3519,7 @@ export const SettingsPage: React.FC = () => {
                                     {item.proof_url ? (
                                       <button
                                         type="button"
-                                        onClick={() => setPreviewProofURL(`${API_BASE}${item.proof_url}`)}
+                                        onClick={() => setPreviewProofURL(item.proof_url || null)}
                                         style={{
                                           background: 'none',
                                           border: 'none',
@@ -3546,7 +3641,7 @@ export const SettingsPage: React.FC = () => {
                     <div style={{ textAlign: 'center' }}>
                       {previewProofURL && (
                         <img
-                          src={previewProofURL}
+                          src={previewProofFile.url || undefined}
                           alt="Bukti Transfer"
                           style={{
                             maxWidth: '100%',

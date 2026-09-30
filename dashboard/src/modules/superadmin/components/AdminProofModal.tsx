@@ -10,6 +10,7 @@ import {
   updatePaymentVerificationPlan,
   updatePaymentVerificationCoupon,
 } from '../../../services/staffApi';
+import { usePrivateFileURL } from '../../../hooks/usePrivateFile';
 
 const cleanWhatsApp = (num?: string | null) => {
   if (!num) return null;
@@ -64,6 +65,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [currentItem, setCurrentItem] = useState<PaymentVerificationItem | null>(item);
+  // Transfer proofs are private files: downloaded with the staff token, not from /uploads.
+  const proofFile = usePrivateFileURL(isOpen ? currentItem?.proof_url : null, 'staff');
 
   useEffect(() => {
     if (item) {
@@ -513,14 +516,14 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
               <div>
                 <div style={{ textAlign: 'center', borderRadius: 'var(--sa-radius-sm)', overflow: 'hidden', border: '1px solid var(--sa-border)' }}>
                   <img
-                    src={currentItem.proof_url}
+                    src={proofFile.url || undefined}
                     alt="Bukti Transfer"
                     style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
                   />
                 </div>
                 <div style={{ marginTop: '8px', textAlign: 'center' }}>
                   <a
-                    href={currentItem.proof_url}
+                    href={proofFile.url || undefined}
                     target="_blank" rel="noopener noreferrer"
                     style={{ fontSize: '12px', color: 'var(--sa-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
                   >

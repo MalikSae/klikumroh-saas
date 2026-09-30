@@ -34,8 +34,8 @@ import {
   getStoredTravelName,
   type PaymentVerification,
   type PlatformSettings,
-  API_BASE,
 } from '../services/api';
+import { usePrivateFileURL } from '../hooks/usePrivateFile';
 
 export const SubscriptionPaymentInstructionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +55,8 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewProofURL, setPreviewProofURL] = useState<string | null>(null);
+  // Subscription transfer proofs are private files (authenticated download, not /uploads).
+  const previewProofFile = usePrivateFileURL(previewProofURL);
 
   const currentUser = getStoredUser();
 
@@ -572,7 +574,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
                       <Button
                         type="button"
                         variant="secondary"
-                        onClick={() => setPreviewProofURL(`${API_BASE}${verification.proof_url}`)}
+                        onClick={() => setPreviewProofURL(verification.proof_url || null)}
                         style={{ fontSize: '12px', padding: '6px 14px' }}
                       >
                         Lihat Bukti Terlampir
@@ -727,7 +729,7 @@ export const SubscriptionPaymentInstructionPage: React.FC = () => {
             <div style={{ textAlign: 'center' }}>
               {previewProofURL && (
                 <img
-                  src={previewProofURL}
+                  src={previewProofFile.url || undefined}
                   alt="Bukti Transfer"
                   style={{
                     maxWidth: '100%',
