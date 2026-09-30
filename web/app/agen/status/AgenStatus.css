@@ -4,7 +4,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
 }
 
 .tw-agen-status-body {
@@ -16,7 +16,7 @@
 /* Header Banner */
 .tw-agen-status-header {
   padding: 16px 16px 14px 16px;
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
 }
 
 .tw-agen-status-tag {
@@ -33,7 +33,7 @@
   font-family: var(--tw-font-heading);
   font-size: 18px;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   line-height: 1.3;
   margin: 0 0 4px 0;
 }
@@ -41,7 +41,7 @@
 .tw-agen-status-subtitle {
   font-size: 12.5px;
   line-height: 1.5;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   margin: 0;
 }
 
@@ -49,10 +49,10 @@
 .tw-agen-status-profile-card {
   margin: 0 16px 14px 16px;
   padding: 12px 14px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background-color: var(--tw-background);
+  border: 1px solid var(--tw-neutral-200);
   border-radius: var(--radius-md, 10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px var(--tw-surface-tint);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -88,7 +88,7 @@
 .tw-agen-status-profile-name {
   font-size: 13.5px;
   font-weight: 700;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -96,7 +96,7 @@
 
 .tw-agen-status-profile-loc {
   font-size: 11.5px;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   display: flex;
   align-items: center;
   gap: 3px;
@@ -104,8 +104,8 @@
 
 .tw-agen-status-btn-logout {
   background: none;
-  border: 1px solid #E2E8F0;
-  color: #64748B;
+  border: 1px solid var(--tw-neutral-200);
+  color: var(--tw-neutral-500);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -114,25 +114,25 @@
   font-weight: 600;
   padding: 6px 10px;
   border-radius: var(--radius-sm, 6px);
-  background-color: #F8FAFC;
+  background-color: var(--tw-page-bg);
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .tw-agen-status-btn-logout:hover {
-  background-color: #FEF2F2;
-  color: #DC2626;
-  border-color: #FECACA;
+  background-color: var(--tw-danger-bg);
+  color: var(--tw-danger-strong);
+  border-color: var(--tw-danger-line);
 }
 
 /* Card Container Common */
 .tw-agen-status-card {
   margin: 0 16px 14px 16px;
   padding: 18px 16px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background-color: var(--tw-background);
+  border: 1px solid var(--tw-neutral-200);
   border-radius: var(--radius-md, 10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px var(--tw-surface-tint);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -153,7 +153,7 @@
 .tw-agen-status-card-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   margin: 0;
 }
 
@@ -174,27 +174,33 @@
 }
 
 .tw-agen-status-icon-badge--success {
-  background-color: #ECFDF5;
-  color: #059669;
+  background-color: var(--tw-success-bg);
+  color: var(--tw-success-strong);
 }
 
 .tw-agen-status-icon-badge--rejected {
-  background-color: #FEF2F2;
-  color: #DC2626;
+  background-color: var(--tw-danger-bg);
+  color: var(--tw-danger-strong);
+}
+
+/* Deactivated by the travel: neutral, not an error the agent caused. */
+.tw-agen-status-icon-badge--inactive {
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-600);
 }
 
 .tw-agen-status-state-title {
   font-family: var(--tw-font-heading);
   font-size: 17px;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   margin: 0 0 6px 0;
 }
 
 .tw-agen-status-state-desc {
   font-size: 13px;
   line-height: 1.5;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   margin: 0;
   max-width: 320px;
 }
@@ -210,7 +216,7 @@
 
 .tw-agen-status-amount-label {
   font-size: 11px;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -226,9 +232,9 @@
 
 /* Bank Account Detail Box */
 .tw-agen-status-bank-box {
-  background-color: #F8FAFC;
+  background-color: var(--tw-page-bg);
   border-radius: var(--radius-md, 8px);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--tw-neutral-200);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -243,20 +249,20 @@
 }
 
 .tw-agen-status-bank-label {
-  color: #64748B;
+  color: var(--tw-neutral-500);
   font-size: 12px;
 }
 
 .tw-agen-status-bank-value {
   font-weight: 700;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
 }
 
 .tw-agen-status-copy-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   display: inline-flex;
   align-items: center;
   padding: 3px 6px;
@@ -265,22 +271,22 @@
 }
 
 .tw-agen-status-copy-btn:hover {
-  background-color: #E2E8F0;
+  background-color: var(--tw-neutral-200);
   color: var(--tw-brand-primary);
 }
 
 .tw-agen-status-copy-btn--copied {
-  color: #059669;
+  color: var(--tw-success-strong);
 }
 
 /* Upload Dropzone Box */
 .tw-agen-status-file-input {
   width: 100%;
   padding: 10px;
-  border: 1px dashed #CBD5E1;
+  border: 1px dashed var(--tw-neutral-300);
   border-radius: var(--radius-md, 8px);
   font-size: 12.5px;
-  background-color: #F8FAFC;
+  background-color: var(--tw-page-bg);
   cursor: pointer;
   box-sizing: border-box;
 }
@@ -299,7 +305,7 @@
   max-height: 160px;
   max-width: 100%;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--tw-neutral-200);
   object-fit: contain;
 }
 
@@ -312,7 +318,7 @@
   cursor: pointer;
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px var(--tw-border);
   display: block;
 }
 
@@ -326,11 +332,11 @@
 .tw-agen-status-proof-thumb-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.4);
+  background-color: color-mix(in srgb, var(--tw-neutral-900) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FFFFFF;
+  color: var(--tw-on-brand);
   opacity: 0.85;
   transition: opacity 0.2s ease;
 }
@@ -341,10 +347,10 @@
 
 /* Referral & Share Card Elements */
 .tw-agen-status-ref-code-box {
-  background-color: #F8FAFC;
+  background-color: var(--tw-page-bg);
   padding: 12px 14px;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--tw-neutral-200);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -358,12 +364,12 @@
 }
 
 .tw-agen-status-ref-link-box {
-  background-color: #F8FAFC;
+  background-color: var(--tw-page-bg);
   padding: 10px 12px;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--tw-neutral-200);
   font-size: 12px;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   word-break: break-all;
   font-family: monospace;
 }
@@ -380,22 +386,22 @@
 }
 
 .tw-agen-status-alert--error {
-  background-color: #FEF2F2;
-  border: 1px solid #FECACA;
-  color: #DC2626;
+  background-color: var(--tw-danger-bg);
+  border: 1px solid var(--tw-danger-line);
+  color: var(--tw-danger-strong);
 }
 
 .tw-agen-status-alert--success {
-  background-color: #ECFDF5;
-  border: 1px solid #A7F3D0;
-  color: #059669;
+  background-color: var(--tw-success-bg);
+  border: 1px solid var(--tw-success-border);
+  color: var(--tw-success-strong);
 }
 
 /* Lightbox Modal */
 .tw-agen-status-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
+  background-color: color-mix(in srgb, var(--tw-neutral-900) 65%, transparent);
   backdrop-filter: blur(2px);
   z-index: 999;
   display: flex;
@@ -405,7 +411,7 @@
 }
 
 .tw-agen-status-modal-content {
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
   border-radius: var(--radius-lg, 12px);
   max-width: 440px;
   width: 100%;
@@ -413,7 +419,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px var(--tw-shadow-strong);
 }
 
 .tw-agen-status-modal-img {

@@ -4,7 +4,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
 }
 
 .tw-agen-login-body {
@@ -16,7 +16,7 @@
 /* Header Banner */
 .tw-agen-login-header {
   padding: 16px 16px 14px 16px;
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
 }
 
 .tw-agen-login-tag {
@@ -33,7 +33,7 @@
   font-family: var(--tw-font-heading);
   font-size: 18px;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   line-height: 1.3;
   margin: 0 0 4px 0;
 }
@@ -41,7 +41,7 @@
 .tw-agen-login-subtitle {
   font-size: 12.5px;
   line-height: 1.5;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   margin: 0;
 }
 
@@ -50,9 +50,9 @@
   margin: 0 16px 14px 16px;
   padding: 12px 14px;
   border-radius: var(--radius-md, 8px);
-  background-color: #FEF2F2;
-  border: 1px solid #FECACA;
-  color: #DC2626;
+  background-color: var(--tw-danger-bg);
+  border: 1px solid var(--tw-danger-line);
+  color: var(--tw-danger-strong);
   font-size: 13px;
   line-height: 1.4;
   display: flex;
@@ -64,10 +64,10 @@
 .tw-agen-login-card {
   margin: 0 16px 16px 16px;
   padding: 20px 16px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background-color: var(--tw-background);
+  border: 1px solid var(--tw-neutral-200);
   border-radius: var(--radius-md, 10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px var(--tw-surface-tint);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -83,7 +83,7 @@
 .tw-agen-login-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #334155;
+  color: var(--tw-neutral-700);
 }
 
 .tw-agen-login-input-wrap {
@@ -95,7 +95,7 @@
 .tw-agen-login-icon-left {
   position: absolute;
   left: 12px;
-  color: #94A3B8;
+  color: var(--tw-neutral-400);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -104,24 +104,24 @@
   width: 100%;
   height: 42px;
   padding: 0 40px 0 38px;
-  background-color: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  background-color: var(--tw-page-bg);
+  border: 1px solid var(--tw-neutral-200);
   border-radius: var(--radius-md, 8px);
   font-family: var(--tw-font-body, 'Roboto', sans-serif);
   font-size: 14px;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .tw-agen-login-input:focus {
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
   border-color: var(--tw-brand-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--tw-brand-primary) 15%, transparent);
 }
 
 .tw-agen-login-input::placeholder {
-  color: #94A3B8;
+  color: var(--tw-neutral-400);
 }
 
 .tw-agen-login-toggle-pw {
@@ -130,7 +130,7 @@
   background: none;
   border: none;
   padding: 6px;
-  color: #94A3B8;
+  color: var(--tw-neutral-400);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -140,15 +140,15 @@
 }
 
 .tw-agen-login-toggle-pw:hover {
-  color: #334155;
+  color: var(--tw-neutral-700);
 }
 
 /* Secondary Registration CTA Card */
 .tw-agen-login-register-card {
   margin: 0 16px 16px 16px;
   padding: 16px;
-  background-color: #F8FAFC;
-  border: 1px dashed #CBD5E1;
+  background-color: var(--tw-page-bg);
+  border: 1px dashed var(--tw-neutral-300);
   border-radius: var(--radius-md, 10px);
   display: flex;
   flex-direction: column;
@@ -160,14 +160,14 @@
 .tw-agen-login-register-title {
   font-size: 13px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--tw-neutral-800);
   margin: 0;
 }
 
 .tw-agen-login-register-desc {
   font-size: 12px;
   line-height: 1.5;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   margin: 0;
 }
 
@@ -178,7 +178,7 @@
   justify-content: center;
   gap: 6px;
   font-size: 12px;
-  color: #64748B;
+  color: var(--tw-neutral-500);
   margin-top: 4px;
   text-decoration: none;
   padding: 6px 12px;

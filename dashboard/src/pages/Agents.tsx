@@ -49,6 +49,7 @@ import {
   getStoredUser,
 } from '../services/api';
 import './Agents.css';
+import { usePrivateFileURL } from '../hooks/usePrivateFile';
 
 export const AgentsPage: React.FC = () => {
   const location = useLocation();
@@ -78,6 +79,8 @@ export const AgentsPage: React.FC = () => {
 
   // Modal Proof of Payment
   const [selectedProofUrl, setSelectedProofUrl] = useState<string | null>(null);
+  // Registration transfer proofs are private files (authenticated download, not /uploads).
+  const proofFile = usePrivateFileURL(selectedProofUrl);
   const [selectedAgent, setSelectedAgent] = useState<AgentItem | null>(null);
 
   // Confirmation Modal for Agent Approval / Rejection
@@ -1366,7 +1369,7 @@ export const AgentsPage: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                 {selectedProofUrl && (
                   <a
-                    href={getFullImageUrl(selectedProofUrl)}
+                    href={proofFile.url || undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -1424,7 +1427,7 @@ export const AgentsPage: React.FC = () => {
                 }}
               >
                 <img
-                  src={getFullImageUrl(selectedProofUrl)}
+                  src={proofFile.url || undefined}
                   alt={`Bukti Transfer ${selectedAgent?.name}`}
                   style={{
                     maxWidth: '100%',

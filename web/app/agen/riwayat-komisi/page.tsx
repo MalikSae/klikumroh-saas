@@ -179,9 +179,9 @@ export default function RiwayatKomisiPage() {
     if (item.type === 'override') {
       return {
         label: 'Komisi Tim',
-        bg: 'color-mix(in srgb, #6366f1 12%, var(--tw-background))',
-        color: '#4f46e5',
-        border: '1px solid color-mix(in srgb, #6366f1 25%, transparent)',
+        bg: 'color-mix(in srgb, var(--tw-accent-indigo) 12%, var(--tw-background))',
+        color: 'var(--tw-accent-indigo-strong)',
+        border: '1px solid color-mix(in srgb, var(--tw-accent-indigo) 25%, transparent)',
       };
     }
     if (item.type === 'correction') {
@@ -189,7 +189,7 @@ export default function RiwayatKomisiPage() {
         label: 'Koreksi',
         bg: 'var(--tw-badge-neutral-bg)',
         color: 'var(--tw-text-secondary)',
-        border: '1px solid rgba(0, 0, 0, 0.08)',
+        border: '1px solid var(--tw-border)',
       };
     }
     return {
@@ -213,23 +213,23 @@ export default function RiwayatKomisiPage() {
         case 'approved':
           return {
             label: 'Disetujui',
-            bg: 'color-mix(in srgb, #3b82f6 14%, var(--tw-background))',
-            color: '#1d4ed8',
-            border: '1px solid color-mix(in srgb, #3b82f6 30%, transparent)',
+            bg: 'color-mix(in srgb, var(--tw-status-new) 14%, var(--tw-background))',
+            color: 'var(--tw-status-new-text)',
+            border: '1px solid color-mix(in srgb, var(--tw-status-new) 30%, transparent)',
           };
         case 'paid':
           return {
             label: 'Selesai',
             bg: 'var(--tw-badge-success-bg)',
             color: 'var(--tw-income)',
-            border: '1px solid color-mix(in srgb, #22c55e 30%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
           };
         case 'rejected':
           return {
             label: 'Ditolak',
             bg: 'var(--tw-badge-neutral-bg)',
             color: 'var(--tw-text-muted)',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
+            border: '1px solid var(--tw-border)',
           };
         default:
           return null;
@@ -247,7 +247,7 @@ export default function RiwayatKomisiPage() {
       label: 'Berhasil',
       bg: 'var(--tw-badge-success-bg)',
       color: 'var(--tw-income)',
-      border: '1px solid color-mix(in srgb, #22c55e 30%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
     };
   };
 
@@ -260,7 +260,7 @@ export default function RiwayatKomisiPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -312,7 +312,7 @@ export default function RiwayatKomisiPage() {
             padding: '7px 12px',
             borderRadius: '6px',
             backgroundColor: 'var(--tw-brand-primary)',
-            color: '#FFFFFF',
+            color: 'var(--tw-on-brand)',
             fontSize: '12px',
             fontWeight: 700,
             border: 'none',
@@ -352,7 +352,7 @@ export default function RiwayatKomisiPage() {
             style={{
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               padding: '12px 14px',
               display: 'flex',
               flexDirection: 'column',
@@ -399,7 +399,7 @@ export default function RiwayatKomisiPage() {
             style={{
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               padding: '12px 14px',
               display: 'flex',
               flexDirection: 'column',
@@ -472,7 +472,7 @@ export default function RiwayatKomisiPage() {
               padding: '10px 36px 10px 36px',
               fontSize: '13px',
               backgroundColor: 'var(--tw-background)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
+              border: '1px solid var(--tw-border)',
               borderRadius: '8px',
               color: 'var(--tw-text-primary)',
               outline: 'none',
@@ -529,9 +529,9 @@ export default function RiwayatKomisiPage() {
                   fontWeight: 600,
                   border: isActive
                     ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid rgba(0, 0, 0, 0.08)',
+                    : '1px solid var(--tw-border)',
                   backgroundColor: isActive ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isActive ? '#FFFFFF' : 'var(--tw-text-secondary)',
+                  color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   display: 'inline-flex',
@@ -545,8 +545,8 @@ export default function RiwayatKomisiPage() {
                 <span
                   style={{
                     fontSize: '10px',
-                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.06)',
-                    color: isActive ? '#FFFFFF' : 'var(--tw-text-muted)',
+                    backgroundColor: isActive ? 'var(--tw-on-brand-subtle)' : 'var(--tw-hairline)',
+                    color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
                     padding: '1px 5px',
                     borderRadius: '4px',
                   }}
@@ -574,7 +574,7 @@ export default function RiwayatKomisiPage() {
               style={{
                 width: '32px',
                 height: '32px',
-                border: '3px solid rgba(0, 0, 0, 0.08)',
+                border: '3px solid var(--tw-border)',
                 borderTopColor: 'var(--tw-brand-primary)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
@@ -597,7 +597,7 @@ export default function RiwayatKomisiPage() {
               padding: '36px 16px',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -618,7 +618,7 @@ export default function RiwayatKomisiPage() {
                 padding: '8px 16px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 fontSize: '12px',
                 fontWeight: 600,
                 border: 'none',
@@ -638,7 +638,7 @@ export default function RiwayatKomisiPage() {
               padding: '48px 20px',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -688,7 +688,7 @@ export default function RiwayatKomisiPage() {
                 padding: '9px 16px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 fontSize: '13px',
                 fontWeight: 700,
                 border: 'none',
@@ -716,7 +716,7 @@ export default function RiwayatKomisiPage() {
                   style={{
                     backgroundColor: 'var(--tw-background)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    border: '1px solid var(--tw-hairline)',
                     padding: '14px 15px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -796,7 +796,7 @@ export default function RiwayatKomisiPage() {
                       fontSize: '11px',
                       color: 'var(--tw-text-muted)',
                       paddingTop: '6px',
-                      borderTop: '1px solid rgba(0, 0, 0, 0.04)',
+                      borderTop: '1px solid var(--tw-surface-tint)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

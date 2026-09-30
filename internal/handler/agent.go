@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -21,19 +23,26 @@ import (
 
 type AgentHandler struct {
 	agentService service.AgentService
+	// Brute-force protection: failed logins per travel+email, plus a per-IP cap on login and sign-up calls.
+	loginFailures *middleware.LoginFailureLimiter
+	loginLimiter  func(http.Handler) http.Handler
+	signupLimiter func(http.Handler) http.Handler
 }
 
 func NewAgentHandler(agentService service.AgentService) *AgentHandler {
 	return &AgentHandler{
-		agentService: agentService,
+		agentService:  agentService,
+		loginFailures: middleware.NewLoginFailureLimiter(5, 15*time.Minute),
+		loginLimiter:  middleware.NewIPRateLimiter(20, time.Minute),
+		signupLimiter: middleware.NewIPRateLimiter(10, 10*time.Minute),
 	}
 }
 
 // RegisterPublicRoutes mounts public routes for agent onboarding on subdomains.
 func (h *AgentHandler) RegisterPublicRoutes(r chi.Router) {
 	r.Get("/api/public/agent-registration-info", h.GetRegistrationInfo)
-	r.Post("/api/public/agents/register", h.Register)
-	r.Post("/api/agent/login", h.Login)
+	r.With(h.signupLimiter).Post("/api/public/agents/register", h.Register)
+	r.With(h.loginLimiter).Post("/api/agent/login", h.Login)
 }
 
 // RegisterAgentProtectedRoutes mounts protected endpoints for authenticated agents.
@@ -124,8 +133,8 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "domisili wajib dipilih"})
 		return
 	}
-	if len(req.Password) < 6 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "password minimal 6 karakter"})
+	if len(strings.TrimSpace(req.Password)) < service.MinAgentPasswordLength {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrAgentPasswordTooShort.Error()})
 		return
 	}
 
@@ -151,7 +160,16 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Syarat & Ketentuan wajib disetujui"})
 			return
 		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		if errors.Is(err, service.ErrAgentPasswordTooShort) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, service.ErrAgentRegistrationClosed) {
+			respondJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("[Agent] register failed for tenant %d: %v", tenantID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "pendaftaran gagal diproses, silakan coba lagi"})
 		return
 	}
 
@@ -180,9 +198,18 @@ func (h *AgentHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	key := middleware.LoginKey(strconv.FormatUint(tenantID, 10), req.Email)
+	if h.loginFailures != nil && h.loginFailures.Blocked(key) {
+		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": middleware.LoginLockedMessage})
+		return
+	}
+
 	res, err := h.agentService.Login(r.Context(), tenantID, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
+			if h.loginFailures != nil {
+				h.loginFailures.Fail(key)
+			}
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "email atau password salah"})
 			return
 		}
@@ -190,6 +217,9 @@ func (h *AgentHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.loginFailures != nil {
+		h.loginFailures.Reset(key)
+	}
 	respondJSON(w, http.StatusOK, res)
 }
 
@@ -282,6 +312,10 @@ func (h *AgentHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 
 	entries, err := h.agentService.GetLeaderboard(r.Context(), tenantID, agentID)
 	if err != nil {
+		if errors.Is(err, service.ErrAgentNotActive) {
+			respondJSON(w, http.StatusForbidden, map[string]string{"error": "Akun belum aktif"})
+			return
+		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
@@ -349,7 +383,8 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 	}
 
 	relPath := fmt.Sprintf("/uploads/%d/agents/%d/bukti-transfer.webp", tenantID, agentID)
-	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "agents", fmt.Sprintf("%d", agentID), "bukti-transfer.webp")
+	// Private: contains the agent's name, bank and amount (served by /api/*/files, never /uploads).
+	absPath := util.PrivateUploadAbsPath(relPath)
 
 	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
 		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
@@ -406,6 +441,10 @@ func (h *AgentHandler) ApproveAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.agentService.ApproveAgent(r.Context(), tenantID, agentID); err != nil {
+		if errors.Is(err, service.ErrAgentApproveState) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -440,6 +479,10 @@ func (h *AgentHandler) RejectAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.agentService.RejectAgent(r.Context(), tenantID, agentID, req.Reason); err != nil {
+		if errors.Is(err, service.ErrAgentRejectState) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
 			return
@@ -1141,6 +1184,9 @@ func (h *AgentHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if parts := strings.SplitN(r.Header.Get("Authorization"), " ", 2); len(parts) == 2 {
+		req.KeepToken = strings.TrimSpace(parts[1])
+	}
 	if err := h.agentService.UpdatePassword(r.Context(), tenantID, agentID, &req); err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "password saat ini salah"})

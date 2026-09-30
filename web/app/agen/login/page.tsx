@@ -201,7 +201,7 @@ export default function AgenLoginPage() {
                     rel="noopener noreferrer"
                     style={{
                       fontSize: '12px',
-                      color: 'var(--tw-brand-primary, #0D9488)',
+                      color: 'var(--tw-brand-primary, var(--tw-accent-teal))',
                       textDecoration: 'none',
                       fontWeight: 600,
                     }}

@@ -52,6 +52,30 @@ func NewCommissionPayoutRequestRepository(db *sql.DB) CommissionPayoutRequestRep
 	return &mysqlCommissionPayoutRequestRepository{db: db}
 }
 
+// WithAgentPayoutLock serialises payout creation for one agent: the "no active request" and balance
+// checks plus the insert run one at a time, so simultaneous requests cannot reserve the same balance twice.
+func (r *mysqlCommissionPayoutRequestRepository) WithAgentPayoutLock(ctx context.Context, tenantID uint64, agentID uint64, fn func() error) error {
+	conn, err := r.db.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	name := fmt.Sprintf("ku_payout_%d_%d", tenantID, agentID)
+	var got sql.NullInt64
+	if err := conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 5)", name).Scan(&got); err != nil {
+		return err
+	}
+	if !got.Valid || got.Int64 != 1 {
+		return errors.New("payout lock timeout")
+	}
+	defer func() {
+		// Release on the same connection; use a fresh context so a cancelled request still releases.
+		_, _ = conn.ExecContext(context.Background(), "SELECT RELEASE_LOCK(?)", name)
+	}()
+	return fn()
+}
+
 func (r *mysqlCommissionPayoutRequestRepository) Create(ctx context.Context, tenantID uint64, req *CommissionPayoutRequest) error {
 	query := `
 		INSERT INTO commission_payout_requests (

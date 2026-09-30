@@ -18,6 +18,7 @@ import {
   MapPin,
   Eye,
   MessageCircle,
+  PauseCircle,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
@@ -74,6 +75,31 @@ export default function AgenStatusPage() {
 
   // Lightbox for proof
   const [showProofModal, setShowProofModal] = useState<boolean>(false);
+
+  // The transfer proof is a private file: downloaded with the agent's own token, not from /uploads.
+  const proofRef = data?.agent.payment_proof_url || null;
+  const [proofSrc, setProofSrc] = useState<string | null>(null);
+  useEffect(() => {
+    setProofSrc(null);
+    const token = localStorage.getItem('agent_token');
+    if (!proofRef || !token) return;
+    const controller = new AbortController();
+    let objectUrl: string | null = null;
+    fetch(`/api/agent/files?path=${encodeURIComponent(proofRef)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        objectUrl = URL.createObjectURL(await res.blob());
+        setProofSrc(objectUrl);
+      })
+      .catch(() => {});
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [proofRef]);
 
   const fetchAgentMe = async (isManualRefresh = false) => {
     const token = localStorage.getItem('agent_token');
@@ -290,13 +316,13 @@ export default function AgenStatusPage() {
               style={{
                 width: '36px',
                 height: '36px',
-                border: '3px solid #E2E8F0',
+                border: '3px solid var(--tw-neutral-200)',
                 borderTopColor: 'var(--tw-brand-primary)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
               }}
             />
-            <span style={{ fontSize: '13px', color: '#64748B' }}>
+            <span style={{ fontSize: '13px', color: 'var(--tw-neutral-500)' }}>
               Memuat status kemitraan agen Anda...
             </span>
             <style jsx>{`
@@ -328,11 +354,11 @@ export default function AgenStatusPage() {
             hideNotification={true}
           />
           <div style={{ padding: '40px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-            <div style={{ color: '#DC2626', background: '#FEF2F2', padding: '14px', borderRadius: '50%' }}>
+            <div style={{ color: 'var(--tw-danger-strong)', background: 'var(--tw-danger-bg)', padding: '14px', borderRadius: '50%' }}>
               <AlertCircle size={32} />
             </div>
-            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#0F172A' }}>Gagal Memuat Status</h2>
-            <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>{error}</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--tw-neutral-900)' }}>Gagal Memuat Status</h2>
+            <p style={{ fontSize: '13px', color: 'var(--tw-neutral-500)', margin: 0 }}>{error}</p>
             <Button variant="primary" size="md" onClick={() => fetchAgentMe()}>
               <RefreshCw size={15} />
               <span>Coba Lagi</span>
@@ -426,7 +452,7 @@ export default function AgenStatusPage() {
 
                 {/* Rincian Rekening Bank */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--tw-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Tujuan Rekening Bank Travel
                   </span>
 
@@ -439,7 +465,7 @@ export default function AgenStatusPage() {
                     <div className="tw-agen-status-bank-row">
                       <span className="tw-agen-status-bank-label">No. Rekening</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.5px', color: '#0F172A' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.5px', color: 'var(--tw-neutral-900)' }}>
                           {data.agent_bank_account_number || '-'}
                         </span>
                         {data.agent_bank_account_number && (
@@ -472,7 +498,7 @@ export default function AgenStatusPage() {
                   </h3>
                 </div>
 
-                <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: '12.5px', color: 'var(--tw-neutral-500)', margin: 0, lineHeight: 1.5 }}>
                   Setelah transfer berhasil, mohon unggah foto atau tangkapan layar struk transfer (maksimal 5MB, format JPG/PNG/WebP).
                 </p>
 
@@ -541,7 +567,7 @@ export default function AgenStatusPage() {
 
               {agent.payment_proof_url && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+                  <span style={{ fontSize: '11.5px', color: 'var(--tw-neutral-500)', fontWeight: 600 }}>
                     Bukti yang Diunggah:
                   </span>
                   <button
@@ -551,7 +577,7 @@ export default function AgenStatusPage() {
                     title="Lihat bukti ukuran penuh"
                   >
                     <img
-                      src={agent.payment_proof_url}
+                      src={proofSrc || undefined}
                       alt="Bukti Transfer"
                       className="tw-agen-status-proof-thumb-img"
                     />
@@ -615,7 +641,7 @@ export default function AgenStatusPage() {
                 </div>
 
                 <div>
-                  <h2 className="tw-agen-status-state-title" style={{ color: '#DC2626' }}>
+                  <h2 className="tw-agen-status-state-title" style={{ color: 'var(--tw-danger-strong)' }}>
                     Pendaftaran Belum Disetujui
                   </h2>
                   <p className="tw-agen-status-state-desc">
@@ -625,18 +651,18 @@ export default function AgenStatusPage() {
                   {agent.rejection_reason && (
                     <div
                       style={{
-                        backgroundColor: '#FEF2F2',
-                        border: '1px solid #FCA5A5',
+                        backgroundColor: 'var(--tw-danger-bg)',
+                        border: '1px solid var(--tw-danger-soft)',
                         borderRadius: '8px',
                         padding: '12px 14px',
                         marginTop: '12px',
                         fontSize: '13px',
-                        color: '#991B1B',
+                        color: 'var(--tw-danger-text)',
                         textAlign: 'left',
                         lineHeight: 1.5,
                       }}
                     >
-                      <strong style={{ display: 'block', marginBottom: '4px', color: '#7F1D1D' }}>
+                      <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--tw-danger-deep)' }}>
                         Alasan Penolakan dari Admin:
                       </strong>
                       <span>{agent.rejection_reason}</span>
@@ -677,7 +703,7 @@ export default function AgenStatusPage() {
                   </h3>
                 </div>
 
-                <p style={{ fontSize: '12.5px', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: '12.5px', color: 'var(--tw-neutral-500)', margin: 0, lineHeight: 1.5 }}>
                   Jika penolakan terkait kesalahan bukti transfer, silakan unggah kembali bukti transfer baru yang jelas dan valid. Status akun akan otomatis ditinjau kembali oleh admin.
                 </p>
 
@@ -726,6 +752,45 @@ export default function AgenStatusPage() {
             </>
           )}
 
+          {/* KONDISI 4b: DINONAKTIFKAN (inactive) — the travel paused this partnership. */}
+          {agent.status === 'inactive' && (
+            <div className="tw-agen-status-card tw-agen-status-card-center">
+              <div className="tw-agen-status-icon-badge tw-agen-status-icon-badge--inactive">
+                <PauseCircle size={30} />
+              </div>
+
+              <div>
+                <h2 className="tw-agen-status-state-title">Akun Agen Dinonaktifkan</h2>
+                <p className="tw-agen-status-state-desc">
+                  Kemitraan agen Anda sedang dinonaktifkan oleh travel. Link referral, daftar jamaah, dan pencairan
+                  komisi tidak bisa dipakai sampai akun diaktifkan kembali. Hubungi admin travel untuk informasi lebih lanjut.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '280px', marginTop: '14px' }}>
+                {helpWaUrl && (
+                  <a
+                    href={helpWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tw-button tw-button--secondary tw-button--md"
+                    style={{ textDecoration: 'none', justifyContent: 'center' }}
+                  >
+                    <MessageCircle size={15} />
+                    <span>Hubungi Admin Travel</span>
+                  </a>
+                )}
+                <Link
+                  href="/"
+                  className="tw-button tw-button--secondary tw-button--md"
+                  style={{ textDecoration: 'none', justifyContent: 'center' }}
+                >
+                  <span>Kembali ke Beranda</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
               KONDISI 5: AKTIF (active)
               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
@@ -759,7 +824,7 @@ export default function AgenStatusPage() {
                 {/* Kode Referral */}
                 <div className="tw-agen-status-ref-code-box">
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '11px', color: '#64748B', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--tw-neutral-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
                       Kode Referral Anda
                     </span>
                     <span className="tw-agen-status-ref-code-val">
@@ -770,7 +835,7 @@ export default function AgenStatusPage() {
 
                 {/* URL Referral */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-neutral-700)' }}>
                     Link Landing Page Travel Anda:
                   </span>
                   <div className="tw-agen-status-ref-link-box">
@@ -829,11 +894,11 @@ export default function AgenStatusPage() {
               className="tw-agen-status-modal-content"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--tw-neutral-900)' }}>
                 Bukti Pembayaran
               </h3>
               <img
-                src={agent.payment_proof_url}
+                src={proofSrc || undefined}
                 alt="Bukti Transfer Penuh"
                 className="tw-agen-status-modal-img"
               />

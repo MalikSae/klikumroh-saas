@@ -564,7 +564,7 @@ function ScriptWAContent() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -627,7 +627,7 @@ function ScriptWAContent() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             padding: '14px',
             display: 'flex',
             flexDirection: 'column',
@@ -651,7 +651,7 @@ function ScriptWAContent() {
                 backgroundColor: 'var(--tw-page-bg)',
                 borderRadius: '6px',
                 padding: '2px',
-                border: '1px solid rgba(0,0,0,0.06)',
+                border: '1px solid var(--tw-hairline)',
               }}
             >
               <button
@@ -660,7 +660,7 @@ function ScriptWAContent() {
                 style={{
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  border: personalizationMode === 'prospect' ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
+                  border: personalizationMode === 'prospect' ? '1px solid var(--tw-border)' : '1px solid transparent',
                   fontSize: '11px',
                   fontWeight: 600,
                   backgroundColor: personalizationMode === 'prospect' ? 'var(--tw-background)' : 'transparent',
@@ -681,7 +681,7 @@ function ScriptWAContent() {
                 style={{
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  border: personalizationMode === 'manual' ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
+                  border: personalizationMode === 'manual' ? '1px solid var(--tw-border)' : '1px solid transparent',
                   fontSize: '11px',
                   fontWeight: 600,
                   backgroundColor: personalizationMode === 'manual' ? 'var(--tw-background)' : 'transparent',
@@ -754,7 +754,7 @@ function ScriptWAContent() {
                       width: '100%',
                       padding: '9px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(0,0,0,0.1)',
+                      border: '1px solid var(--tw-divider)',
                       fontSize: '12px',
                       backgroundColor: 'var(--tw-page-bg)',
                       color: 'var(--tw-text-primary)',
@@ -902,7 +902,7 @@ function ScriptWAContent() {
                     width: '100%',
                     padding: '8px 10px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0,0,0,0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '12px',
                     backgroundColor: 'var(--tw-page-bg)',
                     color: 'var(--tw-text-primary)',
@@ -925,7 +925,7 @@ function ScriptWAContent() {
                     width: '100%',
                     padding: '8px 10px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0,0,0,0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '12px',
                     backgroundColor: 'var(--tw-page-bg)',
                     color: 'var(--tw-text-primary)',
@@ -943,7 +943,7 @@ function ScriptWAContent() {
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingTop: '8px',
-              borderTop: '1px dashed rgba(0,0,0,0.08)',
+              borderTop: '1px dashed var(--tw-border)',
               fontSize: '11px',
               color: 'var(--tw-text-muted)',
             }}
@@ -993,7 +993,7 @@ function ScriptWAContent() {
               width: '100%',
               padding: '10px 36px 10px 36px',
               borderRadius: '8px',
-              border: '1px solid rgba(0,0,0,0.1)',
+              border: '1px solid var(--tw-divider)',
               backgroundColor: 'var(--tw-background)',
               fontSize: '13px',
               color: 'var(--tw-text-primary)',
@@ -1050,9 +1050,9 @@ function ScriptWAContent() {
                   fontWeight: 600,
                   border: isSelected
                     ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid rgba(0,0,0,0.08)',
+                    : '1px solid var(--tw-border)',
                   backgroundColor: isSelected ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isSelected ? '#FFFFFF' : 'var(--tw-text-secondary)',
+                  color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   display: 'inline-flex',
@@ -1067,9 +1067,9 @@ function ScriptWAContent() {
                   style={{
                     fontSize: '10px',
                     backgroundColor: isSelected
-                      ? 'rgba(255,255,255,0.2)'
-                      : 'rgba(0,0,0,0.06)',
-                    color: isSelected ? '#FFFFFF' : 'var(--tw-text-muted)',
+                      ? 'var(--tw-on-brand-subtle)'
+                      : 'var(--tw-hairline)',
+                    color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
                     padding: '1px 5px',
                     borderRadius: '4px',
                   }}
@@ -1142,7 +1142,7 @@ function ScriptWAContent() {
                   style={{
                     backgroundColor: 'var(--tw-background)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    border: '1px solid var(--tw-hairline)',
                     padding: '14px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1200,7 +1200,7 @@ function ScriptWAContent() {
                         padding: '6px 10px',
                         fontSize: '11px',
                         color: 'var(--tw-text-secondary)',
-                        borderLeft: '3px solid rgba(0,0,0,0.1)',
+                        borderLeft: '3px solid var(--tw-divider)',
                       }}
                     >
                       <strong>Pesan Jamaah:</strong> &quot;{item.prospect_example}&quot;
@@ -1232,7 +1232,7 @@ function ScriptWAContent() {
                       style={{
                         padding: '9px 12px',
                         borderRadius: '6px',
-                        border: '1px solid rgba(0,0,0,0.1)',
+                        border: '1px solid var(--tw-divider)',
                         backgroundColor: 'var(--tw-background)',
                         color: isCopied ? 'var(--tw-brand-primary)' : 'var(--tw-text-primary)',
                         fontSize: '12px',
@@ -1256,7 +1256,7 @@ function ScriptWAContent() {
                         borderRadius: '6px',
                         border: 'none',
                         backgroundColor: 'var(--tw-brand-primary)',
-                        color: '#FFFFFF',
+                        color: 'var(--tw-on-brand)',
                         fontSize: '12px',
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -1306,7 +1306,7 @@ function ScriptWAContent() {
                   style={{
                     backgroundColor: 'var(--tw-background)',
                     borderRadius: '12px',
-                    border: isExpanded ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(0, 0, 0, 0.06)',
+                    border: isExpanded ? '1px solid color-mix(in srgb, var(--tw-success) 25%, transparent)' : '1px solid var(--tw-hairline)',
                     padding: isExpanded ? '14px' : '12px 14px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -1374,7 +1374,7 @@ function ScriptWAContent() {
                         }}
                         aria-label={isExpanded ? 'Tutup detail objection' : 'Buka detail objection'}
                         style={{
-                          background: isExpanded ? 'rgba(16, 185, 129, 0.08)' : 'rgba(0, 0, 0, 0.03)',
+                          background: isExpanded ? 'color-mix(in srgb, var(--tw-success) 8%, transparent)' : 'var(--tw-hairline-soft)',
                           border: 'none',
                           borderRadius: '6px',
                           padding: '5px',
@@ -1510,7 +1510,7 @@ function ScriptWAContent() {
                                 backgroundColor: 'var(--tw-background)',
                                 borderRadius: '6px',
                                 padding: '8px 10px',
-                                border: '1px solid rgba(0,0,0,0.06)',
+                                border: '1px solid var(--tw-hairline)',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '4px',
@@ -1614,12 +1614,12 @@ function ScriptWAContent() {
                   gap: '8px',
                   color: 'var(--tw-brand-primary)',
                   backgroundColor: 'var(--tw-background)',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  border: '1px solid var(--tw-border)',
                   borderRadius: '8px',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                  boxShadow: '0 1px 2px var(--tw-surface-tint)',
                 }}
               >
                 <Loader2 size={15} color="var(--tw-brand-primary)" style={{ animation: 'spin 1s linear infinite' }} />
@@ -1646,7 +1646,7 @@ function ScriptWAContent() {
             style={{
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               padding: '48px 16px',
               textAlign: 'center',
               display: 'flex',
@@ -1674,7 +1674,7 @@ function ScriptWAContent() {
                   borderRadius: '6px',
                   border: 'none',
                   backgroundColor: 'var(--tw-brand-primary)',
-                  color: '#FFFFFF',
+                  color: 'var(--tw-on-brand)',
                   fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer',

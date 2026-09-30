@@ -162,7 +162,7 @@ export default function AgenNotifikasiPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -263,7 +263,7 @@ export default function AgenNotifikasiPage() {
             style={{
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               padding: '48px 24px',
               display: 'flex',
               flexDirection: 'column',
@@ -323,7 +323,7 @@ export default function AgenNotifikasiPage() {
                   borderRadius: '12px',
                   border: isUnread
                     ? '1px solid color-mix(in srgb, var(--tw-brand-primary) 30%, transparent)'
-                    : '1px solid rgba(0, 0, 0, 0.06)',
+                    : '1px solid var(--tw-hairline)',
                   padding: '14px 16px',
                   display: 'flex',
                   alignItems: 'flex-start',
@@ -340,7 +340,7 @@ export default function AgenNotifikasiPage() {
                     borderRadius: '10px',
                     backgroundColor: isUnread
                       ? 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))'
-                      : 'rgba(0, 0, 0, 0.04)',
+                      : 'var(--tw-surface-tint)',
                     color: isUnread ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)',
                     display: 'flex',
                     alignItems: 'center',

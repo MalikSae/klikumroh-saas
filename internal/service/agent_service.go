@@ -15,12 +15,22 @@ import (
 	"klikumroh/internal/util"
 )
 
+// MinAgentPasswordLength applies to sign-up, password change and admin reset alike.
+const MinAgentPasswordLength = 8
+
 var (
 	ErrTermsRequired       = errors.New("Syarat & Ketentuan wajib disetujui")
 	ErrInvalidPaymentState = errors.New("hanya agen dengan status menunggu bukti transfer yang dapat mengunggah bukti pembayaran")
 	ErrMissingBankInfo     = errors.New("informasi rekening bank (nama bank, nomor rekening, nama pemilik) wajib diisi untuk mode pendaftaran berbayar")
 	ErrAgentNotActive      = errors.New("Akun belum aktif")
-	ErrInvalidPeriodRange  = errors.New("target_period_end harus setelah target_period_start")
+	// ErrAgentRegistrationClosed: the travel's subscription is pending or suspended.
+	ErrAgentRegistrationClosed = errors.New("pendaftaran agen sementara tidak dibuka karena layanan travel belum aktif atau sedang ditangguhkan")
+	// ErrAgentPasswordTooShort: one rule for sign-up, password change and admin reset.
+	ErrAgentPasswordTooShort = errors.New("password minimal 8 karakter")
+	ErrInvalidPeriodRange    = errors.New("target_period_end harus setelah target_period_start")
+	// ErrAgentApproveState / ErrAgentRejectState: approve/reject only apply to a registration under review.
+	ErrAgentApproveState = errors.New("hanya pendaftaran agen yang menunggu persetujuan atau pernah ditolak yang dapat disetujui")
+	ErrAgentRejectState  = errors.New("hanya pendaftaran agen yang menunggu persetujuan yang dapat ditolak; agen aktif dinonaktifkan lewat tombol Nonaktifkan")
 )
 
 type AgentRegistrationInfo struct {
@@ -167,6 +177,9 @@ type UpdateProfileRequest struct {
 type UpdatePasswordRequest struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
+	// KeepToken is the session making the change (set by the handler): it stays signed in, every other
+	// session of the agent is signed out.
+	KeepToken string `json:"-"`
 }
 
 type AgentPayoutHistoryItem struct {
@@ -322,7 +335,11 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 	}
 
 	if tenant.Status == "pending" || util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()) {
-		return nil, errors.New("layanan pendaftaran agen sementara tidak aktif karena masa layanan biro travel belum aktif atau sedang ditangguhkan")
+		return nil, ErrAgentRegistrationClosed
+	}
+
+	if len(strings.TrimSpace(req.Password)) < MinAgentPasswordLength {
+		return nil, ErrAgentPasswordTooShort
 	}
 
 	// 1. Validate terms if tenant has terms configured
@@ -634,7 +651,18 @@ func (s *agentService) ListAgents(ctx context.Context, tenantID uint64, statusFi
 }
 
 func (s *agentService) ApproveAgent(ctx context.Context, tenantID uint64, agentID uint64) error {
+	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+	if err != nil {
+		return err
+	}
+	if agent.Status != "pending" && agent.Status != "rejected" {
+		return ErrAgentApproveState
+	}
+	// The repository update is conditional on the status too, so a concurrent change is not overwritten.
 	if err := s.agentRepo.Approve(ctx, tenantID, agentID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrAgentApproveState
+		}
 		return err
 	}
 
@@ -659,7 +687,17 @@ func (s *agentService) ApproveAgent(ctx context.Context, tenantID uint64, agentI
 }
 
 func (s *agentService) RejectAgent(ctx context.Context, tenantID uint64, agentID uint64, reason string) error {
+	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+	if err != nil {
+		return err
+	}
+	if agent.Status != "pending" {
+		return ErrAgentRejectState
+	}
 	if err := s.agentRepo.Reject(ctx, tenantID, agentID, reason); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrAgentRejectState
+		}
 		return err
 	}
 
@@ -829,6 +867,15 @@ func (s *agentService) UpdateTargetSettings(ctx context.Context, tenantID uint64
 }
 
 func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64) ([]LeaderboardEntry, error) {
+	// Sign-up is public: only approved, active partners may see other agents' names and closings.
+	me, err := s.agentRepo.GetByID(ctx, tenantID, currentAgentID)
+	if err != nil {
+		return nil, err
+	}
+	if me.Status != "active" {
+		return nil, ErrAgentNotActive
+	}
+
 	// REUSE GetActiveAgentsClosingStats yang sudah ada dan sudah teruji
 	stats, err := s.prospectRepo.GetActiveAgentsClosingStats(ctx, tenantID)
 	if err != nil {
@@ -938,6 +985,18 @@ func (s *agentService) GetPayoutInfo(ctx context.Context, tenantID uint64, agent
 	}, nil
 }
 
+// payoutLocker is implemented by the MySQL payout repository (see WithAgentPayoutLock).
+type payoutLocker interface {
+	WithAgentPayoutLock(ctx context.Context, tenantID uint64, agentID uint64, fn func() error) error
+}
+
+func (s *agentService) withPayoutLock(ctx context.Context, tenantID, agentID uint64, fn func() error) error {
+	if locker, ok := s.payoutRepo.(payoutLocker); ok {
+		return locker.WithAgentPayoutLock(ctx, tenantID, agentID, fn)
+	}
+	return fn()
+}
+
 func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64, agentID uint64, input AgentCreatePayoutRequestInput) (*repository.CommissionPayoutRequest, error) {
 	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
 	if err != nil {
@@ -958,13 +1017,8 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 	if input.AmountRequested <= 0 {
 		return nil, errors.New("jumlah penarikan harus lebih besar dari 0")
 	}
-
-	// 1. TOLAK kalau agent masih punya request berstatus 'pending' ATAU 'approved'
-	if s.payoutRepo != nil {
-		active, err := s.payoutRepo.GetActiveRequestByAgent(ctx, tenantID, agentID)
-		if err == nil && active != nil {
-			return nil, errors.New("Anda masih punya pengajuan yang sedang diproses")
-		}
+	if s.payoutRepo == nil {
+		return nil, errors.New("payout repository not initialized")
 	}
 
 	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
@@ -972,39 +1026,13 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 		return nil, err
 	}
 
-	// 2. TOLAK kalau amount_requested < minimum_payout_amount
+	// TOLAK kalau amount_requested < minimum_payout_amount
 	if tenant.MinimumPayoutAmount != nil && *tenant.MinimumPayoutAmount > 0 {
 		if input.AmountRequested < *tenant.MinimumPayoutAmount {
 			return nil, fmt.Errorf("jumlah penarikan minimal Rp %.0f", *tenant.MinimumPayoutAmount)
 		}
 	}
 
-	// 3. TOLAK kalau amount_requested > saldo_tersedia (hitung ulang di server)
-	totalEarned, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
-	if err != nil {
-		return nil, err
-	}
-	var totalReserved float64
-	if s.payoutRepo != nil {
-		r, err := s.payoutRepo.SumPendingApprovedPaidByAgent(ctx, tenantID, agentID)
-		if err != nil {
-			return nil, err
-		}
-		totalReserved = r
-	}
-	saldoTersedia := totalEarned - totalReserved
-	if saldoTersedia < 0 {
-		saldoTersedia = 0
-	}
-
-	if input.AmountRequested > saldoTersedia {
-		return nil, errors.New("jumlah penarikan melebihi saldo siap cair yang tersedia")
-	}
-
-	// 4. Simpan/update bank details ke agents table
-	_ = s.agentRepo.UpdateBankInfo(ctx, tenantID, agentID, bankName, accountNumber, accountHolder)
-
-	// 5. Insert commission_payout_requests dengan snapshot rekening dari body request
 	payoutReq := &repository.CommissionPayoutRequest{
 		TenantID:                  tenantID,
 		AgentID:                   agentID,
@@ -1015,7 +1043,39 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 		BankAccountHolderSnapshot: accountHolder,
 	}
 
-	if err := s.payoutRepo.Create(ctx, tenantID, payoutReq); err != nil {
+	// The active-request check, the balance check and the insert run under a per-agent lock:
+	// simultaneous requests used to both pass the checks and reserve the same balance twice.
+	err = s.withPayoutLock(ctx, tenantID, agentID, func() error {
+		// TOLAK kalau agent masih punya request berstatus 'pending' ATAU 'approved'
+		active, err := s.payoutRepo.GetActiveRequestByAgent(ctx, tenantID, agentID)
+		if err == nil && active != nil {
+			return errors.New("Anda masih punya pengajuan yang sedang diproses")
+		}
+
+		// TOLAK kalau amount_requested > saldo_tersedia (hitung ulang di server)
+		totalEarned, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
+		if err != nil {
+			return err
+		}
+		totalReserved, err := s.payoutRepo.SumPendingApprovedPaidByAgent(ctx, tenantID, agentID)
+		if err != nil {
+			return err
+		}
+		saldoTersedia := totalEarned - totalReserved
+		if saldoTersedia < 0 {
+			saldoTersedia = 0
+		}
+		if input.AmountRequested > saldoTersedia {
+			return errors.New("jumlah penarikan melebihi saldo siap cair yang tersedia")
+		}
+
+		// Simpan/update bank details ke agents table
+		_ = s.agentRepo.UpdateBankInfo(ctx, tenantID, agentID, bankName, accountNumber, accountHolder)
+
+		// Insert commission_payout_requests dengan snapshot rekening dari body request
+		return s.payoutRepo.Create(ctx, tenantID, payoutReq)
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -1298,7 +1358,7 @@ func (s *agentService) UpdatePhoto(ctx context.Context, tenantID uint64, agentID
 
 func (s *agentService) UpdatePassword(ctx context.Context, tenantID uint64, agentID uint64, req *UpdatePasswordRequest) error {
 	trimmedNew := strings.TrimSpace(req.NewPassword)
-	if len(trimmedNew) < 8 {
+	if len(trimmedNew) < MinAgentPasswordLength {
 		return errors.New("password baru minimal 8 karakter")
 	}
 
@@ -1316,7 +1376,21 @@ func (s *agentService) UpdatePassword(ctx context.Context, tenantID uint64, agen
 		return err
 	}
 
-	return s.agentRepo.UpdatePassword(ctx, tenantID, agentID, hashed)
+	if err := s.agentRepo.UpdatePassword(ctx, tenantID, agentID, hashed); err != nil {
+		return err
+	}
+	// A changed password signs out the agent's other devices (e.g. a session someone else obtained).
+	if keeper, ok := s.agentSessionRepo.(agentSessionKeeper); ok && req.KeepToken != "" {
+		_ = keeper.DeleteByAgentIDExceptToken(ctx, agentID, req.KeepToken)
+	} else {
+		_ = s.agentSessionRepo.DeleteByAgentID(ctx, agentID)
+	}
+	return nil
+}
+
+// agentSessionKeeper is implemented by the MySQL agent session repository.
+type agentSessionKeeper interface {
+	DeleteByAgentIDExceptToken(ctx context.Context, agentID uint64, keepToken string) error
 }
 
 // heldCommission is commission booked at closing (DP) that is not withdrawable until the jamaah is paid off.
@@ -1468,7 +1542,7 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 
 func (s *agentService) ResetAgentPassword(ctx context.Context, tenantID uint64, agentID uint64, newPassword string) error {
 	trimmed := strings.TrimSpace(newPassword)
-	if len(trimmed) < 8 {
+	if len(trimmed) < MinAgentPasswordLength {
 		return errors.New("password baru minimal 8 karakter")
 	}
 
@@ -1483,7 +1557,12 @@ func (s *agentService) ResetAgentPassword(ctx context.Context, tenantID uint64, 
 		return err
 	}
 
-	return s.agentRepo.UpdatePassword(ctx, tenantID, agentID, hashed)
+	if err := s.agentRepo.UpdatePassword(ctx, tenantID, agentID, hashed); err != nil {
+		return err
+	}
+	// An admin reset signs the agent out everywhere: a reset is often done because the account was misused.
+	_ = s.agentSessionRepo.DeleteByAgentID(ctx, agentID)
+	return nil
 }
 
 func (s *agentService) ToggleAgentStatus(ctx context.Context, tenantID uint64, agentID uint64, action string) error {

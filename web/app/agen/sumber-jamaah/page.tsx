@@ -125,7 +125,7 @@ export default function SumberJamaahPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -195,7 +195,7 @@ export default function SumberJamaahPage() {
               width: '48px',
               height: '4px',
               borderRadius: '9999px',
-              backgroundColor: 'rgba(0,0,0,0.08)',
+              backgroundColor: 'var(--tw-border)',
               overflow: 'hidden',
             }}
           >
@@ -228,7 +228,7 @@ export default function SumberJamaahPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             padding: '14px',
             display: 'flex',
             alignItems: 'center',
@@ -251,7 +251,7 @@ export default function SumberJamaahPage() {
                 width: '100%',
                 height: '6px',
                 borderRadius: '9999px',
-                backgroundColor: 'rgba(0,0,0,0.06)',
+                backgroundColor: 'var(--tw-hairline)',
                 overflow: 'hidden',
               }}
             >
@@ -305,7 +305,7 @@ export default function SumberJamaahPage() {
               width: '100%',
               padding: '10px 36px 10px 36px',
               borderRadius: '8px',
-              border: '1px solid rgba(0,0,0,0.1)',
+              border: '1px solid var(--tw-divider)',
               backgroundColor: 'var(--tw-background)',
               color: 'var(--tw-text-primary)',
               fontSize: '13px',
@@ -362,9 +362,9 @@ export default function SumberJamaahPage() {
                   fontWeight: 600,
                   border: isSelected
                     ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid rgba(0,0,0,0.08)',
+                    : '1px solid var(--tw-border)',
                   backgroundColor: isSelected ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isSelected ? '#FFFFFF' : 'var(--tw-text-secondary)',
+                  color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   display: 'inline-flex',
@@ -378,8 +378,8 @@ export default function SumberJamaahPage() {
                 <span
                   style={{
                     fontSize: '10px',
-                    backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
-                    color: isSelected ? '#FFFFFF' : 'var(--tw-text-muted)',
+                    backgroundColor: isSelected ? 'var(--tw-on-brand-subtle)' : 'var(--tw-hairline)',
+                    color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
                     padding: '1px 5px',
                     borderRadius: '4px',
                   }}
@@ -424,7 +424,7 @@ export default function SumberJamaahPage() {
             style={{
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0,0,0,0.06)',
+              border: '1px solid var(--tw-hairline)',
               padding: '40px 16px',
               textAlign: 'center',
               display: 'flex',
@@ -452,7 +452,7 @@ export default function SumberJamaahPage() {
                 borderRadius: '6px',
                 border: 'none',
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -469,7 +469,7 @@ export default function SumberJamaahPage() {
             style={{
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0,0,0,0.06)',
+              border: '1px solid var(--tw-hairline)',
               overflow: 'hidden',
             }}
           >
@@ -488,7 +488,7 @@ export default function SumberJamaahPage() {
                     textDecoration: 'none',
                     borderBottom:
                       idx < filteredItems.length - 1
-                        ? '1px solid rgba(0,0,0,0.05)'
+                        ? '1px solid var(--tw-border-subtle)'
                         : 'none',
                   }}
                 >

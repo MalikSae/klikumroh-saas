@@ -590,11 +590,15 @@ func TestAgentHandler_UploadPaymentProof(t *testing.T) {
 			t.Fatal("expected payment_proof_url to be populated")
 		}
 
-		// Clean up uploaded file
-		expectedPath := fmt.Sprintf("./uploads/%d/agents/%d/bukti-transfer.webp", t1.ID, agent.ID)
-		defer os.RemoveAll(fmt.Sprintf("./uploads/%d", t1.ID))
+		// The proof is private: stored outside the public /uploads folder (audit I2), then cleaned up.
+		expectedPath := fmt.Sprintf("./storage/private/%d/agents/%d/bukti-transfer.webp", t1.ID, agent.ID)
+		publicPath := fmt.Sprintf("./uploads/%d/agents/%d/bukti-transfer.webp", t1.ID, agent.ID)
+		defer os.RemoveAll(fmt.Sprintf("./storage/private/%d", t1.ID))
 		if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
 			t.Errorf("expected file to exist at %s", expectedPath)
+		}
+		if _, err := os.Stat(publicPath); err == nil {
+			t.Errorf("proof must not be stored in the public folder %s", publicPath)
 		}
 	})
 
@@ -1975,6 +1979,7 @@ func TestAgentHandler_LogoutAndReuploadProof(t *testing.T) {
 		req = req.WithContext(middleware.WithTenantID(req.Context(), t1.ID))
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
+		t.Cleanup(func() { _ = os.RemoveAll(fmt.Sprintf("./storage/private/%d", t1.ID)) })
 
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200 OK on re-upload proof, got %d: %s", w.Code, w.Body.String())

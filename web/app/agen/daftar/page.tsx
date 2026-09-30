@@ -182,8 +182,8 @@ export default function AgenDaftarPage() {
       errs.domisili = 'Silakan pilih kabupaten/kota domisili dari daftar';
     }
 
-    if (!password || password.length < 6) {
-      errs.password = 'Password minimal 6 karakter';
+    if (!password || password.length < 8) {
+      errs.password = 'Password minimal 8 karakter';
     }
 
     setErrors(errs);
@@ -580,7 +580,7 @@ export default function AgenDaftarPage() {
                     setPassword(e.target.value);
                     if (errors.password) setErrors((prev) => ({ ...prev, password: '' }));
                   }}
-                  placeholder="Minimal 6 karakter"
+                  placeholder="Minimal 8 karakter"
                   className={`tw-agen-daftar-input ${errors.password ? 'tw-agen-daftar-input--error' : ''}`}
                   disabled={isSubmitting}
                   autoComplete="new-password"
@@ -599,7 +599,7 @@ export default function AgenDaftarPage() {
                 <span className="tw-agen-daftar-error-text">{errors.password}</span>
               ) : (
                 <span className="tw-agen-daftar-hint-text">
-                  Minimal 6 karakter
+                  Minimal 8 karakter
                 </span>
               )}
             </div>
@@ -685,7 +685,7 @@ export default function AgenDaftarPage() {
             style={{
               position: 'fixed',
               inset: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'var(--tw-modal-overlay)',
               zIndex: 999,
               display: 'flex',
               alignItems: 'center',
@@ -696,14 +696,14 @@ export default function AgenDaftarPage() {
           >
             <div
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: 'var(--tw-background)',
                 borderRadius: '12px',
                 maxWidth: '400px',
                 width: '100%',
                 maxHeight: '82vh',
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                boxShadow: '0 8px 30px var(--tw-divider-strong)',
                 overflow: 'hidden',
               }}
               onClick={(e) => e.stopPropagation()}
@@ -711,7 +711,7 @@ export default function AgenDaftarPage() {
               <div
                 style={{
                   padding: '16px 20px',
-                  borderBottom: '1px solid #E2E8F0',
+                  borderBottom: '1px solid var(--tw-neutral-200)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -719,7 +719,7 @@ export default function AgenDaftarPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FileText size={20} style={{ color: 'var(--tw-brand-primary)' }} />
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--tw-neutral-900)' }}>
                     Syarat & Ketentuan Agen
                   </h3>
                 </div>
@@ -729,7 +729,7 @@ export default function AgenDaftarPage() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#94A3B8',
+                    color: 'var(--tw-neutral-400)',
                     cursor: 'pointer',
                     padding: '4px',
                     display: 'flex',
@@ -765,7 +765,7 @@ export default function AgenDaftarPage() {
               <div
                 style={{
                   padding: '14px 20px',
-                  borderTop: '1px solid #E2E8F0',
+                  borderTop: '1px solid var(--tw-neutral-200)',
                   display: 'flex',
                 }}
               >

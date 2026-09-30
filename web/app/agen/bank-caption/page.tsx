@@ -327,30 +327,30 @@ export default function BankCaptionPage() {
       case 'attraction':
         return {
           label: 'Attraction',
-          bg: 'color-mix(in srgb, #3b82f6 12%, var(--tw-background))',
-          color: '#1d4ed8',
-          border: '1px solid color-mix(in srgb, #3b82f6 28%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background))',
+          color: 'var(--tw-status-new-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-status-new) 28%, transparent)',
         };
       case 'education':
         return {
           label: 'Edukasi',
           bg: 'color-mix(in srgb, var(--tw-rating-star) 12%, var(--tw-background))',
-          color: '#b45309',
+          color: 'var(--tw-status-contacted-text)',
           border: '1px solid color-mix(in srgb, var(--tw-rating-star) 28%, transparent)',
         };
       case 'desire':
         return {
           label: 'Kerinduan',
-          bg: 'color-mix(in srgb, #ec4899 12%, var(--tw-background))',
-          color: '#be185d',
-          border: '1px solid color-mix(in srgb, #ec4899 28%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-accent-pink) 12%, var(--tw-background))',
+          color: 'var(--tw-accent-pink-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-accent-pink) 28%, transparent)',
         };
       case 'trust':
         return {
           label: 'Kepercayaan',
-          bg: 'color-mix(in srgb, #6366f1 12%, var(--tw-background))',
-          color: '#4338ca',
-          border: '1px solid color-mix(in srgb, #6366f1 28%, transparent)',
+          bg: 'color-mix(in srgb, var(--tw-accent-indigo) 12%, var(--tw-background))',
+          color: 'var(--tw-accent-indigo-text)',
+          border: '1px solid color-mix(in srgb, var(--tw-accent-indigo) 28%, transparent)',
         };
       case 'offer':
         return {
@@ -364,7 +364,7 @@ export default function BankCaptionPage() {
           label: goal,
           bg: 'var(--tw-badge-neutral-bg)',
           color: 'var(--tw-text-muted)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
+          border: '1px solid var(--tw-border)',
         };
     }
   };
@@ -378,7 +378,7 @@ export default function BankCaptionPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -434,7 +434,7 @@ export default function BankCaptionPage() {
             border:
               activeGoal === 'favorites'
                 ? '1px solid var(--tw-rating-star)'
-                : '1px solid rgba(0, 0, 0, 0.08)',
+                : '1px solid var(--tw-border)',
             backgroundColor:
               activeGoal === 'favorites'
                 ? 'color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background))'
@@ -474,7 +474,7 @@ export default function BankCaptionPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             padding: '12px 14px',
             display: 'flex',
             flexDirection: 'column',
@@ -528,7 +528,7 @@ export default function BankCaptionPage() {
                 flexDirection: 'column',
                 gap: '10px',
                 paddingTop: '8px',
-                borderTop: '1px solid rgba(0, 0, 0, 0.04)',
+                borderTop: '1px solid var(--tw-surface-tint)',
               }}
             >
               {/* Package selector */}
@@ -543,7 +543,7 @@ export default function BankCaptionPage() {
                     style={{
                       padding: '8px 10px',
                       borderRadius: '6px',
-                      border: '1px solid rgba(0, 0, 0, 0.1)',
+                      border: '1px solid var(--tw-divider)',
                       backgroundColor: 'var(--tw-background)',
                       color: 'var(--tw-text-primary)',
                       fontSize: '12px',
@@ -612,7 +612,7 @@ export default function BankCaptionPage() {
               padding: '10px 36px 10px 36px',
               fontSize: '13px',
               backgroundColor: 'var(--tw-background)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
+              border: '1px solid var(--tw-border)',
               borderRadius: '8px',
               color: 'var(--tw-text-primary)',
               outline: 'none',
@@ -669,9 +669,9 @@ export default function BankCaptionPage() {
                   fontWeight: 600,
                   border: isActive
                     ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid rgba(0, 0, 0, 0.08)',
+                    : '1px solid var(--tw-border)',
                   backgroundColor: isActive ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isActive ? '#FFFFFF' : 'var(--tw-text-secondary)',
+                  color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   display: 'inline-flex',
@@ -685,8 +685,8 @@ export default function BankCaptionPage() {
                 <span
                   style={{
                     fontSize: '10px',
-                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.06)',
-                    color: isActive ? '#FFFFFF' : 'var(--tw-text-muted)',
+                    backgroundColor: isActive ? 'var(--tw-on-brand-subtle)' : 'var(--tw-hairline)',
+                    color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
                     padding: '1px 5px',
                     borderRadius: '4px',
                   }}
@@ -706,7 +706,7 @@ export default function BankCaptionPage() {
               padding: '48px 20px',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -756,7 +756,7 @@ export default function BankCaptionPage() {
                   padding: '8px 14px',
                   borderRadius: '6px',
                   backgroundColor: 'var(--tw-brand-primary)',
-                  color: '#FFFFFF',
+                  color: 'var(--tw-on-brand)',
                   fontSize: '12px',
                   fontWeight: 600,
                   border: 'none',
@@ -781,7 +781,7 @@ export default function BankCaptionPage() {
                   style={{
                     backgroundColor: 'var(--tw-background)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    border: '1px solid var(--tw-hairline)',
                     padding: '14px 15px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -820,7 +820,7 @@ export default function BankCaptionPage() {
                             borderRadius: '4px',
                             fontSize: '10px',
                             fontWeight: 600,
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            backgroundColor: 'var(--tw-surface-tint)',
                             color: 'var(--tw-text-muted)',
                             textTransform: 'uppercase',
                           }}
@@ -871,7 +871,7 @@ export default function BankCaptionPage() {
                             style={{
                               fontSize: '10px',
                               color: 'var(--tw-text-muted)',
-                              backgroundColor: 'rgba(0, 0, 0, 0.03)',
+                              backgroundColor: 'var(--tw-hairline-soft)',
                               padding: '1px 5px',
                               borderRadius: '3px',
                             }}
@@ -919,7 +919,7 @@ export default function BankCaptionPage() {
                   {/* CTA Text */}
                   <div
                     style={{
-                      backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                      backgroundColor: 'var(--tw-hairline-faint)',
                       borderRadius: '6px',
                       padding: '7px 9px',
                       fontSize: '12px',
@@ -944,7 +944,7 @@ export default function BankCaptionPage() {
                         flexDirection: 'column',
                         gap: '6px',
                         padding: '10px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                        backgroundColor: 'var(--tw-hairline-faint)',
                         borderRadius: '8px',
                         fontSize: '11px',
                       }}
@@ -959,7 +959,7 @@ export default function BankCaptionPage() {
                           style={{
                             padding: '6px 8px',
                             borderRadius: '5px',
-                            border: '1px solid rgba(0, 0, 0, 0.08)',
+                            border: '1px solid var(--tw-border)',
                             backgroundColor: 'var(--tw-background)',
                             color: 'var(--tw-text-primary)',
                             fontSize: '11px',
@@ -981,7 +981,7 @@ export default function BankCaptionPage() {
                           style={{
                             padding: '6px 8px',
                             borderRadius: '5px',
-                            border: '1px solid rgba(0, 0, 0, 0.08)',
+                            border: '1px solid var(--tw-border)',
                             backgroundColor: 'var(--tw-background)',
                             color: 'var(--tw-text-primary)',
                             fontSize: '11px',
@@ -1007,7 +1007,7 @@ export default function BankCaptionPage() {
                       alignItems: 'center',
                       gap: '8px',
                       paddingTop: '8px',
-                      borderTop: '1px solid rgba(0, 0, 0, 0.04)',
+                      borderTop: '1px solid var(--tw-surface-tint)',
                     }}
                   >
                     {/* Salin Lengkap Button */}
@@ -1021,9 +1021,9 @@ export default function BankCaptionPage() {
                         backgroundColor: isJustCopied
                           ? 'var(--tw-badge-success-bg)'
                           : 'var(--tw-brand-primary)',
-                        color: isJustCopied ? 'var(--tw-income)' : '#FFFFFF',
+                        color: isJustCopied ? 'var(--tw-income)' : 'var(--tw-background)',
                         border: isJustCopied
-                          ? '1px solid color-mix(in srgb, #22c55e 30%, transparent)'
+                          ? '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)'
                           : 'none',
                         fontSize: '12px',
                         fontWeight: 700,
@@ -1049,7 +1049,7 @@ export default function BankCaptionPage() {
                         padding: '8px 12px',
                         borderRadius: '6px',
                         backgroundColor: 'var(--tw-background)',
-                        border: '1px solid rgba(0, 0, 0, 0.08)',
+                        border: '1px solid var(--tw-border)',
                         color: 'var(--tw-text-primary)',
                         fontSize: '12px',
                         fontWeight: 600,
@@ -1075,7 +1075,7 @@ export default function BankCaptionPage() {
                         padding: '8px',
                         borderRadius: '6px',
                         backgroundColor: 'var(--tw-background)',
-                        border: '1px solid rgba(0, 0, 0, 0.08)',
+                        border: '1px solid var(--tw-border)',
                         color: 'var(--tw-text-muted)',
                         cursor: 'pointer',
                         display: 'flex',
@@ -1118,12 +1118,12 @@ export default function BankCaptionPage() {
                   gap: '8px',
                   color: 'var(--tw-brand-primary)',
                   backgroundColor: 'var(--tw-background)',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  border: '1px solid var(--tw-border)',
                   borderRadius: '8px',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                  boxShadow: '0 1px 2px var(--tw-surface-tint)',
                 }}
               >
                 <Loader2 size={15} color="var(--tw-brand-primary)" style={{ animation: 'spin 1s linear infinite' }} />

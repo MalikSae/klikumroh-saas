@@ -547,9 +547,9 @@ func (r *mysqlAgentRepository) Approve(ctx context.Context, tenantID uint64, id 
 
 	var query string
 	if agent.PaymentStatus == "pending_verification" {
-		query = `UPDATE agents SET status = 'active', payment_status = 'verified', rejection_reason = NULL WHERE id = ? AND tenant_id = ?`
+		query = `UPDATE agents SET status = 'active', payment_status = 'verified', rejection_reason = NULL WHERE id = ? AND tenant_id = ? AND status IN ('pending', 'rejected')`
 	} else {
-		query = `UPDATE agents SET status = 'active', rejection_reason = NULL WHERE id = ? AND tenant_id = ?`
+		query = `UPDATE agents SET status = 'active', rejection_reason = NULL WHERE id = ? AND tenant_id = ? AND status IN ('pending', 'rejected')`
 	}
 
 	res, err := r.db.ExecContext(ctx, query, id, tenantID)
@@ -568,7 +568,8 @@ func (r *mysqlAgentRepository) Approve(ctx context.Context, tenantID uint64, id 
 
 func (r *mysqlAgentRepository) Reject(ctx context.Context, tenantID uint64, id uint64, reason string) error {
 	trimmed := strings.TrimSpace(reason)
-	query := `UPDATE agents SET status = 'rejected', rejection_reason = ? WHERE id = ? AND tenant_id = ?`
+	// Only a registration still waiting for review can be rejected (an active partner is deactivated instead).
+	query := `UPDATE agents SET status = 'rejected', rejection_reason = ? WHERE id = ? AND tenant_id = ? AND status = 'pending'`
 	res, err := r.db.ExecContext(ctx, query, trimmed, id, tenantID)
 	if err != nil {
 		return err

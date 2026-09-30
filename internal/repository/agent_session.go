@@ -109,6 +109,12 @@ func (r *mysqlAgentSessionRepository) DeleteByAgentID(ctx context.Context, agent
 	return err
 }
 
+// DeleteByAgentIDExceptToken signs out every session of the agent except the one with keepToken.
+func (r *mysqlAgentSessionRepository) DeleteByAgentIDExceptToken(ctx context.Context, agentID uint64, keepToken string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM agent_sessions WHERE agent_id = ? AND token <> ?", agentID, keepToken)
+	return err
+}
+
 func (r *mysqlAgentSessionRepository) Delete(ctx context.Context, id uint64) error {
 	query := `DELETE FROM agent_sessions WHERE id = ?`
 	res, err := r.db.ExecContext(ctx, query, id)

@@ -47,6 +47,12 @@ export default function AgenLeaderboardPage() {
         return;
       }
 
+      // Leaderboard is for active partners only; a pending/inactive agent sees their account status.
+      if (res.status === 403) {
+        router.push('/agen/status');
+        return;
+      }
+
       if (!res.ok) {
         throw new Error('Gagal memuat data leaderboard');
       }
@@ -144,7 +150,7 @@ export default function AgenLeaderboardPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -230,7 +236,7 @@ export default function AgenLeaderboardPage() {
               justifyContent: 'space-between',
               gap: '12px',
               boxShadow: '0 4px 16px color-mix(in srgb, var(--tw-brand-primary) 28%, transparent)',
-              color: '#FFFFFF',
+              color: 'var(--tw-on-brand)',
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -244,7 +250,7 @@ export default function AgenLeaderboardPage() {
                 width: '100px',
                 height: '100px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 8%, transparent)',
                 pointerEvents: 'none',
               }}
             />
@@ -256,7 +262,7 @@ export default function AgenLeaderboardPage() {
                 width: '70px',
                 height: '70px',
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 5%, transparent)',
                 pointerEvents: 'none',
               }}
             />
@@ -267,8 +273,8 @@ export default function AgenLeaderboardPage() {
                   width: '42px',
                   height: '42px',
                   borderRadius: '10px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                  color: '#FFFFFF',
+                  backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 18%, transparent)',
+                  color: 'var(--tw-on-brand)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -279,14 +285,14 @@ export default function AgenLeaderboardPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.85)', fontWeight: 600 }}>
+                <span style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--tw-on-brand) 85%, transparent)', fontWeight: 600 }}>
                   Posisi Anda Saat Ini
                 </span>
                 <span
                   style={{
                     fontSize: '18px',
                     fontWeight: 800,
-                    color: '#FFFFFF',
+                    color: 'var(--tw-on-brand)',
                     fontFamily: 'var(--tw-font-heading)',
                     lineHeight: 1.2,
                   }}
@@ -297,12 +303,12 @@ export default function AgenLeaderboardPage() {
             </div>
 
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px', position: 'relative', zIndex: 1 }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.85)', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--tw-on-brand) 85%, transparent)', fontWeight: 600 }}>
                 Total Closing
               </span>
-              <span style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>
+              <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--tw-on-brand)', lineHeight: 1.2 }}>
                 {myEntry.total_jamaah_closing}{' '}
-                <span style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255, 255, 255, 0.85)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 500, color: 'color-mix(in srgb, var(--tw-on-brand) 85%, transparent)' }}>
                   Jamaah
                 </span>
               </span>
@@ -326,7 +332,7 @@ export default function AgenLeaderboardPage() {
               style={{
                 width: '32px',
                 height: '32px',
-                border: '3px solid rgba(0, 0, 0, 0.08)',
+                border: '3px solid var(--tw-border)',
                 borderTopColor: 'var(--tw-brand-primary)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
@@ -349,7 +355,7 @@ export default function AgenLeaderboardPage() {
               padding: '36px 16px',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -370,7 +376,7 @@ export default function AgenLeaderboardPage() {
                 padding: '8px 16px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 fontSize: '12px',
                 fontWeight: 600,
                 border: 'none',
@@ -390,7 +396,7 @@ export default function AgenLeaderboardPage() {
               padding: '48px 20px',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -439,22 +445,22 @@ export default function AgenLeaderboardPage() {
               const isThird = item.rank === 3;
 
               // Rank badge styling
-              let rankBg = 'rgba(0, 0, 0, 0.04)';
+              let rankBg = 'var(--tw-surface-tint)';
               let rankColor = 'var(--tw-text-secondary)';
               let rankBorder = '1px solid transparent';
 
               if (isFirst) {
-                rankBg = 'color-mix(in srgb, #f59e0b 16%, var(--tw-background))';
-                rankColor = '#b45309';
-                rankBorder = '1px solid color-mix(in srgb, #f59e0b 35%, transparent)';
+                rankBg = 'color-mix(in srgb, var(--tw-status-contacted) 16%, var(--tw-background))';
+                rankColor = 'var(--tw-status-contacted-text)';
+                rankBorder = '1px solid color-mix(in srgb, var(--tw-status-contacted) 35%, transparent)';
               } else if (isSecond) {
-                rankBg = 'color-mix(in srgb, #64748b 14%, var(--tw-background))';
-                rankColor = '#475569';
-                rankBorder = '1px solid color-mix(in srgb, #64748b 30%, transparent)';
+                rankBg = 'color-mix(in srgb, var(--tw-neutral-500) 14%, var(--tw-background))';
+                rankColor = 'var(--tw-neutral-600)';
+                rankBorder = '1px solid color-mix(in srgb, var(--tw-neutral-500) 30%, transparent)';
               } else if (isThird) {
-                rankBg = 'color-mix(in srgb, #d97706 14%, var(--tw-background))';
-                rankColor = '#b45309';
-                rankBorder = '1px solid color-mix(in srgb, #d97706 30%, transparent)';
+                rankBg = 'color-mix(in srgb, var(--tw-warning-strong) 14%, var(--tw-background))';
+                rankColor = 'var(--tw-status-contacted-text)';
+                rankBorder = '1px solid color-mix(in srgb, var(--tw-warning-strong) 30%, transparent)';
               }
 
               return (
@@ -467,7 +473,7 @@ export default function AgenLeaderboardPage() {
                     borderRadius: '10px',
                     border: isMe
                       ? '1.5px solid color-mix(in srgb, var(--tw-brand-primary) 30%, transparent)'
-                      : '1px solid rgba(0, 0, 0, 0.06)',
+                      : '1px solid var(--tw-hairline)',
                     padding: '12px 14px',
                     display: 'flex',
                     alignItems: 'center',
@@ -604,12 +610,12 @@ export default function AgenLeaderboardPage() {
                   gap: '8px',
                   color: 'var(--tw-brand-primary)',
                   backgroundColor: 'var(--tw-background)',
-                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  border: '1px solid var(--tw-border)',
                   borderRadius: '8px',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                  boxShadow: '0 1px 2px var(--tw-surface-tint)',
                 }}
               >
                 <Loader2 size={15} color="var(--tw-brand-primary)" style={{ animation: 'spin 1s linear infinite' }} />

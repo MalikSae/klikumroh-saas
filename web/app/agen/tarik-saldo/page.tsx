@@ -207,7 +207,7 @@ export default function TarikSaldoPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -259,7 +259,7 @@ export default function TarikSaldoPage() {
             padding: '7px 12px',
             borderRadius: '6px',
             backgroundColor: 'var(--tw-background)',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
+            border: '1px solid var(--tw-border)',
             color: 'var(--tw-text-primary)',
             fontSize: '12px',
             fontWeight: 600,
@@ -302,7 +302,7 @@ export default function TarikSaldoPage() {
               style={{
                 width: '32px',
                 height: '32px',
-                border: '3px solid rgba(0, 0, 0, 0.08)',
+                border: '3px solid var(--tw-border)',
                 borderTopColor: 'var(--tw-brand-primary)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
@@ -326,7 +326,7 @@ export default function TarikSaldoPage() {
               padding: '36px 16px',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
@@ -347,7 +347,7 @@ export default function TarikSaldoPage() {
                 padding: '8px 16px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 fontSize: '12px',
                 fontWeight: 600,
                 border: 'none',
@@ -368,7 +368,7 @@ export default function TarikSaldoPage() {
               style={{
                 backgroundColor: 'var(--tw-background)',
                 borderRadius: '12px',
-                border: '1px solid rgba(0, 0, 0, 0.06)',
+                border: '1px solid var(--tw-hairline)',
                 padding: '16px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -434,7 +434,7 @@ export default function TarikSaldoPage() {
               {/* Rekening Tujuan Detail */}
               <div
                 style={{
-                  borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+                  borderTop: '1px solid var(--tw-border-subtle)',
                   paddingTop: '10px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -460,7 +460,7 @@ export default function TarikSaldoPage() {
 
               <div
                 style={{
-                  borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+                  borderTop: '1px solid var(--tw-border-subtle)',
                   paddingTop: '10px',
                   fontSize: '11px',
                   color: 'var(--tw-text-muted)',
@@ -485,7 +485,7 @@ export default function TarikSaldoPage() {
                 padding: '11px 16px',
                 borderRadius: '8px',
                 backgroundColor: 'var(--tw-background)',
-                border: '1px solid rgba(0, 0, 0, 0.08)',
+                border: '1px solid var(--tw-border)',
                 color: 'var(--tw-text-primary)',
                 fontSize: '13px',
                 fontWeight: 600,
@@ -504,7 +504,7 @@ export default function TarikSaldoPage() {
               style={{
                 backgroundColor: 'var(--tw-background)',
                 borderRadius: '12px',
-                border: '1px solid rgba(0, 0, 0, 0.06)',
+                border: '1px solid var(--tw-hairline)',
                 padding: '16px',
                 display: 'flex',
                 alignItems: 'center',
@@ -579,7 +579,7 @@ export default function TarikSaldoPage() {
                   padding: '12px 14px',
                   borderRadius: '8px',
                   backgroundColor: 'var(--tw-badge-success-bg)',
-                  border: '1px solid color-mix(in srgb, #22c55e 30%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
                   color: 'var(--tw-income)',
                   fontSize: '13px',
                   fontWeight: 600,
@@ -598,9 +598,9 @@ export default function TarikSaldoPage() {
                 style={{
                   padding: '12px 14px',
                   borderRadius: '8px',
-                  backgroundColor: 'color-mix(in srgb, #e11d48 8%, var(--tw-background))',
-                  border: '1px solid color-mix(in srgb, #e11d48 25%, transparent)',
-                  color: '#be123c',
+                  backgroundColor: 'color-mix(in srgb, var(--tw-accent-rose) 8%, var(--tw-background))',
+                  border: '1px solid color-mix(in srgb, var(--tw-accent-rose) 25%, transparent)',
+                  color: 'var(--tw-accent-rose-text)',
                   fontSize: '13px',
                   fontWeight: 600,
                   display: 'flex',
@@ -608,7 +608,7 @@ export default function TarikSaldoPage() {
                   gap: '8px',
                 }}
               >
-                <AlertCircle size={16} color="#be123c" />
+                <AlertCircle size={16} color="var(--tw-accent-rose-text)" />
                 <span>{formError}</span>
               </div>
             )}
@@ -619,7 +619,7 @@ export default function TarikSaldoPage() {
               style={{
                 backgroundColor: 'var(--tw-background)',
                 borderRadius: '12px',
-                border: '1px solid rgba(0, 0, 0, 0.06)',
+                border: '1px solid var(--tw-hairline)',
                 padding: '16px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -655,7 +655,7 @@ export default function TarikSaldoPage() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     backgroundColor: 'var(--tw-background)',
                     color: 'var(--tw-text-primary)',
                     fontSize: '15px',
@@ -677,7 +677,7 @@ export default function TarikSaldoPage() {
               {/* Section Header: Rekening Tujuan */}
               <div
                 style={{
-                  borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+                  borderTop: '1px solid var(--tw-border-subtle)',
                   paddingTop: '12px',
                   display: 'flex',
                   alignItems: 'center',
@@ -704,7 +704,7 @@ export default function TarikSaldoPage() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     backgroundColor: 'var(--tw-background)',
                     color: 'var(--tw-text-primary)',
                     fontSize: '13px',
@@ -730,7 +730,7 @@ export default function TarikSaldoPage() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     backgroundColor: 'var(--tw-background)',
                     color: 'var(--tw-text-primary)',
                     fontSize: '14px',
@@ -756,7 +756,7 @@ export default function TarikSaldoPage() {
                     width: '100%',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     backgroundColor: 'var(--tw-background)',
                     color: 'var(--tw-text-primary)',
                     fontSize: '13px',
@@ -779,7 +779,7 @@ export default function TarikSaldoPage() {
                   padding: '12px 16px',
                   borderRadius: '8px',
                   backgroundColor: 'var(--tw-brand-primary)',
-                  color: '#FFFFFF',
+                  color: 'var(--tw-on-brand)',
                   fontSize: '13px',
                   fontWeight: 700,
                   border: 'none',

@@ -273,7 +273,7 @@ func (h *AgentJamaahHandler) CreateManual(w http.ResponseWriter, r *http.Request
 			return
 		}
 		if errors.Is(err, service.ErrPackageNotFound) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "paket tidak ditemukan"})
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "paket tidak ditemukan atau sudah tidak tersedia"})
 			return
 		}
 		if isProspectConflictError(err) {

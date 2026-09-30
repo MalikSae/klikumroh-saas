@@ -277,7 +277,7 @@ export default function AgenDashboardPage() {
             top: 0,
             zIndex: 30,
             backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+            borderBottom: '1px solid var(--tw-border-subtle)',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
@@ -301,7 +301,7 @@ export default function AgenDashboardPage() {
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               backgroundColor: 'var(--tw-background)',
               color: 'var(--tw-text-secondary)',
               display: 'flex',
@@ -329,7 +329,7 @@ export default function AgenDashboardPage() {
             style={{
               width: '36px',
               height: '36px',
-              border: '3px solid rgba(0, 0, 0, 0.08)',
+              border: '3px solid var(--tw-border)',
               borderTopColor: 'var(--tw-brand-primary)',
               borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
@@ -362,7 +362,7 @@ export default function AgenDashboardPage() {
             top: 0,
             zIndex: 30,
             backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+            borderBottom: '1px solid var(--tw-border-subtle)',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
@@ -457,7 +457,7 @@ export default function AgenDashboardPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+          borderBottom: '1px solid var(--tw-border-subtle)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -485,7 +485,7 @@ export default function AgenDashboardPage() {
             width: '36px',
             height: '36px',
             borderRadius: '10px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             backgroundColor: 'var(--tw-background)',
             color: 'var(--tw-text-secondary)',
             display: 'flex',
@@ -629,7 +629,7 @@ export default function AgenDashboardPage() {
             position: 'relative',
             overflow: 'hidden',
             backgroundColor: 'var(--tw-brand-primary)',
-            backgroundImage: 'linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(0, 0, 0, 0.08) 100%)',
+            backgroundImage: 'linear-gradient(135deg, color-mix(in srgb, var(--tw-on-brand) 22%, transparent) 0%, color-mix(in srgb, var(--tw-on-brand) 5%, transparent) 50%, var(--tw-border) 100%)',
             borderRadius: '20px',
             padding: '20px',
             display: 'flex',
@@ -647,7 +647,7 @@ export default function AgenDashboardPage() {
               width: '160px',
               height: '160px',
               borderRadius: '50%',
-              border: '1px solid rgba(255, 255, 255, 0.18)',
+              border: '1px solid color-mix(in srgb, var(--tw-on-brand) 18%, transparent)',
               pointerEvents: 'none',
             }}
           />
@@ -659,7 +659,7 @@ export default function AgenDashboardPage() {
               width: '120px',
               height: '120px',
               borderRadius: '50%',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              border: '1px solid color-mix(in srgb, var(--tw-on-brand) 12%, transparent)',
               pointerEvents: 'none',
             }}
           />
@@ -675,7 +675,7 @@ export default function AgenDashboardPage() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Wallet size={15} color="var(--tw-background)" style={{ opacity: 0.95 }} />
+              <Wallet size={15} color="var(--tw-on-brand)" style={{ opacity: 0.95 }} />
               <span
                 style={{
                   fontSize: '11px',
@@ -734,7 +734,7 @@ export default function AgenDashboardPage() {
                 letterSpacing: showBalance ? '-0.5px' : '2px',
                 lineHeight: 1,
                 fontFamily: 'var(--tw-font-heading)',
-                textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                textShadow: '0 1px 2px var(--tw-divider)',
               }}
             >
               {showBalance ? formatRupiah(summary.saldo_siap_cair) : '••••••••'}
@@ -746,8 +746,8 @@ export default function AgenDashboardPage() {
             style={{
               position: 'relative',
               zIndex: 1,
-              backgroundColor: 'rgba(255, 255, 255, 0.16)',
-              border: '1px solid rgba(255, 255, 255, 0.22)',
+              backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 16%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--tw-on-brand) 22%, transparent)',
               borderRadius: '8px',
               padding: '7px 12px',
               display: 'flex',
@@ -834,8 +834,8 @@ export default function AgenDashboardPage() {
                 borderRadius: '8px',
                 fontWeight: 700,
                 fontSize: '13px',
-                border: '1px solid rgba(255, 255, 255, 0.35)',
-                backgroundColor: 'rgba(255, 255, 255, 0.16)',
+                border: '1px solid color-mix(in srgb, var(--tw-on-brand) 35%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 16%, transparent)',
                 backdropFilter: 'blur(6px)',
                 color: 'var(--tw-background)',
                 cursor: 'pointer',
@@ -847,7 +847,7 @@ export default function AgenDashboardPage() {
                 whiteSpace: 'nowrap',
               }}
             >
-              <History size={15} color="var(--tw-background)" />
+              <History size={15} color="var(--tw-on-brand)" />
               <span>Riwayat Komisi</span>
             </button>
           </div>
@@ -872,7 +872,7 @@ export default function AgenDashboardPage() {
                     backgroundColor: 'var(--tw-background)',
                     borderRadius: '16px',
                     padding: '14px 16px',
-                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                    border: '1px solid var(--tw-hairline)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
@@ -983,7 +983,7 @@ export default function AgenDashboardPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '18px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
@@ -1087,7 +1087,7 @@ export default function AgenDashboardPage() {
                 flex: 1,
                 padding: '9px 12px',
                 borderRadius: '8px',
-                border: '1px solid rgba(0, 0, 0, 0.08)',
+                border: '1px solid var(--tw-border)',
                 backgroundColor: 'var(--tw-background)',
                 color: copied ? 'var(--tw-brand-primary)' : 'var(--tw-text-primary)',
                 fontSize: '12px',
@@ -1191,7 +1191,7 @@ export default function AgenDashboardPage() {
                 style={{
                   backgroundColor: 'var(--tw-background)',
                   borderRadius: '18px',
-                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  border: '1px solid var(--tw-hairline)',
                   padding: '16px 14px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1250,7 +1250,7 @@ export default function AgenDashboardPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '18px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
@@ -1453,7 +1453,7 @@ export default function AgenDashboardPage() {
               textDecoration: 'none',
               backgroundColor: 'var(--tw-background)',
               borderRadius: '18px',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
+              border: '1px solid var(--tw-hairline)',
               padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',

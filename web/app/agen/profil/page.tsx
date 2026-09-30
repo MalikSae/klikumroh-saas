@@ -423,7 +423,7 @@ export default function AgenProfilPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -486,7 +486,7 @@ export default function AgenProfilPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             boxShadow: 'var(--tw-card-shadow)',
             padding: '20px 16px',
             display: 'flex',
@@ -521,7 +521,7 @@ export default function AgenProfilPage() {
                   height: '90px',
                   borderRadius: '50%',
                   overflow: 'hidden',
-                  border: '2px solid rgba(0, 0, 0, 0.08)',
+                  border: '2px solid var(--tw-border)',
                 }}
               >
                 <img
@@ -548,7 +548,7 @@ export default function AgenProfilPage() {
                 height: '26px',
                 borderRadius: '50%',
                 backgroundColor: 'var(--tw-background)',
-                border: '1px solid rgba(0, 0, 0, 0.08)',
+                border: '1px solid var(--tw-border)',
                 boxShadow: 'var(--tw-card-shadow)',
                 display: 'flex',
                 alignItems: 'center',
@@ -583,7 +583,7 @@ export default function AgenProfilPage() {
               fontSize: '12px',
               fontWeight: 600,
               backgroundColor: 'var(--tw-page-bg)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
+              border: '1px solid var(--tw-border)',
               color: 'var(--tw-text-secondary)',
               cursor: uploadingPhoto ? 'wait' : 'pointer',
             }}
@@ -600,8 +600,8 @@ export default function AgenProfilPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: photoMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : '#fef2f2',
-                color: photoMsg.type === 'success' ? 'var(--tw-income)' : '#991b1b',
+                backgroundColor: photoMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
+                color: photoMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
               }}
             >
               {photoMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
@@ -616,7 +616,7 @@ export default function AgenProfilPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             boxShadow: 'var(--tw-card-shadow)',
             padding: '16px',
             display: 'flex',
@@ -642,8 +642,8 @@ export default function AgenProfilPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: profileMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : '#fef2f2',
-                color: profileMsg.type === 'success' ? 'var(--tw-income)' : '#991b1b',
+                backgroundColor: profileMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
+                color: profileMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
               }}
             >
               {profileMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
@@ -668,7 +668,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -696,7 +696,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -723,7 +723,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -755,7 +755,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -775,9 +775,9 @@ export default function AgenProfilPage() {
                     right: 0,
                     zIndex: 20,
                     backgroundColor: 'var(--tw-background)',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     borderRadius: '8px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 10px 15px -3px var(--tw-divider)',
                     maxHeight: '180px',
                     overflowY: 'auto',
                   }}
@@ -791,7 +791,7 @@ export default function AgenProfilPage() {
                         width: '100%',
                         padding: '9px 12px',
                         border: 'none',
-                        borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+                        borderBottom: '1px solid var(--tw-border-subtle)',
                         backgroundColor: 'transparent',
                         textAlign: 'left',
                         fontSize: '13px',
@@ -816,7 +816,7 @@ export default function AgenProfilPage() {
                 fontSize: '13px',
                 fontWeight: 700,
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 border: 'none',
                 cursor: savingProfile ? 'wait' : 'pointer',
                 display: 'flex',
@@ -837,7 +837,7 @@ export default function AgenProfilPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             boxShadow: 'var(--tw-card-shadow)',
             padding: '16px',
             display: 'flex',
@@ -863,8 +863,8 @@ export default function AgenProfilPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: bankMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : '#fef2f2',
-                color: bankMsg.type === 'success' ? 'var(--tw-income)' : '#991b1b',
+                backgroundColor: bankMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
+                color: bankMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
               }}
             >
               {bankMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
@@ -888,7 +888,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -916,7 +916,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -943,7 +943,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 12px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -965,7 +965,7 @@ export default function AgenProfilPage() {
                 fontSize: '13px',
                 fontWeight: 700,
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 border: 'none',
                 cursor: savingBank ? 'wait' : 'pointer',
                 display: 'flex',
@@ -986,7 +986,7 @@ export default function AgenProfilPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             boxShadow: 'var(--tw-card-shadow)',
             padding: '16px',
             display: 'flex',
@@ -1012,8 +1012,8 @@ export default function AgenProfilPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: passwordMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : '#fef2f2',
-                color: passwordMsg.type === 'success' ? 'var(--tw-income)' : '#991b1b',
+                backgroundColor: passwordMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
+                color: passwordMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
               }}
             >
               {passwordMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
@@ -1038,7 +1038,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 36px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -1082,7 +1082,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 36px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -1126,7 +1126,7 @@ export default function AgenProfilPage() {
                     width: '100%',
                     padding: '9px 36px 9px 36px',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    border: '1px solid var(--tw-divider)',
                     fontSize: '13px',
                     color: 'var(--tw-text-primary)',
                     backgroundColor: 'var(--tw-background)',
@@ -1164,7 +1164,7 @@ export default function AgenProfilPage() {
                 fontSize: '13px',
                 fontWeight: 700,
                 backgroundColor: 'var(--tw-brand-primary)',
-                color: '#FFFFFF',
+                color: 'var(--tw-on-brand)',
                 border: 'none',
                 cursor: savingPassword ? 'wait' : 'pointer',
                 display: 'flex',
@@ -1203,7 +1203,7 @@ export default function AgenProfilPage() {
           style={{
             backgroundColor: 'var(--tw-background)',
             borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.06)',
+            border: '1px solid var(--tw-hairline)',
             boxShadow: 'var(--tw-card-shadow)',
             overflow: 'hidden',
           }}
@@ -1221,12 +1221,12 @@ export default function AgenProfilPage() {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'var(--tw-expense, #ef4444)',
+              color: 'var(--tw-expense, var(--tw-danger))',
               fontSize: '13px',
               fontWeight: 700,
             }}
           >
-            <LogOut size={16} color="var(--tw-expense, #ef4444)" />
+            <LogOut size={16} color="var(--tw-expense, var(--tw-danger))" />
             <span>Keluar dari Akun</span>
           </button>
         </section>
@@ -1239,7 +1239,7 @@ export default function AgenProfilPage() {
             position: 'fixed',
             inset: 0,
             zIndex: 100,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'var(--tw-modal-overlay)',
             backdropFilter: 'blur(3px)',
             display: 'flex',
             alignItems: 'center',
@@ -1254,7 +1254,7 @@ export default function AgenProfilPage() {
               padding: '20px',
               width: '100%',
               maxWidth: '340px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 20px 25px -5px var(--tw-divider)',
               display: 'flex',
               flexDirection: 'column',
               gap: '14px',
@@ -1279,7 +1279,7 @@ export default function AgenProfilPage() {
                   fontSize: '12px',
                   fontWeight: 600,
                   backgroundColor: 'var(--tw-page-bg)',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
+                  border: '1px solid var(--tw-divider)',
                   color: 'var(--tw-text-secondary)',
                   cursor: 'pointer',
                 }}
@@ -1294,9 +1294,9 @@ export default function AgenProfilPage() {
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: 700,
-                  backgroundColor: 'var(--tw-expense, #ef4444)',
+                  backgroundColor: 'var(--tw-expense, var(--tw-danger))',
                   border: 'none',
-                  color: '#FFFFFF',
+                  color: 'var(--tw-on-brand)',
                   cursor: 'pointer',
                 }}
               >

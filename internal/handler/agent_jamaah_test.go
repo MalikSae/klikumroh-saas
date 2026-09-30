@@ -638,10 +638,10 @@ func TestAgentJamaah_CreateManual_AssignsAgentAndAuditFields(t *testing.T) {
 	sessA := &repository.AgentSession{TenantID: t1.ID, AgentID: agA.ID, Token: "token-ag-a", ExpiresAt: time.Now().Add(24 * time.Hour)}
 	_ = sessionRepo.Create(context.Background(), sessA)
 
-	pkgT1 := &repository.Package{ID: 101, TenantID: t1.ID, Name: "Paket T1"}
+	pkgT1 := &repository.Package{ID: 101, TenantID: t1.ID, Name: "Paket T1", Status: "published"}
 	_ = packageRepo.Create(context.Background(), t1.ID, pkgT1)
 
-	pkgT2 := &repository.Package{ID: 202, TenantID: t2.ID, Name: "Paket T2 Cross"}
+	pkgT2 := &repository.Package{ID: 202, TenantID: t2.ID, Name: "Paket T2 Cross", Status: "published"}
 	_ = packageRepo.Create(context.Background(), t2.ID, pkgT2)
 
 	t.Run("Tambah manual sukses -> agent_id otomatis ter-assign, source_channel='agen', entry_method='agent_manual', initial note created", func(t *testing.T) {
@@ -745,4 +745,12 @@ func TestAgentJamaah_CreateManual_AssignsAgentAndAuditFields(t *testing.T) {
 		// Kembalikan status ke active
 		_ = agentRepo.UpdateStatus(context.Background(), t1.ID, agA.ID, "active")
 	})
+}
+
+func (m *mockDomainRepoForJamaah) ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error {
+	return nil
+}
+
+func (m *mockDomainRepoForJamaah) ListActiveCustom(ctx context.Context) ([]repository.Domain, error) {
+	return nil, nil
 }

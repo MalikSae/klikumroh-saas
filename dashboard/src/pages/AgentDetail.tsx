@@ -62,6 +62,7 @@ import {
 } from '../services/api';
 import { formatDateWIB, formatTimeWIB } from '../utils/datetime';
 import './AgentDetail.css';
+import { usePrivateFileURL } from '../hooks/usePrivateFile';
 import styles from './AgentDetail.module.css';
 
 const formatIDR = (val: number): string => {
@@ -212,6 +213,8 @@ export const AgentDetailPage: React.FC = () => {
   } | null>(null);
   const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
   const [selectedProofUrl, setSelectedProofUrl] = useState<string | null>(null);
+  // Registration transfer proofs are private files (authenticated download, not /uploads).
+  const proofFile = usePrivateFileURL(selectedProofUrl);
   const [processingStatus, setProcessingStatus] = useState<boolean>(false);
 
   type TabId = 'ringkasan' | 'aktivitas' | 'prospek' | 'riwayat_komisi' | 'jaringan';
@@ -1847,7 +1850,7 @@ export const AgentDetailPage: React.FC = () => {
               <div className={styles.addiv34}>
                 {selectedProofUrl && (
                   <a
-                    href={getFullImageUrl(selectedProofUrl)}
+                    href={proofFile.url || undefined}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.ada35}
@@ -1867,7 +1870,7 @@ export const AgentDetailPage: React.FC = () => {
                 className={styles.addiv36}
               >
                 <img
-                  src={getFullImageUrl(selectedProofUrl)}
+                  src={proofFile.url || undefined}
                   alt={`Bukti Transfer ${agent.name}`}
                   className={styles.adimg37}
                 />

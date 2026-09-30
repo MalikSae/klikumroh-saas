@@ -109,7 +109,7 @@ export default function SumberJamaahDetailPage() {
             top: 0,
             zIndex: 30,
             backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+            borderBottom: '1px solid var(--tw-hairline)',
             padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
@@ -170,7 +170,7 @@ export default function SumberJamaahDetailPage() {
               padding: '9px 20px',
               borderRadius: '6px',
               backgroundColor: 'var(--tw-brand-primary)',
-              color: '#FFFFFF',
+              color: 'var(--tw-on-brand)',
               fontSize: '13px',
               fontWeight: 600,
               textDecoration: 'none',
@@ -193,7 +193,7 @@ export default function SumberJamaahDetailPage() {
           top: 0,
           zIndex: 30,
           backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          borderBottom: '1px solid var(--tw-hairline)',
           padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -261,7 +261,7 @@ export default function SumberJamaahDetailPage() {
             borderRadius: '6px',
             border: isCompleted
               ? '1px solid var(--tw-brand-primary)'
-              : '1px solid rgba(0,0,0,0.1)',
+              : '1px solid var(--tw-divider)',
             backgroundColor: isCompleted
               ? 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))'
               : 'var(--tw-background)',
@@ -304,7 +304,7 @@ export default function SumberJamaahDetailPage() {
             borderRadius: '12px',
             border: isCompleted
               ? '1px solid color-mix(in srgb, var(--tw-brand-primary) 30%, transparent)'
-              : '1px solid rgba(0,0,0,0.06)',
+              : '1px solid var(--tw-hairline)',
             padding: '18px 16px',
             display: 'flex',
             flexDirection: 'column',
@@ -391,7 +391,7 @@ export default function SumberJamaahDetailPage() {
                 backgroundColor: 'var(--tw-page-bg)',
                 padding: '12px',
                 borderRadius: '8px',
-                border: '1px solid rgba(0,0,0,0.06)',
+                border: '1px solid var(--tw-hairline)',
               }}
             >
               {item.cara_mulai}
@@ -484,7 +484,7 @@ export default function SumberJamaahDetailPage() {
                 padding: '10px 14px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--tw-background)',
-                border: '1px solid rgba(0,0,0,0.08)',
+                border: '1px solid var(--tw-border)',
                 color: 'var(--tw-text-primary)',
                 fontSize: '12px',
                 fontWeight: 600,
@@ -520,7 +520,7 @@ export default function SumberJamaahDetailPage() {
                 padding: '10px 14px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--tw-background)',
-                border: '1px solid rgba(0,0,0,0.08)',
+                border: '1px solid var(--tw-border)',
                 color: 'var(--tw-text-primary)',
                 fontSize: '12px',
                 fontWeight: 600,
