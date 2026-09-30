@@ -733,3 +733,11 @@ func (m *mockDetailProspectRepo) FindLatestClosingByPhone(ctx context.Context, t
 func (m *mockDetailProspectRepo) ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, limit, offset int) ([]repository.AgentProspectItem, int, error) {
 	return nil, 0, nil
 }
+
+func (m *mockDetailDomainRepo) ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error {
+	return nil
+}
+
+func (m *mockDetailDomainRepo) ListActiveCustom(ctx context.Context) ([]repository.Domain, error) {
+	return nil, nil
+}

@@ -639,3 +639,11 @@ func (m *mockAgentTargetRepo) HasAchievements(ctx context.Context, tenantID uint
 	}
 	return false, nil
 }
+
+func (m *mockDomainRepo) ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error {
+	return nil
+}
+
+func (m *mockDomainRepo) ListActiveCustom(ctx context.Context) ([]repository.Domain, error) {
+	return nil, nil
+}

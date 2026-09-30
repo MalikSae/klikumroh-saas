@@ -67,6 +67,18 @@ func createDummyTenant(t *testing.T, ctx context.Context, repo repository.Tenant
 	if err := repo.Create(ctx, tenant); err != nil {
 		t.Fatalf("Failed to create dummy tenant %s: %v", suffix, err)
 	}
+	// Every test tenant is removed with all its data when the test ends (AGENTS.md 5.1 rule 3).
+	t.Cleanup(func() {
+		db, err := openCleanupDB()
+		if err != nil {
+			t.Errorf("cleanup tenant %d: %v", tenant.ID, err)
+			return
+		}
+		defer db.Close()
+		if err := purgeTestTenant(db, tenant.ID); err != nil {
+			t.Errorf("cleanup tenant %d: %v", tenant.ID, err)
+		}
+	})
 	return tenant
 }
 
