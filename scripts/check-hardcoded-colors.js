@@ -21,7 +21,8 @@ if (args.length > 0) {
 const HEX_COLOR_REGEX = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
 const RGB_COLOR_REGEX = /rgba?\s*\([^)]*\)/gi;
 
-const IGNORED_FILES = ['index.css', 'globals.css'];
+// Token definition files are the one place raw values live (ui/tokens.css is generated from design-tokens.json).
+const IGNORED_FILES = ['index.css', 'globals.css', 'tokens.css'];
 
 let violations = [];
 

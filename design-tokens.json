@@ -85,6 +85,111 @@
       "shadowAccent": "0 2px 8px rgba(0, 110, 103, 0.25)",
       "textOnDark": "#FFFFFF",
       "dividerOnDark": "rgba(255, 255, 255, 0.12)"
+    },
+    "foundation": {
+      "_note": "Dashboard travel v2, dari prototipe yang disetujui pendiri (dashboard/design/prototype.html). Dipetakan ke CSS var --ku-* oleh scripts/build-ui-tokens.js. Komponen src/ui, src/app, src/screens hanya memakai --ku-*.",
+      "color": {
+        "frame": "#F4F4F5",
+        "panel": "#FFFFFF",
+        "soft": "#FAFAFA",
+        "hover": "#FAFAFA",
+        "line": "#E4E4E7",
+        "line-2": "#F0F0F2",
+        "ink": "#09090B",
+        "ink-2": "#52525B",
+        "ink-3": "#71717A",
+        "ink-4": "#A1A1AA",
+        "on-accent": "#FFFFFF",
+        "accent": "#09090B",
+        "accent-2": "#27272A",
+        "accent-soft": "#F4F4F5",
+        "accent-deep": "#18181B",
+        "green": "#1C8C4E",
+        "green-2": "#157040",
+        "green-soft": "#E9F5EE",
+        "green-deep": "#12462B",
+        "red": "#D93A3A",
+        "red-soft": "#FDECEC",
+        "red-line": "#F3C9C9",
+        "red-tint": "#FFFBFB",
+        "amber": "#B7700B",
+        "amber-soft": "#FCF3E3",
+        "amber-ink": "#7A4A0C",
+        "blue": "#2A63D4",
+        "blue-soft": "#ECF1FC",
+        "violet": "#6D48C9",
+        "violet-soft": "#F1ECFB",
+        "gray-soft": "#F4F4F5",
+        "ch-web": "#2A78D6",
+        "ch-ads": "#EB6834",
+        "ch-agen": "#1BAF7A",
+        "overlay": "rgba(9, 9, 11, 0.35)",
+        "focus-ring": "rgba(9, 9, 11, 0.12)",
+        "white-25": "rgba(255, 255, 255, 0.25)",
+        "white-80": "rgba(255, 255, 255, 0.8)",
+        "nav-active": "#E4E4E7",
+        "nav-hover": "#EBEBED"
+      },
+      "font": {
+        "head": "'Plus Jakarta Sans', system-ui, sans-serif",
+        "body": "'Roboto', system-ui, sans-serif"
+      },
+      "text": {
+        "xs": "11px",
+        "sm": "12px",
+        "md": "13px",
+        "base": "14px",
+        "lg": "15px",
+        "xl": "16px",
+        "2xl": "20px",
+        "3xl": "26px",
+        "4xl": "30px"
+      },
+      "leading": {
+        "tight": "1.25",
+        "base": "1.45",
+        "loose": "1.6"
+      },
+      "weight": {
+        "regular": "400",
+        "medium": "500",
+        "semibold": "600",
+        "bold": "700"
+      },
+      "space": {
+        "1": "4px",
+        "2": "8px",
+        "3": "12px",
+        "4": "16px",
+        "5": "20px",
+        "6": "24px",
+        "7": "28px",
+        "8": "32px",
+        "10": "40px",
+        "12": "48px"
+      },
+      "radius": {
+        "pill": "6px",
+        "ctl": "8px",
+        "inner": "10px",
+        "card": "12px",
+        "panel": "16px",
+        "round": "999px"
+      },
+      "shadow": {
+        "pop": "0 10px 24px rgba(20, 20, 20, 0.10)",
+        "drawer": "0 20px 50px rgba(20, 20, 20, 0.16)",
+        "ring": "0 0 0 1px #E7E7E3"
+      },
+      "size": {
+        "sidebar": "248px",
+        "control": "38px",
+        "control-sm": "32px",
+        "icon": "18px",
+        "icon-sm": "15px",
+        "drawer": "460px",
+        "content": "1360px"
+      }
     }
   },
   "tenantWhitelabel": {
