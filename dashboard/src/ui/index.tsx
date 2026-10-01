@@ -1,7 +1,7 @@
 // Dashboard travel v2 — UI components. Visual source: dashboard/design/prototype.html (approved 30 Sep 2026).
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useSyncExternalStore } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, X, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, X, Search, SlidersHorizontal } from 'lucide-react';
 import './tokens.css';
 import './ui.css';
 
@@ -302,16 +302,115 @@ export const ChannelTag: React.FC<{ channel: Channel; detail?: string | null }> 
   </span>
 );
 
+/* ---------- Phone layout ---------- */
+// One breakpoint for the mobile app layout (bottom navigation, card lists, full-screen panels).
+const MOBILE_QUERY = '(max-width: 768px)';
+const subscribeMobile = (cb: () => void) => {
+  const mq = window.matchMedia(MOBILE_QUERY);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+};
+export const useIsMobile = () => useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_QUERY).matches, () => false);
+
 /* ---------- Table ---------- */
 export interface Column<T> {
   key: string;
   header: React.ReactNode;
   cell: (row: T) => React.ReactNode;
   align?: 'right';
+  /**
+   * Phone card list. Default: text columns become plain lines (no label), right-aligned (numeric) columns
+   * become small "label value" stats, a column keyed 'status' sits next to the title.
+   * 'hide' leaves the column out (e.g. a row menu the detail page also has); 'aside' puts it next to the title;
+   * 'labeled' shows a text column as a small 'Header value' line under the stats;
+   * 'line' keeps a right-aligned (numeric) column as a plain line, e.g. the amount of a payout;
+   * 'stat' shows a non-numeric column as a stat tile anyway (e.g. seats filled with its bar).
+   */
+  mobile?: 'hide' | 'aside' | 'labeled' | 'line' | 'stat';
+  /** Phone card content for this column when it differs from the table cell (e.g. name + contact in one). */
+  mobileCell?: (row: T) => React.ReactNode;
+  /** Phone card: full-width media (e.g. a banner image) above the title. Read from the first column. */
+  mobileMedia?: (row: T) => React.ReactNode;
 }
+
+/** Phone: each row is a card. The first column is the card title, the rest follow without field labels. */
+function MobileList<T>({ columns, rows, rowKey, onRowClick, loading, showEmpty, empty }: { columns: Column<T>[]; rows: T[]; rowKey: (r: T) => string | number; onRowClick?: (r: T) => void; loading?: boolean; showEmpty: boolean; empty?: React.ReactNode }) {
+  const cols = columns.filter((c) => c.mobile !== 'hide');
+  const [head, ...others] = cols;
+  const aside = others.filter((c) => c.mobile === 'aside' || c.key === 'status');
+  // A column without a header holds row buttons (e.g. Setujui / Tolak): they get their own row at the bottom.
+  const actions = others.filter((c) => !aside.includes(c) && !c.header);
+  const labeled = others.filter((c) => c.mobile === 'labeled');
+  const rest = others.filter((c) => !aside.includes(c) && !actions.includes(c) && !labeled.includes(c));
+  const isStat = (c: Column<T>) => c.mobile === 'stat' || (c.align === 'right' && c.mobile !== 'line');
+  const lines = rest.filter((c) => !isStat(c));
+  const stats = rest.filter(isStat);
+  if (loading) {
+    return (
+      <ul className="ku-mlist" aria-busy="true">
+        {Array.from({ length: 4 }, (_, i) => (
+          <li key={i} className="ku-mcard">
+            <div className="ku-skeleton" />
+            <div className="ku-skeleton ku-skeleton--short" />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (showEmpty) return <div className="ku-mlist ku-mlist--empty">{empty}</div>;
+  return (
+    <ul className="ku-mlist">
+      {rows.map((r) => {
+        const body = (
+          <>
+            {head?.mobileMedia && <div className="ku-mcard__media">{head.mobileMedia(r)}</div>}
+            <div className="ku-mcard__head">
+              <div className="ku-mcard__title">{(head?.mobileCell ?? head?.cell)?.(r)}</div>
+              {aside.map((c) => (
+                <div key={c.key} className="ku-mcard__aside">{(c.mobileCell ?? c.cell)(r)}</div>
+              ))}
+              {onRowClick && <ChevronRight className="ku-icon--sm ku-mcard__go" aria-hidden="true" />}
+            </div>
+            {lines.map((c) => (
+              <div key={c.key} className="ku-mcard__line">{(c.mobileCell ?? c.cell)(r)}</div>
+            ))}
+            {stats.length > 0 && (
+              <dl className="ku-mcard__stats">
+                {stats.map((c) => (
+                  <div key={c.key}>
+                    <dt>{c.header}</dt>
+                    <dd>{(c.mobileCell ?? c.cell)(r)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {labeled.map((c) => (
+              <div key={c.key} className="ku-mcard__labeled">
+                <span>{c.header}</span> {(c.mobileCell ?? c.cell)(r)}
+              </div>
+            ))}
+            {actions.map((c) => {
+              // No buttons for this row (e.g. your own account): no empty action bar.
+              const node = (c.mobileCell ?? c.cell)(r);
+              return node == null || node === false ? null : <div key={c.key} className="ku-mcard__actions">{node}</div>;
+            })}
+          </>
+        );
+        return (
+          <li key={rowKey(r)} className={onRowClick ? 'ku-mcard ku-mcard--link' : 'ku-mcard'} onClick={onRowClick ? () => onRowClick(r) : undefined}>
+            {body}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, empty }: { columns: Column<T>[]; rows: T[]; rowKey: (r: T) => string | number; onRowClick?: (r: T) => void; loading?: boolean; empty?: React.ReactNode }) {
   // An empty table keeps its column headers; the empty message sits inside the table area.
   const showEmpty = !loading && rows.length === 0 && !!empty;
+  const mobile = useIsMobile();
+  if (mobile) return <MobileList columns={columns} rows={rows} rowKey={rowKey} onRowClick={onRowClick} loading={loading} showEmpty={showEmpty} empty={empty} />;
   return (
     <div className="ku-table-wrap">
       <table className="ku-table">
@@ -391,7 +490,7 @@ export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: Re
 export const Strip: React.FC<{ tone?: 'accent' | 'warning' | 'danger'; icon: React.ReactNode; title: React.ReactNode; description?: React.ReactNode; progress?: { done: number; total: number }; action?: React.ReactNode; onClose?: () => void }> = ({ tone = 'accent', icon, title, description, progress, action, onClose }) => (
   <div className={cx('ku-strip', tone !== 'accent' && `ku-strip--${tone}`)} role={tone === 'accent' ? 'status' : 'alert'}>
     <span className="ku-strip__icon" aria-hidden="true">{icon}</span>
-    <div>
+    <div className="ku-strip__body">
       <div className="ku-strip__title">{title}</div>
       {description && <div className="ku-strip__desc">{description}</div>}
       {progress && (
@@ -559,15 +658,19 @@ export const Pagination: React.FC<{ page: number; pageSize: number; total: numbe
   const to = Math.min(total, page * pageSize);
   return (
     <div className="ku-table-foot">
-      <span>
+      <span className="ku-pager__range">
         {fmtNumber(from)}–{fmtNumber(to)} dari {fmtNumber(total)}
       </span>
-      <div className="ku-row">
+      <div className="ku-pager">
         {pageSizes && onPageSize && (
           <Select label="Baris per halaman" value={String(pageSize)} onChange={(v) => onPageSize(Number(v))} options={pageSizes.map((s) => ({ value: String(s), label: `${s} per halaman` }))} />
         )}
-        <Button size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>Sebelumnya</Button>
-        <Button size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>Berikutnya</Button>
+        <IconButton label="Halaman sebelumnya" size="sm" className="ku-pager__prev" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+          <ChevronLeft className="ku-icon--sm" />
+        </IconButton>
+        <IconButton label="Halaman berikutnya" size="sm" className="ku-pager__next" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+          <ChevronRight className="ku-icon--sm" />
+        </IconButton>
       </div>
     </div>
   );
@@ -595,7 +698,9 @@ export const Menu: React.FC<{
     const up = window.innerHeight - r.bottom < need + 8 && r.top > window.innerHeight - r.bottom;
     // clientWidth excludes the page scrollbar, like the box a fixed element is placed in.
     const vw = document.documentElement.clientWidth;
-    const x = align === 'start' ? { left: Math.max(8, Math.min(r.left, vw - 228)) } : { right: Math.max(8, vw - r.right) };
+    // The panel is about 228px wide: an end-aligned panel that would run off the left edge (button near the
+    // left, e.g. in a phone card) opens rightwards instead.
+    const x = align === 'start' || r.right - 228 < 8 ? { left: Math.max(8, Math.min(r.left, vw - 228)) } : { right: Math.max(8, vw - r.right) };
     setPos(up ? { ...x, bottom: window.innerHeight - r.top + 6 } : { ...x, top: r.bottom + 6 });
   }, [items.length, align]);
 
@@ -728,3 +833,4 @@ export const MoneyInput: React.FC<{ id?: string; value: number | null; onChange:
     />
   </div>
 );
+export { CityInput } from './CityInput';

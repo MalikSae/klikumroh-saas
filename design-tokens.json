@@ -188,7 +188,9 @@
         "icon": "18px",
         "icon-sm": "15px",
         "drawer": "460px",
-        "content": "1360px"
+        "content": "1360px",
+        "tabbar": "64px",
+        "sheet-grip": "36px"
       }
     }
   },

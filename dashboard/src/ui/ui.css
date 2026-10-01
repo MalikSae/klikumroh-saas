@@ -94,7 +94,7 @@
   color: var(--ku-ink-3);
   min-width: 0;
 }
-.ku-search:focus-within { border-color: var(--ku-accent); box-shadow: 0 0 0 3px var(--ku-focus-ring); }
+.ku-search:focus-within { border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
 .ku-search input { border: 0; outline: 0; flex: 1; min-width: 0; font: var(--ku-text-base) var(--ku-font-body); color: var(--ku-ink); background: none; }
 .ku-search--sm { height: 36px; }
 
@@ -102,7 +102,7 @@
 .ku-select { position: relative; display: inline-flex; min-width: 0; }
 .ku-select__trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: var(--ku-space-2); width: 100%; height: var(--ku-size-control-sm); padding: 0 10px 0 var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); color: var(--ku-ink-2); font: var(--ku-text-md) var(--ku-font-body); text-align: left; cursor: pointer; }
 .ku-select__trigger:hover:not(:disabled) { border-color: var(--ku-ink-4); }
-.ku-select__trigger:focus-visible, .ku-select--open .ku-select__trigger { outline: none; border-color: var(--ku-accent); box-shadow: 0 0 0 3px var(--ku-focus-ring); }
+.ku-select__trigger:focus-visible, .ku-select--open .ku-select__trigger { outline: none; border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
 .ku-select__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ku-select__value--empty { color: var(--ku-ink-4); }
 .ku-select__chev { width: 16px; height: 16px; flex-shrink: 0; color: var(--ku-ink-3); transition: transform 120ms ease; }
@@ -133,7 +133,7 @@
   color: var(--ku-ink);
 }
 .ku-textarea { height: auto; min-height: 96px; padding: var(--ku-space-2) var(--ku-space-3); line-height: var(--ku-leading-loose); resize: vertical; }
-.ku-input:focus, .ku-textarea:focus { outline: none; border-color: var(--ku-accent); box-shadow: 0 0 0 3px var(--ku-focus-ring); }
+.ku-input:focus, .ku-textarea:focus { outline: none; border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
 .ku-input[aria-invalid='true'], .ku-textarea[aria-invalid='true'] { border-color: var(--ku-red); }
 /* Inside a form every control shares one size and text style; the compact select stays for toolbars. */
 .ku-field .ku-select, .ku-filter__panel .ku-select { display: flex; width: 100%; }
@@ -181,6 +181,8 @@
 /* Toolbar: one line, never wraps (VISION.md rule 3). */
 .ku-tools { display: flex; gap: var(--ku-space-2); align-items: center; padding: var(--ku-space-4) var(--ku-space-5); }
 .ku-tools .ku-search { flex: 0 1 360px; min-width: 180px; height: 36px; }
+/* Filter button as tall as the search box next to it. */
+.ku-tools .ku-filter > .ku-btn { height: 36px; }
 .ku-tools__right { margin-left: auto; display: flex; gap: var(--ku-space-2); align-items: center; flex-shrink: 0; }
 .ku-card__tabs { padding: var(--ku-space-2) var(--ku-space-5) 0; }
 .ku-card__tabs .ku-tabs { margin-bottom: 0; }
@@ -201,6 +203,9 @@
 .ku-table .ku-right { text-align: right; }
 .ku-skeleton { height: 12px; border-radius: var(--ku-radius-pill); background: var(--ku-line-2); animation: ku-pulse 1.2s ease-in-out infinite; }
 @keyframes ku-pulse { 50% { opacity: 0.5; } }
+.ku-pager { display: flex; align-items: center; gap: var(--ku-space-2); }
+.ku-pager__range { white-space: nowrap; }
+.ku-pager .ku-ibtn:disabled { opacity: 0.4; cursor: not-allowed; }
 .ku-table-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); padding: 0 var(--ku-space-5) var(--ku-space-4); color: var(--ku-ink-3); font-size: var(--ku-text-md); }
 
 /* ---------- KPI card ---------- */
@@ -326,9 +331,106 @@ a.ku-notice:hover { background: var(--ku-hover); }
 .ag > .ku-list > .ku-tools:first-child, .st > .ku-list > .ku-tools:first-child { padding-top: 0; }
 /* Money input */
 .ku-money { display: flex; align-items: center; width: 100%; height: var(--ku-size-control); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); }
-.ku-money:focus-within { border-color: var(--ku-accent); box-shadow: 0 0 0 3px var(--ku-focus-ring); }
+.ku-money:focus-within { border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
 .ku-money--invalid { border-color: var(--ku-red); }
 .ku-money--disabled { background: var(--ku-soft); }
 .ku-money__prefix { padding: 0 0 0 var(--ku-space-3); color: var(--ku-ink-3); font-size: var(--ku-text-base); }
 .ku-money__input { flex: 1; min-width: 0; height: 100%; padding: 0 var(--ku-space-3) 0 6px; border: 0; background: transparent; font: var(--ku-text-base) var(--ku-font-body); color: var(--ku-ink); font-variant-numeric: tabular-nums; outline: none; }
 .ku-money__input::placeholder { color: var(--ku-ink-4); }
+/* Focused field with an error: one thick red border (same shape as the black focus border). */
+.ku-input[aria-invalid='true']:focus, .ku-textarea[aria-invalid='true']:focus, .ku-select--invalid .ku-select__trigger:focus-visible, .ku-money--invalid:focus-within { border-color: var(--ku-red); box-shadow: 0 0 0 1px var(--ku-red); }
+.ku-city__opt { justify-content: flex-start; }
+.ku-city__opt .ku-icon--sm { color: var(--ku-ink-3); }
+
+/* ---------- Phone: table rows as cards ---------- */
+.ku-mlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ku-space-2); }
+.ku-mlist--empty { border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); }
+.ku-mcard { display: flex; flex-direction: column; gap: var(--ku-space-2); padding: var(--ku-space-3) var(--ku-space-4); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); background: var(--ku-panel); }
+.ku-mcard--link { cursor: pointer; }
+.ku-mcard--link:active { background: var(--ku-hover); }
+.ku-mcard__head { display: flex; align-items: flex-start; gap: var(--ku-space-2); }
+.ku-mcard__title { flex: 1; min-width: 0; font-weight: var(--ku-weight-medium); }
+.ku-mcard__go { flex-shrink: 0; margin-top: 2px; color: var(--ku-ink-4); }
+.ku-mcard { gap: 6px; }
+.ku-mcard__aside { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; }
+/* Next to the title only the status itself; its note (e.g. "Batal setelah DP") stays on the detail page. */
+.ku-mcard__aside .ku-small { display: none; }
+/* A line is one table cell. Cells built as two stacked lines (e.g. package + "2 jamaah") flow on one line
+   on the card, the second part after a dot. */
+.ku-mcard__line { font-size: var(--ku-text-md); color: var(--ku-ink-2); min-width: 0; }
+/* Doubled class: beats screen cell layouts such as .pr-cell (a flex column) declared after this file. */
+.ku-mcard .ku-mcard__line > * { display: block; }
+.ku-mcard .ku-mcard__line > * > :not(.ku-dot) { display: inline; }
+.ku-mcard__line > * > .ku-muted { white-space: nowrap; }
+.ku-mcard__line > * > .ku-muted:not(:first-child)::before { content: '·'; margin: 0 6px; color: var(--ku-ink-4); }
+.ku-mcard__line .ku-dot { margin-right: 6px; vertical-align: 1px; }
+/* Numbers as small tiles: label above value, up to three per row. */
+.ku-mcard__stats { margin: 2px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ku-space-2) var(--ku-space-3); padding-top: var(--ku-space-2); border-top: 1px solid var(--ku-line-2); }
+.ku-mcard__stats > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ku-mcard__stats dt { font-size: var(--ku-text-sm); color: var(--ku-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ku-mcard__stats dd { margin: 0; font-weight: var(--ku-weight-semibold); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ku-mcard__labeled { font-size: var(--ku-text-sm); color: var(--ku-ink-2); }
+.ku-mcard__labeled > span:first-child { color: var(--ku-ink-3); }
+.ku-mcard__actions { display: flex; justify-content: flex-end; padding-top: var(--ku-space-2); border-top: 1px solid var(--ku-line-2); }
+.ku-skeleton--short { width: 55%; }
+
+/* ---------- Phone: panels full screen, dialogs as bottom sheets ---------- */
+@media (max-width: 768px) {
+  .ku-drawer { top: 0; right: 0; bottom: 0; left: 0; width: 100%; border: 0; border-radius: 0; padding-top: env(safe-area-inset-top); }
+  .ku-drawer__head { padding: var(--ku-space-4); }
+  .ku-drawer__body { padding: var(--ku-space-4); }
+  .ku-drawer__foot { padding: var(--ku-space-3) var(--ku-space-4) calc(var(--ku-space-3) + env(safe-area-inset-bottom)); }
+  .ku-modal-wrap { align-items: flex-end; padding: 0; }
+  .ku-modal, .ku-modal--wide { max-width: none; max-height: 90vh; border-radius: var(--ku-radius-panel) var(--ku-radius-panel) 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  .ku-tools { flex-wrap: wrap; padding: var(--ku-space-3) 0; }
+  /* Search and Filter share the first line; extra actions (ku-tools__right) wrap below when needed. */
+  .ku-tools .ku-search { flex: 1 1 160px; min-width: 0; }
+  .ku-tools__right { margin-left: 0; }
+  .ku-filter__panel { position: fixed; left: var(--ku-space-4); right: var(--ku-space-4); top: auto; width: auto; }
+  /* 16px or more: iOS Safari would zoom into smaller fields. */
+  .ku-input, .ku-textarea, .ku-select__trigger, .ku-search input { font-size: var(--ku-text-xl); }
+}
+@media (max-width: 768px) {
+  .ku-strip { flex-wrap: wrap; gap: var(--ku-space-3); padding: var(--ku-space-4); }
+  .ku-strip__body { flex: 1 1 0; min-width: 0; }
+  .ku-strip__actions { flex: 1 1 100%; margin-left: 0; }
+  .ku-strip__actions > .ku-btn { flex: 1; }
+}
+/* Phone pager: just  <  1–25 dari 29  >  (page size stays at its default). */
+@media (max-width: 768px) {
+  .ku-table-foot { justify-content: center; gap: var(--ku-space-5); padding-top: var(--ku-space-4); }
+  .ku-pager { display: contents; }
+  .ku-pager .ku-select { display: none; }
+  .ku-pager .ku-ibtn { width: 40px; height: 40px; }
+  .ku-pager__prev { order: 1; }
+  .ku-pager__range { order: 2; }
+  .ku-pager__next { order: 3; }
+}
+@media (max-width: 768px) {
+  /* Drawer footer actions: full-size touch targets. */
+  .ku-drawer__foot .ku-btn { height: 44px; }
+}
+/* Card status: only the badge (notes such as a rejection reason stay on the detail/table). */
+.ku-mcard__aside .ku-muted { display: none; }
+/* Card actions fill the row: big, even touch targets. */
+.ku-mcard__actions > :not(.ku-btn) { display: flex; width: 100%; gap: var(--ku-space-2); }
+.ku-mcard__actions .ku-btn { flex: 1; justify-content: center; height: 40px; }
+/* A ghost button (e.g. Tolak) gets an outline in the card so both buttons read as buttons. */
+.ku-mcard__actions .ku-btn--ghost { border-color: var(--ku-line); }
+
+/* ---------- Phone: touch targets & bottom-sheet dialogs ---------- */
+@media (max-width: 768px) {
+  .ku-kpi__go { width: 36px; height: 36px; }
+  .ku-strip__close { width: 36px; height: 36px; }
+  .ku-drawer__head .ku-ibtn, .ku-modal__head .ku-ibtn { width: 40px; height: 40px; }
+  /* Dialog buttons as a full-width row at the bottom of the sheet. */
+  .ku-modal__foot { padding: var(--ku-space-3) var(--ku-space-4) calc(var(--ku-space-3) + env(safe-area-inset-bottom)); }
+  .ku-modal__foot > .ku-btn { flex: 1; height: 44px; }
+  .ku-modal__head { padding: var(--ku-space-4) var(--ku-space-4) var(--ku-space-2); }
+  .ku-modal__body { padding: 0 var(--ku-space-4) var(--ku-space-4); }
+}
+.ku-mcard__media { margin: calc(-1 * var(--ku-space-3)) calc(-1 * var(--ku-space-4)) 0; overflow: hidden; border-radius: var(--ku-radius-inner) var(--ku-radius-inner) 0 0; }
+.ku-mcard__media > img { display: block; width: 100%; border-radius: 0; }
+/* A lone row menu (three dots) sits at the right end of the action bar. */
+.ku-mcard__actions > .ku-menu { justify-content: flex-end; }
+.ku-mcard__actions > .ku-menu .ku-ibtn { width: 40px; height: 40px; }
