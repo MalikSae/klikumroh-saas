@@ -1,6 +1,6 @@
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
-import { Tooltip } from '../../../components/Tooltip';
+import { Tooltip } from '../shared/Tooltip';
 
 export interface AdminStatCardProps {
   label: string;

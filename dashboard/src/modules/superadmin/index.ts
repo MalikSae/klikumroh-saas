@@ -1,3 +1,4 @@
+import './shared/base.css';
 // Super Admin Modules Export
 export * from './layout/AdminLayout';
 export * from './layout/AdminAuthGuard';

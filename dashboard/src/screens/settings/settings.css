@@ -1,0 +1,79 @@
+/* Pengaturan & Akun saya. Tokens only. */
+.st { display: flex; flex-direction: column; gap: 20px; }
+.st-stack { display: flex; flex-direction: column; gap: 20px; }
+.st-loading { height: 240px; }
+.st-muted { color: var(--ku-ink-3); font-size: var(--ku-text-md); margin: 0; }
+.st-hidden { display: none; }
+.st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ku-space-4); }
+.st-actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--ku-space-3); }
+.st-modal-form { display: flex; flex-direction: column; gap: var(--ku-space-4); }
+
+/* Settings sections: purpose on the left, fields on the right, divided by a line. No cards. */
+.st-form { display: flex; flex-direction: column; }
+.st-section { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: var(--ku-space-8); padding: var(--ku-space-6) 0; border-bottom: 1px solid var(--ku-line); }
+.st-form:first-child .st-section:first-of-type, .st-form > .ku-banner + .st-section { padding-top: var(--ku-space-2); }
+.st-section__title { margin: 0; font: var(--ku-weight-semibold) var(--ku-text-lg) var(--ku-font-head); color: var(--ku-ink); }
+.st-section__desc { margin: var(--ku-space-1) 0 0; color: var(--ku-ink-3); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
+.st-section__body { display: flex; flex-direction: column; gap: var(--ku-space-4); max-width: 560px; }
+.st-savebar { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-4) 0; background: var(--ku-panel); }
+.st-savebar__done { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; color: var(--ku-green-2); font-size: var(--ku-text-md); }
+.st-actions .st-savebar__done { margin-right: 0; }
+
+/* Langganan */
+.st-plan { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-4); padding: var(--ku-space-5); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-card); flex-wrap: wrap; }
+.st-plan__label { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+.st-plan__name { display: flex; align-items: center; gap: var(--ku-space-3); margin-top: 2px; font: var(--ku-weight-semibold) var(--ku-text-xl) var(--ku-font-head); flex-wrap: wrap; }
+.st-plan__text { margin: var(--ku-space-1) 0 0; color: var(--ku-ink-2); }
+.st-invoice-row { display: flex; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-4); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); background: var(--ku-soft); flex-wrap: wrap; }
+.st-invoice-row > .ku-icon { color: var(--ku-ink-2); flex-shrink: 0; }
+.st-invoice-row__text { display: flex; flex-direction: column; margin-right: auto; min-width: 0; }
+.st-invoice-row__text span { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+
+.st-picker { display: flex; flex-direction: column; gap: var(--ku-space-4); padding: var(--ku-space-5); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-card); }
+.st-picker__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); }
+.st-plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--ku-space-3); }
+.st-plan-opt { position: relative; display: flex; flex-direction: column; gap: 2px; padding: var(--ku-space-4); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); cursor: pointer; }
+.st-plan-opt:hover { border-color: var(--ku-ink-4); }
+.st-plan-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.st-plan-opt:focus-within { box-shadow: 0 0 0 3px var(--ku-focus-ring); }
+.st-plan-opt--on, .st-plan-opt--on:hover { border-color: var(--ku-accent); box-shadow: inset 0 0 0 1px var(--ku-accent); }
+.st-plan-opt__name { font-weight: var(--ku-weight-semibold); }
+.st-plan-opt__period { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+.st-plan-opt__price { margin-top: var(--ku-space-2); font: var(--ku-weight-bold) var(--ku-text-lg) var(--ku-font-head); }
+.st-plan-opt__month { color: var(--ku-ink-3); font-size: var(--ku-text-sm); }
+.st-checkout { display: flex; flex-direction: column; gap: var(--ku-space-3); max-width: 440px; }
+.st-checkout__actions { display: flex; }
+.st-coupon { display: flex; gap: var(--ku-space-2); }
+.st-coupon .ku-input { flex: 1; min-width: 0; text-transform: uppercase; }
+.st-total, .st-pay__lines, .st-bank__list { margin: 0; display: flex; flex-direction: column; gap: var(--ku-space-2); }
+.st-total > div, .st-pay__lines > div, .st-bank__list > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ku-space-4); }
+.st-total dt, .st-pay__lines dt, .st-bank__list dt { color: var(--ku-ink-2); }
+.st-total dd, .st-pay__lines dd, .st-bank__list dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.st-total__sum { padding-top: var(--ku-space-2); border-top: 1px solid var(--ku-line); }
+.st-total__sum dt, .st-total__sum dd { color: var(--ku-ink); font-weight: var(--ku-weight-semibold); }
+.st-block { display: flex; flex-direction: column; gap: var(--ku-space-3); }
+
+/* Tagihan */
+.st-invoice__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--ku-space-4); }
+.st-invoice__title { margin: 0 0 2px; font: var(--ku-weight-semibold) var(--ku-text-xl) var(--ku-font-head); }
+.st-invoice__grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.st-pay, .st-proof { display: flex; flex-direction: column; gap: var(--ku-space-3); padding: var(--ku-space-5); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-card); }
+.st-pay__label { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+.st-pay__amount { font: var(--ku-weight-bold) var(--ku-text-3xl) var(--ku-font-head); font-variant-numeric: tabular-nums; }
+.st-pay__note { margin: 0; color: var(--ku-ink-2); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
+.st-pay__lines { padding-top: var(--ku-space-3); border-top: 1px solid var(--ku-line); }
+.st-bank { display: flex; flex-direction: column; gap: var(--ku-space-2); padding-top: var(--ku-space-3); border-top: 1px solid var(--ku-line); }
+.st-bank__list dd { font-weight: var(--ku-weight-medium); }
+.st-copy { display: inline-flex; align-items: center; gap: var(--ku-space-2); }
+.st-copy__btn { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 var(--ku-space-2); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); color: var(--ku-ink-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); cursor: pointer; }
+.st-copy__btn:hover { color: var(--ku-ink); border-color: var(--ku-ink-4); }
+.st-help { display: inline-flex; align-items: center; gap: 6px; color: var(--ku-ink-2); font-size: var(--ku-text-md); text-decoration: none; }
+.st-help:hover { color: var(--ku-ink); text-decoration: underline; }
+
+@media (max-width: 960px) {
+  .st-section { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-4); }
+  .st-invoice__grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .st-grid { grid-template-columns: 1fr; }
+}

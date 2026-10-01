@@ -15,8 +15,8 @@ import {
   HelpCircle,
   ArrowLeft,
 } from 'lucide-react';
-import { Tooltip } from '../../../components/Tooltip';
-import { NotificationDropdown } from '../../../components/NotificationDropdown';
+import { Tooltip } from '../shared/Tooltip';
+import { NotificationDropdown } from '../shared/NotificationDropdown';
 import {
   getStoredStaffToken,
   getStoredStaffUser,

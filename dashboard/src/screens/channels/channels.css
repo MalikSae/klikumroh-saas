@@ -1,0 +1,26 @@
+/* Kanal. Tokens only. */
+.ch { display: flex; flex-direction: column; gap: 20px; }
+.ch > .ku-tools { padding: 0; }
+.ch-block { display: flex; flex-direction: column; gap: var(--ku-space-3); }
+.ch-block__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); }
+.ch-block .ku-table tbody tr:last-child td { font-weight: var(--ku-weight-medium); }
+.ch-delta { display: inline-flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.ch-delta--up { color: var(--ku-green-2); }
+.ch-delta--down { color: var(--ku-red); }
+.ch-text { margin: 0; color: var(--ku-ink-2); line-height: var(--ku-leading-loose); }
+.ch-link { display: flex; align-items: center; gap: var(--ku-space-2); padding: var(--ku-space-2) var(--ku-space-2) var(--ku-space-2) var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); background: var(--ku-soft); }
+.ch-link__url { flex: 1; min-width: 0; overflow-wrap: anywhere; font: var(--ku-text-md) var(--ku-font-body); color: var(--ku-ink); }
+.ch-status { display: flex; align-items: flex-start; gap: var(--ku-space-2); color: var(--ku-ink-2); font-size: var(--ku-text-md); }
+.ch-status__dot { width: 8px; height: 8px; margin-top: 6px; flex-shrink: 0; border-radius: var(--ku-radius-round); background: var(--ku-ink-4); }
+.ch-status__dot--ok { background: var(--ku-green); }
+.ch-status__dot--bad { background: var(--ku-red); }
+.ch-events { width: 100%; border-collapse: collapse; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
+.ch-events th { text-align: left; padding: var(--ku-space-2) var(--ku-space-3); background: var(--ku-soft); color: var(--ku-ink-3); font-weight: var(--ku-weight-medium); border-bottom: 1px solid var(--ku-line); }
+.ch-events td { padding: var(--ku-space-2) var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); vertical-align: top; color: var(--ku-ink-2); }
+.ch-events tr:last-child td { border-bottom: 0; }
+.ch-events td b { color: var(--ku-ink); font-weight: var(--ku-weight-semibold); }
+.ch-events__from { white-space: nowrap; }
+.ch-howto { color: var(--ku-ink-2); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
+.ch-howto > b { color: var(--ku-ink); }
+.ch-howto ul { margin: var(--ku-space-1) 0 0; padding-left: var(--ku-space-5); display: flex; flex-direction: column; gap: var(--ku-space-1); }
+.ch-howto li b { color: var(--ku-ink); font-weight: var(--ku-weight-medium); }

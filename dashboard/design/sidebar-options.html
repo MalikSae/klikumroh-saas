@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pilihan Sidebar</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16181D;--ink2:#4B4F57;--ink3:#8A8E96;--line:#E7E7E3;--green:#1C8C4E;--green2:#157040;--gsoft:#E9F5EE;--red:#D93A3A}
+*{box-sizing:border-box}body{margin:0;background:#E9E9E6;font:14px/20px Roboto,system-ui,sans-serif;color:var(--ink);padding:24px}
+h1{font:700 20px 'Plus Jakarta Sans';margin:0 0 4px}p.s{margin:0 0 20px;color:var(--ink2)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.opt h2{font:600 15px 'Plus Jakarta Sans';margin:0 0 4px}.opt p{margin:0 0 10px;color:var(--ink3);font-size:13px}
+.shot{height:640px;border-radius:14px;overflow:hidden;display:flex;border:1px solid #DADAD6}
+.main{flex:1;background:#fff;padding:18px}
+.main .t{font:700 17px 'Plus Jakarta Sans'}.main .bar{height:10px;border-radius:5px;background:#F0F0ED;margin-top:14px}
+svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.side{width:236px;display:flex;flex-direction:column;padding:16px 12px}
+.logo{display:flex;align-items:center;gap:10px;font:500 17px 'Plus Jakarta Sans';padding:4px 8px 14px}.logo b{font-weight:800}
+.mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center}
+.it{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;font-weight:500;color:var(--ink2)}
+.cnt{margin-left:auto;min-width:22px;height:20px;padding:0 6px;border-radius:10px;font-size:11px;display:grid;place-items:center;color:#fff;background:var(--red)}
+.lab{font:700 11px 'Plus Jakarta Sans';letter-spacing:.06em;padding:0 10px;margin:16px 0 6px}
+.bottom{margin-top:auto}
+.user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px}
+.av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:600 11px 'Plus Jakarta Sans'}
+.nm{font-weight:500;line-height:16px}.rl{font-size:12px;line-height:16px}
+.travel{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:10px}
+.tm{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font:700 11px 'Plus Jakarta Sans'}
+.tn{font-weight:600;line-height:16px}.tp{font-size:12px;line-height:16px}
+
+/* A: putih bersih, satu kanvas */
+.A .side{background:#fff;border-right:1px solid var(--line)}
+.A .mark{background:var(--green);color:#fff}
+.A .travel{border:1px solid var(--line)}.A .tm{background:var(--ink);color:#fff}.A .tp{color:var(--ink3)}
+.A .it.on{background:#F1F1EF;color:var(--ink);font-weight:600}
+.A .lab{color:var(--ink3)}
+.A .sep{height:1px;background:var(--line);margin:12px 8px 0}
+.A .user{border-top:1px solid var(--line);border-radius:0;margin-top:8px;padding-top:14px}.A .av{background:var(--gsoft);color:var(--green2)}.A .rl{color:var(--ink3)}
+.A .main{background:#fff}
+
+/* B: gelap hijau tua */
+.B .side{background:#0F2A1D;color:#E6EFE9}
+.B .logo{color:#fff}.B .mark{background:#fff;color:#0F2A1D}
+.B .travel{background:rgba(255,255,255,.06)}.B .tm{background:var(--green);color:#fff}.B .tp{color:rgba(255,255,255,.6)}
+.B .it{color:rgba(255,255,255,.72)}.B .it.on{background:rgba(255,255,255,.1);color:#fff;font-weight:600}
+.B .lab{color:rgba(255,255,255,.45)}
+.B .user{background:rgba(255,255,255,.06)}.B .av{background:var(--green);color:#fff}.B .rl{color:rgba(255,255,255,.6)}
+.B .main{background:#F7F7F5}
+
+/* C: kartu mengambang di bingkai abu, aksen hijau */
+.C{background:#EFEFEC;padding:10px;gap:10px}
+.C .side{background:#fff;border:1px solid var(--line);border-radius:14px}
+.C .mark{background:var(--green);color:#fff}
+.C .travel{background:#F7F7F5}.C .tm{background:var(--green-deep,#12462B);color:#fff}.C .tp{color:var(--ink3)}
+.C .it.on{background:var(--gsoft);color:var(--green2);font-weight:600;box-shadow:inset 3px 0 0 var(--green)}
+.C .lab{color:var(--ink3)}
+.C .user{background:#F7F7F5}.C .av{background:var(--ink);color:#fff}.C .rl{color:var(--ink3)}
+.C .main{border-radius:14px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<h1>Pilih gaya sidebar</h1>
+<p class="s">Isi menu sama (Beranda · PENJUALAN · KEMITRAAN · PEMASARAN · Pengaturan). Yang berbeda gaya visualnya.</p>
+<div class="grid" id="g"></div>
+<svg width="0" height="0" style="position:absolute">
+<symbol id="home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+<symbol id="users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="pkg" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+<symbol id="hand" viewBox="0 0 24 24"><path d="M12 21s-8-4.5-8-11a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 6.5-8 11-8 11z"/></symbol>
+<symbol id="trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/></symbol>
+<symbol id="chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16v-5M12 16V8M17 16v-8"/></symbol>
+<symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+<symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+<symbol id="ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="ud" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+</svg>
+<script>
+const side=`<aside class="side">
+<div class="logo"><span class="mark"><svg><use href="#hand"/></svg></span><span><b>Klik</b>Umroh</span></div>
+<div class="travel"><span class="tm">NT</span><div><div class="tn">Nava Tours</div><div class="tp">Aktif s.d. 29 Des 2026</div></div></div>
+<div class="it"><svg><use href="#home"/></svg>Beranda</div>
+<div class="sep"></div>
+<div class="lab">PENJUALAN</div>
+<div class="it on"><svg><use href="#users"/></svg>Prospek<span class="cnt">12</span></div>
+<div class="it"><svg><use href="#pkg"/></svg>Paket</div>
+<div class="lab">KEMITRAAN</div>
+<div class="it"><svg><use href="#hand"/></svg>Agen<span class="cnt">3</span></div>
+<div class="it"><svg><use href="#trophy"/></svg>Program agen</div>
+<div class="lab">PEMASARAN</div>
+<div class="it"><svg><use href="#chart"/></svg>Kanal</div>
+<div class="it"><svg><use href="#globe"/></svg>Website</div>
+<div class="bottom">
+<div class="it"><svg><use href="#ext"/></svg>Lihat website</div>
+<div class="it"><svg><use href="#gear"/></svg>Pengaturan</div>
+<div class="user"><span class="av">PF</span><div><div class="nm">Penguji Flow</div><div class="rl">Admin travel</div></div><svg style="margin-left:auto;width:15px;height:15px;opacity:.5"><use href="#ud"/></svg></div>
+</div></aside>`;
+const main=`<div class="main"><div class="t">Prospek</div><div class="bar" style="width:60%"></div><div class="bar"></div><div class="bar" style="width:80%"></div><div class="bar"></div></div>`;
+const opts=[['A','A · Putih bersih','Satu kanvas putih, garis pemisah tipis, item aktif abu lembut. Tenang, gaya Linear/Notion.'],['B','B · Gelap hijau tua','Sidebar hijau tua kontras, konten terang. Kuat dan berkarakter, gaya Shopify/Vercel.'],['C','C · Kartu mengambang','Sidebar dan konten jadi dua kartu di atas bingkai abu; item aktif hijau dengan garis kiri. Paling dekat dengan contoh Anda.']];
+document.getElementById('g').innerHTML=opts.map(([k,t,d])=>`<div class="opt"><h2>${t}</h2><p>${d}</p><div class="shot ${k}">${side}${main}</div></div>`).join('');
+</script>
+</body>
+</html>

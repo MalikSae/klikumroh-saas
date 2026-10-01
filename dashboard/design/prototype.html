@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konsep Dashboard Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --frame:#EFEFEC; --panel:#FFFFFF; --soft:#F7F7F5; --line:#E7E7E3; --line-2:#F0F0ED;
+  --ink:#16181D; --ink-2:#4B4F57; --ink-3:#8A8E96; --ink-4:#B8BBC1;
+  --green:#1C8C4E; --green-2:#157040; --green-soft:#E9F5EE; --green-deep:#12462B;
+  --red:#D93A3A; --red-soft:#FDECEC; --amber:#B7700B; --amber-soft:#FCF3E3; --blue:#2A63D4; --blue-soft:#ECF1FC; --violet:#6D48C9; --violet-soft:#F1ECFB; --gray-soft:#F1F1EF;
+  --web:#2A78D6; --ads:#EB6834; --agen:#1BAF7A;
+  --r-card:12px; --r-ctl:8px; --r-pill:6px;
+  --head:'Plus Jakarta Sans',system-ui,sans-serif; --body:'Roboto',system-ui,sans-serif;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--frame);color:var(--ink);font:14px/20px var(--body);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none} button{font:inherit;color:inherit}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+svg.i.sm{width:15px;height:15px}
+.proto{position:fixed;right:14px;bottom:14px;z-index:20;background:var(--ink);color:#fff;font-size:12px;padding:6px 10px;border-radius:6px;opacity:.85}
+
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh;padding:12px 12px 12px 0}
+
+/* ---------- Sidebar (sits on the frame) ---------- */
+.side{display:flex;flex-direction:column;padding:10px 16px 8px 20px;position:sticky;top:12px;height:calc(100vh - 24px)}
+.logo{display:flex;align-items:center;gap:10px;padding:6px 8px 22px;font:500 18px var(--head);letter-spacing:-.01em}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--green);display:grid;place-items:center;color:#fff}
+.logo b{font-weight:800}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:var(--r-ctl);color:var(--ink-2);font-weight:500;cursor:pointer}
+.nav a:hover{background:rgba(0,0,0,.04);color:var(--ink)}
+.nav a.on{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.nav a .chev{margin-left:auto;color:var(--ink-4);transition:transform .15s}
+.nav a.open .chev{transform:rotate(180deg)}
+.nav .badge{margin-left:auto;min-width:22px;height:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font-size:11px;font-weight:500;display:grid;place-items:center}
+.nav .badge.g{background:var(--green)}
+.sub{display:none;flex-direction:column;margin:2px 0 6px}
+.sub.show{display:flex}
+.sub a{height:32px;padding-left:38px;font-weight:400;color:var(--ink-3)}
+.sub a.on{box-shadow:none;background:none;color:var(--ink);font-weight:500}
+.sec{margin:22px 10px 8px;font:700 11px var(--head);letter-spacing:.06em;color:var(--ink-2)}
+.side-bottom{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
+.user{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 10px;border-radius:var(--r-ctl);cursor:pointer}
+.user:hover{background:rgba(0,0,0,.04)}
+.av{width:30px;height:30px;border-radius:50%;background:var(--green-deep);color:#fff;display:grid;place-items:center;font:600 11px var(--head)}
+.user .nm{font-weight:500;line-height:16px}.user .em{font-size:12px;color:var(--ink-3);line-height:16px}
+.user .i{margin-left:auto;color:var(--ink-4)}
+
+/* ---------- Main panel ---------- */
+.main{background:var(--panel);border:1px solid var(--line);border-radius:16px;min-width:0;display:flex;flex-direction:column}
+.head{display:flex;align-items:center;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line-2)}
+.head h1{margin:0;font:700 20px/28px var(--head);letter-spacing:-.01em;min-width:180px}
+.search{flex:0 1 380px;margin:0 auto;display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r-ctl);color:var(--ink-3);background:var(--panel)}
+.search input{border:0;outline:0;flex:1;font:14px var(--body);color:var(--ink);background:none}
+.ibtn{width:38px;height:38px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--soft);display:grid;place-items:center;color:var(--ink-2);cursor:pointer;position:relative}
+.ibtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--soft)}
+.head-right{display:flex;gap:8px;align-items:center}
+.travel-pick{display:flex;align-items:center;gap:8px;height:38px;padding:0 10px 0 6px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--soft);cursor:pointer;font-weight:500}
+.travel-pick .tm{width:26px;height:26px;border-radius:6px;background:var(--ink);color:#fff;display:grid;place-items:center;font:700 10px var(--head)}
+.body{padding:20px 24px 28px}
+.screen{display:none}.screen.on{display:block}
+
+/* Promo / status strip (one per page at most) */
+.strip{display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:var(--r-card);background:linear-gradient(100deg,var(--green-deep),var(--green-2));color:#fff;margin-bottom:20px}
+.strip-ic{width:40px;height:40px;border-radius:50%;background:#fff;color:var(--green-deep);display:grid;place-items:center}
+.strip .t{font:600 15px var(--head)}.strip .s{font-size:13px;opacity:.8}
+.strip .prog{display:flex;gap:4px;margin-top:8px}.strip .prog i{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.25)}.strip .prog i.d{background:#fff}
+.btn{height:38px;padding:0 16px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--panel);font-weight:500;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+.btn.light{background:#fff;border-color:#fff;color:var(--ink)}
+.strip .btn{margin-left:auto}
+
+/* Cards */
+.card{border:1px solid var(--line);border-radius:var(--r-card);background:var(--panel);min-width:0}
+.card-h{display:flex;align-items:center;gap:12px;padding:16px 20px 0}
+.card-h h2{margin:0;font:600 16px var(--head)}
+.card-h .r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.card-b{padding:16px 20px 20px}
+.select{height:32px;padding:0 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--panel);display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer}
+.check{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer;user-select:none}
+.check input{accent-color:var(--ink);width:15px;height:15px;margin:0}
+
+.grid-top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+.grid-bot{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;margin-top:16px}
+.kpis{display:flex;flex-direction:column;gap:16px}
+.kpi{padding:16px 18px;display:grid;grid-template-columns:1fr auto;gap:2px}
+.kpi .l{color:var(--ink-2);font-size:13px}
+.kpi .go{grid-row:1/3;grid-column:2;width:28px;height:28px;border:1px solid var(--line);border-radius:7px;display:grid;place-items:center;color:var(--ink-2)}
+.kpi .v{font:700 26px/34px var(--head);letter-spacing:-.02em;margin-top:6px;grid-column:1/3;display:flex;align-items:center;gap:10px}
+.kpi .v .i{color:var(--ink-3)}
+.kpi .d{grid-column:1;font-size:12px;color:var(--ink-3)}
+.kpi .d b{font-weight:500}.up{color:var(--green)}.down{color:var(--red)}
+.kpi svg.spark{grid-column:2;grid-row:3/5;width:84px;height:30px;align-self:end}
+
+/* Chart */
+.legend{display:flex;gap:16px;padding:10px 20px 0;font-size:13px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chart{position:relative;display:grid;grid-template-columns:36px 1fr;gap:8px;height:250px;padding:12px 20px 0}
+.yax{display:flex;flex-direction:column;justify-content:space-between;color:var(--ink-3);font-size:12px;padding-bottom:26px;text-align:right}
+.plot{position:relative;display:flex;align-items:flex-end;gap:10px;padding-bottom:26px;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:14px 14px;background-position:0 4px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;cursor:pointer}
+.stack{width:62%;max-width:34px;display:flex;flex-direction:column-reverse;gap:2px}
+.stack i{display:block;border-radius:3px}
+.col .x{position:absolute;bottom:-24px;font-size:12px;color:var(--ink-3);white-space:nowrap}
+.col:hover .stack{filter:brightness(.95)}
+.tip{position:absolute;z-index:3;bottom:60%;left:50%;transform:translateX(-50%);min-width:150px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 24px rgba(20,20,20,.1);font-size:12px;display:none;pointer-events:none}
+.col:hover .tip{display:block}
+.tip .tt{font-weight:600;margin-bottom:4px;color:var(--ink)}
+.tip div{display:flex;align-items:center;gap:6px;color:var(--ink-2)}.tip div b{margin-left:auto;font-weight:500;color:var(--ink)}
+
+/* Table */
+.tools{display:flex;gap:8px;align-items:center;padding:14px 20px}
+.tools .search{margin:0;flex:0 1 300px;height:36px}
+.tools .r{margin-left:auto;display:flex;gap:8px}
+.tbl-wrap{margin:0 20px 16px;border:1px solid var(--line);border-radius:10px;overflow:auto}
+table{width:100%;border-collapse:collapse}
+th{background:var(--soft);text-align:left;font:500 13px var(--body);color:var(--ink-2);padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}tbody tr:hover td{background:#FBFBFA}
+.cb{accent-color:var(--ink);width:15px;height:15px;margin:0}
+.muted{color:var(--ink-3)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border-radius:var(--r-pill);font-size:12px;font-weight:500}
+.p-baru{background:var(--blue-soft);color:var(--blue)}
+.p-dihubungi{background:var(--amber-soft);color:var(--amber)}
+.p-tertarik{background:var(--violet-soft);color:var(--violet)}
+.p-closing{background:var(--green-soft);color:var(--green)}
+.p-lost{background:var(--gray-soft);color:var(--ink-2)}
+.pill .sw{width:6px;height:6px;background:currentColor}
+.ch{display:inline-flex;align-items:center;gap:6px}
+
+/* Notifications */
+.notes{display:flex;flex-direction:column;gap:10px;padding:14px 16px 16px}
+.nt{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.nt .ic{grid-row:1/3;color:var(--ink-2);padding-top:1px}
+.nt .t{font-weight:500}.nt .s{font-size:12px;color:var(--ink-3);grid-column:2}
+.nt .w{font-size:11px;color:var(--ink-3);grid-column:3;grid-row:1}
+.nt.hot{border-color:#F3C9C9;background:#FFFBFB}.nt.hot .ic{color:var(--red)}
+.notes .btn{justify-content:center;width:100%}
+
+/* Prospek */
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.tabs button{border:0;background:none;padding:0 0 12px;font-weight:500;color:var(--ink-3);cursor:pointer;position:relative;display:flex;gap:6px;align-items:center}
+.tabs button.on{color:var(--ink)}.tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink)}
+.tabs .n{font-size:12px;color:var(--ink-3);background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:0 7px}
+.tabs button.on .n{background:var(--ink);color:#fff;border-color:var(--ink)}
+.drawer{position:fixed;top:12px;right:12px;bottom:12px;width:460px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 50px rgba(20,20,20,.16);z-index:10;display:none;flex-direction:column}
+.drawer.show{display:flex}
+.dr-h{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 16px;border-bottom:1px solid var(--line-2)}
+.dr-h h3{margin:0;font:700 20px/26px var(--head)}
+.dr-b{padding:18px 22px;overflow:auto;flex:1}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:4px 0 18px}
+.steps button{border:1px solid var(--line);background:var(--panel);border-radius:7px;height:34px;font-size:12px;font-weight:500;color:var(--ink-3);cursor:pointer}
+.steps button.cur{background:var(--ink);border-color:var(--ink);color:#fff}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;padding:16px;border-radius:10px;background:var(--soft);margin-bottom:18px}
+.facts .k{font-size:12px;color:var(--ink-3)}.facts .v{font-weight:500;margin-top:2px}
+.lbl{font:600 13px var(--head);margin:0 0 10px}
+.trail{display:flex;flex-direction:column;gap:12px;border-left:2px solid var(--line);margin-left:6px;padding-left:16px;margin-bottom:18px}
+.trail div{font-size:13px}.trail span{display:block;font-size:12px;color:var(--ink-3)}
+.dr-f{padding:14px 22px;border-top:1px solid var(--line-2);display:flex;gap:8px}
+.dr-f .btn{flex:1;justify-content:center}
+
+/* Kanal */
+.insight{padding:20px 22px;border-radius:var(--r-card);background:var(--green-soft);margin-bottom:16px;display:flex;gap:14px;align-items:flex-start}
+.insight .i{color:var(--green);margin-top:2px}
+.insight .t{font:600 16px/24px var(--head)}.insight .s{color:var(--ink-2);font-size:13px;margin-top:4px}
+.chs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.chc{padding:18px 20px}
+.chc .top{display:flex;align-items:center;gap:8px;font:600 15px var(--head)}
+.chc .big{font:700 30px/38px var(--head);margin-top:12px;letter-spacing:-.02em}
+.chc .sub2{font-size:13px;color:var(--ink-3)}
+.fun{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.fr{display:grid;grid-template-columns:72px 1fr 30px;gap:10px;align-items:center;font-size:12px;color:var(--ink-3)}
+.fb{height:8px;background:var(--line-2);border-radius:4px;overflow:hidden}.fb i{display:block;height:100%;border-radius:4px}
+.fr b{text-align:right;color:var(--ink);font-weight:500}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2);font-size:13px}
+.kv span:nth-child(odd){color:var(--ink-3)}.kv span:nth-child(even){font-weight:500;text-align:right}
+.mini{display:flex;align-items:center;gap:2px;height:8px;width:120px}.mini i{display:block;height:100%;border-radius:2px}
+.agent{display:flex;align-items:center;gap:10px}.agent .av{width:28px;height:28px;font-size:10px;background:var(--soft);color:var(--ink-2);border:1px solid var(--line)}
+.seat{display:flex;align-items:center;gap:8px}.seat .fb{width:90px}
+.thumb{width:44px;height:32px;border-radius:6px;background:linear-gradient(135deg,#D9E7DD,#B9D3C2);flex-shrink:0}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.warn{margin-top:12px;padding:8px 10px;border-radius:8px;background:var(--amber-soft);color:#7A4A0C;font-size:12px}
+
+@media (max-width:1100px){.grid-top,.grid-bot,.chs{grid-template-columns:1fr}.app{grid-template-columns:1fr;padding:12px}.side{display:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16v-5M12 16V8M17 16v-8"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3M3 4h8"/></symbol>
+  <symbol id="pkg" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="team" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></symbol>
+  <symbol id="plug" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-12 0V8z"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="updown" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+  <symbol id="rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+  <symbol id="filter" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4"/></symbol>
+  <symbol id="dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="wa" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="userplus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></symbol>
+  <symbol id="wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+
+<div class="proto">Prototipe konsep v2 · data contoh</div>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo"><span class="logo-mark"><svg class="i sm"><use href="#hand"/></svg></span><span><b>Klik</b>Umroh</span></div>
+    <nav class="nav" aria-label="Navigasi utama">
+      <a class="on" data-go="dash"><svg class="i"><use href="#home"/></svg>Dashboard</a>
+      <a data-go="prospek"><svg class="i"><use href="#users"/></svg>Prospek<span class="badge">8</span></a>
+      <a data-go="kanal"><svg class="i"><use href="#chart"/></svg>Kanal</a>
+      <a data-go="agen" data-toggle="agen" class=""><svg class="i"><use href="#hand"/></svg>Agen<svg class="i sm chev"><use href="#down"/></svg></a>
+      <div class="sub" id="sub-agen">
+        <a>Semua agen</a><a>Pendaftaran <span class="badge" style="margin-left:auto">3</span></a><a>Pencairan komisi</a><a>Target &amp; hadiah</a><a>Pengaturan agen</a>
+      </div>
+      <a data-go="paket"><svg class="i"><use href="#pkg"/></svg>Paket</a>
+      <a data-toggle="web"><svg class="i"><use href="#globe"/></svg>Website<svg class="i sm chev"><use href="#down"/></svg></a>
+      <div class="sub" id="sub-web">
+        <a>Tampilan &amp; merek</a><a>Banner</a><a>Testimoni</a><a>FAQ</a><a>SEO</a><a>Domain</a>
+      </div>
+    </nav>
+    <div class="sec">PENGATURAN</div>
+    <nav class="nav">
+      <a><svg class="i"><use href="#team"/></svg>Tim</a>
+      <a><svg class="i"><use href="#card"/></svg>Langganan</a>
+      <a><svg class="i"><use href="#plug"/></svg>Integrasi iklan</a>
+      <a><svg class="i"><use href="#shield"/></svg>Log akses staf</a>
+    </nav>
+    <div class="side-bottom">
+      <nav class="nav">
+        <a><svg class="i"><use href="#ext"/></svg>Lihat website</a>
+        <a><svg class="i"><use href="#gear"/></svg>Profil travel</a>
+        <a><svg class="i"><use href="#out"/></svg>Keluar</a>
+      </nav>
+      <div class="user"><span class="av">RA</span><div><div class="nm">Rahmat Azis</div><div class="em">Admin</div></div><svg class="i sm"><use href="#updown"/></svg></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="head">
+      <h1 id="title">Dashboard</h1>
+      <label class="search"><svg class="i sm"><use href="#search"/></svg><input placeholder="Cari prospek, agen, atau paket…"></label>
+      <div class="head-right">
+        <button class="ibtn" aria-label="Notifikasi"><svg class="i"><use href="#bell"/></svg><span class="dot"></span></button>
+        <div class="travel-pick"><span class="tm">AH</span>Al-Hijrah Travel<svg class="i sm"><use href="#down"/></svg></div>
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- ================= DASHBOARD ================= -->
+      <section class="screen on" id="dash">
+        <div class="strip">
+          <span class="strip-ic"><svg class="i"><use href="#rocket"/></svg></span>
+          <div>
+            <div class="t">Lengkapi website travel Anda</div>
+            <div class="s">2 dari 4 langkah selesai: logo & WhatsApp, paket pertama. Berikutnya: aktifkan agen pertama.</div>
+            <div class="prog"><i class="d"></i><i class="d"></i><i></i><i></i></div>
+          </div>
+          <button class="btn light">Lanjutkan setup</button>
+        </div>
+
+        <div class="grid-top">
+          <div class="card">
+            <div class="card-h">
+              <h2>Prospek per kanal</h2>
+              <div class="r">
+                <label class="check"><input type="checkbox" checked>Website</label>
+                <label class="check"><input type="checkbox" checked>Iklan</label>
+                <label class="check"><input type="checkbox" checked>Agen</label>
+                <span class="select">14 hari<svg class="i sm"><use href="#down"/></svg></span>
+              </div>
+            </div>
+            <div class="legend"><span><i class="sw" style="background:var(--web)"></i>Website</span><span><i class="sw" style="background:var(--ads)"></i>Iklan</span><span><i class="sw" style="background:var(--agen)"></i>Agen</span></div>
+            <div class="chart">
+              <div class="yax"><span>20</span><span>15</span><span>10</span><span>5</span><span>0</span></div>
+              <div class="plot" id="plot"></div>
+            </div>
+          </div>
+
+          <div class="kpis">
+            <div class="card kpi"><span class="l">Prospek baru</span><a class="go" aria-label="Buka prospek"><svg class="i sm"><use href="#arrow"/></svg></a>
+              <div class="v"><svg class="i"><use href="#users"/></svg>195</div>
+              <div class="d"><b class="up">+18%</b> vs 30 hari lalu</div>
+              <svg class="spark" viewBox="0 0 84 30"><polyline fill="none" stroke="var(--green)" stroke-width="1.6" points="0,24 10,22 20,23 30,18 40,19 50,14 60,15 70,9 84,6"/></svg></div>
+            <div class="card kpi"><span class="l">Jamaah closing</span><a class="go" aria-label="Buka prospek closing"><svg class="i sm"><use href="#arrow"/></svg></a>
+              <div class="v"><svg class="i"><use href="#hand"/></svg>48</div>
+              <div class="d"><b class="up">+9%</b> vs 30 hari lalu</div>
+              <svg class="spark" viewBox="0 0 84 30"><polyline fill="none" stroke="var(--green)" stroke-width="1.6" points="0,20 10,21 20,17 30,18 40,15 50,16 60,12 70,13 84,10"/></svg></div>
+            <div class="card kpi"><span class="l">Konversi</span><a class="go" aria-label="Buka kanal"><svg class="i sm"><use href="#arrow"/></svg></a>
+              <div class="v"><svg class="i"><use href="#chart"/></svg>13,8%</div>
+              <div class="d"><b class="down">−1,2 poin</b> vs 30 hari lalu</div>
+              <svg class="spark" viewBox="0 0 84 30"><polyline fill="none" stroke="var(--red)" stroke-width="1.6" points="0,8 10,10 20,9 30,13 40,12 50,15 60,14 70,18 84,19"/></svg></div>
+          </div>
+        </div>
+
+        <div class="grid-bot">
+          <div class="card">
+            <div class="card-h"><h2>Prospek terbaru</h2><div class="r"><button class="btn sm" data-jump="prospek">Lihat semua</button></div></div>
+            <div class="tools">
+              <label class="search"><svg class="i sm"><use href="#search"/></svg><input placeholder="Cari nama atau nomor WhatsApp"></label>
+              <div class="r"><span class="select">Semua status<svg class="i sm"><use href="#down"/></svg></span><button class="ibtn" aria-label="Unduh CSV"><svg class="i sm"><use href="#dl"/></svg></button></div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th><input type="checkbox" class="cb"></th><th>Nama</th><th>Paket</th><th>Kanal</th><th>Masuk</th><th>Status</th></tr></thead>
+                <tbody id="recent"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-h"><h2>Perlu tindakan</h2><div class="r"><span class="select">Hari ini<svg class="i sm"><use href="#down"/></svg></span></div></div>
+            <div class="notes">
+              <div class="nt hot"><svg class="i ic"><use href="#clock"/></svg><span class="t">5 prospek belum dihubungi</span><span class="w">&gt; 24 jam</span><span class="s">3 dari iklan, 2 dari website</span></div>
+              <div class="nt"><svg class="i ic"><use href="#userplus"/></svg><span class="t">3 pendaftaran agen baru</span><span class="w">2 jam lalu</span><span class="s">Menunggu persetujuan Anda</span></div>
+              <div class="nt"><svg class="i ic"><use href="#wallet"/></svg><span class="t">2 pengajuan pencairan</span><span class="w">Kemarin</span><span class="s">Total Rp 4.500.000</span></div>
+              <button class="btn sm">Lihat semua notifikasi</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PROSPEK ================= -->
+      <section class="screen" id="prospek">
+        <div class="tabs">
+          <button class="on">Perlu dihubungi <span class="n">8</span></button>
+          <button>Diproses <span class="n">14</span></button>
+          <button>Closing <span class="n">48</span></button>
+          <button>Tidak lanjut <span class="n">31</span></button>
+          <button>Semua <span class="n">195</span></button>
+        </div>
+        <div class="card">
+          <div class="tools">
+            <label class="search"><svg class="i sm"><use href="#search"/></svg><input placeholder="Cari nama atau nomor WhatsApp"></label>
+            <span class="select">Semua kanal<svg class="i sm"><use href="#down"/></svg></span>
+            <span class="select">Semua agen<svg class="i sm"><use href="#down"/></svg></span>
+            <span class="select">Semua paket<svg class="i sm"><use href="#down"/></svg></span>
+            <div class="r"><button class="btn sm"><svg class="i sm"><use href="#dl"/></svg>Unduh CSV</button><button class="btn sm primary"><svg class="i sm"><use href="#plus"/></svg>Tambah prospek</button></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th><input type="checkbox" class="cb"></th><th>Nama</th><th>WhatsApp</th><th>Paket</th><th>Jamaah</th><th>Kanal</th><th>Masuk</th><th>Status</th></tr></thead>
+              <tbody id="all"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= AGEN ================= -->
+      <section class="screen" id="agen">
+        <div class="tabs">
+          <button class="on">Semua agen <span class="n">42</span></button>
+          <button>Pendaftaran <span class="n" style="background:var(--red);color:#fff;border-color:var(--red)">3</span></button>
+          <button>Pencairan komisi <span class="n">2</span></button>
+          <button>Target &amp; hadiah</button>
+        </div>
+        <div class="kpi-row">
+          <div class="card kpi"><span class="l">Agen aktif</span><div class="v"><svg class="i"><use href="#hand"/></svg>42</div><div class="d"><b class="up">+5</b> bulan ini</div></div>
+          <div class="card kpi"><span class="l">Klik link referral</span><div class="v"><svg class="i"><use href="#ext"/></svg>1.284</div><div class="d">30 hari terakhir</div></div>
+          <div class="card kpi"><span class="l">Komisi siap cair</span><div class="v"><svg class="i"><use href="#wallet"/></svg>Rp 18,5 jt</div><div class="d">2 pengajuan menunggu</div></div>
+        </div>
+        <div class="card">
+          <div class="tools">
+            <label class="search"><svg class="i sm"><use href="#search"/></svg><input placeholder="Cari nama, nomor, atau kode agen"></label>
+            <span class="select">Semua status<svg class="i sm"><use href="#down"/></svg></span>
+            <span class="select">Urut: closing terbanyak<svg class="i sm"><use href="#down"/></svg></span>
+            <div class="r"><button class="btn sm"><svg class="i sm"><use href="#dl"/></svg>Unduh CSV</button><button class="btn sm primary"><svg class="i sm"><use href="#ext"/></svg>Salin link pendaftaran agen</button></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Agen</th><th>Klik</th><th>Prospek</th><th>Closing</th><th>Konversi</th><th>Tahap prospek</th><th>Komisi</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><div class="agent"><span class="av">SA</span><div><b style="font-weight:500">Siti Aminah</b><div class="muted" style="font-size:12px">SITI27 · Bandung</div></div></div></td><td>312</td><td>17</td><td>6</td><td>35%</td><td><div class="mini" title="Baru 2 · Dihubungi 4 · Tertarik 5 · Closing 6"><i style="flex:2;background:var(--blue)"></i><i style="flex:4;background:var(--amber)"></i><i style="flex:5;background:var(--violet)"></i><i style="flex:6;background:var(--green)"></i></div></td><td>Rp 9.000.000</td><td><span class="pill p-closing"><i class="sw"></i>Aktif</span></td></tr>
+                <tr><td><div class="agent"><span class="av">HB</span><div><b style="font-weight:500">Hasan Basri</b><div class="muted" style="font-size:12px">HASAN08 · Bogor</div></div></div></td><td>198</td><td>12</td><td>4</td><td>33%</td><td><div class="mini"><i style="flex:1;background:var(--blue)"></i><i style="flex:5;background:var(--amber)"></i><i style="flex:2;background:var(--violet)"></i><i style="flex:4;background:var(--green)"></i></div></td><td>Rp 6.000.000</td><td><span class="pill p-closing"><i class="sw"></i>Aktif</span></td></tr>
+                <tr><td><div class="agent"><span class="av">NA</span><div><b style="font-weight:500">Nur Aisyah</b><div class="muted" style="font-size:12px">AISYAH3 · Depok</div></div></div></td><td>240</td><td>9</td><td>3</td><td>33%</td><td><div class="mini"><i style="flex:1;background:var(--blue)"></i><i style="flex:2;background:var(--amber)"></i><i style="flex:3;background:var(--violet)"></i><i style="flex:3;background:var(--green)"></i></div></td><td>Rp 4.500.000</td><td><span class="pill p-closing"><i class="sw"></i>Aktif</span></td></tr>
+                <tr><td><div class="agent"><span class="av">RA</span><div><b style="font-weight:500">Rizky Ananda</b><div class="muted" style="font-size:12px">RIZKY1 · Bekasi</div></div></div></td><td>87</td><td>8</td><td>0</td><td>0%</td><td><div class="mini"><i style="flex:6;background:var(--blue)"></i><i style="flex:2;background:var(--amber)"></i></div></td><td>—</td><td><span class="pill p-dihubungi"><i class="sw"></i>Perlu dibina</span></td></tr>
+                <tr><td><div class="agent"><span class="av">DW</span><div><b style="font-weight:500">Dian Wulandari</b><div class="muted" style="font-size:12px">DIAN44 · Jakarta</div></div></div></td><td>0</td><td>0</td><td>0</td><td>—</td><td class="muted">Belum ada prospek</td><td>—</td><td><span class="pill p-lost"><i class="sw"></i>Nonaktif</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PAKET ================= -->
+      <section class="screen" id="paket">
+        <div class="tabs">
+          <button class="on">Tayang <span class="n">6</span></button>
+          <button>Draf <span class="n">2</span></button>
+          <button>Diarsipkan <span class="n">11</span></button>
+        </div>
+        <div class="card">
+          <div class="tools">
+            <label class="search"><svg class="i sm"><use href="#search"/></svg><input placeholder="Cari nama paket"></label>
+            <span class="select">Semua bulan keberangkatan<svg class="i sm"><use href="#down"/></svg></span>
+            <div class="r"><button class="btn sm primary"><svg class="i sm"><use href="#plus"/></svg>Tambah paket</button></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Paket</th><th>Berangkat</th><th>Harga</th><th>Komisi agen</th><th>Kursi terisi</th><th>Prospek</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td><div class="agent"><span class="thumb"></span><b style="font-weight:500">Umroh Plus Turki 12 Hari</b></div></td><td>14 Feb 2027</td><td>Rp 38.500.000</td><td>Rp 1.500.000</td><td><div class="seat"><span class="fb"><i style="width:82%;background:var(--green)"></i></span>37/45</div></td><td>54</td><td><span class="pill p-closing"><i class="sw"></i>Tayang</span></td></tr>
+                <tr><td><div class="agent"><span class="thumb"></span><b style="font-weight:500">Umroh Reguler Januari</b></div></td><td>8 Jan 2027</td><td>Rp 29.900.000</td><td>Rp 1.000.000</td><td><div class="seat"><span class="fb"><i style="width:100%;background:var(--red)"></i></span>45/45 · penuh</div></td><td>71</td><td><span class="pill p-closing"><i class="sw"></i>Tayang</span></td></tr>
+                <tr><td><div class="agent"><span class="thumb"></span><b style="font-weight:500">Umroh Ramadhan 2027</b></div></td><td>2 Mar 2027</td><td>Rp 42.000.000</td><td>Rp 2.000.000</td><td><div class="seat"><span class="fb"><i style="width:38%;background:var(--green)"></i></span>15/40</div></td><td>33</td><td><span class="pill p-closing"><i class="sw"></i>Tayang</span></td></tr>
+                <tr><td><div class="agent"><span class="thumb"></span><b style="font-weight:500">Umroh Akhir Tahun</b></div></td><td>20 Des 2026</td><td>Rp 31.500.000</td><td>—</td><td><div class="seat"><span class="fb"><i style="width:60%;background:var(--green)"></i></span>24/40</div></td><td>19</td><td><span class="pill p-dihubungi"><i class="sw"></i>Komisi belum diatur</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= KANAL ================= -->
+      <section class="screen" id="kanal">
+        <div class="insight"><svg class="i"><use href="#spark"/></svg><div>
+          <div class="t">Agen membawa 58% jamaah closing bulan ini, dengan konversi 3× lebih tinggi dari iklan.</div>
+          <div class="s">Iklan menghasilkan prospek terbanyak, tetapi 61% berhenti di tahap Dihubungi. Rata-rata respons pertama untuk prospek iklan 9 jam.</div>
+        </div></div>
+        <div class="chs">
+          <div class="card chc"><div class="top"><i class="sw" style="background:var(--web)"></i>Website</div><div class="big">41</div><div class="sub2">prospek · 6 closing</div>
+            <div class="fun"><div class="fr">Baru<span class="fb"><i style="width:100%;background:var(--web)"></i></span><b>41</b></div><div class="fr">Dihubungi<span class="fb"><i style="width:78%;background:var(--web)"></i></span><b>32</b></div><div class="fr">Tertarik<span class="fb"><i style="width:34%;background:var(--web)"></i></span><b>14</b></div><div class="fr">Closing<span class="fb"><i style="width:15%;background:var(--web)"></i></span><b>6</b></div></div>
+            <div class="kv"><span>Konversi</span><span>14,6%</span><span>Respons pertama</span><span>3 jam</span></div></div>
+          <div class="card chc"><div class="top"><i class="sw" style="background:var(--ads)"></i>Iklan</div><div class="big">96</div><div class="sub2">prospek · 5 closing</div>
+            <div class="fun"><div class="fr">Baru<span class="fb"><i style="width:100%;background:var(--ads)"></i></span><b>96</b></div><div class="fr">Dihubungi<span class="fb"><i style="width:39%;background:var(--ads)"></i></span><b>37</b></div><div class="fr">Tertarik<span class="fb"><i style="width:13%;background:var(--ads)"></i></span><b>12</b></div><div class="fr">Closing<span class="fb"><i style="width:5%;background:var(--ads)"></i></span><b>5</b></div></div>
+            <div class="kv"><span>Konversi</span><span>5,2%</span><span>Respons pertama</span><span>9 jam</span></div>
+            <div class="warn">59 prospek iklan belum dihubungi.</div></div>
+          <div class="card chc"><div class="top"><i class="sw" style="background:var(--agen)"></i>Agen</div><div class="big">58</div><div class="sub2">prospek · 16 closing</div>
+            <div class="fun"><div class="fr">Baru<span class="fb"><i style="width:100%;background:var(--agen)"></i></span><b>58</b></div><div class="fr">Dihubungi<span class="fb"><i style="width:91%;background:var(--agen)"></i></span><b>53</b></div><div class="fr">Tertarik<span class="fb"><i style="width:52%;background:var(--agen)"></i></span><b>30</b></div><div class="fr">Closing<span class="fb"><i style="width:28%;background:var(--agen)"></i></span><b>16</b></div></div>
+            <div class="kv"><span>Konversi</span><span>27,6%</span><span>Respons pertama</span><span>45 mnt</span></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Detail prospek">
+  <div class="dr-h"><div><h3 id="dr-name">Hj. Nurhayati</h3><div class="muted" style="font-size:13px;margin-top:2px">0812 3456 7890 · Bandung</div></div>
+    <button class="ibtn" style="margin-left:auto" data-close aria-label="Tutup"><svg class="i sm"><use href="#x"/></svg></button></div>
+  <div class="dr-b">
+    <div class="lbl">Status</div>
+    <div class="steps"><button class="cur">Baru</button><button>Dihubungi</button><button>Tertarik</button><button>Closing</button><button>Tidak lanjut</button></div>
+    <div class="facts">
+      <div><div class="k">Paket</div><div class="v">Umroh Plus Turki</div></div>
+      <div><div class="k">Jamaah</div><div class="v">4 orang</div></div>
+      <div><div class="k">Rencana berangkat</div><div class="v">Februari 2027</div></div>
+      <div><div class="k">Potensi komisi agen</div><div class="v">Rp 6.000.000</div></div>
+    </div>
+    <div class="lbl">Asal prospek</div>
+    <div class="trail"><div>Klik link Agen Siti Aminah<span>29 Sep, 14.02</span></div><div>Isi form minat di website<span>29 Sep, 14.09</span></div></div>
+    <div class="lbl">Catatan</div>
+    <div class="facts" style="grid-template-columns:1fr;background:#fff;border:1px solid var(--line)"><div><div class="k">Siti Aminah (agen) · 14.15</div><div class="v" style="font-weight:400">Berangkat bersama suami dan 2 anak, minta kamar quad.</div></div></div>
+  </div>
+  <div class="dr-f"><button class="btn">Tambah catatan</button><button class="btn primary"><svg class="i sm"><use href="#wa"/></svg>Hubungi via WhatsApp</button></div>
+</aside>
+
+<script>
+const days=[['17',4,6,3],['18',5,8,4],['19',3,6,5],['20',6,9,4],['21',4,7,6],['22',2,4,3],['23',3,5,2],['24',5,9,6],['25',4,8,7],['26',6,10,5],['27',5,7,8],['28',3,6,6],['29',6,11,7],['30',5,8,9]];
+const plot=document.getElementById('plot');
+days.forEach(([d,w,a,g])=>{const s=h=>h/20*100;plot.insertAdjacentHTML('beforeend',`<div class="col"><div class="tip"><div class="tt">${d} Sep</div><div><i class="sw" style="background:var(--web)"></i>Website<b>${w}</b></div><div><i class="sw" style="background:var(--ads)"></i>Iklan<b>${a}</b></div><div><i class="sw" style="background:var(--agen)"></i>Agen<b>${g}</b></div><div style="margin-top:4px;border-top:1px solid var(--line);padding-top:4px">Total<b>${w+a+g}</b></div></div><div class="stack" style="height:${s(w+a+g)}%"><i style="flex:${w};background:var(--web)"></i><i style="flex:${a};background:var(--ads)"></i><i style="flex:${g};background:var(--agen)"></i></div><span class="x">${d} Sep</span></div>`)});
+const people=[['Hj. Nurhayati','0812 3456 7890','Umroh Plus Turki',4,'agen','Agen · Siti Aminah','12 mnt lalu','baru'],['Rahmat Hidayat','0813 2211 8890','Umroh Reguler Januari',2,'ads','Iklan Meta','38 mnt lalu','baru'],['Dewi Kartika','0857 1234 0099','Belum pilih paket',1,'web','Website','1 jam lalu','dihubungi'],['Ahmad Fauzi','0811 7788 1212','Umroh Ramadhan',6,'agen','Agen · Hasan Basri','Kemarin','tertarik'],['Keluarga Suryana','0822 9090 3344','Umroh Plus Turki',5,'ads','Iklan Meta','2 hari lalu','closing'],['Siti Maryam','0858 4545 1010','Umroh Reguler Januari',2,'web','Website','3 hari lalu','lost']];
+const st={baru:'Baru',dihubungi:'Dihubungi',tertarik:'Tertarik',closing:'Closing',lost:'Tidak lanjut'};
+const chc={agen:'var(--agen)',ads:'var(--ads)',web:'var(--web)'};
+const row=(p,full)=>`<tr><td><input type="checkbox" class="cb" onclick="event.stopPropagation()"></td><td><b style="font-weight:500">${p[0]}</b></td>${full?`<td class="muted">${p[1]}</td>`:''}<td>${p[2]}</td>${full?`<td>${p[3]}</td>`:''}<td><span class="ch"><i class="sw" style="background:${chc[p[4]]}"></i>${p[5]}</span></td><td class="muted">${p[6]}</td><td><span class="pill p-${p[7]}"><i class="sw"></i>${st[p[7]]}</span></td></tr>`;
+document.getElementById('recent').innerHTML=people.slice(0,4).map(p=>row(p,false)).join('');
+document.getElementById('all').innerHTML=people.map(p=>row(p,true)).join('');
+const titles={dash:'Dashboard',prospek:'Prospek',kanal:'Kanal',agen:'Agen',paket:'Paket'};
+const go=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));document.querySelectorAll('[data-go]').forEach(a=>a.classList.toggle('on',a.dataset.go===id));document.getElementById('title').textContent=titles[id];};
+document.querySelectorAll('[data-go]').forEach(a=>a.addEventListener('click',()=>go(a.dataset.go)));
+document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.jump)));
+document.querySelectorAll('[data-toggle]').forEach(a=>a.addEventListener('click',()=>{a.classList.toggle('open');document.getElementById('sub-'+a.dataset.toggle).classList.toggle('show');}));
+const drawer=document.getElementById('drawer');
+document.querySelectorAll('tbody').forEach(tb=>tb.addEventListener('click',e=>{const tr=e.target.closest('tr');if(!tr)return;document.getElementById('dr-name').textContent=tr.querySelector('b').textContent;drawer.classList.add('show');}));
+document.querySelector('[data-close]').addEventListener('click',()=>drawer.classList.remove('show'));
+document.addEventListener('keydown',e=>e.key==='Escape'&&drawer.classList.remove('show'));
+document.querySelectorAll('.steps button').forEach((b,i,all)=>b.addEventListener('click',()=>all.forEach((x,j)=>x.classList.toggle('cur',j===i))));
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>b.parentElement.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))));
+</script>
+</body>
+</html>

@@ -1,22 +1,17 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { DashboardOverviewPage } from './pages/DashboardOverview';
-import { DevComponentsPage } from './pages/DevComponents';
-import { PackagesPage } from './pages/Packages';
-import { PackageFormPage } from './pages/PackageFormPage';
-import { ProspectsPage } from './pages/Prospects';
-import { ProspectDetailPage } from './pages/ProspectDetail';
-import { ProspectEditPage } from './pages/ProspectEdit';
-import { SettingsPage } from './pages/Settings';
-import { SubscriptionCheckoutPage } from './pages/SubscriptionCheckout';
-import { SubscriptionPaymentInstructionPage } from './pages/SubscriptionPaymentInstruction';
-import { WebsiteContentPage } from './pages/WebsiteContent';
-import { AgentsPage } from './pages/Agents';
-import { AgentDetailPage } from './pages/AgentDetail';
-import { AgentCommissionsPage } from './pages/AgentCommissions';
-import { AgentTargetsPage } from './pages/AgentTargets';
-import { ProfilSayaPage } from './pages/ProfilSaya';
-import { AccessLogsPage } from './pages/AccessLogs';
+import { DashboardScreen } from './screens/dashboard/DashboardScreen';
+import { AppFrame } from './app/AppFrame';
+import { RequireAuth } from './app/RequireAuth';
+import { ProspectsScreen } from './screens/prospects/ProspectsScreen';
+import { SettingsScreen } from './screens/settings/SettingsScreen';
+import { AgentsScreen } from './screens/agents/AgentsScreen';
+import { ProgramsScreen } from './screens/programs/ProgramsScreen';
+import { PackagesScreen } from './screens/packages/PackagesScreen';
+import { ChannelsScreen } from './screens/channels/ChannelsScreen';
+import { TrackingScreen } from './screens/channels/TrackingScreen';
+import { WebsiteScreen } from './screens/website/WebsiteScreen';
+import { AccountScreen } from './screens/settings/AccountScreen';
 
 import {
   AdminLoginView,
@@ -31,8 +26,6 @@ import {
   AdminAuthGuard,
 } from './modules/superadmin';
 
-import { SidebarProvider } from './components/SidebarContext';
-import { RequireAuth } from './components/RequireAuth';
 
 const LoginRedirect: React.FC = () => {
   React.useEffect(() => {
@@ -50,38 +43,30 @@ const LoginRedirect: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <SidebarProvider>
         <Routes>
         <Route path="/login" element={<LoginRedirect />} />
 
         {/* Travel admin dashboard — requires a valid session so the
             dashboard always reflects the tenant that just logged in */}
         <Route element={<RequireAuth />}>
-          <Route path="/" element={<DashboardOverviewPage />} />
-          <Route path="/packages" element={<PackagesPage />} />
-          <Route path="/packages/new" element={<PackageFormPage />} />
-          <Route path="/packages/:id/edit" element={<PackageFormPage />} />
-          <Route path="/prospects" element={<ProspectsPage />} />
-          <Route path="/prospects/:id" element={<ProspectDetailPage />} />
-          <Route path="/prospects/:id/edit" element={<ProspectEditPage />} />
-          <Route path="/agents" element={<Navigate to="/agents/pending" replace />} />
-          <Route path="/agents/pending" element={<AgentsPage />} />
-          <Route path="/agents/all" element={<AgentsPage />} />
-          <Route path="/agents/payouts" element={<AgentsPage />} />
-          <Route path="/agents/targets" element={<AgentTargetsPage />} />
-          <Route path="/agents/:id" element={<AgentDetailPage />} />
-          <Route path="/agents/:id/commissions" element={<AgentCommissionsPage />} />
-          <Route path="/website-content" element={<Navigate to="/website-content/banners" replace />} />
-          <Route path="/website-content/:section" element={<WebsiteContentPage />} />
-          <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
-          <Route path="/settings/subscription/checkout" element={<SubscriptionCheckoutPage />} />
-          <Route path="/settings/subscription/payment/:id" element={<SubscriptionPaymentInstructionPage />} />
-          <Route path="/settings/access-log" element={<AccessLogsPage />} />
-          <Route path="/settings/:section" element={<SettingsPage />} />
-          <Route path="/profil-saya" element={<ProfilSayaPage />} />
+          <Route element={<AppFrame />}>
+          <Route path="/" element={<DashboardScreen />} />
+          <Route path="/prospects" element={<ProspectsScreen />} />
+          <Route path="/prospects/:id" element={<ProspectsScreen />} />
+          <Route path="/prospects/:id/edit" element={<ProspectsScreen />} />
+          <Route path="/packages/*" element={<PackagesScreen />} />
+          <Route path="/channels" element={<ChannelsScreen />} />
+          {/* Moved to its own menu (1 Oct 2026); old links keep working. */}
+          <Route path="/channels/tracking" element={<Navigate to="/tracking" replace />} />
+          <Route path="/tracking" element={<TrackingScreen />} />
+          <Route path="/agents/*" element={<AgentsScreen />} />
+          <Route path="/programs/*" element={<ProgramsScreen />} />
+          <Route path="/settings/*" element={<SettingsScreen />} />
+          <Route path="/account" element={<AccountScreen />} />
+          <Route path="/website/*" element={<WebsiteScreen />} />
+          </Route>
         </Route>
 
-        <Route path="/dev/components" element={<DevComponentsPage />} />
 
         {/* KlikUmroh Master Super Admin Portal */}
         <Route path="/internal/login" element={<AdminLoginView />} />
@@ -112,7 +97,6 @@ export const App: React.FC = () => {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      </SidebarProvider>
     </BrowserRouter>
   );
 };

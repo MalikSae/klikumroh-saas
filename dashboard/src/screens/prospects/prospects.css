@@ -1,0 +1,23 @@
+/* Prospek screen. Tokens only. */
+.pr-cell { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.pr-reasons { display: flex; flex-wrap: wrap; gap: var(--ku-space-2) var(--ku-space-4); font-size: var(--ku-text-md); }
+.pr-reasons__item b { font-weight: var(--ku-weight-semibold); }
+.pr-loading { height: 240px; }
+.pr-detail { display: flex; flex-direction: column; gap: 22px; }
+.pr-drawer-title { display: flex; align-items: center; gap: var(--ku-space-2); }
+.pr-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--ku-space-1); }
+.pr-step { height: 34px; padding: 0 var(--ku-space-1); border: 1px solid var(--ku-line); border-radius: 7px; background: var(--ku-panel); color: var(--ku-ink-3); font-size: var(--ku-text-sm); font-weight: var(--ku-weight-medium); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-step:hover:not(:disabled) { border-color: var(--ku-ink-4); color: var(--ku-ink); }
+.pr-step--on, .pr-step--on:disabled { background: var(--ku-ink); border-color: var(--ku-ink); color: var(--ku-on-accent); }
+.pr-step:disabled { cursor: not-allowed; }
+.pr-step:disabled:not(.pr-step--on) { opacity: 0.6; }
+.pr-hint { margin: var(--ku-space-2) 0 0; color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+.pr-closing { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); margin-top: var(--ku-space-3); padding: var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); flex-wrap: wrap; }
+.pr-note-form { display: flex; flex-direction: column; align-items: flex-end; gap: var(--ku-space-2); margin-bottom: var(--ku-space-3); }
+.pr-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ku-space-2); }
+.pr-note { padding: 10px var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); }
+.pr-note--system { background: var(--ku-soft); border-color: var(--ku-line-2); }
+.pr-note__text { margin-top: 2px; white-space: pre-wrap; }
+.pr-dialog-text { margin: 0; line-height: var(--ku-leading-loose); }
+.pr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ku-space-4); }
+@media (max-width: 640px) { .pr-form-grid { grid-template-columns: 1fr; } }

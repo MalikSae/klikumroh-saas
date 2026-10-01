@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, BellOff } from 'lucide-react';
-import { API_BASE, getStoredToken } from '../services/api';
-import { initAudioUnlock, playNotificationSound } from '../utils/notificationSound';
+import { API_BASE, getStoredToken } from '../../../services/api';
+import { initAudioUnlock, playNotificationSound } from '../../../utils/notificationSound';
 import './NotificationDropdown.css';
 
 export interface NotificationItem {

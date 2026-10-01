@@ -1,0 +1,34 @@
+/* Program agen. Tokens only. Reuses .ag-* (agents) and .st-* (settings) layouts. */
+.pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ku-space-4); }
+.pg-reward { display: inline-block; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.pg-text { margin: 0; color: var(--ku-ink-2); line-height: var(--ku-leading-loose); }
+.pg-text a { color: var(--ku-ink); text-decoration: underline; }
+
+.pg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.pg-list > li { display: flex; justify-content: space-between; align-items: center; gap: var(--ku-space-4); padding: 10px 0; border-bottom: 1px solid var(--ku-line-2); }
+.pg-list > li:last-child { border-bottom: 0; }
+.pg-list > li.pg-progress { flex-direction: column; align-items: stretch; gap: 6px; }
+.pg-progress__top { display: flex; justify-content: space-between; gap: var(--ku-space-3); }
+.pg-progress__top span:last-child { font-variant-numeric: tabular-nums; }
+.pg-progress__done { color: var(--ku-green-2); font-weight: var(--ku-weight-medium); }
+.pg-bar { height: 6px; border-radius: var(--ku-radius-pill); background: var(--ku-gray-soft); overflow: hidden; }
+.pg-bar__fill { display: block; height: 100%; border-radius: inherit; background: var(--ku-ink-3); }
+.pg-bar__fill--done { background: var(--ku-green); }
+
+.pg-suffix, .pg-prefix { display: flex; align-items: center; gap: var(--ku-space-2); max-width: 240px; }
+.pg-suffix .ku-input, .pg-prefix .ku-input { flex: 1; min-width: 0; }
+.pg-suffix span, .pg-prefix span { color: var(--ku-ink-3); }
+
+.pg-choices { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ku-space-3); }
+.pg-choice { position: relative; display: flex; flex-direction: column; gap: 4px; padding: var(--ku-space-4); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); cursor: pointer; }
+.pg-choice:hover { border-color: var(--ku-ink-4); }
+.pg-choice input { position: absolute; opacity: 0; pointer-events: none; }
+.pg-choice:focus-within { box-shadow: 0 0 0 3px var(--ku-focus-ring); }
+.pg-choice--on, .pg-choice--on:hover { border-color: var(--ku-accent); box-shadow: inset 0 0 0 1px var(--ku-accent); }
+.pg-choice__title { font-weight: var(--ku-weight-semibold); }
+.pg-choice__desc { color: var(--ku-ink-3); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
+
+
+@media (max-width: 640px) {
+  .pg-grid, .pg-choices { grid-template-columns: 1fr; }
+}

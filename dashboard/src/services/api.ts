@@ -1750,6 +1750,8 @@ export interface DomainItem {
   last_check_at?: string | null;
   /** Consecutive failed DNS checks of an active custom domain (redirect stops at 3). */
   check_failures?: number;
+  /** Set on an alias (namatravel.com): visitors are redirected to this primary domain (www.namatravel.com). */
+  redirect_to_domain_id?: number | null;
   /** TXT value proving DNS control, shown while the domain is not active yet. */
   verification_token?: string;
   created_at: string;
@@ -1772,19 +1774,23 @@ export const fetchDomains = async (): Promise<DomainItem[]> => {
   }
   const data = await res.json();
   lastDomainARecordTargets = Array.isArray(data.a_record_targets) ? data.a_record_targets : [];
+  lastDomainCNAMETarget = typeof data.cname_target === 'string' ? data.cname_target : '';
   return data.domains || [];
 };
 
 // Server IP(s) a root domain's A record must point to, from the last fetchDomains() call.
 let lastDomainARecordTargets: string[] = [];
 export const getDomainARecordTargets = (): string[] => lastDomainARecordTargets;
+// CNAME target for subdomain-style custom domains, from the last fetchDomains() call.
+let lastDomainCNAMETarget = '';
+export const getDomainCNAMETarget = (): string => lastDomainCNAMETarget;
 
-export const registerCustomDomain = async (hostname: string): Promise<RegisterDomainResult> => {
+export const registerCustomDomain = async (hostname: string, includeAlias = false): Promise<RegisterDomainResult> => {
   const headers = await getAuthHeaders();
   const res = await dashboardFetch(`${API_BASE}/api/dashboard/domains`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ hostname }),
+    body: JSON.stringify({ hostname, include_alias: includeAlias }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Gagal mendaftarkan domain' }));
@@ -2059,6 +2065,15 @@ export interface DashboardOverviewData {
   upcoming_packages: UpcomingPackageOverview[];
   prospect_trends: DailyTrendItem[];
   pending_pipeline: PendingPipelineData;
+  /** 60 consecutive days, oldest first: current 30 days vs the 30 before, and sparklines. */
+  kpi_daily?: KPIDay[];
+}
+
+export interface KPIDay {
+  date: string;
+  prospects: number;
+  closings: number;
+  closing_jamaah: number;
 }
 
 export const fetchDashboardOverview = async (): Promise<DashboardOverviewData> => {
@@ -2261,6 +2276,20 @@ export const uploadRenewalProof = async (
   return json;
 };
 
+/** Private uploads (transfer proofs) need the session header, so they are loaded as a blob URL. */
+export const fetchPrivateFileUrl = async (path: string): Promise<string> => {
+  const authHeaders = await getAuthHeaders();
+  const headers: Record<string, string> = {};
+  if (authHeaders.Authorization) {
+    headers['Authorization'] = authHeaders.Authorization;
+  }
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/files?path=${encodeURIComponent(path)}`, { headers });
+  if (!res.ok) {
+    throw new Error('Gagal memuat berkas');
+  }
+  return window.URL.createObjectURL(await res.blob());
+};
+
 export interface PlatformSettings {
   whatsapp_number: string;
   bank_name: string;
@@ -2350,6 +2379,69 @@ export const sendMetaTestEvent = async (): Promise<{ events_received: number; fb
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Gagal mengirim event uji' }));
     throw new Error(err.error || 'Gagal mengirim event uji');
+  }
+  return await res.json();
+};
+
+// Agent performance (agent list): referral clicks, prospects per pipeline stage, jamaah closed, commission.
+export interface AgentPerformance {
+  agent_id: number;
+  clicks: number;
+  clicks_30d: number;
+  baru: number;
+  dihubungi: number;
+  tertarik: number;
+  closing: number;
+  tidak_lanjut: number;
+  closing_jamaah: number;
+  commission_earned: number;
+  last_prospect_at: string | null;
+}
+
+export const fetchAgentPerformance = async (): Promise<AgentPerformance[]> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/agent-performance`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat performa agen' }));
+    throw new Error(err.error || 'Gagal memuat performa agen');
+  }
+  return await res.json();
+};
+
+// Channel report (Kanal page): prospects per channel for a period and the one before, ad campaigns, daily series.
+export interface ChannelStat {
+  channel: 'web' | 'ads' | 'agen';
+  prospects: number;
+  processed: number;
+  closing: number;
+  closing_jamaah: number;
+  lost: number;
+}
+
+export interface CampaignStat {
+  source: string;
+  campaign: string;
+  prospects: number;
+  closing: number;
+  closing_jamaah: number;
+}
+
+export interface ChannelReport {
+  days: number;
+  from: string;
+  to: string;
+  channels: ChannelStat[];
+  previous: ChannelStat[];
+  campaigns: CampaignStat[];
+  daily: Array<{ date: string; web: number; ads: number; agen: number }>;
+}
+
+export const fetchChannelReport = async (days: number): Promise<ChannelReport> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/channel-report?days=${days}`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat laporan kanal' }));
+    throw new Error(err.error || 'Gagal memuat laporan kanal');
   }
   return await res.json();
 };

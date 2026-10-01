@@ -1,9 +1,0 @@
-/* Agent targets page additions. */
-
-.db-target-unpaid-note {
-  font-family: var(--db-font-body);
-  font-size: var(--db-text-xs);
-  font-weight: var(--db-weight-medium);
-  color: var(--db-status-contacted);
-  white-space: nowrap;
-}

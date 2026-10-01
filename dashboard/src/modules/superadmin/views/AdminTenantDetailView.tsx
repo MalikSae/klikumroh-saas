@@ -13,7 +13,7 @@ import {
   Package,
 } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
-import { Modal, FormInput, Button } from '../../../components';
+import { Modal, FormInput, Button } from '../shared';
 import {
   fetchStaffTenantDetail,
   fetchPricingPlans,
