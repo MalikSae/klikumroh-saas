@@ -160,8 +160,13 @@ type CommissionHistoryItem struct {
 	Direction   string  `json:"direction"`        // "masuk" or "keluar"
 	Status      string  `json:"status,omitempty"` // "pending", "approved", "rejected", "paid"
 	// Held: commission entry not withdrawable yet (jamaah belum lunas). Ledger entries only.
-	Held      bool      `json:"held,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	Held bool `json:"held,omitempty"`
+	// ProspectID: the prospect a ledger entry belongs to. For override entries that is a downline agent's
+	// prospect, so the agent view clears it; the admin view keeps it to link the entry to the prospect.
+	ProspectID uint64 `json:"prospect_id,omitempty"`
+	// prospectName is only used to build the admin description of override entries.
+	prospectName string
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type UpdateProfileRequest struct {
@@ -1099,7 +1104,7 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 					"payout_requested",
 					"Pengajuan pencairan baru",
 					fmt.Sprintf("Agen %s mengajukan pencairan Rp %s", agent.Name, util.FormatRupiah(input.AmountRequested)),
-					"/agents/payouts",
+					"/payouts",
 				)
 				if notifErr != nil {
 					log.Printf("[Notification] Failed to create payout notification for admin %d: %v", admin.ID, notifErr)
@@ -1241,14 +1246,16 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 		}
 
 		items = append(items, CommissionHistoryItem{
-			ID:          l.ID,
-			Source:      "ledger",
-			Type:        l.Type,
-			Description: desc,
-			Amount:      l.Amount,
-			Direction:   direction,
-			Held:        l.ReleasedAt == nil,
-			CreatedAt:   l.CreatedAt,
+			ID:           l.ID,
+			Source:       "ledger",
+			Type:         l.Type,
+			Description:  desc,
+			Amount:       l.Amount,
+			Direction:    direction,
+			Held:         l.ReleasedAt == nil,
+			ProspectID:   l.ProspectID,
+			prospectName: l.ProspectName,
+			CreatedAt:    l.CreatedAt,
 		})
 	}
 
@@ -1303,7 +1310,17 @@ func (s *agentService) GetCommissionHistory(ctx context.Context, tenantID uint64
 		return nil, ErrAgentNotActive
 	}
 
-	return s.getCommissionHistoryRaw(ctx, tenantID, agentID)
+	items, err := s.getCommissionHistoryRaw(ctx, tenantID, agentID)
+	if err != nil {
+		return nil, err
+	}
+	// An override comes from a downline agent's prospect: the agent must not learn which one.
+	for i := range items {
+		if items[i].Type == "override" {
+			items[i].ProspectID = 0
+		}
+	}
+	return items, nil
 }
 
 func (s *agentService) GetCommissionHistoryForAdmin(ctx context.Context, tenantID uint64, agentID uint64) ([]CommissionHistoryItem, error) {
@@ -1312,7 +1329,17 @@ func (s *agentService) GetCommissionHistoryForAdmin(ctx context.Context, tenantI
 		return nil, err
 	}
 
-	return s.getCommissionHistoryRaw(ctx, tenantID, agentID)
+	items, err := s.getCommissionHistoryRaw(ctx, tenantID, agentID)
+	if err != nil {
+		return nil, err
+	}
+	// The travel admin may see which prospect an override came from.
+	for i := range items {
+		if items[i].Type == "override" && items[i].prospectName != "" {
+			items[i].Description = fmt.Sprintf("Komisi override dari %s", items[i].prospectName)
+		}
+	}
+	return items, nil
 }
 
 func (s *agentService) UpdateProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateProfileRequest) (*AgentProfileResult, error) {

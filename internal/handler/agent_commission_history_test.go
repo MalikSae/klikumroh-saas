@@ -144,6 +144,10 @@ func TestAgentHandler_CommissionHistory_OverrideDoesNotLeakProspectName(t *testi
 	if strings.Contains(bodyStr, "Prospect Mock") {
 		t.Errorf("prospect name leaked in response body for override transaction: %s", bodyStr)
 	}
+	// Nor the downline prospect's id.
+	if strings.Contains(bodyStr, "prospect_id") {
+		t.Errorf("prospect_id leaked in response body for override transaction: %s", bodyStr)
+	}
 }
 
 // 3. Payout request berstatus 'rejected' tetap muncul di response (tidak difilter hilang)

@@ -487,6 +487,7 @@ func TestAgentAdminDetail_GetDashboardAgentCommissions(t *testing.T) {
 		ReleasedAt: releasedNow(), // jamaah lunas: withdrawable
 		TenantID:   t1.ID,
 		AgentID:    ag1.ID,
+		ProspectID: 501,
 		Type:       "direct",
 		Amount:     2000000,
 		CreatedAt:  now.Add(-2 * time.Hour),
@@ -495,6 +496,7 @@ func TestAgentAdminDetail_GetDashboardAgentCommissions(t *testing.T) {
 		ReleasedAt: releasedNow(), // jamaah lunas: withdrawable
 		TenantID:   t1.ID,
 		AgentID:    ag1.ID,
+		ProspectID: 502,
 		Type:       "override",
 		Amount:     1000000,
 		CreatedAt:  now.Add(-1 * time.Hour),
@@ -551,5 +553,14 @@ func TestAgentAdminDetail_GetDashboardAgentCommissions(t *testing.T) {
 	}
 	if !hasMasuk || !hasKeluar {
 		t.Errorf("expected both 'masuk' and 'keluar' directions, got masuk=%v, keluar=%v", hasMasuk, hasKeluar)
+	}
+
+	// The admin view links every ledger entry to its prospect (override included); payouts have none.
+	ids := map[string]uint64{}
+	for _, it := range items {
+		ids[it.Type] = it.ProspectID
+	}
+	if ids["direct"] != 501 || ids["override"] != 502 || ids["payout"] != 0 {
+		t.Errorf("expected prospect_id direct=501 override=502 payout=0, got %v", ids)
 	}
 }
