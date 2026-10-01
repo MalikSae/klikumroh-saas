@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -343,4 +344,77 @@ func TestAgentProfile_UploadPhoto_OverwritesSingleFile(t *testing.T) {
 
 	_ = t1
 	_ = ag1
+}
+
+// 5. Profile Photo Delete:
+// - Removes the agent's own photo (DB reference and file)
+// - Never touches another tenant's agent photo (tenant and agent come from the session)
+func TestAgentProfile_DeletePhoto_OwnOnly(t *testing.T) {
+	agentRouter, _, agentRepo, _, _, _, _, _, t1, t2, ag1, ag2, sess1 := setupAgentPayoutTestEnv()
+
+	dir1 := filepath.Join(".", "uploads", strconv.FormatUint(t1.ID, 10), "agents", strconv.FormatUint(ag1.ID, 10))
+	dir2 := filepath.Join(".", "uploads", strconv.FormatUint(t2.ID, 10), "agents", strconv.FormatUint(ag2.ID, 10))
+	defer os.RemoveAll(filepath.Join(".", "uploads", strconv.FormatUint(t1.ID, 10)))
+	defer os.RemoveAll(filepath.Join(".", "uploads", strconv.FormatUint(t2.ID, 10)))
+
+	for _, d := range []string{dir1, dir2} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkdir: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(d, "photo.webp"), []byte("x"), 0o644); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+	}
+	p1 := "/uploads/1/agents/1/photo.webp"
+	p2 := "/uploads/2/agents/2/photo.webp"
+	agentRepo.agents[ag1.ID].PhotoURL = &p1
+	agentRepo.agents[ag2.ID].PhotoURL = &p2
+
+	// Without a session: rejected, nothing removed.
+	req := httptest.NewRequest(http.MethodDelete, "/api/agent/profile/photo", nil)
+	w := httptest.NewRecorder()
+	agentRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 without session, got %d", w.Code)
+	}
+	if _, err := os.Stat(filepath.Join(dir1, "photo.webp")); err != nil {
+		t.Fatalf("photo of agent 1 must remain after unauthorized request")
+	}
+
+	// Agent 1 (tenant 1) removes their own photo.
+	req = httptest.NewRequest(http.MethodDelete, "/api/agent/profile/photo", nil)
+	req.Header.Set("Authorization", "Bearer "+sess1.Token)
+	w = httptest.NewRecorder()
+	agentRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var res map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &res)
+	if res["photo_url"] != nil {
+		t.Errorf("expected photo_url null in response, got %v", res["photo_url"])
+	}
+	if agentRepo.agents[ag1.ID].PhotoURL != nil {
+		t.Errorf("expected agent 1 photo_url cleared")
+	}
+	if _, err := os.Stat(filepath.Join(dir1, "photo.webp")); !os.IsNotExist(err) {
+		t.Errorf("expected agent 1 photo file removed, stat err = %v", err)
+	}
+
+	// Agent 2 (tenant 2) is untouched.
+	if agentRepo.agents[ag2.ID].PhotoURL == nil || *agentRepo.agents[ag2.ID].PhotoURL != p2 {
+		t.Errorf("tenant 2 agent photo_url must not change")
+	}
+	if _, err := os.Stat(filepath.Join(dir2, "photo.webp")); err != nil {
+		t.Errorf("tenant 2 agent photo file must remain: %v", err)
+	}
+
+	// Deleting again (no photo) still succeeds.
+	req = httptest.NewRequest(http.MethodDelete, "/api/agent/profile/photo", nil)
+	req.Header.Set("Authorization", "Bearer "+sess1.Token)
+	w = httptest.NewRecorder()
+	agentRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 on repeat delete, got %d", w.Code)
+	}
 }

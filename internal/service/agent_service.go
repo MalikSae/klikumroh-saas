@@ -229,6 +229,7 @@ type AgentService interface {
 	GetProfile(ctx context.Context, tenantID uint64, agentID uint64) (*AgentProfileResult, error)
 	UpdateProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateProfileRequest) (*AgentProfileResult, error)
 	UpdatePhoto(ctx context.Context, tenantID uint64, agentID uint64, photoURL string) (*AgentProfileResult, error)
+	RemovePhoto(ctx context.Context, tenantID uint64, agentID uint64) (*AgentProfileResult, error)
 	UpdatePassword(ctx context.Context, tenantID uint64, agentID uint64, req *UpdatePasswordRequest) error
 	GetDashboardSummary(ctx context.Context, tenantID uint64, agentID uint64, host string) (*AgentDashboardSummary, error)
 	GetDashboardAgentDetail(ctx context.Context, tenantID uint64, agentID uint64) (*AgentDashboardDetail, error)
@@ -1340,6 +1341,24 @@ func (s *agentService) UpdateProfile(ctx context.Context, tenantID uint64, agent
 
 func (s *agentService) UpdatePhoto(ctx context.Context, tenantID uint64, agentID uint64, photoURL string) (*AgentProfileResult, error) {
 	if err := s.agentRepo.UpdatePhotoURL(ctx, tenantID, agentID, photoURL); err != nil {
+		return nil, err
+	}
+
+	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.buildProfile(agent, tenant), nil
+}
+
+func (s *agentService) RemovePhoto(ctx context.Context, tenantID uint64, agentID uint64) (*AgentProfileResult, error) {
+	if err := s.agentRepo.ClearPhotoURL(ctx, tenantID, agentID); err != nil {
 		return nil, err
 	}
 

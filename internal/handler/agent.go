@@ -56,6 +56,7 @@ func (h *AgentHandler) RegisterAgentProtectedRoutes(r chi.Router) {
 	r.Get("/api/agent/commission-history", h.GetCommissionHistory)
 	r.Put("/api/agent/profile", h.UpdateProfile)
 	r.Post("/api/agent/profile/photo", h.UploadProfilePhoto)
+	r.Delete("/api/agent/profile/photo", h.DeleteProfilePhoto)
 	r.Put("/api/agent/password", h.UpdatePassword)
 	r.Post("/api/agent/logout", h.Logout)
 }
@@ -1155,6 +1156,38 @@ func (h *AgentHandler) UploadProfilePhoto(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
+	}
+
+	respondJSON(w, http.StatusOK, updated)
+}
+
+// DELETE /api/agent/profile/photo
+// Tenant and agent come from the session, so an agent can only remove their own photo.
+func (h *AgentHandler) DeleteProfilePhoto(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	agentID, ok := middleware.GetAgentID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	updated, err := h.agentService.RemovePhoto(r.Context(), tenantID, agentID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menghapus foto profil"})
+		return
+	}
+
+	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "agents", fmt.Sprintf("%d", agentID), "photo.webp")
+	if err := os.Remove(absPath); err != nil && !os.IsNotExist(err) {
+		log.Printf("[agent] remove photo file %s: %v", absPath, err)
 	}
 
 	respondJSON(w, http.StatusOK, updated)

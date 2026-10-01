@@ -43,6 +43,8 @@ func (h *DomainHandler) RegisterPublicRoutes(r chi.Router) {
 // RegisterCustomDomainPayload defines the request body for registering a custom domain.
 type RegisterCustomDomainPayload struct {
 	Hostname string `json:"hostname"`
+	// IncludeAlias also registers the non-www name, redirected to the www name (www.X primary, X alias).
+	IncludeAlias bool `json:"include_alias"`
 }
 
 // RegisterCustomDomain handles POST /api/dashboard/domains.
@@ -59,9 +61,9 @@ func (h *DomainHandler) RegisterCustomDomain(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	resp, err := h.domainService.RegisterCustomDomain(r.Context(), tenantID, payload.Hostname)
+	resp, err := h.domainService.RegisterCustomDomain(r.Context(), tenantID, payload.Hostname, payload.IncludeAlias)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidHostname) {
+		if errors.Is(err, service.ErrInvalidHostname) || errors.Is(err, service.ErrAliasNotPossible) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

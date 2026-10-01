@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"image/jpeg"
 	"image/png"
 	"net/http"
 	"os"
@@ -195,10 +196,14 @@ func ConvertAndSavePNGLogo(fileBytes []byte, destinationPath string, maxWidth in
 	return nil
 }
 
-// ConvertAndSavePNGOGImage validates image format (JPEG/PNG/WebP), auto-orients,
+// OGImageJPEGQuality is the JPEG quality of the share image. A share image is usually a photo: as JPEG it
+// is a fraction of the PNG size, and every link preview (WhatsApp, Facebook, X) supports JPEG.
+const OGImageJPEGQuality = 85
+
+// ConvertAndSaveJPEGOGImage validates image format (JPEG/PNG/WebP), auto-orients,
 // resizes proportionally to fit within maxWidth x maxHeight (default 1200x630, standard 1.91:1 OG image),
-// and encodes to PNG with BestCompression to serve as a high-quality WhatsApp & social share preview card.
-func ConvertAndSavePNGOGImage(fileBytes []byte, destinationPath string, maxWidth, maxHeight int) error {
+// flattens any transparency onto white, and encodes to JPEG for the WhatsApp & social share preview card.
+func ConvertAndSaveJPEGOGImage(fileBytes []byte, destinationPath string, maxWidth, maxHeight int) error {
 	contentType := http.DetectContentType(fileBytes)
 	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
 		return ErrInvalidImageFormat
@@ -221,9 +226,11 @@ func ConvertAndSavePNGOGImage(fileBytes []byte, destinationPath string, maxWidth
 		img = imaging.Fit(img, maxWidth, maxHeight, imaging.Lanczos)
 	}
 
+	// JPEG has no alpha channel: paint the image over white so transparent areas do not turn black.
 	b := img.Bounds()
-	rgbaImg := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
-	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Src)
+	rgbaImg := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(rgbaImg, rgbaImg.Bounds(), image.White, image.Point{}, draw.Src)
+	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Over)
 
 	if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
 		return fmt.Errorf("gagal membuat direktori: %w", err)
@@ -235,9 +242,8 @@ func ConvertAndSavePNGOGImage(fileBytes []byte, destinationPath string, maxWidth
 	}
 	defer out.Close()
 
-	encoder := &png.Encoder{CompressionLevel: png.BestCompression}
-	if err := encoder.Encode(out, rgbaImg); err != nil {
-		return fmt.Errorf("gagal mengkonversi ke PNG: %w", err)
+	if err := jpeg.Encode(out, rgbaImg, &jpeg.Options{Quality: OGImageJPEGQuality}); err != nil {
+		return fmt.Errorf("gagal mengkonversi ke JPEG: %w", err)
 	}
 
 	return nil

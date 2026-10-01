@@ -22,6 +22,9 @@ type Domain struct {
 	LastCheckAt               *time.Time `json:"last_check_at,omitempty"` // legacy alias
 	// CheckFailures counts consecutive failed DNS checks of an active custom domain (reset on success).
 	CheckFailures int `json:"check_failures"`
+	// RedirectToDomainID is set on an alias (e.g. namatravel.com): its visitors are redirected to this
+	// primary custom domain of the same travel (e.g. www.namatravel.com). Nil on a primary domain.
+	RedirectToDomainID *uint64 `json:"redirect_to_domain_id,omitempty"`
 	// VerificationToken is the TXT value proving DNS control (computed per tenant+hostname, not stored).
 	VerificationToken string    `json:"verification_token,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
@@ -37,7 +40,8 @@ type DomainRepository interface {
 	Update(ctx context.Context, tenantID uint64, domain *Domain) error
 	Delete(ctx context.Context, tenantID uint64, id uint64) error
 
-	// GetActiveCustomDomain finds an active custom domain for the given tenant if one exists.
+	// GetActiveCustomDomain returns the tenant's primary active custom domain (never an alias); with several,
+	// the one verified first, so the default subdomain always redirects to the same domain.
 	GetActiveCustomDomain(ctx context.Context, tenantID uint64) (*Domain, error)
 
 	// FindByHostname searches across all tenants without a tenant_id filter.
@@ -69,8 +73,8 @@ func NewDomainRepository(db *sql.DB) DomainRepository {
 func (r *mysqlDomainRepository) Create(ctx context.Context, tenantID uint64, domain *Domain) error {
 	query := `
 		INSERT INTO domains (
-			tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?)
+			tenant_id, hostname, type, status, redirect_to_domain_id, verification_failure_reason, verified_at, last_check_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	domain.TenantID = tenantID
 	if domain.Status == "" {
@@ -88,6 +92,7 @@ func (r *mysqlDomainRepository) Create(ctx context.Context, tenantID uint64, dom
 		domain.Hostname,
 		domain.Type,
 		domain.Status,
+		domain.RedirectToDomainID,
 		domain.VerificationFailureReason,
 		domain.VerifiedAt,
 		domain.LastCheckAt,
@@ -106,7 +111,7 @@ func (r *mysqlDomainRepository) Create(ctx context.Context, tenantID uint64, dom
 
 func (r *mysqlDomainRepository) GetByID(ctx context.Context, tenantID uint64, id uint64) (*Domain, error) {
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, redirect_to_domain_id, created_at, updated_at
 		FROM domains
 		WHERE id = ? AND tenant_id = ?
 	`
@@ -116,7 +121,7 @@ func (r *mysqlDomainRepository) GetByID(ctx context.Context, tenantID uint64, id
 
 func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint64) ([]Domain, error) {
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, redirect_to_domain_id, created_at, updated_at
 		FROM domains
 		WHERE tenant_id = ?
 		ORDER BY created_at DESC
@@ -132,6 +137,7 @@ func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint6
 		var d Domain
 		var failureReason sql.NullString
 		var verifiedAt, lastCheckAt sql.NullTime
+		var redirectTo sql.NullInt64
 		if err := rows.Scan(
 			&d.ID,
 			&d.TenantID,
@@ -142,6 +148,7 @@ func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint6
 			&verifiedAt,
 			&lastCheckAt,
 			&d.CheckFailures,
+			&redirectTo,
 			&d.CreatedAt,
 			&d.UpdatedAt,
 		); err != nil {
@@ -157,6 +164,10 @@ func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint6
 		if lastCheckAt.Valid {
 			d.LastCheckAt = &lastCheckAt.Time
 			d.LastVerificationAttemptAt = &lastCheckAt.Time
+		}
+		if redirectTo.Valid {
+			id := uint64(redirectTo.Int64)
+			d.RedirectToDomainID = &id
 		}
 		domains = append(domains, d)
 	}
@@ -222,9 +233,10 @@ func (r *mysqlDomainRepository) Delete(ctx context.Context, tenantID uint64, id 
 
 func (r *mysqlDomainRepository) GetActiveCustomDomain(ctx context.Context, tenantID uint64) (*Domain, error) {
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, redirect_to_domain_id, created_at, updated_at
 		FROM domains
-		WHERE tenant_id = ? AND type = 'custom' AND status = 'active'
+		WHERE tenant_id = ? AND type = 'custom' AND status = 'active' AND redirect_to_domain_id IS NULL
+		ORDER BY verified_at IS NULL, verified_at, id
 		LIMIT 1
 	`
 	row := r.db.QueryRowContext(ctx, query, tenantID)
@@ -234,7 +246,7 @@ func (r *mysqlDomainRepository) GetActiveCustomDomain(ctx context.Context, tenan
 func (r *mysqlDomainRepository) FindByHostname(ctx context.Context, hostname string) (*Domain, error) {
 	// SPECIAL EXCEPTION for Caddy ask-endpoint lookup across all tenants
 	query := `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, redirect_to_domain_id, created_at, updated_at
 		FROM domains
 		WHERE hostname = ?
 	`
@@ -274,6 +286,7 @@ func (r *mysqlDomainRepository) scanDomain(row *sql.Row) (*Domain, error) {
 	var d Domain
 	var failureReason sql.NullString
 	var verifiedAt, lastCheckAt sql.NullTime
+	var redirectTo sql.NullInt64
 
 	err := row.Scan(
 		&d.ID,
@@ -285,6 +298,7 @@ func (r *mysqlDomainRepository) scanDomain(row *sql.Row) (*Domain, error) {
 		&verifiedAt,
 		&lastCheckAt,
 		&d.CheckFailures,
+		&redirectTo,
 		&d.CreatedAt,
 		&d.UpdatedAt,
 	)
@@ -306,6 +320,10 @@ func (r *mysqlDomainRepository) scanDomain(row *sql.Row) (*Domain, error) {
 		d.LastCheckAt = &lastCheckAt.Time
 		d.LastVerificationAttemptAt = &lastCheckAt.Time
 	}
+	if redirectTo.Valid {
+		id := uint64(redirectTo.Int64)
+		d.RedirectToDomainID = &id
+	}
 
 	return &d, nil
 }
@@ -319,7 +337,7 @@ func (r *mysqlDomainRepository) ReleaseUnverifiedClaim(ctx context.Context, host
 
 func (r *mysqlDomainRepository) ListActiveCustom(ctx context.Context) ([]Domain, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, redirect_to_domain_id, created_at, updated_at
 		FROM domains
 		WHERE type = 'custom' AND status = 'active'
 		ORDER BY id`)
@@ -332,7 +350,8 @@ func (r *mysqlDomainRepository) ListActiveCustom(ctx context.Context) ([]Domain,
 		var d Domain
 		var failureReason sql.NullString
 		var verifiedAt, lastCheckAt sql.NullTime
-		if err := rows.Scan(&d.ID, &d.TenantID, &d.Hostname, &d.Type, &d.Status, &failureReason, &verifiedAt, &lastCheckAt, &d.CheckFailures, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		var redirectTo sql.NullInt64
+		if err := rows.Scan(&d.ID, &d.TenantID, &d.Hostname, &d.Type, &d.Status, &failureReason, &verifiedAt, &lastCheckAt, &d.CheckFailures, &redirectTo, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if failureReason.Valid {
@@ -345,6 +364,10 @@ func (r *mysqlDomainRepository) ListActiveCustom(ctx context.Context) ([]Domain,
 		if lastCheckAt.Valid {
 			d.LastCheckAt = &lastCheckAt.Time
 			d.LastVerificationAttemptAt = &lastCheckAt.Time
+		}
+		if redirectTo.Valid {
+			id := uint64(redirectTo.Int64)
+			d.RedirectToDomainID = &id
 		}
 		out = append(out, d)
 	}

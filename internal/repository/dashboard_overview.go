@@ -80,6 +80,15 @@ type UpcomingPackageItem struct {
 }
 
 // ProspectTrendRaw holds raw daily counts per source channel.
+// KPIDayRaw is one day of the dashboard KPI series: prospects that came in, and prospects that reached
+// Closing that day (still in Closing now, so cancelled closings do not count) with their jamaah.
+type KPIDayRaw struct {
+	DateStr    string
+	Prospects  int
+	Closings   int
+	ClosingPax int
+}
+
 type ProspectTrendRaw struct {
 	DateStr string `json:"date_str"`
 	Channel string `json:"channel"` // "organik", "paid_ads", "agent"
@@ -115,6 +124,7 @@ type DashboardOverviewRawData struct {
 	UpcomingPackages []UpcomingPackageItem
 	ProspectTrends   []ProspectTrendRaw
 	PendingPipeline  PendingPipelineRaw
+	KPIDaily         []KPIDayRaw
 }
 
 // DashboardOverviewRepository defines data access for dashboard overview.
@@ -450,6 +460,65 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		data.PendingPipeline.AvgValuePerPax = data.PendingPipeline.TotalValue / float64(data.PendingPipeline.TotalPax)
 	} else {
 		data.PendingPipeline.AvgValuePerPax = avgPackagePrice
+	}
+
+	// 11. Daily KPI series, last 60 days (current 30 vs previous 30 on the dashboard).
+	days := map[string]*KPIDayRaw{}
+	day := func(d string) *KPIDayRaw {
+		if days[d] == nil {
+			days[d] = &KPIDayRaw{DateStr: d}
+		}
+		return days[d]
+	}
+	inRows, err := r.db.QueryContext(ctx, `
+		SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS d, COUNT(*)
+		FROM prospects
+		WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 59 DAY)
+		GROUP BY d`, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer inRows.Close()
+	for inRows.Next() {
+		var d string
+		var n int
+		if err := inRows.Scan(&d, &n); err != nil {
+			return nil, err
+		}
+		day(d).Prospects = n
+	}
+	if err := inRows.Err(); err != nil {
+		return nil, err
+	}
+	closeRows, err := r.db.QueryContext(ctx, `
+		SELECT DATE_FORMAT(first_close, '%Y-%m-%d') AS d, COUNT(*), COALESCE(SUM(pax), 0)
+		FROM (
+			SELECT h.prospect_id, MIN(h.changed_at) AS first_close, COALESCE(MAX(p.jumlah_jamaah), 1) AS pax
+			FROM prospect_status_history h
+			JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
+			WHERE h.tenant_id = ? AND h.new_status = 'closing' AND p.status = 'closing'
+			GROUP BY h.prospect_id
+		) c
+		WHERE first_close >= DATE_SUB(CURDATE(), INTERVAL 59 DAY)
+		GROUP BY d`, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows.Close()
+	for closeRows.Next() {
+		var d string
+		var n, pax int
+		if err := closeRows.Scan(&d, &n, &pax); err != nil {
+			return nil, err
+		}
+		day(d).Closings = n
+		day(d).ClosingPax = pax
+	}
+	if err := closeRows.Err(); err != nil {
+		return nil, err
+	}
+	for _, v := range days {
+		data.KPIDaily = append(data.KPIDaily, *v)
 	}
 
 	return data, nil

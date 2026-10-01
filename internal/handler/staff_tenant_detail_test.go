@@ -151,6 +151,9 @@ func (m *mockDetailAgentRepo) UpdateProfile(ctx context.Context, tenantID uint64
 func (m *mockDetailAgentRepo) UpdatePhotoURL(ctx context.Context, tenantID uint64, id uint64, photoURL string) error {
 	return nil
 }
+func (m *mockDetailAgentRepo) ClearPhotoURL(ctx context.Context, tenantID uint64, id uint64) error {
+	return nil
+}
 func (m *mockDetailAgentRepo) UpdatePassword(ctx context.Context, tenantID uint64, id uint64, newPasswordHash string) error {
 	return nil
 }

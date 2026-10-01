@@ -105,7 +105,7 @@ func (m *mockDomainRepoDedicated) GetActiveCustomDomain(ctx context.Context, ten
 	defer m.mu.Unlock()
 
 	for _, d := range m.domains {
-		if d.TenantID == tenantID && d.Type == "custom" && d.Status == "active" {
+		if d.TenantID == tenantID && d.Type == "custom" && d.Status == "active" && d.RedirectToDomainID == nil {
 			copied := *d
 			return &copied, nil
 		}
@@ -343,10 +343,10 @@ func TestDomainHandler_UnverifiedClaimDoesNotBlock(t *testing.T) {
 	domainSvc := service.NewDomainService(repo, newMockDNSResolver())
 	ctx := context.Background()
 
-	if _, err := domainSvc.RegisterCustomDomain(ctx, 1, "rebutan.com"); err != nil {
+	if _, err := domainSvc.RegisterCustomDomain(ctx, 1, "rebutan.com", false); err != nil {
 		t.Fatalf("squatter register: %v", err)
 	}
-	res, err := domainSvc.RegisterCustomDomain(ctx, 2, "rebutan.com")
+	res, err := domainSvc.RegisterCustomDomain(ctx, 2, "rebutan.com", false)
 	if err != nil {
 		t.Fatalf("owner register must not be blocked by an unverified claim: %v", err)
 	}
@@ -356,14 +356,14 @@ func TestDomainHandler_UnverifiedClaimDoesNotBlock(t *testing.T) {
 	if list, _ := domainSvc.ListDomains(ctx, 1); len(list) != 0 {
 		t.Fatalf("squatter's unverified claim should be released, still has %d", len(list))
 	}
-	if _, err := domainSvc.RegisterCustomDomain(ctx, 2, "rebutan.com"); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+	if _, err := domainSvc.RegisterCustomDomain(ctx, 2, "rebutan.com", false); !errors.Is(err, service.ErrDomainAlreadyUsed) {
 		t.Fatalf("registering own domain twice: expected ErrDomainAlreadyUsed, got %v", err)
 	}
 
 	d, _ := repo.FindByHostname(ctx, "rebutan.com")
 	d.Status = "active"
 	_ = repo.Update(ctx, 2, d)
-	if _, err := domainSvc.RegisterCustomDomain(ctx, 1, "rebutan.com"); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+	if _, err := domainSvc.RegisterCustomDomain(ctx, 1, "rebutan.com", false); !errors.Is(err, service.ErrDomainAlreadyUsed) {
 		t.Fatalf("active domain of another travel: expected ErrDomainAlreadyUsed, got %v", err)
 	}
 }
@@ -738,7 +738,7 @@ func TestDomainHandler_RootDomainARecord(t *testing.T) {
 	ctx := context.Background()
 	tenantID := uint64(5)
 
-	res, err := domainSvc.RegisterCustomDomain(ctx, tenantID, "namatravel.com")
+	res, err := domainSvc.RegisterCustomDomain(ctx, tenantID, "namatravel.com", false)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -779,7 +779,7 @@ func TestDomainHandler_RootDomainARecord(t *testing.T) {
 	}
 
 	// A CNAME to somewhere else is still rejected, even if the addresses happen to match.
-	sub, _ := domainSvc.RegisterCustomDomain(ctx, tenantID, "www.namatravel.com")
+	sub, _ := domainSvc.RegisterCustomDomain(ctx, tenantID, "www.namatravel.com", false)
 	dns.responses["www.namatravel.com"] = "other-host.example."
 	dns.ips["www.namatravel.com"] = []string{"203.0.113.10"}
 	dns.txt["_klikumroh-verify.www.namatravel.com"] = []string{service.DomainVerificationToken(tenantID, "www.namatravel.com")}

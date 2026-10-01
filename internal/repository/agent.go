@@ -64,6 +64,7 @@ type AgentRepository interface {
 	Update(ctx context.Context, tenantID uint64, agent *Agent) error
 	UpdateProfile(ctx context.Context, tenantID uint64, id uint64, params UpdateAgentProfileParams) (*Agent, error)
 	UpdatePhotoURL(ctx context.Context, tenantID uint64, id uint64, photoURL string) error
+	ClearPhotoURL(ctx context.Context, tenantID uint64, id uint64) error
 	UpdatePassword(ctx context.Context, tenantID uint64, id uint64, newPasswordHash string) error
 	UpdateBankInfo(ctx context.Context, tenantID uint64, id uint64, bankName, accountNumber, accountHolder string) error
 	Approve(ctx context.Context, tenantID uint64, id uint64) error
@@ -485,6 +486,14 @@ func (r *mysqlAgentRepository) UpdateProfile(ctx context.Context, tenantID uint6
 	}
 
 	return agent, nil
+}
+
+// ClearPhotoURL removes the agent's profile photo reference (the file is removed by the handler).
+// Zero affected rows is not an error: clearing an already empty photo in the same second changes nothing.
+// A wrong tenant/agent still surfaces as ErrNotFound from the GetByID the service does next.
+func (r *mysqlAgentRepository) ClearPhotoURL(ctx context.Context, tenantID uint64, id uint64) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE agents SET photo_url = NULL, updated_at = NOW() WHERE id = ? AND tenant_id = ?`, id, tenantID)
+	return err
 }
 
 func (r *mysqlAgentRepository) UpdatePhotoURL(ctx context.Context, tenantID uint64, id uint64, photoURL string) error {

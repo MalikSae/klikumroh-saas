@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -156,6 +157,9 @@ func main() {
 		n.SetNotifier(notifService, adminUserRepo, staffRepo, repository.NewSubscriptionReminderRepository(db))
 		n.StartRenewalReminderLoop(context.Background(), 6*time.Hour)
 	}
+
+	// Unused banner images (form cancelled, image replaced before saving) are removed after a day.
+	service.StartBannerFileSweep(context.Background(), contentService, filepath.Join(".", "uploads"), 6*time.Hour)
 
 	// Daily DNS recheck of active custom domains: a domain whose CNAME keeps failing stops receiving the
 	// subdomain redirect (the site stays reachable on its subdomain) until DNS is fixed.
@@ -307,6 +311,8 @@ func main() {
 		metaIntegrationHandler.RegisterDashboardRoutes(protected)
 		contentHandler.RegisterDashboardRoutes(protected)
 		agentHandler.RegisterDashboardRoutes(protected)
+		protected.Get("/api/dashboard/agent-performance", handler.AgentPerformanceHandler(repository.NewAgentPerformanceRepository(db)))
+		protected.Get("/api/dashboard/channel-report", handler.ChannelReportHandler(repository.NewChannelReportRepository(db)))
 		agentTargetHandler.RegisterDashboardRoutes(protected)
 		domainHandler.RegisterDashboardRoutes(protected)
 		notifHandler.RegisterDashboardRoutes(protected)

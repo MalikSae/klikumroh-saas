@@ -37,6 +37,7 @@ var (
 	ErrDomainAlreadyUsed     = errors.New("domain sudah terdaftar di sistem")
 	ErrCannotDeleteSubdomain = errors.New("subdomain default tidak dapat dihapus")
 	ErrDomainNotCustom       = errors.New("hanya custom domain yang dapat diverifikasi")
+	ErrAliasNotPossible      = errors.New("alias tanpa www hanya bisa untuk domain seperti www.namatravel.com")
 )
 
 var hostnameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$`)
@@ -72,11 +73,15 @@ type RegisterDomainResponse struct {
 	TXTName        string             `json:"txt_name"`
 	TXTValue       string             `json:"txt_value"`
 	Instruction    string             `json:"instruction"`
+	// AliasDomain is the non-www domain registered together with the primary (redirected to it).
+	AliasDomain *repository.Domain `json:"alias_domain,omitempty"`
 }
 
 // DomainService defines the business logic interface for domain management.
 type DomainService interface {
-	RegisterCustomDomain(ctx context.Context, tenantID uint64, hostname string) (*RegisterDomainResponse, error)
+	// RegisterCustomDomain registers hostname. With includeAlias, the pair www.X (primary) and X (alias,
+	// redirected to www.X) is registered, whichever of the two was typed.
+	RegisterCustomDomain(ctx context.Context, tenantID uint64, hostname string, includeAlias bool) (*RegisterDomainResponse, error)
 	ListDomains(ctx context.Context, tenantID uint64) ([]repository.Domain, error)
 	VerifyDomain(ctx context.Context, tenantID uint64, domainID uint64) (*repository.Domain, error)
 	DeleteDomain(ctx context.Context, tenantID uint64, domainID uint64) error
@@ -104,63 +109,105 @@ func NewDomainService(domainRepo repository.DomainRepository, resolver DNSResolv
 	}
 }
 
-func (s *domainService) RegisterCustomDomain(ctx context.Context, tenantID uint64, rawHostname string) (*RegisterDomainResponse, error) {
-	cleaned := strings.TrimSpace(strings.ToLower(rawHostname))
-
-	// Validate basic hostname format
+// cleanCustomHostname validates a hostname typed by a travel for use as a custom domain.
+func cleanCustomHostname(raw string) (string, error) {
+	cleaned := strings.TrimSpace(strings.ToLower(raw))
 	if cleaned == "" || strings.HasPrefix(cleaned, "http://") || strings.HasPrefix(cleaned, "https://") || strings.Contains(cleaned, "/") || strings.Contains(cleaned, ":") {
-		return nil, ErrInvalidHostname
+		return "", ErrInvalidHostname
 	}
-
-	// Reject if IP address
+	// Reject IP addresses.
 	if net.ParseIP(cleaned) != nil {
-		return nil, ErrInvalidHostname
+		return "", ErrInvalidHostname
 	}
-
 	if !hostnameRegex.MatchString(cleaned) {
-		return nil, ErrInvalidHostname
+		return "", ErrInvalidHostname
 	}
-
-	// Reject if attempting to register klikumroh.id itself or *.klikumroh.id as custom domain
+	// klikumroh.id and *.klikumroh.id are platform addresses, not custom domains.
 	if cleaned == "klikumroh.id" || strings.HasSuffix(cleaned, ".klikumroh.id") {
-		return nil, errors.New("domain dengan suffix klikumroh.id adalah domain bawaan sistem, bukan custom domain")
+		return "", errors.New("domain dengan suffix klikumroh.id adalah domain bawaan sistem, bukan custom domain")
 	}
+	return cleaned, nil
+}
 
-	// An unverified claim by another travel does not block this one: only proof of DNS control (TXT)
-	// activates a domain. An active domain, a default subdomain, or this travel's own row does block.
-	existing, err := s.domainRepo.FindByHostname(ctx, cleaned)
-	if err == nil && existing != nil && existing.Hostname == cleaned {
+// claimable reports whether this travel may register hostname. An unverified claim by another travel does
+// not block it (only proof of DNS control activates a domain) and is released; an active domain, a default
+// subdomain, or this travel's own row does block.
+func (s *domainService) claimable(ctx context.Context, tenantID uint64, hostname string) error {
+	existing, err := s.domainRepo.FindByHostname(ctx, hostname)
+	if err == nil && existing != nil && existing.Hostname == hostname {
 		if existing.Status == "active" || existing.Type != "custom" || existing.TenantID == tenantID {
-			return nil, ErrDomainAlreadyUsed
+			return fmt.Errorf("%w: %s", ErrDomainAlreadyUsed, hostname)
 		}
-		if err := s.domainRepo.ReleaseUnverifiedClaim(ctx, cleaned, tenantID); err != nil {
+		return s.domainRepo.ReleaseUnverifiedClaim(ctx, hostname, tenantID)
+	}
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return err
+	}
+	return nil
+}
+
+// wwwPair returns the primary (www.X) and alias (X) hostnames for either www.X or X.
+func wwwPair(hostname string) (primary, alias string, err error) {
+	if strings.HasPrefix(hostname, "www.") {
+		primary, alias = hostname, strings.TrimPrefix(hostname, "www.")
+	} else {
+		primary, alias = "www."+hostname, hostname
+	}
+	if strings.Count(alias, ".") < 1 || !hostnameRegex.MatchString(alias) || !hostnameRegex.MatchString(primary) {
+		return "", "", ErrAliasNotPossible
+	}
+	return primary, alias, nil
+}
+
+func (s *domainService) RegisterCustomDomain(ctx context.Context, tenantID uint64, rawHostname string, includeAlias bool) (*RegisterDomainResponse, error) {
+	cleaned, err := cleanCustomHostname(rawHostname)
+	if err != nil {
+		return nil, err
+	}
+	primaryHost, aliasHost := cleaned, ""
+	if includeAlias {
+		if primaryHost, aliasHost, err = wwwPair(cleaned); err != nil {
 			return nil, err
 		}
-	} else if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		if _, err := cleanCustomHostname(primaryHost); err != nil {
+			return nil, err
+		}
+	}
+
+	// Check every hostname before creating anything, so a blocked alias does not leave half a pair.
+	if err := s.claimable(ctx, tenantID, primaryHost); err != nil {
 		return nil, err
 	}
-
-	newDomain := &repository.Domain{
-		TenantID: tenantID,
-		Hostname: cleaned,
-		Type:     "custom",
-		Status:   "pending",
+	if aliasHost != "" {
+		if err := s.claimable(ctx, tenantID, aliasHost); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := s.domainRepo.Create(ctx, tenantID, newDomain); err != nil {
+	primary := &repository.Domain{TenantID: tenantID, Hostname: primaryHost, Type: "custom", Status: "pending"}
+	if err := s.domainRepo.Create(ctx, tenantID, primary); err != nil {
 		return nil, err
 	}
+	var alias *repository.Domain
+	if aliasHost != "" {
+		alias = &repository.Domain{TenantID: tenantID, Hostname: aliasHost, Type: "custom", Status: "pending", RedirectToDomainID: &primary.ID}
+		if err := s.domainRepo.Create(ctx, tenantID, alias); err != nil {
+			_ = s.domainRepo.Delete(ctx, tenantID, primary.ID)
+			return nil, err
+		}
+	}
 
-	token := DomainVerificationToken(tenantID, cleaned)
-	newDomain.VerificationToken = token
+	token := DomainVerificationToken(tenantID, primaryHost)
+	primary.VerificationToken = token
 	return &RegisterDomainResponse{
-		Domain:         newDomain,
-		Hostname:       cleaned,
+		Domain:         primary,
+		Hostname:       primaryHost,
 		CNAMETarget:    ExpectedCNAMETarget,
 		ARecordTargets: s.PlatformIPs(),
-		TXTName:        VerificationTXTPrefix + cleaned,
+		TXTName:        VerificationTXTPrefix + primaryHost,
 		TXTValue:       token,
-		Instruction:    fmt.Sprintf("Arahkan '%s' ke KlikUmroh (CNAME ke '%s', atau A record ke IP server untuk domain utama), lalu tambahkan TXT record '%s%s' berisi '%s'", cleaned, ExpectedCNAMETarget, VerificationTXTPrefix, cleaned, token),
+		Instruction:    fmt.Sprintf("Arahkan '%s' ke KlikUmroh (CNAME ke '%s', atau A record ke IP server untuk domain utama), lalu tambahkan TXT record '%s%s' berisi '%s'", primaryHost, ExpectedCNAMETarget, VerificationTXTPrefix, primaryHost, token),
+		AliasDomain:    alias,
 	}, nil
 }
 
@@ -170,7 +217,8 @@ func (s *domainService) ListDomains(ctx context.Context, tenantID uint64) ([]rep
 		return nil, err
 	}
 	for i := range domains {
-		if domains[i].Type == "custom" && domains[i].Status != "active" {
+		// An alias is proven by its primary's TXT record, so only primaries carry a token.
+		if domains[i].Type == "custom" && domains[i].Status != "active" && domains[i].RedirectToDomainID == nil {
 			domains[i].VerificationToken = DomainVerificationToken(tenantID, domains[i].Hostname)
 		}
 	}
@@ -255,19 +303,44 @@ func (s *domainService) txtOK(tenantID uint64, hostname string) (bool, string) {
 	return false, fmt.Sprintf("TXT record '%s' berisi '%s' belum ditemukan", name, token)
 }
 
-// VerifyDomain activates a pending/failed custom domain when its CNAME points to the platform AND the
-// TXT record proves this travel controls the DNS. An active domain is only re-checked: a single
-// failure does not take it offline (see recordCheck).
+// VerifyDomain checks a primary custom domain together with its alias (checking either one checks the
+// pair) and returns the requested domain. A primary becomes active when it points to the platform AND its
+// TXT record proves this travel controls the DNS. An active domain is only re-checked: a single failure
+// does not take it offline (see recordCheck).
 func (s *domainService) VerifyDomain(ctx context.Context, tenantID uint64, domainID uint64) (*repository.Domain, error) {
 	domain, err := s.domainRepo.GetByID(ctx, tenantID, domainID)
 	if err != nil {
 		return nil, err
 	}
-
 	if domain.Type != "custom" {
 		return nil, ErrDomainNotCustom
 	}
 
+	primary := domain
+	if domain.RedirectToDomainID != nil {
+		if primary, err = s.domainRepo.GetByID(ctx, tenantID, *domain.RedirectToDomainID); err != nil {
+			return nil, err
+		}
+	}
+	if primary, err = s.verifyPrimary(ctx, tenantID, primary); err != nil {
+		return nil, err
+	}
+
+	all, err := s.domainRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range all {
+		if all[i].RedirectToDomainID != nil && *all[i].RedirectToDomainID == primary.ID {
+			if _, err := s.verifyAlias(ctx, tenantID, &all[i], primary); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return s.domainRepo.GetByID(ctx, tenantID, domainID)
+}
+
+func (s *domainService) verifyPrimary(ctx context.Context, tenantID uint64, domain *repository.Domain) (*repository.Domain, error) {
 	if domain.Status == "active" {
 		return s.recordCheck(ctx, domain)
 	}
@@ -301,8 +374,46 @@ func (s *domainService) VerifyDomain(ctx context.Context, tenantID uint64, domai
 	if err := s.domainRepo.Update(ctx, tenantID, domain); err != nil {
 		return nil, err
 	}
-
 	return domain, nil
+}
+
+// verifyAlias activates an alias (X) once its primary (www.X) is active and X points to the platform.
+// The primary's TXT record already proved this travel controls the DNS of the zone both names live in,
+// so the alias needs no TXT of its own; it must be exactly the primary without "www.".
+func (s *domainService) verifyAlias(ctx context.Context, tenantID uint64, alias, primary *repository.Domain) (*repository.Domain, error) {
+	if alias.Status == "active" {
+		return s.recordCheck(ctx, alias)
+	}
+	now := time.Now()
+	alias.LastCheckAt = &now
+	alias.LastVerificationAttemptAt = &now
+
+	var reason string
+	switch {
+	case primary.TenantID != tenantID || alias.TenantID != tenantID || !strings.HasPrefix(primary.Hostname, "www.") || strings.TrimPrefix(primary.Hostname, "www.") != alias.Hostname:
+		reason = "alias tidak cocok dengan domain utamanya"
+	case primary.Status != "active":
+		reason = fmt.Sprintf("menunggu domain utama '%s' aktif", primary.Hostname)
+	default:
+		if ok, r := s.cnameOK(alias.Hostname); !ok {
+			reason = r
+		}
+	}
+
+	if reason == "" {
+		alias.Status = "active"
+		alias.VerifiedAt = &now
+		alias.DNSVerifiedAt = &now
+		alias.VerificationFailureReason = nil
+		alias.CheckFailures = 0
+	} else {
+		alias.Status = "failed"
+		alias.VerificationFailureReason = &reason
+	}
+	if err := s.domainRepo.Update(ctx, tenantID, alias); err != nil {
+		return nil, err
+	}
+	return alias, nil
 }
 
 // recordCheck re-checks the CNAME of an active domain. A failure only increments check_failures and keeps
@@ -353,6 +464,20 @@ func (s *domainService) DeleteDomain(ctx context.Context, tenantID uint64, domai
 		return ErrCannotDeleteSubdomain
 	}
 
+	// A primary takes its aliases with it (also enforced by the foreign key).
+	if domain.RedirectToDomainID == nil {
+		all, err := s.domainRepo.ListByTenant(ctx, tenantID)
+		if err != nil {
+			return err
+		}
+		for i := range all {
+			if all[i].RedirectToDomainID != nil && *all[i].RedirectToDomainID == domain.ID {
+				if err := s.domainRepo.Delete(ctx, tenantID, all[i].ID); err != nil && !errors.Is(err, repository.ErrNotFound) {
+					return err
+				}
+			}
+		}
+	}
 	return s.domainRepo.Delete(ctx, tenantID, domainID)
 }
 
@@ -380,9 +505,21 @@ func (s *domainService) GetActiveCustomDomainByHost(ctx context.Context, host st
 		return nil, repository.ErrNotFound
 	}
 
-	// If it's already a custom domain, no need to redirect to another custom domain
+	// A primary custom domain is served as is. An alias (namatravel.com) redirects to its primary
+	// (www.namatravel.com) while that primary is active and its DNS healthy; otherwise the site is served
+	// on the alias itself.
 	if resolvedDomain.Type == "custom" {
-		return nil, repository.ErrNotFound
+		if resolvedDomain.RedirectToDomainID == nil {
+			return nil, repository.ErrNotFound
+		}
+		primary, err := s.domainRepo.GetByID(ctx, resolvedDomain.TenantID, *resolvedDomain.RedirectToDomainID)
+		if err != nil {
+			return nil, err
+		}
+		if primary.Status != "active" || primary.CheckFailures >= MaxDomainCheckFailures {
+			return nil, repository.ErrNotFound
+		}
+		return primary, nil
 	}
 
 	// If it's a subdomain, check if this tenant has an active custom domain

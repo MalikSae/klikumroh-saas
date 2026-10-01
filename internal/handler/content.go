@@ -233,6 +233,9 @@ func (h *ContentHandler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
 		IsActive:     payload.IsActive,
 	}
 
+	// The image in use before this edit: removed from disk once the banner points to a new one.
+	previous, _ := h.contentService.GetBanner(r.Context(), tenantID, id)
+
 	if err := h.contentService.UpdateBanner(r.Context(), tenantID, b); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "banner tidak ditemukan"})
@@ -240,6 +243,10 @@ func (h *ContentHandler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
 		}
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
+	}
+
+	if previous != nil && previous.ImageURL != b.ImageURL {
+		removeBannerFile(tenantID, previous.ImageURL)
 	}
 
 	respondJSON(w, http.StatusOK, b)
@@ -271,10 +278,8 @@ func (h *ContentHandler) DeleteBanner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if existingBanner != nil && strings.HasPrefix(existingBanner.ImageURL, fmt.Sprintf("/uploads/%d/banners/", tenantID)) {
-		baseName := filepath.Base(existingBanner.ImageURL)
-		localPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "banners", baseName)
-		_ = os.Remove(localPath)
+	if existingBanner != nil {
+		removeBannerFile(tenantID, existingBanner.ImageURL)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "banner berhasil dihapus"})
@@ -643,4 +648,18 @@ func (h *ContentHandler) PublicListFAQs(w http.ResponseWriter, r *http.Request) 
 		list = []*repository.FAQ{}
 	}
 	respondJSON(w, http.StatusOK, list)
+}
+
+// removeBannerFile deletes a banner image that is no longer used. Only files in this tenant's own banners
+// folder are touched; other tenants' paths, "..", and external URLs are ignored.
+func removeBannerFile(tenantID uint64, url string) {
+	prefix := fmt.Sprintf("/uploads/%d/banners/", tenantID)
+	if !strings.HasPrefix(url, prefix) {
+		return
+	}
+	name := strings.TrimPrefix(url, prefix)
+	if name == "" || name != filepath.Base(name) || strings.Contains(name, "..") {
+		return
+	}
+	_ = os.Remove(filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "banners", name))
 }

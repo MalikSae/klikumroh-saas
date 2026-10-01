@@ -479,6 +479,7 @@ func (h *TenantHandler) UploadBrandIcon(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	previous := h.currentBrandingURL(r.Context(), tenantID, brandingIcon)
 	if err := h.tenantService.UpdateBrandIcon(r.Context(), tenantID, &relPath); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
@@ -488,6 +489,10 @@ func (h *TenantHandler) UploadBrandIcon(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// The replaced image is no longer referenced anywhere: remove it from disk.
+	if previous != relPath {
+		removeBrandingFile(tenantID, previous)
+	}
 	respondJSON(w, http.StatusOK, map[string]string{"brand_icon_url": relPath})
 }
 
@@ -499,6 +504,7 @@ func (h *TenantHandler) DeleteBrandIcon(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	old := h.currentBrandingURL(r.Context(), tenantID, brandingIcon)
 	if err := h.tenantService.UpdateBrandIcon(r.Context(), tenantID, nil); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
@@ -508,6 +514,7 @@ func (h *TenantHandler) DeleteBrandIcon(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	removeBrandingFile(tenantID, old)
 	respondJSON(w, http.StatusOK, map[string]string{"message": "icon berhasil dihapus"})
 }
 
@@ -554,6 +561,7 @@ func (h *TenantHandler) UploadBrandLogo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	previous := h.currentBrandingURL(r.Context(), tenantID, brandingLogo)
 	if err := h.tenantService.UpdateBrandLogo(r.Context(), tenantID, &relPath); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
@@ -563,6 +571,10 @@ func (h *TenantHandler) UploadBrandLogo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// The replaced image is no longer referenced anywhere: remove it from disk.
+	if previous != relPath {
+		removeBrandingFile(tenantID, previous)
+	}
 	respondJSON(w, http.StatusOK, map[string]string{"brand_logo_url": relPath})
 }
 
@@ -574,6 +586,7 @@ func (h *TenantHandler) DeleteBrandLogo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	old := h.currentBrandingURL(r.Context(), tenantID, brandingLogo)
 	if err := h.tenantService.UpdateBrandLogo(r.Context(), tenantID, nil); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
@@ -583,6 +596,7 @@ func (h *TenantHandler) DeleteBrandLogo(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	removeBrandingFile(tenantID, old)
 	respondJSON(w, http.StatusOK, map[string]string{"message": "logo berhasil dihapus"})
 }
 
@@ -664,11 +678,11 @@ func (h *TenantHandler) UploadBrandOGImage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	fileName := uuid.New().String() + ".png"
+	fileName := uuid.New().String() + ".jpg"
 	relPath := fmt.Sprintf("/uploads/%d/branding/%s", tenantID, fileName)
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "branding", fileName)
 
-	if err := util.ConvertAndSavePNGOGImage(fileBytes, absPath, 1200, 630); err != nil {
+	if err := util.ConvertAndSaveJPEGOGImage(fileBytes, absPath, 1200, 630); err != nil {
 		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -677,6 +691,7 @@ func (h *TenantHandler) UploadBrandOGImage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	previous := h.currentBrandingURL(r.Context(), tenantID, brandingOGImage)
 	if err := h.tenantService.UpdateOGImage(r.Context(), tenantID, &relPath); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
@@ -686,6 +701,10 @@ func (h *TenantHandler) UploadBrandOGImage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// The replaced image is no longer referenced anywhere: remove it from disk.
+	if previous != relPath {
+		removeBrandingFile(tenantID, previous)
+	}
 	respondJSON(w, http.StatusOK, map[string]string{"og_image_url": relPath})
 }
 
@@ -697,6 +716,7 @@ func (h *TenantHandler) DeleteBrandOGImage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	old := h.currentBrandingURL(r.Context(), tenantID, brandingOGImage)
 	if err := h.tenantService.UpdateOGImage(r.Context(), tenantID, nil); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
@@ -706,6 +726,7 @@ func (h *TenantHandler) DeleteBrandOGImage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	removeBrandingFile(tenantID, old)
 	respondJSON(w, http.StatusOK, map[string]string{"message": "og image berhasil dihapus"})
 }
 

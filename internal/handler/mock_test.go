@@ -284,6 +284,15 @@ func (m *mockAgentRepo) UpdatePhotoURL(ctx context.Context, tenantID uint64, id 
 	return nil
 }
 
+func (m *mockAgentRepo) ClearPhotoURL(ctx context.Context, tenantID uint64, id uint64) error {
+	a, ok := m.agents[id]
+	if !ok || a.TenantID != tenantID {
+		return repository.ErrNotFound
+	}
+	a.PhotoURL = nil
+	return nil
+}
+
 func (m *mockAgentRepo) UpdatePassword(ctx context.Context, tenantID uint64, id uint64, newPasswordHash string) error {
 	a, ok := m.agents[id]
 	if !ok || a.TenantID != tenantID {

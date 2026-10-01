@@ -148,7 +148,7 @@ func TestConvertAndSavePNGLogo(t *testing.T) {
 	})
 }
 
-func TestConvertAndSavePNGOGImage(t *testing.T) {
+func TestConvertAndSaveJPEGOGImage(t *testing.T) {
 	// Create large banner image (2400x1200)
 	img := image.NewRGBA(image.Rect(0, 0, 2400, 1200))
 	for y := 0; y < 1200; y++ {
@@ -162,12 +162,12 @@ func TestConvertAndSavePNGOGImage(t *testing.T) {
 	}
 
 	tmpDir := t.TempDir()
-	ogPath := filepath.Join(tmpDir, "og.png")
+	ogPath := filepath.Join(tmpDir, "og.jpg")
 
 	t.Run("Resizes down to fit maxWidth 1200 and maxHeight 630 proportionally", func(t *testing.T) {
-		err := util.ConvertAndSavePNGOGImage(pngBuf.Bytes(), ogPath, 1200, 630)
+		err := util.ConvertAndSaveJPEGOGImage(pngBuf.Bytes(), ogPath, 1200, 630)
 		if err != nil {
-			t.Fatalf("ConvertAndSavePNGOGImage failed: %v", err)
+			t.Fatalf("ConvertAndSaveJPEGOGImage failed: %v", err)
 		}
 
 		f, err := os.Open(ogPath)
@@ -180,8 +180,8 @@ func TestConvertAndSavePNGOGImage(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to decode og image config: %v", err)
 		}
-		if format != "png" {
-			t.Errorf("expected format 'png', got %s", format)
+		if format != "jpeg" {
+			t.Errorf("expected format 'jpeg', got %s", format)
 		}
 		if cfg.Width > 1200 || cfg.Height > 630 {
 			t.Errorf("expected image to fit within 1200x630, got %dx%d", cfg.Width, cfg.Height)
@@ -189,3 +189,32 @@ func TestConvertAndSavePNGOGImage(t *testing.T) {
 	})
 }
 
+
+// A transparent PNG share image must come out with a white background, not black (JPEG has no alpha).
+func TestConvertAndSaveJPEGOGImage_TransparencyBecomesWhite(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 400, 210)) // fully transparent
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	out := filepath.Join(t.TempDir(), "og.jpg")
+	if err := util.ConvertAndSaveJPEGOGImage(buf.Bytes(), out, 1200, 630); err != nil {
+		t.Fatalf("convert: %v", err)
+	}
+	f, err := os.Open(out)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer f.Close()
+	decoded, format, err := image.Decode(f)
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if format != "jpeg" {
+		t.Fatalf("expected jpeg, got %s", format)
+	}
+	r, g, b, _ := decoded.At(200, 105).RGBA()
+	if r>>8 < 245 || g>>8 < 245 || b>>8 < 245 {
+		t.Fatalf("transparent area should be white, got rgb(%d,%d,%d)", r>>8, g>>8, b>>8)
+	}
+}

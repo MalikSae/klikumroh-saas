@@ -68,6 +68,14 @@ type UpcomingPackageDTO struct {
 	RemainingSeats int     `json:"remaining_seats"`
 }
 
+// KPIDayDTO is one day of the KPI series.
+type KPIDayDTO struct {
+	Date          string `json:"date"`
+	Prospects     int    `json:"prospects"`
+	Closings      int    `json:"closings"`
+	ClosingJamaah int    `json:"closing_jamaah"`
+}
+
 // DailyTrendItemDTO represents a single day's leads across 3 channels.
 type DailyTrendItemDTO struct {
 	Date    string `json:"date"`     // "2026-09-08"
@@ -106,6 +114,8 @@ type DashboardOverviewResponse struct {
 	TopAgents          []repository.TopAgentItem    `json:"top_agents"`
 	UpcomingPackages   []UpcomingPackageDTO         `json:"upcoming_packages"`
 	ProspectTrends     []DailyTrendItemDTO          `json:"prospect_trends"`
+	// KPIDaily: 60 consecutive days, oldest first (current 30 days vs the 30 before, and sparklines).
+	KPIDaily []KPIDayDTO `json:"kpi_daily"`
 	PendingPipeline    PendingPipelineDTO           `json:"pending_pipeline"`
 }
 
@@ -254,7 +264,7 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 		})
 	}
 
-	// Format Daily Prospect Trends (Last 14 days)
+	// Format Daily Prospect Trends (Last 30 days; the dashboard shows 7, 14 or 30)
 	now := time.Now()
 	trendsMap := make(map[string]map[string]int)
 	for _, rawTrend := range raw.ProspectTrends {
@@ -265,7 +275,7 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 	}
 
 	var prospectTrends []DailyTrendItemDTO
-	for i := 13; i >= 0; i-- {
+	for i := 29; i >= 0; i-- {
 		day := now.AddDate(0, 0, -i)
 		dateStr := day.Format("2006-01-02")
 		labelStr := day.Format("02 Jan")
@@ -316,6 +326,17 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 		Stages:         pendingStages,
 	}
 
+	kpiByDate := make(map[string]repository.KPIDayRaw, len(raw.KPIDaily))
+	for _, d := range raw.KPIDaily {
+		kpiByDate[d.DateStr] = d
+	}
+	kpiDaily := make([]KPIDayDTO, 0, 60)
+	for i := 59; i >= 0; i-- {
+		dateStr := now.AddDate(0, 0, -i).Format("2006-01-02")
+		d := kpiByDate[dateStr]
+		kpiDaily = append(kpiDaily, KPIDayDTO{Date: dateStr, Prospects: d.Prospects, Closings: d.Closings, ClosingJamaah: d.ClosingPax})
+	}
+
 	return &DashboardOverviewResponse{
 		UrgentAlerts:       raw.Alerts,
 		KPIs:               kpisDTO,
@@ -326,5 +347,6 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 		UpcomingPackages:   packagesDTO,
 		ProspectTrends:     prospectTrends,
 		PendingPipeline:    pendingPipeline,
+		KPIDaily:           kpiDaily,
 	}, nil
 }
