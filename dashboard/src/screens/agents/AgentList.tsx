@@ -1,6 +1,6 @@
-// Agen tab: every approved agent with referral performance; row opens the agent drawer.
+// Agen tab: every approved agent with referral performance; row opens the agent page.
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { fetchAgentPerformance, fetchDashboardAgents, type AgentItem, type AgentPerformance } from '../../services/api';
 import {
   Avatar,
@@ -22,15 +22,13 @@ import {
   type Column,
 } from '../../ui';
 import { AGENT_STATUS } from './shared';
-import { AgentDrawer } from './AgentDrawer';
 
 type Row = AgentItem & { perf: AgentPerformance | null; prospects: number; conversion: number | null };
 type Sort = 'closing' | 'prospects' | 'clicks' | 'commission' | 'newest';
 
 const PAGE_SIZE = 25;
 
-export const AgentList: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
-  const { id } = useParams();
+export const AgentList: React.FC = () => {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [perf, setPerf] = useState<Map<number, AgentPerformance>>(new Map());
@@ -90,12 +88,12 @@ export const AgentList: React.FC<{ onChanged: () => void }> = ({ onChanged }) =>
         </span>
       ),
     },
-    { key: 'clicks', header: 'Klik 30 hari', align: 'right', cell: (r) => fmtNumber(r.perf?.clicks_30d ?? 0) },
+    { key: 'clicks', header: 'Klik 30 hari', align: 'right', mobile: 'hide', cell: (r) => fmtNumber(r.perf?.clicks_30d ?? 0) },
     { key: 'prospects', header: 'Prospek', align: 'right', cell: (r) => fmtNumber(r.prospects) },
     { key: 'closing', header: 'Jamaah closing', align: 'right', cell: (r) => fmtNumber(r.perf?.closing_jamaah ?? 0) },
-    { key: 'conv', header: 'Konversi', align: 'right', cell: (r) => (r.conversion === null ? '—' : fmtPercent(r.conversion)) },
+    { key: 'conv', header: 'Konversi', align: 'right', mobile: 'hide', cell: (r) => (r.conversion === null ? '—' : fmtPercent(r.conversion)) },
     { key: 'commission', header: 'Komisi', align: 'right', cell: (r) => fmtRupiah(r.perf?.commission_earned ?? 0) },
-    { key: 'last', header: 'Prospek terakhir', cell: (r) => (r.perf?.last_prospect_at ? fmtAgo(r.perf.last_prospect_at) : <span className="ku-muted">Belum ada</span>) },
+    { key: 'last', header: 'Prospek terakhir', mobile: 'labeled', cell: (r) => (r.perf?.last_prospect_at ? fmtAgo(r.perf.last_prospect_at) : <span className="ku-muted">Belum ada</span>) },
     { key: 'status', header: 'Status', cell: (r) => <Pill tone={AGENT_STATUS[r.status]?.tone}>{AGENT_STATUS[r.status]?.label ?? r.status}</Pill> },
   ];
 
@@ -164,17 +162,6 @@ export const AgentList: React.FC<{ onChanged: () => void }> = ({ onChanged }) =>
       />
       {rows.length > PAGE_SIZE && <Pagination page={page} pageSize={PAGE_SIZE} total={rows.length} onPage={setPage} />}
 
-      {id && (
-        <AgentDrawer
-          agentId={Number(id)}
-          perf={perf.get(Number(id)) || null}
-          onClose={() => navigate('/agents')}
-          onChanged={() => {
-            load();
-            onChanged();
-          }}
-        />
-      )}
     </section>
   );
 };

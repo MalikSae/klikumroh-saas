@@ -24,7 +24,13 @@
 .ag-balance__main { font: var(--ku-weight-bold) var(--ku-text-xl) var(--ku-font-head); }
 
 .ag-ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.ag-ledger li { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--ku-space-4); padding: 10px 0; border-bottom: 1px solid var(--ku-line-2); }
+.ag-ledger li { border-bottom: 1px solid var(--ku-line-2); }
+.ag-ledger__row { display: flex; align-items: flex-start; gap: var(--ku-space-3); padding: 10px var(--ku-space-2); margin: 0 calc(-1 * var(--ku-space-2)); border-radius: var(--ku-radius-ctl); color: inherit; text-decoration: none; }
+.ag-ledger__row .ag-ledger__text { flex: 1; }
+.ag-ledger__row--link:hover { background: var(--ku-soft); }
+.ag-ledger__row--link:hover .ag-ledger__text > :first-child, .ag-ledger__row--link:hover { text-decoration: none; }
+.ag-ledger__go { flex-shrink: 0; margin-top: 2px; color: var(--ku-ink-4); }
+.ag-ledger__row--link:hover .ag-ledger__go { color: var(--ku-ink); }
 .ag-ledger li:last-child { border-bottom: 0; }
 .ag-ledger__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ag-ledger__text .ku-muted { font-size: var(--ku-text-sm); }
@@ -46,3 +52,37 @@
   .ag-stats > div:nth-child(n + 3) { border-top: 1px solid var(--ku-line); }
 }
 .ag-balance__muted dt, .ag-balance__muted dd { color: var(--ku-ink-3); }
+
+/* Agent detail page */
+.ag-page { display: flex; flex-direction: column; gap: 22px; }
+.ag-page__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-4); flex-wrap: wrap; }
+.ag-page__who { display: flex; align-items: center; gap: var(--ku-space-3); min-width: 0; }
+.ag-page__title { margin: 0 0 4px; font: var(--ku-weight-semibold) var(--ku-text-xl) var(--ku-font-head); }
+.ag-page__actions { display: flex; align-items: center; gap: var(--ku-space-2); }
+.ag-page__facts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ag-page__grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 40px; align-items: start; }
+@media (max-width: 960px) {
+  .ag-page__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ag-page__grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+}
+/* Payout card on phones: the amount is what the admin transfers, so it leads. */
+.ag-pay-amount { font: var(--ku-weight-bold) var(--ku-text-2xl) var(--ku-font-head); color: var(--ku-ink); }
+
+/* Phone: agent detail page. */
+@media (max-width: 768px) {
+  .ag-page { gap: var(--ku-space-5); }
+  /* Header: name on top, actions as one full-width row (WhatsApp wide, menu at the end). */
+  .ag-page__head { flex-direction: column; align-items: stretch; gap: var(--ku-space-3); }
+  .ag-page__actions { width: 100%; }
+  .ag-page__actions > .ku-btn { flex: 1; height: 44px; order: 1; }
+  .ag-page__actions > .ku-menu { order: 2; }
+  .ag-page__actions > .ku-menu .ku-ibtn { width: 44px; height: 44px; }
+  /* Contact facts as label / value rows instead of two cramped columns. */
+  .ag-page__facts { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .ag-page__facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ku-space-4); }
+  .ag-page__facts .ku-facts__k { flex-shrink: 0; }
+  .ag-page__facts .ku-facts__v { margin-top: 0; min-width: 0; text-align: right; overflow-wrap: anywhere; }
+}
+@media (max-width: 768px) {
+  .ag-copy__btn { width: 32px; height: 32px; }
+}

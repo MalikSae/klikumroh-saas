@@ -79,7 +79,14 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
         </span>
       ),
     },
-    { key: 'amount', header: 'Jumlah', align: 'right', cell: (p) => <b className="ku-num">{fmtRupiah(p.amount_requested)}</b> },
+    {
+      key: 'amount',
+      header: 'Jumlah',
+      align: 'right',
+      mobile: 'line',
+      cell: (p) => <b className="ku-num">{fmtRupiah(p.amount_requested)}</b>,
+      mobileCell: (p) => <b className="ku-num ag-pay-amount">{fmtRupiah(p.amount_requested)}</b>,
+    },
     {
       key: 'bank',
       header: 'Rekening tujuan',
@@ -92,7 +99,7 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
         </span>
       ),
     },
-    { key: 'when', header: 'Diajukan', cell: (p) => fmtAgo(p.created_at) },
+    { key: 'when', header: 'Diajukan', mobile: 'labeled', cell: (p) => fmtAgo(p.created_at) },
     {
       key: 'status',
       header: 'Status',

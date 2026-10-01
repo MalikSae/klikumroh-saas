@@ -208,19 +208,36 @@ export const Registrations: React.FC<{ onChanged: () => void }> = ({ onChanged }
   const open = openId ? all.find((a) => a.id === openId) || null : null;
 
   const columns: Column<AgentItem>[] = [
-    { key: 'name', header: 'Nama', cell: (a) => a.name },
-    { key: 'phone', header: 'WhatsApp', cell: (a) => a.phone || '—' },
-    { key: 'city', header: 'Domisili', cell: (a) => a.domisili || '—' },
-    { key: 'parent', header: 'Direkrut oleh', cell: (a) => (a.parent_agent_id ? names.get(a.parent_agent_id) || '—' : <span className="ku-muted">Langsung</span>) },
+    {
+      key: 'name',
+      header: 'Nama',
+      cell: (a) => a.name,
+      // Phone card: contact under the name instead of two unlabeled lines.
+      mobileCell: (a) => (
+        <span className="ag-name">
+          {a.name}
+          <span className="ku-muted">{[a.phone, a.domisili].filter(Boolean).join(' · ') || '—'}</span>
+        </span>
+      ),
+    },
+    { key: 'phone', header: 'WhatsApp', mobile: 'hide', cell: (a) => a.phone || '—' },
+    { key: 'city', header: 'Domisili', mobile: 'hide', cell: (a) => a.domisili || '—' },
+    {
+      key: 'parent',
+      header: 'Direkrut oleh',
+      cell: (a) => (a.parent_agent_id ? names.get(a.parent_agent_id) || '—' : <span className="ku-muted">Langsung</span>),
+      mobileCell: (a) => (a.parent_agent_id ? `Direkrut oleh ${names.get(a.parent_agent_id) || '—'}` : 'Daftar langsung ke travel'),
+    },
     {
       key: 'pay',
       header: 'Biaya pendaftaran',
+      mobile: 'aside',
       cell: (a) => {
         const p = REG_PAYMENT[a.payment_status];
         return p ? <Pill tone={p.tone}>{p.label}</Pill> : <span className="ku-muted">Gratis</span>;
       },
     },
-    { key: 'when', header: 'Mendaftar', cell: (a) => fmtAgo(a.created_at) },
+    { key: 'when', header: 'Mendaftar', mobile: 'labeled', cell: (a) => fmtAgo(a.created_at) },
   ];
 
   return (

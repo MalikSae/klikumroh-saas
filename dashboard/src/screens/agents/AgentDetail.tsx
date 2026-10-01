@@ -1,9 +1,11 @@
-// Agent drawer: contact, performance, commission balance and history, account actions.
+// Agent detail page: contact, performance, commission balance and history, account actions.
 import React, { useEffect, useState } from 'react';
-import { MessageCircle, MoreHorizontal } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ChevronRight, MessageCircle, MoreHorizontal } from 'lucide-react';
 import {
   fetchAgentCommissions,
   fetchAgentDetail,
+  fetchAgentPerformance,
   resetAgentPassword,
   toggleAgentStatus,
   updateDashboardAgentProfile,
@@ -11,7 +13,7 @@ import {
   type AgentPerformance,
   type CommissionHistoryItem,
 } from '../../services/api';
-import { Banner, Button, Drawer, Field, Menu, Modal, Pill, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
+import { Avatar, Banner, Button, CityInput, Field, Menu, Modal, Pill, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
 import { AGENT_STATUS, CopyText, PAYOUT_STATUS, waHref } from './shared';
 
 type Dialog = null | 'edit' | 'password' | 'deactivate';
@@ -63,7 +65,7 @@ const EditAgentModal: React.FC<{ agent: AgentDashboardDetail; onClose: () => voi
         <Field label="Nama">{(id) => <input id={id} className="ku-input" value={name} onChange={(e) => setName(e.target.value)} />}</Field>
         <Field label="Nomor WhatsApp">{(id) => <input id={id} className="ku-input" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />}</Field>
         <Field label="Email" optional>{(id) => <input id={id} className="ku-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
-        <Field label="Domisili" optional>{(id) => <input id={id} className="ku-input" value={domisili} onChange={(e) => setDomisili(e.target.value)} />}</Field>
+        <Field label="Domisili" optional>{(id) => <CityInput id={id} value={domisili} onChange={setDomisili} />}</Field>
       </form>
     </Modal>
   );
@@ -129,24 +131,33 @@ const ResetPasswordModal: React.FC<{ agent: AgentDashboardDetail; onClose: () =>
   );
 };
 
-export const AgentDrawer: React.FC<{ agentId: number; perf: AgentPerformance | null; onClose: () => void; onChanged: () => void }> = ({ agentId, perf, onClose, onChanged }) => {
+export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
+  const { id } = useParams();
+  const agentId = Number(id);
+  const navigate = useNavigate();
   const [agent, setAgent] = useState<AgentDashboardDetail | null>(null);
+  const [perf, setPerf] = useState<AgentPerformance | null>(null);
   const [ledger, setLedger] = useState<CommissionHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState(false);
 
   const load = () =>
-    Promise.all([fetchAgentDetail(agentId), fetchAgentCommissions(agentId).catch(() => null)])
-      .then(([a, c]) => {
+    Promise.all([fetchAgentDetail(agentId), fetchAgentCommissions(agentId).catch(() => null), fetchAgentPerformance().catch(() => [] as AgentPerformance[])])
+      .then(([a, c, p]) => {
         setAgent(a);
         setLedger(c ?? a.riwayat_komisi ?? []);
+        setPerf(p.find((x) => x.agent_id === agentId) ?? null);
       })
       .catch((e) => setError(errorText(e, 'Gagal memuat agen')));
 
   useEffect(() => {
     setAgent(null);
     setError(null);
+    if (!agentId) {
+      setError('Agen tidak ditemukan.');
+      return;
+    }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId]);
@@ -173,22 +184,30 @@ export const AgentDrawer: React.FC<{ agentId: number; perf: AgentPerformance | n
   const prospects = perf ? perf.baru + perf.dihubungi + perf.tertarik + perf.closing + perf.tidak_lanjut : 0;
 
   return (
-    <>
-      <Drawer
-        open
-        onClose={onClose}
-        title={agent?.name ?? 'Memuat agen...'}
-        subtitle={
-          agent && (
-            <span className="ag-sub">
-              {status && <Pill tone={status.tone}>{status.label}</Pill>}
-              Bergabung {fmtDate(agent.created_at)}
-            </span>
-          )
-        }
-        footer={
-          agent && (
-            <>
+    <div className="ag-page">
+      <div>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/agents')} icon={<ArrowLeft className="ku-icon--sm" />}>
+          Semua agen
+        </Button>
+      </div>
+
+      {error && <Banner tone="danger">{error}</Banner>}
+      {!agent ? (
+        !error && <div className="ag-loading" aria-busy="true" />
+      ) : (
+        <>
+          <header className="ag-page__head">
+            <div className="ag-page__who">
+              <Avatar name={agent.name} />
+              <div>
+                <h2 className="ag-page__title">{agent.name}</h2>
+                <div className="ag-sub ku-muted">
+                  {status && <Pill tone={status.tone}>{status.label}</Pill>}
+                  Bergabung {fmtDate(agent.created_at)}
+                </div>
+              </div>
+            </div>
+            <div className="ag-page__actions">
               <Menu
                 label="Aksi agen"
                 trigger={<MoreHorizontal className="ku-icon--sm" />}
@@ -207,62 +226,61 @@ export const AgentDrawer: React.FC<{ agentId: number; perf: AgentPerformance | n
                   Chat WhatsApp
                 </Button>
               )}
-            </>
-          )
-        }
-      >
-        {error && <Banner tone="danger">{error}</Banner>}
-        {!agent ? (
-          !error && <div className="ag-loading" aria-busy="true" />
-        ) : (
-          <div className="ag-detail">
-            {agent.status === 'inactive' && (
-              <Banner tone="warning">Prospek baru dari link referral agen ini tidak lagi tercatat atas namanya, dan agen tidak mendapat komisi override dari rekrutannya.</Banner>
-            )}
+            </div>
+          </header>
 
-            <section className="ku-facts">
-              <div>
-                <div className="ku-facts__k">Kode referral</div>
-                <div className="ku-facts__v">
-                  <CopyText value={agent.referral_code} label="kode referral" />
-                </div>
-              </div>
-              <div>
-                <div className="ku-facts__k">WhatsApp</div>
-                <div className="ku-facts__v">{agent.phone || '—'}</div>
-              </div>
-              <div>
-                <div className="ku-facts__k">Domisili</div>
-                <div className="ku-facts__v">{agent.domisili || '—'}</div>
-              </div>
-              <div>
-                <div className="ku-facts__k">Direkrut oleh</div>
-                <div className="ku-facts__v">{agent.parent_agent_name || 'Langsung ke travel'}</div>
-              </div>
-            </section>
+          {agent.status === 'inactive' && (
+            <Banner tone="warning">Prospek baru dari link referral agen ini tidak lagi tercatat atas namanya, dan agen tidak mendapat komisi override dari rekrutannya.</Banner>
+          )}
 
-            <section>
-              <h3 className="ku-label">Performa</h3>
-              <div className="ag-stats">
-                <div>
-                  <span>Klik 30 hari</span>
-                  <b>{fmtNumber(perf?.clicks_30d ?? 0)}</b>
-                </div>
-                <div>
-                  <span>Prospek</span>
-                  <b>{fmtNumber(prospects)}</b>
-                </div>
-                <div>
-                  <span>Jamaah closing</span>
-                  <b>{fmtNumber(agent.total_jamaah_closing)}</b>
-                </div>
-                <div>
-                  <span>Konversi</span>
-                  <b>{prospects > 0 && perf ? fmtPercent((perf.closing / prospects) * 100) : '—'}</b>
-                </div>
+          <section className="ku-facts ag-page__facts">
+            <div>
+              <div className="ku-facts__k">Kode referral</div>
+              <div className="ku-facts__v">
+                <CopyText value={agent.referral_code} label="kode referral" />
               </div>
-            </section>
+            </div>
+            <div>
+              <div className="ku-facts__k">WhatsApp</div>
+              <div className="ku-facts__v">{agent.phone || '—'}</div>
+            </div>
+            <div>
+              <div className="ku-facts__k">Email</div>
+              <div className="ku-facts__v">{agent.email || '—'}</div>
+            </div>
+            <div>
+              <div className="ku-facts__k">Domisili</div>
+              <div className="ku-facts__v">{agent.domisili || '—'}</div>
+            </div>
+            <div>
+              <div className="ku-facts__k">Direkrut oleh</div>
+              <div className="ku-facts__v">{agent.parent_agent_name || 'Langsung ke travel'}</div>
+            </div>
+          </section>
 
+          <section>
+            <h3 className="ku-label">Performa</h3>
+            <div className="ag-stats">
+              <div>
+                <span>Klik 30 hari</span>
+                <b>{fmtNumber(perf?.clicks_30d ?? 0)}</b>
+              </div>
+              <div>
+                <span>Prospek</span>
+                <b>{fmtNumber(prospects)}</b>
+              </div>
+              <div>
+                <span>Jamaah closing</span>
+                <b>{fmtNumber(agent.total_jamaah_closing)}</b>
+              </div>
+              <div>
+                <span>Konversi</span>
+                <b>{prospects > 0 && perf ? fmtPercent((perf.closing / prospects) * 100) : '—'}</b>
+              </div>
+            </div>
+          </section>
+
+          <div className="ag-page__grid">
             <section>
               <h3 className="ku-label">Saldo komisi</h3>
               <dl className="ag-balance">
@@ -291,28 +309,44 @@ export const AgentDrawer: React.FC<{ agentId: number; perf: AgentPerformance | n
                 <p className="ku-muted">Belum ada komisi.</p>
               ) : (
                 <ul className="ag-ledger">
-                  {ledger.slice(0, 20).map((c) => (
-                    <li key={`${c.source}-${c.id}`}>
-                      <div className="ag-ledger__text">
-                        {c.description}
-                        <span className="ku-muted">
-                          {fmtDate(c.created_at)}
-                          {c.held ? ' · tertahan' : ''}
-                          {c.source === 'payout' && c.status ? ` · ${PAYOUT_STATUS[c.status]?.label ?? c.status}` : ''}
+                  {ledger.map((c) => {
+                    // Cross-check: a commission opens its prospect, a payout opens Pencairan komisi.
+                    const to = c.source === 'payout' ? '/payouts' : c.prospect_id ? `/prospects/${c.prospect_id}` : null;
+                    const body = (
+                      <>
+                        <div className="ag-ledger__text">
+                          {c.description}
+                          <span className="ku-muted">
+                            {fmtDate(c.created_at)}
+                            {c.held ? ' · tertahan' : ''}
+                            {c.source === 'payout' && c.status ? ` · ${PAYOUT_STATUS[c.status]?.label ?? c.status}` : ''}
+                          </span>
+                        </div>
+                        <span className={c.direction === 'keluar' ? 'ag-ledger__out' : 'ag-ledger__in'}>
+                          {c.direction === 'keluar' ? '−' : '+'}
+                          {fmtRupiah(Math.abs(c.amount))}
                         </span>
-                      </div>
-                      <span className={c.direction === 'keluar' ? 'ag-ledger__out' : 'ag-ledger__in'}>
-                        {c.direction === 'keluar' ? '−' : '+'}
-                        {fmtRupiah(Math.abs(c.amount))}
-                      </span>
-                    </li>
-                  ))}
+                        {to && <ChevronRight className="ku-icon--sm ag-ledger__go" aria-hidden="true" />}
+                      </>
+                    );
+                    return (
+                      <li key={`${c.source}-${c.id}`}>
+                        {to ? (
+                          <Link to={to} className="ag-ledger__row ag-ledger__row--link" title={c.source === 'payout' ? 'Buka pencairan komisi' : 'Buka prospek'}>
+                            {body}
+                          </Link>
+                        ) : (
+                          <div className="ag-ledger__row">{body}</div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>
           </div>
-        )}
-      </Drawer>
+        </>
+      )}
 
       {agent && dialog === 'edit' && (
         <EditAgentModal
@@ -342,6 +376,6 @@ export const AgentDrawer: React.FC<{ agentId: number; perf: AgentPerformance | n
           </>
         }
       />
-    </>
+    </div>
   );
 };
