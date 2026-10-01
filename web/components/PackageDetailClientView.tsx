@@ -60,6 +60,9 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
     });
   }, [pkg.id, pkg.name, pkg.price]);
 
+  const ppiuNumber = tenantInfo?.ppiu_number?.trim().replace(/^PPIU\s*/i, '').replace(/^No\.?\s*/i, '') || '';
+  const guarantee = tenantInfo?.trust_guarantee?.trim() || '';
+
   const photos = pkg.photos && pkg.photos.length > 0
     ? pkg.photos
     : [{ id: 0, file_path: '/placeholder-package.webp', sort_order: 0 }];
@@ -349,7 +352,10 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
           {/* Main Info (clean text tag, no icon) */}
           <div className="tw-pkg-main-info">
             <div className="tw-pkg-travel-tag">
-              <span>{tenantInfo?.name || 'KlikUmroh Travel'} • PPIU Resmi Kemenag</span>
+              <span>
+                {tenantInfo?.name || 'KlikUmroh Travel'}
+                {ppiuNumber ? ` • PPIU No. ${ppiuNumber}` : ''}
+              </span>
             </div>
             <h1 className="tw-pkg-title">{pkg.name}</h1>
           </div>
@@ -609,22 +615,28 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
           </div>
 
           {/* 6. Trust & Security Strip with icons */}
-          <div className="tw-pkg-trust-strip">
-            <div className="tw-pkg-trust-item">
-              <ShieldCheck size={20} className="tw-pkg-trust-icon" />
-              <div className="tw-pkg-trust-text">
-                <div className="tw-pkg-trust-label">Resmi Kemenag</div>
-                <div className="tw-pkg-trust-sub">Izin PPIU Terakreditasi</div>
-              </div>
+          {/* Only the travel's own data: licence number and guarantee as entered, never a default claim. */}
+          {(ppiuNumber || guarantee) && (
+            <div className="tw-pkg-trust-strip">
+              {ppiuNumber && (
+                <div className="tw-pkg-trust-item">
+                  <ShieldCheck size={20} className="tw-pkg-trust-icon" />
+                  <div className="tw-pkg-trust-text">
+                    <div className="tw-pkg-trust-label">Izin PPIU</div>
+                    <div className="tw-pkg-trust-sub">No. {ppiuNumber}</div>
+                  </div>
+                </div>
+              )}
+              {guarantee && (
+                <div className="tw-pkg-trust-item">
+                  <CheckCircle2 size={20} className="tw-pkg-trust-icon" />
+                  <div className="tw-pkg-trust-text">
+                    <div className="tw-pkg-trust-label">{guarantee}</div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="tw-pkg-trust-item">
-              <CheckCircle2 size={20} className="tw-pkg-trust-icon" />
-              <div className="tw-pkg-trust-text">
-                <div className="tw-pkg-trust-label">Pasti Berangkat</div>
-                <div className="tw-pkg-trust-sub">Jadwal & Kuota Terjamin</div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* 7. Public Footer (Full width of MobileContainer, identical to Home) */}

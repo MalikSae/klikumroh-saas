@@ -9,82 +9,73 @@ export interface TrustStripProps {
   trustGuarantee?: string | null;
 }
 
+const clean = (v?: string | null) => (v && v.trim() ? v.trim() : '');
+
+// Only the travel's own data is shown. An empty field hides its item: nothing is filled in with a
+// made-up default (no invented rating, alumni count, guarantee, or licence claim).
 export const TrustStrip: React.FC<TrustStripProps> = ({
   ppiuNumber,
   trustRating,
   trustAlumniCount,
   trustGuarantee,
 }) => {
-  // 1. Legalitas PPIU Resmi
-  let ppiuText = 'Kemenag RI';
-  if (ppiuNumber && ppiuNumber.trim()) {
-    const cleanPpiu = ppiuNumber
-      .replace(/^PPIU\s*/i, '')
-      .replace(/^No\.?\s*/i, '')
-      .trim();
-    ppiuText = cleanPpiu ? `No. ${cleanPpiu}` : 'Kemenag RI';
-  }
+  // 1. PPIU licence, only when the travel entered its number.
+  const ppiu = clean(ppiuNumber)
+    .replace(/^PPIU\s*/i, '')
+    .replace(/^No\.?\s*/i, '')
+    .trim();
 
-  // 2. Rating & Kepuasan Jamaah
-  const ratingText = trustRating && trustRating.trim() ? `Rating ${trustRating.trim()}` : 'Rating 4.9';
-  let alumniText = '1.000+ Jamaah';
-  if (trustAlumniCount && trustAlumniCount.trim()) {
-    const rawAlumni = trustAlumniCount.trim();
-    alumniText = /jamaah/i.test(rawAlumni) ? rawAlumni : `${rawAlumni} Jamaah`;
-  }
+  // 2. Rating and alumni, each only when entered.
+  const rating = clean(trustRating);
+  const rawAlumni = clean(trustAlumniCount);
+  const alumni = rawAlumni ? (/jamaah/i.test(rawAlumni) ? rawAlumni : `${rawAlumni} Jamaah`) : '';
 
-  // 3. Garansi & Komitmen Keberangkatan
-  let guaranteeTitle = '100% Berangkat';
-  let guaranteeDesc = 'Jadwal Pasti';
-  if (trustGuarantee && trustGuarantee.trim()) {
-    const trimmed = trustGuarantee.trim();
-    const splitParts = trimmed.split(/[,–—•-]\s*/);
-    if (splitParts.length >= 2 && splitParts[0].trim() && splitParts[1].trim()) {
-      guaranteeTitle = splitParts[0].trim();
-      guaranteeDesc = splitParts.slice(1).join(', ').trim();
-    } else {
-      guaranteeTitle = trimmed;
-      if (/jadwal/i.test(guaranteeTitle) && /pasti/i.test(guaranteeTitle)) {
-        guaranteeDesc = 'Garansi Resmi';
-      } else if (/pasti/i.test(guaranteeTitle)) {
-        guaranteeDesc = 'Jadwal Terjamin';
-      } else {
-        guaranteeDesc = 'Jadwal Pasti';
-      }
-    }
-  }
+  // 3. Guarantee in the travel's own words; "Title, detail" is shown on two lines.
+  const guarantee = clean(trustGuarantee);
+  const parts = guarantee.split(/[,–—•-]\s*/);
+  const split = parts.length >= 2 && parts[0].trim() !== '' && parts[1].trim() !== '';
+  const guaranteeTitle = split ? parts[0].trim() : guarantee;
+  const guaranteeDesc = split ? parts.slice(1).join(', ').trim() : '';
+
+  if (!ppiu && !rating && !alumni && !guarantee) return null;
 
   return (
     <div className="tw-trust-strip">
-      <div className="tw-trust-item">
-        <div className="tw-trust-item__icon">
-          <ShieldCheck size={16} />
+      {ppiu && (
+        <div className="tw-trust-item">
+          <div className="tw-trust-item__icon">
+            <ShieldCheck size={16} />
+          </div>
+          <div className="tw-trust-item__text">
+            <span className="tw-trust-item__title">Izin PPIU Resmi</span>
+            <span className="tw-trust-item__desc">No. {ppiu}</span>
+          </div>
         </div>
-        <div className="tw-trust-item__text">
-          <span className="tw-trust-item__title">Izin PPIU Resmi</span>
-          <span className="tw-trust-item__desc">{ppiuText}</span>
-        </div>
-      </div>
+      )}
 
-      <div className="tw-trust-item">
-        <div className="tw-trust-item__icon">
-          <Star size={16} />
+      {(rating || alumni) && (
+        <div className="tw-trust-item">
+          <div className="tw-trust-item__icon">
+            <Star size={16} />
+          </div>
+          <div className="tw-trust-item__text">
+            <span className="tw-trust-item__title">{rating ? `Rating ${rating}` : alumni}</span>
+            {rating && alumni && <span className="tw-trust-item__desc">{alumni}</span>}
+          </div>
         </div>
-        <div className="tw-trust-item__text">
-          <span className="tw-trust-item__title">{ratingText}</span>
-          <span className="tw-trust-item__desc">{alumniText}</span>
-        </div>
-      </div>
+      )}
 
-      <div className="tw-trust-item">
-        <div className="tw-trust-item__icon">
-          <Award size={16} />
+      {guarantee && (
+        <div className="tw-trust-item">
+          <div className="tw-trust-item__icon">
+            <Award size={16} />
+          </div>
+          <div className="tw-trust-item__text">
+            <span className="tw-trust-item__title">{guaranteeTitle}</span>
+            {guaranteeDesc && <span className="tw-trust-item__desc">{guaranteeDesc}</span>}
+          </div>
         </div>
-        <div className="tw-trust-item__text">
-          <span className="tw-trust-item__title">{guaranteeTitle}</span>
-          <span className="tw-trust-item__desc">{guaranteeDesc}</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

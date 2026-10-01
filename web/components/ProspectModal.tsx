@@ -165,7 +165,7 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
         referral_code: refCode,
         jumlah_jamaah: countVal && countVal > 0 ? countVal : null,
         attribution: getAttribution(),
-        departure_plan: departurePlan || null,
+        departure_plan: selectedPackage ? null : departurePlan || null,
         domicile: domicile.trim() || null,
         consent,
         website,
@@ -325,13 +325,15 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
               onChange={(e) => setJamaahCount(e.target.value.replace(/\D/g, '').slice(0, 2))}
             />
 
-            <FormInput
-              label="Rencana Berangkat"
-              type="select"
-              value={departurePlan}
-              onChange={(e) => setDeparturePlan(e.target.value)}
-              options={departureOptions()}
-            />
+            {!selectedPackage && (
+              <FormInput
+                label="Rencana Berangkat"
+                type="select"
+                value={departurePlan}
+                onChange={(e) => setDeparturePlan(e.target.value)}
+                options={departureOptions()}
+              />
+            )}
 
             <FormInput
               label="Domisili (Kota)"

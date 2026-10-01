@@ -271,7 +271,7 @@ export default function AgenJamaahListPage() {
         jumlah_jamaah: Number(formData.jumlah_jamaah) || 1,
         consent: formData.consent,
       };
-      if (formData.departure_plan) payload.departure_plan = formData.departure_plan;
+      if (formData.departure_plan && !formData.package_id) payload.departure_plan = formData.departure_plan;
       if (formData.domicile.trim()) payload.domicile = formData.domicile.trim();
 
       if (formData.package_id) {
@@ -758,7 +758,8 @@ export default function AgenJamaahListPage() {
                 />
               </div>
 
-              {/* Rencana Berangkat */}
+              {/* Rencana Berangkat: only without a package (a package has its own departure date) */}
+              {!formData.package_id && (
               <div className={styles.listdiv57}>
                 <label className={styles.listlabel58} htmlFor="manual-departure">
                   Rencana Berangkat
@@ -776,6 +777,7 @@ export default function AgenJamaahListPage() {
                   ))}
                 </select>
               </div>
+              )}
 
               {/* Domisili */}
               <div className={styles.listdiv57}>

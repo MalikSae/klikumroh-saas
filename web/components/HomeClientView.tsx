@@ -110,7 +110,7 @@ export const HomeClientView: React.FC<HomeClientViewProps> = ({ packages, tenant
         <PublicFooter tenantName={tenantInfo?.name} address={tenantInfo?.address} phone={tenantInfo?.phone} whatsappNumber={tenantInfo?.whatsapp_number} email={tenantInfo?.email} ppiuNumber={tenantInfo?.ppiu_number} />
       </MobileContainer>
       <BottomNavbar onOpenMenu={() => setIsMenuSheetOpen(true)} waNumber={tenantInfo?.whatsapp_number || undefined} />
-      <MenuBottomSheet isOpen={isMenuSheetOpen} onClose={() => setIsMenuSheetOpen(false)} />
+      <MenuBottomSheet isOpen={isMenuSheetOpen} onClose={() => setIsMenuSheetOpen(false)} showFaq={faqs.length > 0} showTestimonials={testimonials.length > 0} />
       <ProspectModal isOpen={isProspectModalOpen} onClose={() => setIsProspectModalOpen(false)} selectedPackage={null} tenantName={tenantInfo?.name} />
     </div>
   );

@@ -1,0 +1,84 @@
+/* Profile photo slot: same pattern as the package photos in the travel dashboard.
+   Empty = dashed tile to tap; filled = the photo with a small replace button in the corner. */
+
+.tw-photo-slot {
+  position: relative;
+  width: 96px;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tw-photo-slot:not(.tw-photo-slot--empty) {
+  border: 1px solid var(--tw-border);
+  background: var(--tw-page-bg);
+}
+
+.tw-photo-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tw-photo-slot--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px dashed var(--tw-text-muted);
+  background: var(--tw-background);
+  color: var(--tw-text-secondary);
+  font: 500 12px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.tw-photo-slot--empty:hover:not(:disabled) {
+  background: var(--tw-page-bg);
+  color: var(--tw-text-primary);
+}
+
+.tw-photo-slot--empty:disabled {
+  cursor: progress;
+}
+
+.tw-photo-slot__actions {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.tw-photo-slot__action {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--tw-border);
+  border-radius: 6px;
+  background: var(--tw-background);
+  color: var(--tw-text-secondary);
+  cursor: pointer;
+}
+
+.tw-photo-slot__action:disabled {
+  cursor: progress;
+}
+
+.tw-photo-slot__busy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--tw-modal-overlay);
+  color: var(--tw-on-brand);
+}
+
+.tw-photo-hint {
+  font-size: 12px;
+  color: var(--tw-text-muted);
+}

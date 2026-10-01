@@ -15,36 +15,17 @@ export interface FAQAccordionProps {
   faqs?: PublicFAQItem[];
 }
 
-const DEFAULT_FAQS: PublicFAQItem[] = [
-  {
-    id: 1,
-    question: 'Apakah paket umroh sudah termasuk tiket pesawat & visa?',
-    answer: 'Ya, seluruh paket kami adalah all-in, sudah mencakup tiket pesawat pulang-pergi, visa umroh resmi, hotel di Makkah & Madinah, konsumsi 3x sehari menu Indonesia, serta transportasi bus AC di Tanah Suci.',
-  },
-  {
-    id: 2,
-    question: 'Berapa lama estimasi proses pendaftaran & pengurusan dokumen?',
-    answer: 'Pendaftaran disarankan 1-2 bulan sebelum tanggal keberangkatan agar tim kami dapat memproses paspor, vaksin meningitis, dan penerbitan visa umroh dengan nyaman dan terverifikasi.',
-  },
-  {
-    id: 3,
-    question: 'Bagaimana alur pembayaran uang muka (DP) dan pelunasan?',
-    answer: 'Uang muka (DP) disetorkan saat pendaftaran untuk mengamankan kursi pesawat dan kamar hotel. Pelunasan sisa biaya dapat dicicil dan diselesaikan selambatnya 30 hari sebelum keberangkatan.',
-  },
-  {
-    id: 4,
-    question: 'Apakah ada bimbingan manasik sebelum keberangkatan?',
-    answer: 'Tentu. Kami menyelenggarakan sesi manasik umroh teori dan praktik gratis untuk seluruh calon jamaah sebelum keberangkatan, dipandu langsung oleh Ustadz pembimbing ibadah.',
-  },
-];
-
+// Only the travel's own FAQ is shown (Website > FAQ in the dashboard). With none, the section is hidden:
+// no built-in answers that promise facilities, schedules, or payment terms on the travel's behalf.
 export const FAQAccordion: React.FC<FAQAccordionProps> = ({ faqs = [] }) => {
-  const activeFaqs = faqs.length > 0 ? faqs : DEFAULT_FAQS;
+  const activeFaqs = faqs;
   const [openId, setOpenId] = useState<number | null>(activeFaqs[0]?.id || null);
 
   const toggle = (id: number) => {
     setOpenId((prev) => (prev === id ? null : id));
   };
+
+  if (activeFaqs.length === 0) return null;
 
   return (
     <section id="faq" className="tw-faq">

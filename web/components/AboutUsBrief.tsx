@@ -55,7 +55,7 @@ export const AboutUsBrief: React.FC<AboutUsBriefProps> = ({
         ) : (
           <>
             <p className="tw-about-brief__text">
-              {tenantName} adalah penyelenggara resmi perjalanan ibadah umroh dan haji khusus berizin resmi Kementerian Agama RI. Kami berkomitmen memberikan pelayanan terbaik dengan integritas tinggi dan bimbingan ibadah komprehensif.
+              {tenantName} melayani perjalanan ibadah umroh. Kami berkomitmen memberikan pelayanan terbaik dengan integritas tinggi dan bimbingan ibadah komprehensif.
             </p>
             <p className="tw-about-brief__text">
               Didukung oleh tim profesional dan muthawif berpengalaman, kami memastikan setiap langkah perjalanan ibadah Anda berjalan lancar, aman, dan berkesan penuh berkah.

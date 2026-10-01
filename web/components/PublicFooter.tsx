@@ -11,6 +11,10 @@ export interface PublicFooterProps {
   ppiuNumber?: string | null;
 }
 
+const clean = (v?: string | null) => (v && v.trim() ? v.trim() : '');
+
+// Only the travel's own contact and licence data is shown. An empty field hides its line: no sample
+// address, phone, email, or licence number is ever shown as if it were the travel's.
 export const PublicFooter: React.FC<PublicFooterProps> = ({
   tenantName = 'KlikUmroh Travel',
   address,
@@ -19,38 +23,47 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({
   email,
   ppiuNumber,
 }) => {
-  const displayAddress = address || 'Jl. Raya Utama No. 88, Graha Travel Indonesia';
-  const displayPhone = phone || whatsappNumber || '+62 812-3456-7890 (Customer Service)';
-  const displayEmail = email || 'info@travel.klikumroh.id';
-  const displayPpiu = ppiuNumber
-    ? `Izin Kemenag No. ${ppiuNumber}`
-    : 'Izin Kemenag No. U.123/2023';
+  const displayAddress = clean(address);
+  const displayPhone = clean(phone) || clean(whatsappNumber);
+  const displayEmail = clean(email);
+  const ppiu = clean(ppiuNumber).replace(/^PPIU\s*/i, '').replace(/^No\.?\s*/i, '').trim();
+  const hasContacts = Boolean(displayAddress || displayPhone || displayEmail || ppiu);
 
   return (
     <footer id="kontak" className="tw-footer">
       <div className="tw-footer__brand">
         <div className="tw-footer__title">{tenantName}</div>
-        <div className="tw-footer__legal">Penyelenggara Perjalanan Ibadah Umroh (PPIU) Resmi Kemenag RI</div>
+        {ppiu && <div className="tw-footer__legal">Penyelenggara Perjalanan Ibadah Umroh (PPIU)</div>}
       </div>
 
-      <div className="tw-footer__contacts">
-        <div className="tw-footer__contact-item">
-          <span className="tw-footer__contact-icon"><MapPin size={15} /></span>
-          <span>{displayAddress}</span>
+      {hasContacts && (
+        <div className="tw-footer__contacts">
+          {displayAddress && (
+            <div className="tw-footer__contact-item">
+              <span className="tw-footer__contact-icon"><MapPin size={15} /></span>
+              <span>{displayAddress}</span>
+            </div>
+          )}
+          {displayPhone && (
+            <div className="tw-footer__contact-item">
+              <span className="tw-footer__contact-icon"><Phone size={15} /></span>
+              <span>{displayPhone}</span>
+            </div>
+          )}
+          {displayEmail && (
+            <div className="tw-footer__contact-item">
+              <span className="tw-footer__contact-icon"><Mail size={15} /></span>
+              <span>{displayEmail}</span>
+            </div>
+          )}
+          {ppiu && (
+            <div className="tw-footer__contact-item">
+              <span className="tw-footer__contact-icon"><ShieldCheck size={15} /></span>
+              <span>Izin PPIU No. {ppiu}</span>
+            </div>
+          )}
         </div>
-        <div className="tw-footer__contact-item">
-          <span className="tw-footer__contact-icon"><Phone size={15} /></span>
-          <span>{displayPhone}</span>
-        </div>
-        <div className="tw-footer__contact-item">
-          <span className="tw-footer__contact-icon"><Mail size={15} /></span>
-          <span>{displayEmail}</span>
-        </div>
-        <div className="tw-footer__contact-item">
-          <span className="tw-footer__contact-icon"><ShieldCheck size={15} /></span>
-          <span>{displayPpiu}</span>
-        </div>
-      </div>
+      )}
 
       <div className="tw-footer__bottom">
         &copy; {new Date().getFullYear()} {tenantName}. Powered by KlikUmroh.id

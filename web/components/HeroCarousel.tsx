@@ -19,17 +19,13 @@ export interface HeroCarouselProps {
   banners?: PublicBannerItem[];
 }
 
-const PLACEHOLDER_SLIDES: PublicBannerItem[] = [
-  { id: 1, title: 'Banner Promo 1', subtitle: 'Informasi penawaran terbaik untuk ibadah umroh Anda', image_url: '', cta_url: null, badge_text: null, cta_text: null },
-  { id: 2, title: 'Banner Promo 2', subtitle: 'Pilihan paket istimewa dengan fasilitas hotel terbaik', image_url: '', cta_url: null, badge_text: null, cta_text: null },
-  { id: 3, title: 'Banner Promo 3', subtitle: 'Bimbingan ibadah terpercaya sesuai sunnah', image_url: '', cta_url: null, badge_text: null, cta_text: null },
-];
-
+// Only the travel's own banners are shown (Website > Banner in the dashboard). With none, the carousel
+// renders nothing: no sample slides with promotional claims.
 export const HeroCarousel: React.FC<HeroCarouselProps> = ({ banners = [] }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
 
-  const activeSlides = banners.length > 0 ? banners : PLACEHOLDER_SLIDES;
+  const activeSlides = banners;
 
   useEffect(() => {
     if (activeSlides.length <= 1) return;
@@ -64,6 +60,8 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({ banners = [] }) => {
       }
     }
   };
+
+  if (activeSlides.length === 0) return null;
 
   return (
     <div className="tw-hero-carousel-wrap">

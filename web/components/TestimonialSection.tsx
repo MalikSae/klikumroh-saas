@@ -20,35 +20,13 @@ export interface TestimonialSectionProps {
   testimonials?: PublicTestimonialItem[];
 }
 
-const DEFAULT_TESTIMONIALS: PublicTestimonialItem[] = [
-  {
-    id: 1,
-    name: 'H. Bambang Sugiarto',
-    package_name: 'Alumni Umroh Syawal 1447H',
-    rating: 5,
-    quote: 'Alhamdulillah pelayanan sangat memuaskan, hotel benar-benar dekat ke pelataran masjid sehingga orang tua tidak kelelahan saat berangkat sholat.',
-  },
-  {
-    id: 2,
-    name: 'Hj. Nurul Aini',
-    package_name: 'Alumni Umroh VIP Bintang 5',
-    rating: 5,
-    quote: 'Bimbingan muthawif sangat sabar dan mendalam. Itinerary tertata rapi, makanan menu nusantara cocok di lidah seluruh keluarga.',
-  },
-  {
-    id: 3,
-    name: 'Ahmad Fauzi & Keluarga',
-    package_name: 'Alumni Umroh Liburan',
-    rating: 5,
-    quote: 'Proses visa dan administrasi dibantu dari awal sampai tuntas. Tidak ada biaya siluman, sangat amanah dan profesional.',
-  },
-];
-
+// Only the travel's own testimonials are shown (Website > Testimoni in the dashboard). With none, the
+// section is hidden: never sample reviews under made-up names.
 export const TestimonialSection: React.FC<TestimonialSectionProps> = ({ testimonials = [] }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
 
-  const activeTestimonials = testimonials.length > 0 ? testimonials : DEFAULT_TESTIMONIALS;
+  const activeTestimonials = testimonials;
 
   useEffect(() => {
     if (activeTestimonials.length <= 1) return;
@@ -80,8 +58,10 @@ export const TestimonialSection: React.FC<TestimonialSectionProps> = ({ testimon
     if (testi.package_name) parts.push(testi.package_name);
     if (testi.city) parts.push(testi.city);
     if (testi.year) parts.push(`(${testi.year})`);
-    return parts.length > 0 ? parts.join(' • ') : 'Alumni Jamaah';
+    return parts.join(' • ');
   };
+
+  if (activeTestimonials.length === 0) return null;
 
   return (
     <section id="testimoni" className="tw-testimonials">
@@ -129,12 +109,12 @@ export const TestimonialSection: React.FC<TestimonialSectionProps> = ({ testimon
                       <div className="tw-testi-card__name-row">
                         <span className="tw-testi-card__name">{testi.name}</span>
                       </div>
-                      <span className="tw-testi-card__package">{subtitle}</span>
+                      {subtitle && <span className="tw-testi-card__package">{subtitle}</span>}
                     </div>
                   </div>
 
                   <div className="tw-testi-card__stars">
-                    {[...Array(testi.rating || 5)].map((_, i) => (
+                    {[...Array(Math.min(5, Math.max(0, Math.round(testi.rating || 0))))].map((_, i) => (
                       <Star key={i} size={14} fill="currentColor" />
                     ))}
                   </div>

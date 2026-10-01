@@ -589,9 +589,11 @@ export default function AgenJamaahDetailPage() {
             </div>
 
             <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>Rencana Berangkat</span>
+              <span className={styles.detailspan30}>{pkg ? 'Berangkat' : 'Rencana Berangkat'}</span>
               <div className={styles.detaildiv31}>
-                <span className={styles.detailspan32}>{formatDeparturePlan(prospect.departure_plan)}</span>
+                <span className={styles.detailspan32}>
+                  {pkg ? (pkg.departure_date ? formatDate(pkg.departure_date) : 'Belum diatur di paket') : formatDeparturePlan(prospect.departure_plan)}
+                </span>
               </div>
             </div>
 

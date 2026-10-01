@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
-  CircleUserRound,
-  Camera,
+  ImagePlus,
+  RefreshCw,
+  Trash2,
   CheckCircle2,
   AlertCircle,
   Lock,
@@ -24,6 +25,7 @@ import {
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import regenciesData from '../../../data/indonesia-regencies.json';
+import './AgenProfil.css';
 
 interface AgentProfileData {
   id: number;
@@ -93,6 +95,7 @@ export default function AgenProfilPage() {
 
   // Photo Upload State
   const [uploadingPhoto, setUploadingPhoto] = useState<boolean>(false);
+  const [removingPhoto, setRemovingPhoto] = useState<boolean>(false);
   const [photoMsg, setPhotoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Logout Confirmation Modal
@@ -228,6 +231,33 @@ export default function AgenProfilPage() {
   };
 
   // Save Data Diri Handler
+  const handleRemovePhoto = async () => {
+    const token = localStorage.getItem('agent_token');
+    if (!token) {
+      router.push('/agen/login');
+      return;
+    }
+
+    try {
+      setRemovingPhoto(true);
+      setPhotoMsg(null);
+      const res = await fetch('/api/agent/profile/photo', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json.error || 'Gagal menghapus foto profil');
+      }
+      setAgent((prev) => (prev ? { ...prev, photo_url: null } : null));
+      setPhotoMsg({ type: 'success', text: 'Foto profil dihapus' });
+    } catch (err: unknown) {
+      setPhotoMsg({ type: 'error', text: err instanceof Error ? err.message : 'Terjadi kesalahan saat menghapus foto' });
+    } finally {
+      setRemovingPhoto(false);
+    }
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMsg(null);
@@ -504,65 +534,48 @@ export default function AgenProfilPage() {
             style={{ display: 'none' }}
           />
 
-          {/* Avatar Area */}
-          <div
-            onClick={() => !uploadingPhoto && fileInputRef.current?.click()}
-            style={{
-              position: 'relative',
-              cursor: uploadingPhoto ? 'wait' : 'pointer',
-              display: 'inline-block',
-            }}
-            title="Ketuk untuk ubah foto profil"
-          >
-            {agent?.photo_url ? (
-              <div
-                style={{
-                  width: '90px',
-                  height: '90px',
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                  border: '2px solid var(--tw-border)',
-                }}
-              >
-                <img
-                  src={agent.photo_url}
-                  alt={agent.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+          {agent?.photo_url ? (
+            <div className="tw-photo-slot">
+              <img src={agent.photo_url} alt={agent.name} />
+              <div className="tw-photo-slot__actions">
+                <button
+                  type="button"
+                  className="tw-photo-slot__action"
+                  aria-label="Ganti foto profil"
+                  title="Ganti"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPhoto || removingPhoto}
+                >
+                  <RefreshCw size={14} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="tw-photo-slot__action"
+                  aria-label="Hapus foto profil"
+                  title="Hapus"
+                  onClick={handleRemovePhoto}
+                  disabled={uploadingPhoto || removingPhoto}
+                >
+                  <Trash2 size={14} aria-hidden="true" />
+                </button>
               </div>
-            ) : (
-              <CircleUserRound
-                size={90}
-                strokeWidth={1.2}
-                color="var(--tw-text-muted)"
-              />
-            )}
-
-            {/* Subtle camera icon overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                right: '0px',
-                bottom: '2px',
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--tw-background)',
-                border: '1px solid var(--tw-border)',
-                boxShadow: 'var(--tw-card-shadow)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--tw-text-primary)',
-              }}
-            >
-              {uploadingPhoto ? (
-                <Loader2 size={13} className="tw-animate-spin" />
-              ) : (
-                <Camera size={13} />
+              {(uploadingPhoto || removingPhoto) && (
+                <span className="tw-photo-slot__busy">
+                  <Loader2 size={18} className="tw-animate-spin" aria-label={removingPhoto ? 'Menghapus' : 'Mengunggah'} />
+                </span>
               )}
             </div>
-          </div>
+          ) : (
+            <button
+              type="button"
+              className="tw-photo-slot tw-photo-slot--empty"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+            >
+              {uploadingPhoto ? <Loader2 size={18} className="tw-animate-spin" aria-hidden="true" /> : <ImagePlus size={18} aria-hidden="true" />}
+              <span>{uploadingPhoto ? 'Mengunggah...' : 'Unggah foto'}</span>
+            </button>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--tw-text-primary)', fontFamily: 'var(--tw-font-heading)' }}>
@@ -573,23 +586,7 @@ export default function AgenProfilPage() {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => !uploadingPhoto && fileInputRef.current?.click()}
-            disabled={uploadingPhoto}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              backgroundColor: 'var(--tw-page-bg)',
-              border: '1px solid var(--tw-border)',
-              color: 'var(--tw-text-secondary)',
-              cursor: uploadingPhoto ? 'wait' : 'pointer',
-            }}
-          >
-            {uploadingPhoto ? 'Mengunggah...' : 'Ganti Foto Profil'}
-          </button>
+          <span className="tw-photo-hint">JPG, PNG, atau WebP, maks. 5 MB.</span>
 
           {photoMsg && (
             <div

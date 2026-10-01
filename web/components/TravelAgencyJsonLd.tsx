@@ -47,7 +47,7 @@ export const TravelAgencyJsonLd: React.FC<TravelAgencyJsonLdProps> = ({ tenantIn
     description:
       tenantInfo.meta_description ||
       tenantInfo.about_summary ||
-      `Biro perjalanan umroh resmi terdaftar Kemenag RI di ${tenantInfo.city || 'Indonesia'}`,
+      `Biro perjalanan umroh di ${tenantInfo.city || 'Indonesia'}${tenantInfo.ppiu_number ? ` dengan izin PPIU ${tenantInfo.ppiu_number}` : ''}`,
   };
 
   if (logoUrl) {
@@ -82,19 +82,8 @@ export const TravelAgencyJsonLd: React.FC<TravelAgencyJsonLdProps> = ({ tenantIn
     jsonLd.legalName = `${tenantInfo.name} (PPIU: ${tenantInfo.ppiu_number})`;
   }
 
-  // Aggregate Rating if rating exists
-  if (tenantInfo.trust_rating) {
-    const numericRating = parseFloat(tenantInfo.trust_rating);
-    if (!isNaN(numericRating) && numericRating > 0) {
-      jsonLd.aggregateRating = {
-        '@type': 'AggregateRating',
-        ratingValue: numericRating.toFixed(1),
-        bestRating: '5',
-        worstRating: '1',
-        ratingCount: '100', // Baseline count for rich snippet
-      };
-    }
-  }
+  // No aggregateRating: the travel's rating is a number it typed in, not counted reviews, and Google
+  // treats self-declared ratings on a business's own site as ineligible (and invented counts as spam).
 
   if (socialLinks.length > 0) {
     jsonLd.sameAs = socialLinks;

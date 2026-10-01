@@ -87,7 +87,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const title =
     tenantInfo.meta_title ||
-    `${tenantInfo.name} — Paket Umroh Resmi ${tenantInfo.city || 'Indonesia'}${tenantInfo.ppiu_number ? ` (PPIU ${tenantInfo.ppiu_number})` : ''}`;
+    // "Resmi" and the licence number only when the travel entered its PPIU number.
+    (tenantInfo.ppiu_number
+      ? `${tenantInfo.name} — Paket Umroh Resmi ${tenantInfo.city || 'Indonesia'} (PPIU ${tenantInfo.ppiu_number})`
+      : `${tenantInfo.name} — Paket Umroh ${tenantInfo.city || 'Indonesia'}`);
 
   const description =
     tenantInfo.meta_description ||
@@ -95,7 +98,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ? (tenantInfo.about_summary.length > 155
           ? `${tenantInfo.about_summary.slice(0, 155)}...`
           : tenantInfo.about_summary)
-      : `Biro perjalanan umroh resmi terdaftar di Kemenag RI dengan layanan bintang dan jadwal pasti di ${tenantInfo.city || 'Indonesia'}. Pilihan paket umroh terbaik.`);
+      : `${tenantInfo.name}, biro perjalanan umroh di ${tenantInfo.city || 'Indonesia'}${tenantInfo.ppiu_number ? ` dengan izin PPIU ${tenantInfo.ppiu_number}` : ''}. Lihat paket umroh dan jadwal keberangkatan.`);
 
   const canonicalUrl = host ? `https://${host}` : 'https://klikumroh.id';
 

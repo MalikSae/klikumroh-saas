@@ -60,15 +60,17 @@ function withReferral(req: NextRequest, res: NextResponse): NextResponse {
 }
 
 /**
- * Next.js Proxy for Subdomain to Custom Domain Redirection (307, temporary).
+ * Next.js Proxy for travel host redirection (307, temporary).
  *
  * Rules:
  * 1. If incoming Host is a default subdomain ({slug}.klikumroh.id or .local for dev)
  *    AND the tenant has an active custom domain:
  *    307 redirect to https://{custom_domain}{path}{query}.
  *    FULL path and query string MUST be preserved (critical for referral tracking).
- * 2. If custom domain is pending, failed, or none exists:
- *    DO NOT redirect. Subdomain remains normally accessible.
+ * 2. If incoming Host is an alias custom domain (namatravel.com) whose primary (www.namatravel.com) is
+ *    active and healthy: 307 redirect to https://{primary}{path}{query}, same rule as 1.
+ * 3. If custom domain is pending, failed, or none exists:
+ *    DO NOT redirect. Subdomain (or alias) remains normally accessible.
  */
 export async function proxy(req: NextRequest) {
   const hostHeader = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.host;
@@ -95,7 +97,9 @@ export async function proxy(req: NextRequest) {
     (hostname.endsWith('.klikumroh.local') && hostname !== 'klikumroh.local') ||
     hostname.endsWith('.localhost');
 
-  if (!isDefaultSubdomain) {
+  // Platform hosts never redirect. Default subdomains and custom domains ask the backend: a subdomain goes
+  // to the travel's primary custom domain, an alias to its primary, a primary stays where it is.
+  if (PLATFORM_HOSTS.has(hostname) || (!isDefaultSubdomain && !hostname.includes('.'))) {
     return withReferral(req, withAttribution(req, NextResponse.next()));
   }
 

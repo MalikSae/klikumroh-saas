@@ -72,7 +72,8 @@ async function runTests() {
     console.log(`Response Status   : ${redirectStatus}`);
     console.log(`Location Header   : ${locationHeader}`);
 
-    assert.strictEqual(redirectStatus, 301, 'Status redirect harus 301 Permanent Redirect');
+    // 307, not 301: a permanent redirect would stay cached in browsers after the custom domain is removed.
+    assert.strictEqual(redirectStatus, 307, 'Status redirect harus 307 Temporary Redirect');
     assert(locationHeader, 'Location header harus terisi');
 
     const redirectUrlObj = new URL(locationHeader);
@@ -83,7 +84,7 @@ async function runTests() {
 
     const isIdentical = printCharByCharComparison(originalPathAndQuery, redirectPathAndQuery);
     assert.strictEqual(isIdentical, true, 'Path dan Query string wajib identik karakter-per-karakter');
-    console.log('[SKENARIO A PASSED] Redirect 301 sukses dan path + query utuh 100%.\n');
+    console.log('[SKENARIO A PASSED] Redirect 307 sukses dan path + query utuh 100%.\n');
 
     // --------------------------------------------------------------------------
     // Skenario B: Subdomain dengan path + query kompleks -> Custom Domain PENDING
@@ -118,12 +119,56 @@ async function runTests() {
     console.log(`Response Status   : ${statusB}`);
     console.log(`Location Header   : ${locationB}`);
 
-    assert.notStrictEqual(statusB, 301, 'Request TIDAK BOLEH di-redirect 301');
+    assert.notStrictEqual(statusB, 307, 'Request TIDAK BOLEH di-redirect');
     assert.strictEqual(locationB, null, 'Location header harus null (tidak ada redirect)');
     console.log('[SKENARIO B PASSED] Tidak ada redirect (subdomain tetap melayani request normal).\n');
 
+    // --------------------------------------------------------------------------
+    // Skenario C: alias domain (tanpa www) -> domain utama www, 307, path + query utuh
+    // --------------------------------------------------------------------------
+    console.log('[SKENARIO C] Request ke alias namatravel.com dengan domain utama www aktif');
+    const aliasUrl = 'https://namatravel.com/paket/12?ref=AGEN01&utm_campaign=promo';
+    let askedHost = null;
+    globalThis.fetch = async (url) => {
+      askedHost = new URL(url).searchParams.get('host');
+      return { ok: true, status: 200, json: async () => ({ custom_domain: 'www.namatravel.com' }) };
+    };
+    const resC = await proxy(new NextRequest(aliasUrl, { headers: { host: 'namatravel.com', 'x-forwarded-host': 'namatravel.com' } }));
+    const locC = resC.headers.get('location');
+    console.log('Response Status   : ' + resC.status);
+    console.log('Location Header   : ' + locC);
+    assert.strictEqual(askedHost, 'namatravel.com', 'Proxy harus menanyakan target untuk host domain sendiri');
+    assert.strictEqual(resC.status, 307, 'Alias harus di-redirect 307');
+    const locCUrl = new URL(locC);
+    assert.strictEqual(locCUrl.hostname, 'www.namatravel.com', 'Tujuan harus domain utama www');
+    assert.strictEqual(locCUrl.protocol, 'https:', 'Protocol redirect harus https:');
+    const aliasPath = new URL(aliasUrl);
+    assert.strictEqual(
+      printCharByCharComparison(aliasPath.pathname + aliasPath.search, locCUrl.pathname + locCUrl.search),
+      true,
+      'Path + query alias wajib utuh',
+    );
+    console.log('[SKENARIO C PASSED] Alias diarahkan ke www dengan path + query utuh.\n');
+
+    // --------------------------------------------------------------------------
+    // Skenario D: domain utama (www) tidak di-redirect; host platform tidak menanyakan backend
+    // --------------------------------------------------------------------------
+    console.log('[SKENARIO D] Domain utama www dan host platform');
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls++;
+      return { ok: true, status: 200, json: async () => ({ custom_domain: null }) };
+    };
+    const resD = await proxy(new NextRequest('https://www.namatravel.com/?ref=AGEN01', { headers: { host: 'www.namatravel.com' } }));
+    assert.strictEqual(resD.headers.get('location'), null, 'Domain utama tidak boleh di-redirect');
+    const callsBefore = calls;
+    const resE = await proxy(new NextRequest('https://klikumroh.id/', { headers: { host: 'klikumroh.id' } }));
+    assert.strictEqual(resE.headers.get('location'), null, 'Host platform tidak boleh di-redirect');
+    assert.strictEqual(calls, callsBefore, 'Host platform tidak perlu menanyakan backend');
+    console.log('[SKENARIO D PASSED] Domain utama dan host platform tetap melayani request.\n');
+
     console.log('================================================================');
-    console.log('ALL TESTS PASSED SUCCESSFULLY (2 of 2)');
+    console.log('ALL TESTS PASSED SUCCESSFULLY (4 of 4)');
     console.log('================================================================');
   } finally {
     globalThis.fetch = globalFetch;

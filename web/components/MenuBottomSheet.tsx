@@ -18,11 +18,17 @@ import './MenuBottomSheet.css';
 export interface MenuBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  /** False hides the FAQ link (the travel has no FAQ, so the homepage has no FAQ section). */
+  showFaq?: boolean;
+  /** False hides the testimonial link (the travel has no testimonials on the homepage). */
+  showTestimonials?: boolean;
 }
 
 export const MenuBottomSheet: React.FC<MenuBottomSheetProps> = ({
   isOpen,
   onClose,
+  showFaq = true,
+  showTestimonials = true,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -76,27 +82,31 @@ export const MenuBottomSheet: React.FC<MenuBottomSheetProps> = ({
             <span>Tentang Kami</span>
           </button>
 
-          <button
-            type="button"
-            className="tw-sheet-link"
-            onClick={() => handleAnchorClick('testimoni')}
-          >
-            <span className="tw-sheet-icon">
-              <Quote size={18} />
-            </span>
-            <span>Testimoni Jamaah</span>
-          </button>
+          {showTestimonials && (
+            <button
+              type="button"
+              className="tw-sheet-link"
+              onClick={() => handleAnchorClick('testimoni')}
+            >
+              <span className="tw-sheet-icon">
+                <Quote size={18} />
+              </span>
+              <span>Testimoni Jamaah</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            className="tw-sheet-link"
-            onClick={() => handleAnchorClick('faq')}
-          >
-            <span className="tw-sheet-icon">
-              <HelpCircle size={18} />
-            </span>
-            <span>FAQ / Pertanyaan Umum</span>
-          </button>
+          {showFaq && (
+            <button
+              type="button"
+              className="tw-sheet-link"
+              onClick={() => handleAnchorClick('faq')}
+            >
+              <span className="tw-sheet-icon">
+                <HelpCircle size={18} />
+              </span>
+              <span>FAQ / Pertanyaan Umum</span>
+            </button>
+          )}
 
           <button
             type="button"
