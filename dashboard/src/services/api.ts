@@ -1627,6 +1627,8 @@ export interface CommissionHistoryItem {
   status?: string; // 'pending' | 'approved' | 'rejected' | 'paid'
   /** Ledger entry not withdrawable yet (jamaah belum lunas). */
   held?: boolean;
+  /** Prospect of a ledger entry (admin view only; for override it is the downline agent's prospect). */
+  prospect_id?: number;
   created_at: string;
 }
 

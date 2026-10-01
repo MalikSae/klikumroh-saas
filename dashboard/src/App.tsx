@@ -5,7 +5,7 @@ import { AppFrame } from './app/AppFrame';
 import { RequireAuth } from './app/RequireAuth';
 import { ProspectsScreen } from './screens/prospects/ProspectsScreen';
 import { SettingsScreen } from './screens/settings/SettingsScreen';
-import { AgentsScreen } from './screens/agents/AgentsScreen';
+import { AgentsScreen, PayoutsScreen } from './screens/agents/AgentsScreen';
 import { ProgramsScreen } from './screens/programs/ProgramsScreen';
 import { PackagesScreen } from './screens/packages/PackagesScreen';
 import { ChannelsScreen } from './screens/channels/ChannelsScreen';
@@ -59,7 +59,13 @@ export const App: React.FC = () => {
           {/* Moved to its own menu (1 Oct 2026); old links keep working. */}
           <Route path="/channels/tracking" element={<Navigate to="/tracking" replace />} />
           <Route path="/tracking" element={<TrackingScreen />} />
+          {/* Pencairan komisi moved to its own menu (1 Oct 2026); old links keep working. */}
+          <Route path="/agents/payouts" element={<Navigate to="/payouts" replace />} />
           <Route path="/agents/*" element={<AgentsScreen />} />
+          <Route path="/payouts" element={<PayoutsScreen />} />
+          {/* Aturan agen lives in Pengaturan (1 Oct 2026); old links keep working. */}
+          <Route path="/programs/rules" element={<Navigate to="/settings/agent-rules" replace />} />
+          <Route path="/agent-rules" element={<Navigate to="/settings/agent-rules" replace />} />
           <Route path="/programs/*" element={<ProgramsScreen />} />
           <Route path="/settings/*" element={<SettingsScreen />} />
           <Route path="/account" element={<AccountScreen />} />

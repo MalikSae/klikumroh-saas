@@ -20,6 +20,7 @@ import { Banner, Button, IconButton, SearchField } from '../ui';
 import { subscriptionNotice } from './subscriptionNotice';
 import { NAV_GROUPS, SETTINGS_ITEM, itemActive, titleForPath, type BadgeKey, type NavItem } from './nav';
 import { NotificationMenu } from './NotificationMenu';
+import { MobileNav } from './MobileNav';
 import brandIcon from '../assets/icon-klikumroh.svg';
 import './app.css';
 
@@ -113,7 +114,7 @@ export const AppFrame: React.FC = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState<string | null>(null);
   const [sub, setSub] = useState<TenantSubscriptionInfo | null>(null);
-  const [badges, setBadges] = useState<Badges>({ prospects: 0, agents: 0 });
+  const [badges, setBadges] = useState<Badges>({ prospects: 0, agents: 0, payouts: 0 });
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState('');
   const user = getStoredUser();
@@ -138,7 +139,7 @@ export const AppFrame: React.FC = () => {
       fetchDashboardAgents('pending').catch(() => []),
       fetchPayoutRequests('pending').catch(() => []),
     ]).then(([summary, agents, payouts]) =>
-      setBadges({ prospects: summary?.baru ?? 0, agents: agents.length + payouts.length }),
+      setBadges({ prospects: summary?.baru ?? 0, agents: agents.length, payouts: payouts.length }),
     );
   }, []);
 
@@ -230,6 +231,7 @@ export const AppFrame: React.FC = () => {
             <Outlet />
           </div>
         </main>
+        <MobileNav badges={badges} siteUrl={siteUrl} />
       </div>
     </FrameContext.Provider>
   );

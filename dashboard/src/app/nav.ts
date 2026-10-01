@@ -2,9 +2,9 @@
 // (decided 30 Sep 2026: Beranda · PENJUALAN · KEMITRAAN · PEMASARAN · Pengaturan). No nested sub-menus;
 // sections inside a page live on that page.
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, Globe, Handshake, Home, Megaphone, Package, Settings, Trophy, Users } from 'lucide-react';
+import { BarChart3, Globe, Handshake, Home, Megaphone, Package, Settings, Trophy, Users, Wallet } from 'lucide-react';
 
-export type BadgeKey = 'prospects' | 'agents';
+export type BadgeKey = 'prospects' | 'agents' | 'payouts';
 
 export interface NavItem {
   id: string;
@@ -31,7 +31,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'KEMITRAAN',
     items: [
       { id: 'agents', label: 'Agen', to: '/agents', icon: Handshake, badge: 'agents' },
-      { id: 'programs', label: 'Program agen', to: '/programs', icon: Trophy },
+      { id: 'payouts', label: 'Pencairan komisi', to: '/payouts', icon: Wallet, badge: 'payouts' },
+      { id: 'programs', label: 'Target & reward', to: '/programs', icon: Trophy },
     ],
   },
   {
