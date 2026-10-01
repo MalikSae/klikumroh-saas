@@ -55,12 +55,12 @@ const DnsTable: React.FC<{ primary: DomainItem; alias?: DomainItem }> = ({ prima
       <tbody>
         {rows.map((r) => (
           <tr key={r.type + r.name + r.value}>
-            <td>{r.type}</td>
-            <td>
+            <td className="ws-dns__type">{r.type}</td>
+            <td data-label="Host">
               <CopyText value={hostField(r.name, zone)} label="host" />
               <span className="ws-dns__full">{r.name}</span>
             </td>
-            <td>{r.value ? <CopyText value={r.value} label="nilai record" /> : <span className="ku-muted">Hubungi tim KlikUmroh</span>}</td>
+            <td data-label="Nilai">{r.value ? <CopyText value={r.value} label="nilai record" /> : <span className="ku-muted">Hubungi tim KlikUmroh</span>}</td>
           </tr>
         ))}
       </tbody>
@@ -232,7 +232,8 @@ export const Domains: React.FC = () => {
                   <span>
                     <b>{alias.hostname}</b> dialihkan ke {d.hostname}
                   </span>
-                  <Pill tone={STATUS[alias.status].tone}>{STATUS[alias.status].label}</Pill>
+                  {/* Same state as the main domain: one badge (on the main domain) is enough. */}
+                  {alias.status !== d.status && <Pill tone={STATUS[alias.status].tone}>{STATUS[alias.status].label}</Pill>}
                   <IconButton size="sm" label={`Hapus ${alias.hostname}`} onClick={() => setConfirm(alias)} disabled={busy === alias.id}>
                     <X className="ku-icon--sm" />
                   </IconButton>

@@ -37,6 +37,7 @@
 .ws-domain p { margin: 0; }
 .ws-dns { width: 100%; border-collapse: collapse; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); font-size: var(--ku-text-md); }
 .ws-dns th { text-align: left; padding: var(--ku-space-2) var(--ku-space-3); background: var(--ku-soft); color: var(--ku-ink-3); font-weight: var(--ku-weight-medium); border-bottom: 1px solid var(--ku-line); }
+.ws-dns td:first-child { white-space: nowrap; }
 .ws-dns td { padding: var(--ku-space-2) var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); overflow-wrap: anywhere; }
 .ws-dns tr:last-child td { border-bottom: 0; }
 .ws-domain-add { display: flex; align-items: flex-end; gap: var(--ku-space-2); }
@@ -60,3 +61,44 @@
 .ws-domain-add__row .ku-field { flex: 1; }
 .ws-slot--poster { width: 180px; aspect-ratio: 1 / 1; }
 .ws-slot--proof { width: 200px; aspect-ratio: 3 / 4; }
+@media (max-width: 768px) {
+  .ws-slot__actions button, .ws-slot__actions a { width: 36px; height: 36px; }
+}
+
+/* Phone cards for banners, testimonials and FAQ. */
+.ws-mbanner__img { display: block; width: 100%; aspect-ratio: 16 / 7; object-fit: cover; border-radius: var(--ku-radius-inner); background: var(--ku-soft); }
+@media (max-width: 768px) {
+  /* Long text stays at two lines in the card (the line wrapper would otherwise undo the clamp). */
+  .ku-mcard .ku-mcard__line > .ws-quote, .ku-mcard .ws-quote { display: -webkit-box; max-width: none; }
+  /* Order arrows on the left, the menu on the right, all thumb-sized. */
+  .ku-mcard__actions .ag-row-actions { width: 100%; }
+  .ku-mcard__actions .ag-row-actions .ku-ibtn { width: 40px; height: 40px; }
+  .ku-mcard__actions .ag-row-actions .ku-menu { margin-left: auto; }
+}
+
+/* Phone: one block per DNS record: type on top, then labelled Host and Nilai rows. */
+@media (max-width: 768px) {
+  .ws-dns, .ws-dns tbody, .ws-dns tr, .ws-dns td { display: block; }
+  .ws-dns thead { display: none; }
+  .ws-dns tr { padding: var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); }
+  .ws-dns tr:last-child { border-bottom: 0; }
+  .ws-dns td { padding: 0; border-bottom: 0; }
+  .ws-dns .ws-dns__type { display: inline-block; margin-bottom: var(--ku-space-2); padding: 2px var(--ku-space-2); border-radius: var(--ku-radius-ctl); background: var(--ku-soft); font-weight: var(--ku-weight-semibold); font-size: var(--ku-text-sm); }
+  .ws-dns td[data-label] { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: var(--ku-space-2); align-items: baseline; }
+  .ws-dns td[data-label] + td[data-label] { margin-top: var(--ku-space-2); }
+  .ws-dns td[data-label]::before { content: attr(data-label); color: var(--ku-ink-3); font-size: var(--ku-text-sm); }
+  .ws-dns td[data-label] > * { grid-column: 2; }
+}
+
+/* Phone: custom domain block. */
+@media (max-width: 768px) {
+  /* Host + status on the first row, actions as a full-width row under it. */
+  .ws-domain__actions { flex-basis: 100%; margin-left: 0; }
+  .ws-domain__actions > .ku-btn { height: 40px; }
+  .ws-domain__actions > .ku-btn:first-child:not(:last-child) { flex: 1; }
+  /* Alias line: arrow, text (wraps), remove button stay on one row. */
+  .ws-alias { flex-wrap: nowrap; align-items: flex-start; }
+  .ws-alias > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .ws-alias > svg { margin-top: 3px; flex-shrink: 0; }
+  .ws-alias > .ku-ibtn, .ws-alias > .ku-pill { flex-shrink: 0; }
+}

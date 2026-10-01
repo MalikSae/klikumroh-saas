@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { departurePlanOptions, updateProspect, type PackageItem, type ProspectDetailResponse } from '../../services/api';
-import { Banner, Button, Field, Modal, Select, fmtRupiah } from '../../ui';
+import { Banner, Button, CityInput, Field, Modal, Select, fmtRupiah } from '../../ui';
 
 export const EditProspectModal: React.FC<{
   open: boolean;
@@ -103,7 +103,7 @@ export const EditProspectModal: React.FC<{
               {(id) => <Select id={id} label="Rencana berangkat" value={plan} onChange={setPlan} options={departurePlanOptions(plan)} />}
             </Field>
           )}
-          <Field label="Domisili" optional>{(id) => <input id={id} className="ku-input" value={domicile} onChange={(e) => setDomicile(e.target.value)} placeholder="Contoh: Bandung" />}</Field>
+          <Field label="Domisili" optional>{(id) => <CityInput id={id} value={domicile} onChange={setDomicile} />}</Field>
         </div>
         {selected?.price ? (
           <p className="pr-hint">

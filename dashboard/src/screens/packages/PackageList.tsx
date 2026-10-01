@@ -76,9 +76,9 @@ export const PackageList: React.FC = () => {
         );
       },
     },
-    { key: 'price', header: 'Harga', align: 'right', cell: (p) => (p.price ? fmtRupiah(p.price) : <span className="ku-muted">Belum diisi</span>) },
+    { key: 'price', header: 'Harga mulai', align: 'right', cell: (p) => (p.price ? fmtRupiah(p.price) : <span className="ku-muted">Belum diisi</span>) },
     { key: 'commission', header: 'Komisi agen', align: 'right', cell: (p) => (p.commission_amount ? fmtRupiah(p.commission_amount) : <span className="ku-muted">—</span>) },
-    { key: 'seats', header: 'Kursi terisi', cell: (p) => <Seats p={p} /> },
+    { key: 'seats', header: 'Kursi terisi', mobile: 'stat', cell: (p) => <Seats p={p} /> },
     { key: 'status', header: 'Status', cell: (p) => <Pill tone={PACKAGE_STATUS[p.status].tone}>{PACKAGE_STATUS[p.status].label}</Pill> },
   ];
 

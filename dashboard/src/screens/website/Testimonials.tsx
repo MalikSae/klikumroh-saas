@@ -110,7 +110,7 @@ export const Testimonials: React.FC = () => {
       ),
     },
     { key: 'quote', header: 'Testimoni', cell: (t) => <span className="ws-quote">{t.quote}</span> },
-    { key: 'rating', header: 'Rating', cell: (t) => `${t.rating}/5` },
+    { key: 'rating', header: 'Rating', mobile: 'labeled', cell: (t) => `${t.rating}/5` },
   ];
 
   return (

@@ -1,4 +1,5 @@
-// Pengaturan: travel profile, subscription & billing, team, staff access history.
+// Pengaturan: travel profile, agent rules (commission & registration), subscription & billing, team,
+// staff access history.
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { RouteTabs } from '../../ui';
@@ -8,6 +9,7 @@ import { BillingSettings } from './BillingSettings';
 import { InvoiceScreen } from './InvoiceScreen';
 import { TeamSettings } from './TeamSettings';
 import { AccessLogSettings } from './AccessLogSettings';
+import { Rules } from '../programs/Rules';
 import './settings.css';
 
 export const SettingsScreen: React.FC = () => {
@@ -20,6 +22,7 @@ export const SettingsScreen: React.FC = () => {
         label="Bagian pengaturan"
         items={[
           { to: '/settings', label: 'Profil travel' },
+          { to: '/settings/agent-rules', label: 'Aturan agen' },
           { to: '/settings/subscription', prefix: true, label: 'Langganan', count: billingAlert ? 1 : undefined, alert: true },
           { to: '/settings/team', label: 'Tim' },
           { to: '/settings/access-log', label: 'Riwayat akses staf' },
@@ -27,6 +30,7 @@ export const SettingsScreen: React.FC = () => {
       />
       <Routes>
         <Route index element={<ProfileSettings />} />
+        <Route path="agent-rules" element={<Rules />} />
         <Route path="subscription" element={<BillingSettings />} />
         <Route path="subscription/payment/:id" element={<InvoiceScreen />} />
         <Route path="team" element={<TeamSettings />} />

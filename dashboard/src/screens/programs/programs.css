@@ -1,4 +1,4 @@
-/* Program agen. Tokens only. Reuses .ag-* (agents) and .st-* (settings) layouts. */
+/* Target & reward, Aturan agen. Tokens only. Reuses .ag-* (agents) and .st-* (settings) layouts. */
 .pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ku-space-4); }
 .pg-reward { display: inline-block; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .pg-text { margin: 0; color: var(--ku-ink-2); line-height: var(--ku-leading-loose); }

@@ -19,6 +19,7 @@ import { Banner, Button, Checkbox, Field, errorText, fmtRupiah } from '../../ui'
 import { SettingsSection } from '../settings/Section';
 import { ImageField } from '../website/ImageField';
 import '../website/website.css';
+import './programs.css';
 
 type Form = {
   overrideOn: boolean;
@@ -67,14 +68,14 @@ export const Rules: React.FC = () => {
         setSaved(f);
         setForm(f);
       })
-      .catch((e) => setError(errorText(e, 'Gagal memuat aturan program agen')))
+      .catch((e) => setError(errorText(e, 'Gagal memuat aturan agen')))
       .finally(() => setLoading(false));
   }, []);
 
   const dirty = useMemo(() => Boolean(form && saved && (Object.keys(form) as Array<keyof Form>).some((k) => form[k] !== saved[k])), [form, saved]);
 
   if (loading) return <div className="st-loading" aria-busy="true" />;
-  if (!form || !saved) return <Banner tone="danger">{error || 'Gagal memuat aturan program agen.'}</Banner>;
+  if (!form || !saved) return <Banner tone="danger">{error || 'Gagal memuat aturan agen.'}</Banner>;
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => {
     setForm((f) => (f ? { ...f, [k]: v } : f));

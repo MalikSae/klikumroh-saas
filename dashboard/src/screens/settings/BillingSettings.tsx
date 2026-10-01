@@ -163,7 +163,7 @@ export const BillingSettings: React.FC = () => {
             </Button>
           )}
           <Button variant={open.proof_url || picking ? 'secondary' : 'primary'} to={`/settings/subscription/payment/${open.id}`} icon={<ArrowRight className="ku-icon--sm" />}>
-            {open.proof_url ? 'Lihat tagihan' : 'Bayar sekarang'}
+            {open.proof_url ? 'Lihat pembayaran' : 'Lanjut ke pembayaran'}
           </Button>
         </div>
       )}
@@ -234,11 +234,11 @@ export const BillingSettings: React.FC = () => {
                 </div>
               </dl>
               <p className="st-muted">
-                {open ? "Tagihan yang belum dibayar diganti dengan paket ini. " : ""}Tagihan mendapat kode unik 3 digit agar transfer Anda mudah dicocokkan.
+                {open ? "Tagihan sebelumnya yang belum dibayar akan diganti. " : ""}Total transfer ditambah kode unik 3 digit agar pembayaran Anda mudah dicocokkan.
               </p>
               <div className="st-checkout__actions">
                 <Button variant="primary" onClick={createInvoice} disabled={creating}>
-                  {creating ? 'Membuat tagihan...' : 'Buat tagihan'}
+                  {creating ? 'Memproses...' : 'Lanjut ke pembayaran'}
                 </Button>
               </div>
             </div>

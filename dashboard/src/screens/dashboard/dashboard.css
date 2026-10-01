@@ -45,3 +45,30 @@
 .db2-chart__tip b { margin-left: auto; font-weight: var(--ku-weight-medium); color: var(--ku-ink); }
 .db2-chart__tip-title { font-weight: var(--ku-weight-semibold); color: var(--ku-ink); margin-bottom: var(--ku-space-1); }
 .db2-chart__tip-total { margin-top: var(--ku-space-1); padding-top: var(--ku-space-1); border-top: 1px solid var(--ku-line-2); }
+
+/* Phone: what needs action first. Order: alert strip, KPIs, Perlu tindakan, Prospek terbaru, channel chart.
+   The two .ku-grid-main rows dissolve so their cards can be reordered (row 1: chart, KPIs; row 2: recent, actions). */
+@media (max-width: 768px) {
+  .db2-row1, .db2-row2 { display: contents; }
+  .db2-row1 > :nth-child(1) { order: 4; }
+  .db2-row1 > :nth-child(2) { order: 1; }
+  .db2-row2 > :nth-child(2) { order: 2; }
+  .db2-row2 > :nth-child(1) { order: 3; }
+}
+
+/* Channel legend that switches series on and off. */
+.db2-legend { flex-wrap: wrap; gap: var(--ku-space-2); }
+.db2-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); color: var(--ku-ink-2); font: var(--ku-weight-medium) var(--ku-text-md) var(--ku-font-body); cursor: pointer; }
+.db2-toggle:hover { border-color: var(--ku-ink-4); color: var(--ku-ink); }
+.db2-toggle--off { color: var(--ku-ink-4); }
+.db2-toggle--off .ku-dot { background: var(--ku-line); }
+.db2-chart__x--first { left: 0; }
+.db2-chart__x--last { right: 0; }
+@media (max-width: 768px) {
+  .db2-legend { padding: var(--ku-space-2) var(--ku-space-4) 0; }
+  .db2-chart { padding-left: var(--ku-space-3); padding-right: var(--ku-space-4); }
+  .db2-chart__plot { gap: 3px; }
+}
+@media (max-width: 768px) {
+  .db2-toggle { height: 36px; padding: 0 var(--ku-space-3); }
+}

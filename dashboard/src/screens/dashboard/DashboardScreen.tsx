@@ -18,7 +18,7 @@ import {
   Button,
   Card,
   ChannelTag,
-  Checkbox,
+  CHANNEL_LABEL,
   DataTable,
   EmptyState,
   KpiCard,
@@ -163,7 +163,7 @@ export const DashboardScreen: React.FC = () => {
   }
 
   return (
-    <div className="ku-stack">
+    <div className="ku-stack db2-home">
       {notice ? (
         <Strip
           tone={notice.tone}
@@ -186,14 +186,11 @@ export const DashboardScreen: React.FC = () => {
         )
       )}
 
-      <div className="ku-grid-main">
+      <div className="ku-grid-main db2-row1">
         <Card
           title="Prospek per kanal"
           actions={
             <>
-              <Checkbox checked={visible.web} onChange={(v) => setVisible((s) => ({ ...s, web: v }))} label="Website" />
-              <Checkbox checked={visible.ads} onChange={(v) => setVisible((s) => ({ ...s, ads: v }))} label="Iklan" />
-              <Checkbox checked={visible.agen} onChange={(v) => setVisible((s) => ({ ...s, agen: v }))} label="Agen" />
               <Select
                 label="Rentang waktu"
                 value={range}
@@ -207,9 +204,19 @@ export const DashboardScreen: React.FC = () => {
             </>
           }
         >
-          <div className="db2-legend">
-            {(['web', 'ads', 'agen'] as Channel[]).filter((c) => visible[c]).map((c) => (
-              <ChannelTag key={c} channel={c} />
+          {/* Legend and series switch in one: tap a channel to hide or show it. */}
+          <div className="db2-legend" role="group" aria-label="Tampilkan kanal">
+            {(['web', 'ads', 'agen'] as Channel[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`db2-toggle${visible[c] ? '' : ' db2-toggle--off'}`}
+                aria-pressed={visible[c]}
+                onClick={() => setVisible((s) => ({ ...s, [c]: !s[c] }))}
+              >
+                <i className={`ku-dot ku-dot--${c}`} aria-hidden="true" />
+                {CHANNEL_LABEL[c]}
+              </button>
             ))}
           </div>
           {!data ? (
@@ -228,7 +235,7 @@ export const DashboardScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="ku-grid-main">
+      <div className="ku-grid-main db2-row2">
         <Card title="Prospek terbaru" actions={<Button size="sm" to="/prospects">Lihat semua</Button>}>
           <div className="db2-gap" />
           <DataTable
@@ -257,7 +264,7 @@ export const DashboardScreen: React.FC = () => {
               )}
               {pendingAgents > 0 && <Notice icon={<UserPlus className="ku-icon" />} title={`${fmtNumber(pendingAgents)} pendaftaran agen baru`} meta="Menunggu persetujuan Anda" to="/agents/pending" />}
               {alerts && alerts.pending_payouts_count > 0 && (
-                <Notice icon={<Wallet className="ku-icon" />} title={`${fmtNumber(alerts.pending_payouts_count)} pengajuan pencairan`} meta={`Total ${fmtRupiah(alerts.pending_payouts_total)}`} to="/agents/payouts" />
+                <Notice icon={<Wallet className="ku-icon" />} title={`${fmtNumber(alerts.pending_payouts_count)} pengajuan pencairan`} meta={`Total ${fmtRupiah(alerts.pending_payouts_total)}`} to="/payouts" />
               )}
               {!(alerts && alerts.uncontacted_prospects_count > 0) && pendingAgents === 0 && !(alerts && alerts.pending_payouts_count > 0) && (
                 <EmptyState compact icon={<Inbox className="ku-icon" />} title="Tidak ada yang menunggu" description="Prospek baru, pendaftaran agen, dan pencairan komisi muncul di sini." />

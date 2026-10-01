@@ -39,3 +39,10 @@
   .pk-row .ku-input:nth-child(2) { grid-column: 1 / -1; order: -1; }
 }
 .pk-progress { margin-right: auto; color: var(--ku-ink-2); font-size: var(--ku-text-md); }
+@media (max-width: 768px) {
+  .ku-mcard__stats .pk-seats { min-width: 0; width: 100%; }
+  /* Package card stats: Harga mulai 40%, Komisi agen 40%, Kursi terisi 20%. */
+  .pk-list .ku-mcard__stats { grid-template-columns: 2fr 2fr 1fr; }
+  /* Card shows just "4 / 30"; the bar stays in the desktop table. */
+  .ku-mcard__stats .pk-seats__bar { display: none; }
+}

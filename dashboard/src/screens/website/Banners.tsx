@@ -143,8 +143,16 @@ export const Banners: React.FC = () => {
           </span>
         </span>
       ),
+      // Phone card: the banner image across the whole card, title under it.
+      mobileMedia: (b) => <img className="ws-mbanner__img" src={getFullImageUrl(b.image_url)} alt="" loading="lazy" />,
+      mobileCell: (b) => (
+        <span className="ag-name">
+          {b.title}
+          {b.subtitle && <span className="ku-muted">{b.subtitle}</span>}
+        </span>
+      ),
     },
-    { key: 'link', header: 'Tautan', cell: (b) => b.cta_url || <span className="ku-muted">—</span> },
+    { key: 'link', header: 'Tautan', mobile: 'labeled', cell: (b) => b.cta_url || <span className="ku-muted">—</span> },
   ];
 
   return (

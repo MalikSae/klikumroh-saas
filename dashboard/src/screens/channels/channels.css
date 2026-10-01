@@ -24,3 +24,14 @@
 .ch-howto > b { color: var(--ku-ink); }
 .ch-howto ul { margin: var(--ku-space-1) 0 0; padding-left: var(--ku-space-5); display: flex; flex-direction: column; gap: var(--ku-space-1); }
 .ch-howto li b { color: var(--ku-ink); font-weight: var(--ku-weight-medium); }
+
+/* Phone: the events table becomes one block per event (name, then labelled lines). */
+@media (max-width: 768px) {
+  .ch-events, .ch-events tbody, .ch-events tr, .ch-events td { display: block; }
+  .ch-events thead { display: none; }
+  .ch-events tr { padding: var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); }
+  .ch-events tr:last-child { border-bottom: 0; }
+  .ch-events td { padding: 2px 0; border-bottom: 0; }
+  .ch-events td[data-label]::before { content: attr(data-label) ': '; color: var(--ku-ink-3); }
+  .ch-events__from { white-space: normal; }
+}

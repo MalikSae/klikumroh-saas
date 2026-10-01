@@ -21,3 +21,17 @@
 .pr-dialog-text { margin: 0; line-height: var(--ku-leading-loose); }
 .pr-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ku-space-4); }
 @media (max-width: 640px) { .pr-form-grid { grid-template-columns: 1fr; } }
+
+/* Phone: prospect detail (drawer is full screen there). */
+@media (max-width: 768px) {
+  /* Status buttons in two even rows (Baru · Dihubungi · Tertarik / Closing · Tidak lanjut) instead of
+     five squeezed columns; 40px tall for thumbs. */
+  .pr-steps { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--ku-space-2); }
+  .pr-step { grid-column: span 2; height: 40px; padding: 0 var(--ku-space-2); font-size: var(--ku-text-md); }
+  .pr-step:nth-child(n + 4) { grid-column: span 3; }
+  .pr-closing { flex-direction: column; align-items: stretch; }
+  .pr-closing .ku-row { display: flex; gap: var(--ku-space-2); }
+  .pr-closing .ku-row > * { flex: 1; }
+  .pr-detail { gap: var(--ku-space-6); }
+  .pr-note-form > .ku-btn { width: 100%; }
+}

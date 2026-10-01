@@ -77,3 +77,13 @@
 @media (max-width: 640px) {
   .st-grid { grid-template-columns: 1fr; }
 }
+
+/* Phone: the sticky save bar sits above the bottom tab bar instead of behind it. */
+@media (max-width: 768px) {
+  .st-savebar { bottom: calc(var(--ku-size-tabbar) + env(safe-area-inset-bottom)); padding: var(--ku-space-3) 0; }
+  .st-savebar .ku-btn { height: 44px; }
+  .st-savebar > .ku-btn:last-child { flex: 1; }
+}
+@media (max-width: 768px) {
+  .st-copy__btn { height: 32px; }
+}

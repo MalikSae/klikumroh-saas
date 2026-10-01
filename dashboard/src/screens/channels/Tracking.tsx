@@ -228,9 +228,9 @@ const EventList: React.FC = () => (
             <td>
               <b>{e.name}</b>
             </td>
-            <td>{e.when}</td>
-            <td className="ch-events__from">{e.from}</td>
-            <td>{e.data}</td>
+            <td data-label="Kapan">{e.when}</td>
+            <td className="ch-events__from" data-label="Dari">{e.from}</td>
+            <td data-label="Data">{e.data}</td>
           </tr>
         ))}
       </tbody>

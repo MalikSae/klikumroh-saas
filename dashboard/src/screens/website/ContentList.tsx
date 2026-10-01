@@ -72,7 +72,7 @@ export function ContentList<T extends Ordered>({
 
   const all: Column<T>[] = [
     ...columns,
-    { key: 'shown', header: 'Tampil', cell: (x) => (x.is_active ? <Pill tone="green">Tampil</Pill> : <Pill>Disembunyikan</Pill>) },
+    { key: 'shown', header: 'Tampil', mobile: 'aside', cell: (x) => (x.is_active ? <Pill tone="green">Tampil</Pill> : <Pill>Disembunyikan</Pill>) },
     {
       key: 'actions',
       header: '',
