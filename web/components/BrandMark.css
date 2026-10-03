@@ -1,0 +1,4 @@
+.tw-brandmark { display: block; margin-bottom: 10px; }
+.tw-brandmark--logo { height: 36px; max-width: 180px; object-fit: contain; object-position: left center; }
+.tw-brandmark--icon { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; }
+.tw-brandmark--text { margin-bottom: 3px; font-size: 11px; font-weight: 700; color: var(--tw-brand-primary); text-transform: uppercase; letter-spacing: 0.5px; }

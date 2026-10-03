@@ -7,7 +7,10 @@ export async function GET(
   const { code } = await context.params;
   const proto = request.headers.get('x-forwarded-proto') || 'http';
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host;
-  const targetUrl = `${proto}://${host}/?ref=${encodeURIComponent(code)}`;
+  // Optional landing page: only a package detail on this same site (?to=/paket/123), never another host.
+  const to = request.nextUrl.searchParams.get('to') || '';
+  const landing = /^\/paket\/\d+$/.test(to) ? to : '/';
+  const targetUrl = `${proto}://${host}${landing}?ref=${encodeURIComponent(code)}`;
   const response = NextResponse.redirect(targetUrl);
   
   response.cookies.set('ref_code', code, {

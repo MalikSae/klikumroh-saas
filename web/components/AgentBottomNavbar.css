@@ -1,3 +1,5 @@
+/* Agent portal bottom navigation: same size and look as the public tab bar (components/PublicTabBar.css):
+   58px tall, hairline top border, soft upward shadow, muted inactive tabs, brand color on the current tab. */
 .agent-bottom-nav-wrap {
   position: fixed;
   bottom: 0;
@@ -12,39 +14,35 @@
 .agent-bottom-nav {
   width: 100%;
   max-width: 428px;
-  background-color: var(--tw-background);
-  border-top: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-border));
+  height: calc(var(--tw-tabbar-h, 58px) + env(safe-area-inset-bottom));
   display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 8px 12px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-  box-shadow: var(--tw-modal-shadow);
+  padding: 0 0 env(safe-area-inset-bottom);
+  background-color: var(--tw-background);
+  border-top: 1px solid var(--tw-hairline);
+  box-shadow: 0 -4px 16px var(--tw-hairline-faint);
   pointer-events: auto;
 }
 
 .agent-bottom-nav__item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  flex: 1;
-  background: none;
+  gap: 2px;
+  padding: 0;
   border: none;
-  cursor: pointer;
-  color: var(--tw-text-primary);
-  opacity: 0.65;
+  background: none;
+  color: var(--tw-text-muted);
+  font: 500 11px var(--tw-font-body);
   text-decoration: none;
-  font-family: inherit;
-  transition: all 0.2s ease;
-  padding: 4px 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.agent-bottom-nav__item:hover,
 .agent-bottom-nav__item--active {
   color: var(--tw-brand-primary);
-  opacity: 1;
+  font-weight: 600;
 }
 
 .agent-bottom-nav__icon {
@@ -55,5 +53,5 @@
 
 .agent-bottom-nav__label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: inherit;
 }

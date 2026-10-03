@@ -3,29 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  UserPlus,
-  CheckCircle2,
-  AlertCircle,
-  Lock,
-  Mail,
-  Phone,
-  User,
-  MapPin,
-  CreditCard,
-  FileText,
-  X,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  ChevronDown,
-  ChevronUp,
-  Users,
-  Award,
-} from 'lucide-react';
+import { UserPlus, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
-import { BottomNavbar } from '../../../components/BottomNavbar';
+import { PublicFooter } from '../../../components/PublicFooter';
+import { BrandMark } from '../../../components/BrandMark';
 import { Button } from '../../../components/Button';
 import regenciesData from '../../../data/indonesia-regencies.json';
 import designTokens from '../../../../design-tokens.json';
@@ -34,6 +16,7 @@ import './AgenDaftar.css';
 interface RegistrationInfo {
   tenant_name?: string;
   brand_logo_url?: string;
+  brand_icon_url?: string;
   brand_primary_color?: string;
   agent_poster_url?: string;
   agent_registration_fee: number;
@@ -43,7 +26,10 @@ interface RegistrationInfo {
   agent_bank_account_number?: string;
   agent_bank_account_holder?: string;
   whatsapp_number?: string;
-  target_rules?: string[];
+  address?: string;
+  phone?: string;
+  email?: string;
+  ppiu_number?: string;
 }
 
 export default function AgenDaftarPage() {
@@ -63,8 +49,6 @@ export default function AgenDaftarPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [isBenefitsExpanded, setIsBenefitsExpanded] = useState(false);
-  const [isTargetRulesExpanded, setIsTargetRulesExpanded] = useState(false);
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -78,6 +62,7 @@ export default function AgenDaftarPage() {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref');
       if (ref) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the browser after hydration; not available on the server render
         setReferralCode(ref.toUpperCase().trim());
       } else {
         const cookieMatch = document.cookie.match(/(?:^|;\s*)referral_agent_code=([^;]+)/);
@@ -110,7 +95,13 @@ export default function AgenDaftarPage() {
             ...combined,
             tenant_name: combined.tenant_name || tenantJson.name,
             brand_primary_color: combined.brand_primary_color || tenantJson.brand_primary_color,
+            brand_logo_url: tenantJson.brand_logo_url || combined.brand_logo_url,
+            brand_icon_url: tenantJson.brand_icon_url,
             whatsapp_number: tenantJson.whatsapp_number,
+            address: tenantJson.address,
+            phone: tenantJson.phone,
+            email: tenantJson.email,
+            ppiu_number: tenantJson.ppiu_number,
           };
         }
         setRegInfo(combined);
@@ -231,8 +222,8 @@ export default function AgenDaftarPage() {
       } else {
         router.push('/agen/login');
       }
-    } catch (err: any) {
-      setSubmitError(err.message || 'Terjadi kesalahan koneksi. Silakan coba lagi.');
+    } catch (err: unknown) {
+      setSubmitError((err instanceof Error && err.message) || 'Terjadi kesalahan koneksi. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -296,9 +287,7 @@ export default function AgenDaftarPage() {
         <div className="tw-agen-daftar-body">
           {/* 2. Page Header Banner */}
           <div className="tw-agen-daftar-header">
-            <span className="tw-agen-daftar-tag">
-              {regInfo?.tenant_name || 'Kemitraan Resmi'}
-            </span>
+            <BrandMark name={regInfo?.tenant_name} logoUrl={regInfo?.brand_logo_url} iconUrl={regInfo?.brand_icon_url} fallback="Kemitraan Resmi" />
             <h1 className="tw-agen-daftar-title">
               Pendaftaran Mitra Agen
             </h1>
@@ -310,6 +299,7 @@ export default function AgenDaftarPage() {
           {/* 3. Poster Promosi Agen (Rasio 1:1) jika diupload */}
           {!loadingInfo && regInfo?.agent_poster_url && (
             <div className="tw-agen-daftar-poster-wrap">
+              {/* eslint-disable-next-line @next/next/no-img-element -- poster uploaded by the travel, served as-is */}
               <img
                 src={regInfo.agent_poster_url}
                 alt="Poster Kemitraan Agen"
@@ -318,115 +308,37 @@ export default function AgenDaftarPage() {
             </div>
           )}
 
-          {/* 4. Info Biaya & Fasilitas (Accordion) */}
-          {!loadingInfo && regInfo && (regInfo.agent_registration_fee > 0 || benefitsData.items.length > 0) && (
-            <div className="tw-agen-daftar-fee-card">
-              <div className="tw-agen-daftar-fee-row">
-                <div className="tw-agen-daftar-fee-info">
-                  {regInfo.agent_registration_fee > 0 ? (
-                    <>
-                      <div className="tw-agen-daftar-fee-icon">
-                        <CreditCard size={18} />
-                      </div>
-                      <div className="tw-agen-daftar-fee-text">
-                        <span className="tw-agen-daftar-fee-label">
-                          Investasi Kemitraan
-                        </span>
-                        <div className="tw-agen-daftar-fee-amount-wrap">
-                          <span className="tw-agen-daftar-fee-amount">
-                            {formatRupiah(regInfo.agent_registration_fee)}
-                          </span>
-                          <span className="tw-agen-daftar-fee-unit">
-                            (Sekali bayar)
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="tw-agen-daftar-free-badge">
-                      Pendaftaran Mitra Gratis
+          {/* 4. Biaya & keuntungan: main content, straight from Pengaturan > Aturan agen. */}
+          {!loadingInfo && regInfo && (
+            <section className="tw-agen-daftar-offer" aria-label="Biaya dan keuntungan menjadi agen">
+              <div className="tw-agen-daftar-offer__fee">
+                {regInfo.agent_registration_fee > 0 ? (
+                  <>
+                    <span className="tw-agen-daftar-offer__label">Investasi kemitraan</span>
+                    <span className="tw-agen-daftar-offer__amount">
+                      {formatRupiah(regInfo.agent_registration_fee)}
+                      <span className="tw-agen-daftar-offer__unit">sekali bayar</span>
                     </span>
-                  )}
-                </div>
-
-                {benefitsData.items.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsBenefitsExpanded((prev) => !prev)}
-                    className="tw-agen-daftar-toggle-benefits"
-                    aria-expanded={isBenefitsExpanded}
-                  >
-                    <span>{isBenefitsExpanded ? 'Tutup' : 'Lihat Fasilitas'}</span>
-                    {isBenefitsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </button>
+                  </>
+                ) : (
+                  <span className="tw-agen-daftar-offer__amount">Pendaftaran mitra gratis</span>
                 )}
               </div>
 
-              {/* Accordion Content */}
-              {isBenefitsExpanded && benefitsData.items.length > 0 && (
-                <div className="tw-agen-daftar-benefits-list">
-                  <span className="tw-agen-daftar-benefits-title">
-                    {benefitsData.title}
-                  </span>
-                  {benefitsData.items.map((item, idx) => (
-                    <div key={idx} className="tw-agen-daftar-benefit-item">
-                      <div className="tw-agen-daftar-benefit-icon">
-                        <CheckCircle2 size={15} />
-                      </div>
-                      <span style={{ flex: 1 }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
+              {benefitsData.items.length > 0 && (
+                <>
+                  <h2 className="tw-agen-daftar-offer__title">{benefitsData.title}</h2>
+                  <ul className="tw-agen-daftar-offer__list">
+                    {benefitsData.items.map((item, idx) => (
+                      <li key={idx} className="tw-agen-daftar-offer__item">
+                        <Check size={16} className="tw-agen-daftar-offer__check" aria-hidden="true" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
-            </div>
-          )}
-
-          {/* Aturan Main Target & Hadiah (Accordion) */}
-          {!loadingInfo && regInfo?.target_rules && regInfo.target_rules.length > 0 && (
-            <div className="tw-agen-daftar-fee-card">
-              <div className="tw-agen-daftar-fee-row">
-                <div className="tw-agen-daftar-fee-info">
-                  <div className="tw-agen-daftar-fee-icon">
-                    <Award size={18} />
-                  </div>
-                  <div className="tw-agen-daftar-fee-text">
-                    <span className="tw-agen-daftar-fee-label">
-                      Program & Insentif
-                    </span>
-                    <span className="tw-agen-daftar-free-badge">
-                      Target & Hadiah Agen
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsTargetRulesExpanded((prev) => !prev)}
-                  className="tw-agen-daftar-toggle-benefits"
-                  aria-expanded={isTargetRulesExpanded}
-                >
-                  <span>{isTargetRulesExpanded ? 'Tutup' : 'Lihat Aturan'}</span>
-                  {isTargetRulesExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-              </div>
-
-              {/* Accordion Content */}
-              {isTargetRulesExpanded && (
-                <div className="tw-agen-daftar-benefits-list">
-                  <span className="tw-agen-daftar-benefits-title">
-                    Aturan Main Target & Hadiah
-                  </span>
-                  {regInfo.target_rules.map((rule, idx) => (
-                    <div key={idx} className="tw-agen-daftar-benefit-item">
-                      <div className="tw-agen-daftar-benefit-icon">
-                        <CheckCircle2 size={15} />
-                      </div>
-                      <span style={{ flex: 1 }}>{rule}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            </section>
           )}
 
           {/* 5. Global Error Banner */}
@@ -445,7 +357,6 @@ export default function AgenDaftarPage() {
                 Nama Lengkap <span className="tw-agen-daftar-required">*</span>
               </label>
               <div className="tw-agen-daftar-input-wrap">
-                <User size={16} className="tw-agen-daftar-icon-left" />
                 <input
                   id="agent-name"
                   type="text"
@@ -470,7 +381,6 @@ export default function AgenDaftarPage() {
                 Nomor WhatsApp <span className="tw-agen-daftar-required">*</span>
               </label>
               <div className="tw-agen-daftar-input-wrap">
-                <Phone size={16} className="tw-agen-daftar-icon-left" />
                 <input
                   id="agent-phone"
                   type="tel"
@@ -499,7 +409,6 @@ export default function AgenDaftarPage() {
                 Alamat Email <span className="tw-agen-daftar-required">*</span>
               </label>
               <div className="tw-agen-daftar-input-wrap">
-                <Mail size={16} className="tw-agen-daftar-icon-left" />
                 <input
                   id="agent-email"
                   type="email"
@@ -524,7 +433,6 @@ export default function AgenDaftarPage() {
                 Domisili (Kabupaten / Kota) <span className="tw-agen-daftar-required">*</span>
               </label>
               <div className="tw-agen-daftar-input-wrap">
-                <MapPin size={16} className="tw-agen-daftar-icon-left" />
                 <input
                   id="agent-domisili"
                   type="text"
@@ -571,7 +479,6 @@ export default function AgenDaftarPage() {
                 Password Akun <span className="tw-agen-daftar-required">*</span>
               </label>
               <div className="tw-agen-daftar-input-wrap">
-                <Lock size={16} className="tw-agen-daftar-icon-left" />
                 <input
                   id="agent-password"
                   type={showPassword ? 'text' : 'password'}
@@ -610,7 +517,6 @@ export default function AgenDaftarPage() {
                 Kode Referral Pengajak (Opsional)
               </label>
               <div className="tw-agen-daftar-input-wrap">
-                <Users size={16} className="tw-agen-daftar-icon-left" />
                 <input
                   id="agent-referral-code"
                   type="text"
@@ -782,10 +688,15 @@ export default function AgenDaftarPage() {
             </div>
           </div>
         )}
+        <PublicFooter
+          tenantName={regInfo?.tenant_name}
+          address={regInfo?.address}
+          phone={regInfo?.phone}
+          whatsappNumber={regInfo?.whatsapp_number}
+          email={regInfo?.email}
+          ppiuNumber={regInfo?.ppiu_number}
+        />
       </MobileContainer>
-
-      {/* 8. Persistent Bottom Navigation */}
-      <BottomNavbar waNumber={regInfo?.whatsapp_number || undefined} />
     </div>
   );
 }

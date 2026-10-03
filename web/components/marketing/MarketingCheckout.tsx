@@ -363,7 +363,7 @@ export const MarketingCheckout: React.FC = () => {
       </header>
 
       {/* CHECKOUT CONTENT */}
-      <Suspense fallback={<div style={{ textAlign: 'center', padding: '100px' }}><Loader2 size={32} className={styles.spinner} style={{margin: '0 auto', color: '#09090B'}}/></div>}>
+      <Suspense fallback={<div style={{ textAlign: 'center', padding: '100px' }}><Loader2 size={32} className={styles.spinner} style={{margin: '0 auto', color: 'var(--km-ink)'}}/></div>}>
         <CheckoutForm />
       </Suspense>
     </div>

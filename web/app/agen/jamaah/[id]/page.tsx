@@ -3,23 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  MessageCircle,
-  Calendar,
-  Package as PackageIcon,
-  Users,
-  Send,
-  AlertCircle,
-  RefreshCw,
-  X,
-  Info,
-  MessageSquare,
-  Lock,
-} from 'lucide-react';
+import { ArrowLeft, MessageCircle, AlertCircle, X, MessageSquare, Lock } from 'lucide-react';
 import { MobileContainer } from '../../../../components/MobileContainer';
-import { AgentBottomNavbar } from '../../../../components/AgentBottomNavbar';
 import styles from './page.module.css';
+import './JamaahDetail.css';
+import { logHabit } from '../../../../lib/agentHabits';
 import { LOST_REASON_OPTIONS, formatDeparturePlan } from '../../../../lib/lostReasons';
 
 interface ProspectData {
@@ -90,6 +78,15 @@ interface ProspectDetailResponse {
   notes: NoteItem[];
 }
 
+// Status labels; colors live in JamaahDetail.css (jd-status--{key}).
+const STATUS_LABEL: Record<string, string> = {
+  baru: 'Baru',
+  dihubungi: 'Dihubungi',
+  tertarik: 'Tertarik',
+  closing: 'Closing',
+  tidak_lanjut: 'Tidak Lanjut',
+};
+
 export default function AgenJamaahDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -114,7 +111,7 @@ export default function AgenJamaahDetailPage() {
   const [noteSubmitting, setNoteSubmitting] = useState<boolean>(false);
   const [noteError, setNoteError] = useState<string | null>(null);
 
-  const fetchDetail = async () => {
+  const loadDetail = async () => {
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
@@ -122,9 +119,6 @@ export default function AgenJamaahDetailPage() {
     }
 
     try {
-      setLoading(true);
-      setError(null);
-
       // 1. Fetch me for branding
       try {
         const meRes = await fetch('/api/agent/me', {
@@ -172,9 +166,17 @@ export default function AgenJamaahDetailPage() {
     }
   };
 
+  // Refresh after an action: show the loader again, then load.
+  const fetchDetail = () => {
+    setLoading(true);
+    setError(null);
+    return loadDetail();
+  };
+
   useEffect(() => {
     if (id) {
-      fetchDetail();
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
+      loadDetail();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -322,95 +324,27 @@ export default function AgenJamaahDetailPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'baru':
-        return {
-          label: 'Baru',
-          bg: 'color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background))',
-          color: 'var(--tw-status-new-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-new) 30%, transparent)',
-        };
-      case 'dihubungi':
-        return {
-          label: 'Dihubungi',
-          bg: 'color-mix(in srgb, var(--tw-status-contacted) 12%, var(--tw-background))',
-          color: 'var(--tw-status-contacted-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-contacted) 30%, transparent)',
-        };
-      case 'tertarik':
-        return {
-          label: 'Tertarik',
-          bg: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-          color: 'var(--tw-brand-primary)',
-          border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 28%, transparent)',
-        };
-      case 'closing':
-        return {
-          label: 'Closing',
-          bg: 'var(--tw-badge-success-bg)',
-          color: 'var(--tw-income)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
-        };
-      case 'tidak_lanjut':
-        return {
-          label: 'Tidak Lanjut',
-          bg: 'var(--tw-badge-neutral-bg)',
-          color: 'var(--tw-text-muted)',
-          border: '1px solid var(--tw-border)',
-        };
-      default:
-        return {
-          label: status,
-          bg: 'var(--tw-badge-neutral-bg)',
-          color: 'var(--tw-text-muted)',
-          border: '1px solid var(--tw-border)',
-        };
-    }
-  };
-
   const getWhatsAppUrl = (phone: string, name: string): string => {
     const cleanPhone = phone.replace(/\D/g, '').replace(/^0/, '62');
     const greeting = `Assalamu'alaikum ${name}, perkenalkan saya mitra resmi ${tenantName}. Terkait rencana ibadah umroh Bapak/Ibu, apakah ada informasi yang ingin ditanyakan?`;
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(greeting)}`;
   };
 
+  const header = (title: string) => (
+    <header className="jd-header">
+      <button type="button" onClick={() => router.back()} aria-label="Kembali" className="jd-icon-btn">
+        <ArrowLeft size={20} />
+      </button>
+      <h1 className="jd-header__title">{title}</h1>
+    </header>
+  );
+
   if (loading) {
     return (
       <MobileContainer>
-        <header
-          className={styles.detailheader1}
-        >
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Kembali"
-            className={styles.detailbutton2}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <span
-            className={styles.detailspan3}
-          >
-            Detail Jamaah
-          </span>
-        </header>
-        <div
-          className={styles.detaildiv4}
-        >
-          <div
-            className={styles.detaildiv5}
-          />
-          <span className={styles.detailspan6}>
-            Memuat data detail jamaah...
-          </span>
-          <style jsx>{`
-            @keyframes spin {
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
+        {header('Detail jamaah')}
+        <div className="jd-page jd-page--center">
+          <p className="jd-muted">Memuat data jamaah...</p>
         </div>
       </MobileContainer>
     );
@@ -419,41 +353,14 @@ export default function AgenJamaahDetailPage() {
   if (error || !data) {
     return (
       <MobileContainer>
-        <header
-          className={styles.detailheader1}
-        >
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Kembali"
-            className={styles.detailbutton7}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <span
-            className={styles.detailspan3}
-          >
-            Detail Jamaah
-          </span>
-        </header>
-        <div
-          className={styles.detaildiv8}
-        >
-          <div className={styles.detaildiv9}>
-            <AlertCircle size={36} />
-          </div>
-          <h2 className={styles.detailh210}>
-            Data Tidak Ditemukan
-          </h2>
-          <p className={styles.detailp11}>
-            {error || 'Informasi jamaah tidak dapat ditampilkan.'}
-          </p>
-          <Link
-            href="/agen/jamaah"
-            className={styles.detaillink12}
-          >
-            <ArrowLeft size={15} />
-            <span>Kembali ke Daftar Jamaah</span>
+        {header('Detail jamaah')}
+        <div className="jd-page jd-page--center">
+          <AlertCircle size={32} className="jd-muted" aria-hidden="true" />
+          <h2 className="jd-title">Data tidak ditemukan</h2>
+          <p className="jd-muted">{error || 'Informasi jamaah tidak dapat ditampilkan.'}</p>
+          <Link href="/agen/jamaah" className="jd-btn">
+            <ArrowLeft size={16} aria-hidden="true" />
+            <span>Kembali ke daftar jamaah</span>
           </Link>
         </div>
       </MobileContainer>
@@ -461,400 +368,178 @@ export default function AgenJamaahDetailPage() {
   }
 
   const { prospect, package: pkg, info_komisi, status_history, notes } = data;
-  const statusBadge = getStatusBadge(prospect.status);
   const isClosing = prospect.status === 'closing';
   const isAnonymized = !!prospect.anonymized_at;
   // Status and notes cannot change while the data is anonymized or the travel is suspended.
   const isReadOnly = isAnonymized || travelSuspended;
+  const statusText =
+    (STATUS_LABEL[prospect.status] || prospect.status) + (isClosing ? (prospect.paid_off_at ? ' · Lunas' : ' · Belum lunas') : '');
+  const pax = prospect.jumlah_jamaah || 1;
+  // Commission state: potential (before closing), held (DP paid), withdrawable (paid off).
+  const komisiState = !isClosing
+    ? { text: 'Potensi', tone: 'muted' }
+    : prospect.paid_off_at || (info_komisi?.held_amount || 0) <= 0
+    ? { text: 'Siap ditarik', tone: 'ok' }
+    : { text: 'Tertahan', tone: 'wait' };
 
   return (
     <MobileContainer>
-      {/* Sticky Header */}
-      <header
-        className={styles.detailheader1}
-      >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Kembali"
-          className={styles.detailbutton13}
-        >
-          <ArrowLeft size={20} />
-        </button>
+      {/* Drill-down page: back button, no bottom tab bar (same as Riwayat komisi and Tarik saldo). */}
+      {header(prospect.name)}
 
-        <div className={styles.detaildiv14}>
-          <h1
-            className={styles.detailh115}
-          >
-            {prospect.name}
-          </h1>
-          <span className={styles.detailspan16}>
-            Detail Calon Jamaah
-          </span>
-        </div>
-
-        <span
-          className={styles.detailspan17} style={{
-  backgroundColor: statusBadge.bg,
-  color: statusBadge.color,
-  border: statusBadge.border
-}}
-        >
-          {statusBadge.label}
-          {isClosing && (prospect.paid_off_at ? ' · Lunas' : ' · Menunggu lunas')}
-        </span>
-      </header>
-
-      {/* Main Canvas */}
-      <div
-        className={styles.detaildiv18}
-      >
-        {/* 1. Info Kontak Section */}
-        <section
-          aria-label="Info Kontak Jamaah"
-          className={styles.detailsection19}
-        >
-          <div className={styles.detaildiv20}>
-            <span
-              className={styles.detailspan21}
-            >
-              Calon Jamaah
-            </span>
-            <h2
-              className={styles.detailh222}
-            >
-              {prospect.name}
-            </h2>
-            <span
-              className={styles.detailspan23}
-            >
-              {prospect.phone}
-            </span>
+      <div className="jd-page">
+        {/* Registration details as label / value rows. */}
+        <section className="jd-panel" aria-labelledby="jd-daftar">
+          <div className="jd-panel__head">
+            <h2 id="jd-daftar" className="jd-panel__title">Pendaftaran</h2>
           </div>
-
-          {/* Action Buttons (none once the jamaah's personal data was removed) */}
-          {!isAnonymized && (
-          <div className={styles.detaildiv24}>
-            <a
-              href={getWhatsAppUrl(prospect.phone, prospect.name)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.detaila25}
-            >
-              <MessageCircle size={15} color="var(--tw-on-brand)" />
-              <span>Chat WhatsApp</span>
-            </a>
-
-            <Link
-              href={`/agen/script-wa?prospect_id=${prospect.id}`}
-              className={styles.detaillink26}
-            >
-              <MessageSquare size={15} />
-              <span>Script Chat</span>
-            </Link>
-          </div>
-          )}
+          <dl className="jd-rows">
+            <div className="jd-rows__item">
+              <dt>Nomor WA</dt>
+              <dd className="jd-num">{prospect.phone || '-'}</dd>
+            </div>
+            <div className="jd-rows__item jd-rows__item--full">
+              <dt>Paket</dt>
+              <dd>{pkg ? pkg.name : 'Belum pilih paket'}</dd>
+            </div>
+            <div className="jd-rows__item">
+              <dt>Jumlah jamaah</dt>
+              <dd>{pax} orang</dd>
+            </div>
+            <div className="jd-rows__item">
+              <dt>{pkg ? 'Berangkat' : 'Rencana berangkat'}</dt>
+              <dd>{pkg ? (pkg.departure_date ? formatDate(pkg.departure_date) : 'Belum diatur') : formatDeparturePlan(prospect.departure_plan)}</dd>
+            </div>
+            <div className="jd-rows__item">
+              <dt>Domisili</dt>
+              <dd>{prospect.domicile || '-'}</dd>
+            </div>
+          </dl>
+          <p className="jd-panel__foot">
+            Masuk {formatDate(prospect.created_at)} lewat {prospect.entry_method === 'agent_manual' ? 'input manual Anda' : 'formulir website'}
+          </p>
         </section>
 
-        {/* 2. Konteks Pendaftaran Section */}
-        <section
-          aria-label="Konteks Pendaftaran"
-          className={styles.detailsection27}
-        >
-          <span
-            className={styles.detailspan28}
-          >
-            Konteks Pendaftaran
-          </span>
-
-          <div className={styles.detaildiv29}>
-            <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>Paket Diminati</span>
-              <div className={styles.detaildiv31}>
-                <PackageIcon size={13} color="var(--tw-text-secondary)" className={styles.noShrink} />
-                <span className={styles.detailspan32}>
-                  {pkg ? pkg.name : 'Paket Pilihan'}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>Jumlah Jamaah</span>
-              <div className={styles.detaildiv31}>
-                <Users size={13} color="var(--tw-text-secondary)" className={styles.noShrink} />
-                <span className={styles.detailspan32}>
-                  {prospect.jumlah_jamaah || 1} Orang
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>{pkg ? 'Berangkat' : 'Rencana Berangkat'}</span>
-              <div className={styles.detaildiv31}>
-                <span className={styles.detailspan32}>
-                  {pkg ? (pkg.departure_date ? formatDate(pkg.departure_date) : 'Belum diatur di paket') : formatDeparturePlan(prospect.departure_plan)}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>Domisili</span>
-              <div className={styles.detaildiv31}>
-                <span className={styles.detailspan32}>{prospect.domicile || '-'}</span>
-              </div>
-            </div>
-
-            <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>Jalur Pendaftaran</span>
-              <span className={styles.detailspan33}>
-                {prospect.entry_method === 'agent_manual' ? 'Input Manual Agen' : 'Formulir Website'}
-              </span>
-            </div>
-
-            <div className={styles.detaildiv20}>
-              <span className={styles.detailspan30}>Tanggal Masuk</span>
-              <div className={styles.detaildiv31}>
-                <Calendar size={12} color="var(--tw-text-secondary)" />
-                <span className={styles.detailspan33}>
-                  {formatDate(prospect.created_at)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. Info Komisi Section */}
+        {/* Commission for this jamaah. */}
         {info_komisi && info_komisi.type !== 'dibatalkan' && (
-          <section
-            aria-label="Informasi Komisi"
-            className={styles.detailsection34}
-          >
-            <div className={styles.detaildiv35}>
-              <span
-                className={styles.detailspan28}
-              >
-                Informasi Komisi
-              </span>
-
-              <span
-                className={`${styles.detailspan36} ${isClosing ? styles.detailspan37 : styles.detailspan38}`}
-              >
-                {!isClosing
-                  ? 'Potensi Komisi'
-                  : prospect.paid_off_at
-                  ? 'Lunas, siap dicairkan'
-                  : 'Tertahan, menunggu lunas'}
-              </span>
+          <section className="jd-panel" aria-labelledby="jd-komisi">
+            <div className="jd-panel__head">
+              <h2 id="jd-komisi" className="jd-panel__title">Komisi</h2>
+              <span className={`jd-tag jd-tag--${komisiState.tone}`}>{komisiState.text}</span>
             </div>
-
-            <div className={styles.detaildiv39}>
-              <span
-                className={styles.detailspan40}
-              >
-                {formatRupiah(info_komisi.total_amount)}
-              </span>
-              {info_komisi.rate_per_jamaah > 0 && (prospect.jumlah_jamaah || 1) > 1 && (
-                <span className={styles.detailspan30}>
-                  ({formatRupiah(info_komisi.rate_per_jamaah)} x {prospect.jumlah_jamaah} jamaah)
-                </span>
-              )}
-            </div>
-
-            <p
-              className={styles.detailp41}
-            >
+            {/* Amount, then the per-jamaah breakdown on its own line (it wrapped awkwardly next to the 22px amount). */}
+            <p className="jd-amount">{formatRupiah(info_komisi.total_amount)}</p>
+            {info_komisi.rate_per_jamaah > 0 && pax > 1 && (
+              <p className="jd-amount__calc">
+                {formatRupiah(info_komisi.rate_per_jamaah)} x {pax} jamaah
+              </p>
+            )}
+            <p className="jd-muted">
               {!isClosing
-                ? 'Komisi berstatus potensi. Komisi tercatat saat jamaah membayar DP (closing).'
-                : prospect.paid_off_at || (info_komisi.held_amount || 0) <= 0
-                ? 'Jamaah sudah lunas. Komisi ini sudah bisa Anda cairkan.'
-                : 'Jamaah sudah membayar DP. Komisi tercatat dan bisa dicairkan setelah admin menandai jamaah lunas.'}
+                ? 'Komisi tercatat saat jamaah membayar DP (closing).'
+                : komisiState.tone === 'ok'
+                ? 'Jamaah sudah lunas. Komisi ini sudah bisa Anda tarik.'
+                : 'Jamaah sudah membayar DP. Komisi bisa ditarik setelah admin menandai jamaah lunas.'}
             </p>
           </section>
         )}
 
-        {/* 4. Pipeline Status & Ubah Status Button */}
-        <section
-          aria-label="Status Prospek"
-          className={styles.detailsection27}
-        >
-          <div className={styles.detaildiv35}>
-            <div className={styles.detaildiv20}>
-              <span
-                className={styles.detailspan28}
-              >
-                Status Tahapan
-              </span>
-              <span className={styles.detailspan42}>
-                {statusBadge.label}
-          {isClosing && (prospect.paid_off_at ? ' · Lunas' : ' · Menunggu lunas')}
-              </span>
-            </div>
-
+        {/* Status and its history in one panel. */}
+        <section className="jd-panel" aria-labelledby="jd-status">
+          <div className="jd-panel__head">
+            <h2 id="jd-status" className="jd-panel__title">Status</h2>
             {!isClosing && !isReadOnly ? (
-              <button
-                type="button"
-                onClick={handleOpenStatusModal}
-                className={styles.detailbutton43}
-              >
-                Ubah Status
+              <button type="button" onClick={handleOpenStatusModal} className="jd-btn jd-btn--sm">
+                Ubah status
               </button>
             ) : (
-              <span
-                className={styles.detailspan44}
-              >
-                <Lock size={12} />
-                <span>{isClosing ? 'Closing — Status Final' : 'Status Terkunci'}</span>
+              <span className="jd-lock">
+                <Lock size={14} aria-hidden="true" />
+                {isClosing ? 'Final' : 'Terkunci'}
               </span>
             )}
           </div>
-
-          <div
-            className={styles.detaildiv45}
-          >
-            <Info size={14} color="var(--tw-text-muted)" className={styles.noShrink} />
-            <span className={styles.detailspan46}>
-              {isAnonymized
-                ? 'Data pribadi jamaah ini sudah dihapus atas permintaannya (UU PDP). Riwayat dan komisi tetap tersimpan.'
-                : travelSuspended
-                ? 'Layanan travel sedang ditangguhkan. Status dan catatan bisa diubah lagi setelah travel memperpanjang langganan.'
-                : isClosing
-                ? 'Status prospek ini sudah Closing dan bersifat final.'
-                : 'Status Closing akan ditetapkan oleh admin travel setelah verifikasi pembayaran.'}
-            </span>
-          </div>
-        </section>
-
-        {/* 5. Riwayat Status Timeline */}
-        <section
-          aria-label="Riwayat Status"
-          className={styles.detailsection27}
-        >
-          <span
-            className={styles.detailspan28}
-          >
-            Riwayat Status
-          </span>
-
-          {status_history.length === 0 ? (
-            <span className={styles.detailspan47}>
-              Belum ada perubahan status.
-            </span>
-          ) : (
-            <div className={styles.detaildiv48}>
-              {status_history.map((hist, idx) => {
-                const isAgent = hist.changed_by_type === 'agent';
-                const isLast = idx === status_history.length - 1;
-
-                return (
-                  <div
-                    key={hist.id}
-                    className={styles.detaildiv49}
-                  >
-                    <div
-                      className={styles.detaildiv50}
-                    />
-
-                    <div
-                      className={`${styles.detaildiv51} ${isLast ? styles.detaildiv52 : styles.detaildiv53}`}
-                    >
-                      <div className={styles.detaildiv54}>
-                        <span className={styles.detailspan33}>
-                          Status: {hist.new_status}
-                        </span>
-                        <span className={styles.detailspan55}>
-                          {formatDateTime(hist.changed_at)}
-                        </span>
-                      </div>
-
-                      <span className={styles.detailspan56}>
-                        {isAgent ? 'Diubah oleh Anda' : 'Diubah oleh Admin Travel'}
-                        {hist.lost_reason && ` - Alasan: ${hist.lost_reason}`}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <p className={`jd-status jd-status--${prospect.status} jd-status--lg`}>{statusText}</p>
+          <p className="jd-muted">
+            {isAnonymized
+              ? 'Data pribadi jamaah ini sudah dihapus atas permintaannya (UU PDP). Riwayat dan komisi tetap tersimpan.'
+              : travelSuspended
+              ? 'Layanan travel sedang ditangguhkan. Status dan catatan bisa diubah lagi setelah travel memperpanjang langganan.'
+              : isClosing
+              ? 'Status Closing sudah final.'
+              : 'Status Closing ditetapkan admin travel setelah verifikasi pembayaran.'}
+          </p>
+          {status_history.length > 0 && (
+            <ol className="jd-history">
+              {status_history.map((hist) => (
+                <li key={hist.id} className="jd-history__item">
+                  <span className="jd-history__what">{STATUS_LABEL[hist.new_status] || hist.new_status}</span>
+                  <span className="jd-muted">
+                    {formatDateTime(hist.changed_at)} · {hist.changed_by_type === 'agent' ? 'oleh Anda' : 'oleh admin travel'}
+                    {hist.lost_reason && ` · ${hist.lost_reason}`}
+                  </span>
+                </li>
+              ))}
+            </ol>
           )}
         </section>
 
-        {/* 6. Catatan Perkembangan Section */}
-        <section
-          aria-label="Catatan Perkembangan"
-          className={styles.detailsection27}
-        >
-          <span
-            className={styles.detailspan28}
-          >
-            Catatan Prospek ({notes.length})
-          </span>
-
-          {/* Form Tambah Catatan */}
+        {/* Notes */}
+        <section className="jd-panel" aria-labelledby="jd-catatan">
+          <div className="jd-panel__head">
+            <h2 id="jd-catatan" className="jd-panel__title">Catatan{notes.length > 0 ? ` (${notes.length})` : ''}</h2>
+          </div>
           {!isReadOnly && (
-          <form onSubmit={handleAddNote} className={styles.detailform57}>
-            {noteError && (
-              <span className={styles.detailspan58}>
-                {noteError}
-              </span>
-            )}
-            <textarea
-              rows={2}
-              required
-              placeholder="Tulis catatan perkembangan jamaah..."
-              value={newNoteText}
-              onChange={(e) => setNewNoteText(e.target.value)}
-              className={styles.detailtextarea59}
-            />
-
-            <div className={styles.detaildiv60}>
-              <button
-                type="submit"
-                disabled={noteSubmitting || !newNoteText.trim()}
-                className={`${styles.detailbutton61} ${noteSubmitting || !newNoteText.trim() ? styles.detailbutton62 : styles.detailbutton63}`}
-              >
-                <Send size={12} />
-                <span>{noteSubmitting ? 'Mengirim...' : 'Tambah Catatan'}</span>
+            <form onSubmit={handleAddNote} className="jd-note-form">
+              {noteError && (
+                <p className="jd-error" role="alert">
+                  {noteError}
+                </p>
+              )}
+              <textarea
+                rows={2}
+                required
+                aria-label="Catatan baru"
+                placeholder="Tulis perkembangan jamaah ini"
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                className="tw-field jd-note-form__input"
+              />
+              <button type="submit" disabled={noteSubmitting || !newNoteText.trim()} className="jd-btn jd-btn--sm jd-note-form__submit">
+                {noteSubmitting ? 'Menyimpan...' : 'Simpan catatan'}
               </button>
-            </div>
-          </form>
+            </form>
           )}
-
-          {/* List of Notes */}
           {notes.length === 0 ? (
-            <div className={styles.detaildiv64}>
-              <span className={styles.detailspan47}>
-                Belum ada catatan. Tambahkan catatan untuk memantau follow-up.
-              </span>
-            </div>
+            isReadOnly && <p className="jd-muted">Belum ada catatan.</p>
           ) : (
-            <div className={styles.detaildiv65}>
-              {notes.map((note) => {
-                const isAuthorAgent = note.author_type === 'agent';
-                return (
-                  <div
-                    key={note.id}
-                    className={`${styles.detaildiv66} ${isAuthorAgent ? styles.detaildiv67 : styles.detaildiv68}`}
-                  >
-                    <p
-                      className={styles.detailp69}
-                    >
-                      {note.note_text}
-                    </p>
-                    <div className={styles.detaildiv70}>
-                      <span className={styles.detailspan71}>
-                        {isAuthorAgent ? 'Catatan Anda' : 'Admin Travel'}
-                      </span>
-                      <span className={styles.detailspan55}>
-                        {formatDateTime(note.created_at)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <ul className="jd-notes">
+              {notes.map((note) => (
+                <li key={note.id} className="jd-notes__item">
+                  <p className="jd-notes__text">{note.note_text}</p>
+                  <span className="jd-muted">
+                    {note.author_type === 'agent' ? 'Anda' : 'Admin travel'} · {formatDateTime(note.created_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </div>
+
+      {/* Contact actions stay at the bottom of the screen while scrolling. */}
+      {!isAnonymized && (
+        <div className="jd-actions">
+          <a href={getWhatsAppUrl(prospect.phone, prospect.name)} target="_blank" rel="noopener noreferrer" className="jd-btn jd-btn--wa" onClick={() => logHabit('contact')}>
+            <MessageCircle size={18} aria-hidden="true" />
+            <span>Chat WhatsApp</span>
+          </a>
+          <Link href={`/agen/script-wa?prospect_id=${prospect.id}`} className="jd-btn jd-btn--soft">
+            <MessageSquare size={18} aria-hidden="true" />
+            <span>Script chat</span>
+          </Link>
+        </div>
+      )}
 
       {/* Modal Ubah Status (TIDAK ADA OPSI CLOSING) */}
       {!isClosing && !isReadOnly && isStatusModalOpen && (
@@ -989,7 +674,6 @@ export default function AgenJamaahDetailPage() {
         </div>
       )}
 
-      <AgentBottomNavbar />
     </MobileContainer>
   );
 }

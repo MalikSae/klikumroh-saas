@@ -81,9 +81,9 @@
 }
 
 .loginBtn:hover {
-  color: #09090B;
-  border-color: #09090B;
-  background-color: #F4F4F5;
+  color: var(--km-ink);
+  border-color: var(--km-ink);
+  background-color: var(--km-surface-subtle);
 }
 
 .ctaBtn {
@@ -93,17 +93,17 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 700;
-  color: #FFFFFF;
-  background-color: #09090B;
+  color: var(--km-paper);
+  background-color: var(--km-ink);
   text-decoration: none;
   padding: 12px 20px;
   border-radius: 8px;
   transition: background-color 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--km-shadow-color) 12%, transparent);
 }
 
 .ctaBtn:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
   transform: translateY(-1px);
 }
 
@@ -196,9 +196,9 @@
   }
 
   .mobileLoginBtn:hover {
-    border-color: #09090B;
-    color: #09090B;
-    background-color: #F4F4F5;
+    border-color: var(--km-ink);
+    color: var(--km-ink);
+    background-color: var(--km-surface-subtle);
   }
 
   .mobileCtaBtn {
@@ -208,8 +208,8 @@
     gap: 8px;
     padding: 12px;
     border-radius: 8px;
-    background-color: #09090B;
-    color: #FFFFFF;
+    background-color: var(--km-ink);
+    color: var(--km-paper);
     font-weight: 700;
     font-size: 15px;
     text-decoration: none;

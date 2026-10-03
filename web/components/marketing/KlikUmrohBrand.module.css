@@ -25,7 +25,7 @@
 
 .brandDark .iconFrame {
   border-radius: 0;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid color-mix(in srgb, var(--km-paper) 22%, transparent);
   box-shadow: none;
 }
 
@@ -53,23 +53,23 @@
 
 .brandLight .wordmarkBold {
   font-weight: 800;
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .brandLight .wordmarkMuted {
   font-weight: 600;
-  color: #52525B;
+  color: var(--km-neutral-600);
   margin-left: 1px;
 }
 
 .brandDark .wordmarkBold {
   font-weight: 800;
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .brandDark .wordmarkMuted {
   font-weight: 600;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
   margin-left: 1px;
 }
 
@@ -84,13 +84,13 @@
 }
 
 .brandLight .badge {
-  background-color: #F4F4F5;
-  color: #71717A;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  color: var(--km-muted);
+  border: 1px solid var(--km-line);
 }
 
 .brandDark .badge {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #A1A1AA;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: color-mix(in srgb, var(--km-paper) 8%, transparent);
+  color: var(--km-neutral-400);
+  border: 1px solid color-mix(in srgb, var(--km-paper) 14%, transparent);
 }

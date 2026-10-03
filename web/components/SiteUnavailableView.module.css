@@ -31,3 +31,22 @@
   line-height: 1.6;
   color: var(--km-muted);
 }
+
+.retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.retry:hover {
+  background-color: var(--km-neutral-800);
+}

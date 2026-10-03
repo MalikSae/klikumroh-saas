@@ -64,7 +64,7 @@
   color: var(--km-ink);
   font-weight: 800;
   text-decoration: underline;
-  text-decoration-color: #09090B;
+  text-decoration-color: var(--km-ink);
   text-decoration-thickness: 4px;
   text-underline-offset: 8px;
 }
@@ -94,17 +94,17 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 16px;
   font-weight: 700;
-  color: #FFFFFF;
-  background-color: #09090B;
+  color: var(--km-paper);
+  background-color: var(--km-ink);
   padding: 14px 24px;
   border-radius: 8px;
   text-decoration: none;
   transition: background-color 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--km-shadow-color) 12%, transparent);
 }
 
 .primaryBtn:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
   transform: translateY(-1px);
 }
 
@@ -115,8 +115,8 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: #09090B;
-  background-color: #FFFFFF;
+  color: var(--km-ink);
+  background-color: var(--km-paper);
   border: 1px solid var(--km-line);
   padding: 13px 20px;
   border-radius: 8px;
@@ -125,8 +125,8 @@
 }
 
 .secondaryBtn:hover {
-  background-color: #F4F4F5;
-  border-color: #D4D4D8;
+  background-color: var(--km-surface-subtle);
+  border-color: var(--km-neutral-300);
 }
 
 .playIcon {
@@ -153,7 +153,7 @@
 }
 
 .proofCheck {
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 /* Preview Container */
@@ -171,7 +171,7 @@
   border: 1px solid var(--km-line);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--km-shadow-color) 8%, transparent);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -197,7 +197,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #F4F4F5;
+  background-color: var(--km-surface-subtle);
   border: 1px solid var(--km-line);
   padding: 4px 10px;
   border-radius: 9999px;
@@ -207,7 +207,7 @@
   width: 6px;
   height: 6px;
   border-radius: 9999px;
-  background-color: #09090B;
+  background-color: var(--km-ink);
   animation: pulseRing 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -236,8 +236,8 @@
 
 .metricBox:hover {
   transform: translateY(-2px);
-  border-color: #A1A1AA;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: var(--km-neutral-400);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--km-shadow-color) 5%, transparent);
 }
 
 .metricLabel {
@@ -262,7 +262,7 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .metricDeltaMuted {
@@ -276,7 +276,7 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .funnelBox {
@@ -341,7 +341,7 @@
 }
 
 .funnelBarClosing {
-  background-color: #09090B;
+  background-color: var(--km-ink);
 }
 
 .funnelCount {
@@ -353,7 +353,7 @@
 }
 
 .funnelCountClosing {
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 /* Floating Agent Card */
@@ -366,7 +366,7 @@
   border: 1px solid var(--km-line);
   border-radius: 12px;
   padding: 18px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--km-shadow-color) 12%, transparent);
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -377,7 +377,7 @@
 .agentPortalCard:hover {
   animation-play-state: paused;
   transform: translateY(-8px) scale(1.01);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--km-shadow-color) 16%, transparent);
 }
 
 .agentGreeting {
@@ -412,7 +412,7 @@
 }
 
 .agentBalanceBox {
-  background: #F4F4F5;
+  background: var(--km-surface-subtle);
   border: 1px solid var(--km-line);
   border-radius: 10px;
   padding: 12px;
@@ -475,8 +475,8 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #FFFFFF;
-  background-color: #09090B;
+  color: var(--km-paper);
+  background-color: var(--km-ink);
   border: none;
   border-radius: 6px;
   padding: 6px 10px;
@@ -485,7 +485,7 @@
 }
 
 .shareBtn:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
 }
 
 .agentMiniStats {

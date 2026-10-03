@@ -83,9 +83,9 @@
 }
 
 .stepBadge {
-  background-color: #F4F4F5;
-  color: #09090B;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  color: var(--km-ink);
+  border: 1px solid var(--km-line);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -116,12 +116,12 @@
 }
 
 .planOption:hover {
-  border-color: #09090B;
+  border-color: var(--km-ink);
 }
 
 .planOptionSelected {
-  border-color: #09090B;
-  background-color: #F4F4F5;
+  border-color: var(--km-ink);
+  background-color: var(--km-surface-subtle);
 }
 
 .planInfo {
@@ -142,14 +142,14 @@
 }
 
 .planOptionSelected .radioCircle {
-  border-color: #09090B;
+  border-color: var(--km-ink);
 }
 
 .radioDot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #09090B;
+  background-color: var(--km-ink);
   transform: scale(0);
   transition: transform 0.2s ease;
 }
@@ -168,8 +168,8 @@
 }
 
 .discountBadge {
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   font-size: 12px;
   font-weight: 600;
   padding: 2px 8px;
@@ -232,8 +232,8 @@
 }
 
 .input:focus {
-  border-color: #09090B;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+  border-color: var(--km-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .subdomainInputBox {
@@ -247,8 +247,8 @@
 }
 
 .subdomainInputBox:focus-within {
-  border-color: #09090B;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+  border-color: var(--km-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .inputSubdomain {
@@ -352,8 +352,8 @@
 .submitBtn {
   margin-top: 32px;
   width: 100%;
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   border: none;
   padding: 16px;
   border-radius: 8px;
@@ -365,11 +365,11 @@
   justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(9, 9, 11, 0.2);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--km-ink) 20%, transparent);
 }
 
 .submitBtn:hover:not(:disabled) {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
   transform: translateY(-1px);
 }
 
@@ -426,7 +426,7 @@
 }
 
 .successIcon {
-  color: #09090B;
+  color: var(--km-ink);
   margin: 0 auto 24px;
 }
 
@@ -486,8 +486,8 @@
 
 .loginModalBtn {
   display: inline-block;
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   text-decoration: none;
   padding: 14px 28px;
   border-radius: 8px;
@@ -497,7 +497,7 @@
 }
 
 .loginModalBtn:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
 }
 
 @media (max-width: 900px) {

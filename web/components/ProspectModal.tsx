@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { FormInput } from './FormInput';
+import { CityField } from './CityField';
 import { Button } from './Button';
 import { getMetaBrowserContext, isMetaPixelActive, trackMetaEvent } from '../lib/metaPixel';
 import './ProspectModal.css';
@@ -29,9 +30,9 @@ export interface ProspectModalProps {
   tenantName?: string;
 }
 
-// Next 24 months as "YYYY-MM" options for the planned departure (plus "belum tahu").
+// Next 24 months as "YYYY-MM" options for the planned departure. Empty = not chosen ("Pilih Bulan").
 const departureOptions = (): { value: string; label: string }[] => {
-  const opts = [{ value: '', label: 'Belum tahu' }];
+  const opts: { value: string; label: string }[] = [];
   const d = new Date();
   d.setDate(1);
   for (let i = 0; i < 24; i++) {
@@ -63,10 +64,7 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
   // UU PDP 27/2022: explicit consent before the travel may contact the visitor.
   const [consent, setConsent] = useState<boolean>(false);
   // The travel measures its ads with Meta: the consent text then says so (UU PDP transparency).
-  const [adsMeasured, setAdsMeasured] = useState<boolean>(false);
-  useEffect(() => {
-    if (isOpen) setAdsMeasured(isMetaPixelActive());
-  }, [isOpen]);
+  const adsMeasured = isOpen && isMetaPixelActive();
 
   if (!isOpen) return null;
 
@@ -226,8 +224,8 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
           }
         }
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Terjadi kesalahan saat memproses data');
+    } catch (err: unknown) {
+      setErrorMessage((err instanceof Error && err.message) || 'Terjadi kesalahan saat memproses data');
     } finally {
       setSubmitting(false);
     }
@@ -241,6 +239,7 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
         role="dialog"
         aria-modal="true"
       >
+        <div className="tw-modal-grip" aria-hidden="true" />
         <div className="tw-modal-header">
           <h2 className="tw-modal-title">Konsultasi gratis, tanpa biaya komitmen.</h2>
           <button
@@ -315,33 +314,30 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
               onChange={handlePhoneChange}
             />
 
-            <FormInput
-              label="Rencana Jumlah Jamaah"
-              type="number"
-              inputMode="numeric"
-              placeholder="Contoh: 2"
-              hint="Maksimal 50 orang"
-              value={jamaahCount}
-              onChange={(e) => setJamaahCount(e.target.value.replace(/\D/g, '').slice(0, 2))}
-            />
-
-            {!selectedPackage && (
+            {/* Short answers side by side to keep the sheet compact. */}
+            <div className="tw-modal-row">
               <FormInput
-                label="Rencana Berangkat"
-                type="select"
-                value={departurePlan}
-                onChange={(e) => setDeparturePlan(e.target.value)}
-                options={departureOptions()}
+                label="Jumlah jamaah"
+                type="number"
+                inputMode="numeric"
+                placeholder="1-4"
+                value={jamaahCount}
+                onChange={(e) => setJamaahCount(e.target.value.replace(/\D/g, '').slice(0, 2))}
               />
-            )}
 
-            <FormInput
-              label="Domisili (Kota)"
-              placeholder="Contoh: Bandung"
-              maxLength={100}
-              value={domicile}
-              onChange={(e) => setDomicile(e.target.value)}
-            />
+              {!selectedPackage && (
+                <FormInput
+                  label="Rencana berangkat"
+                  type="select"
+                  value={departurePlan}
+                  onChange={(e) => setDeparturePlan(e.target.value)}
+                  options={departureOptions()}
+                  placeholder="Pilih Bulan"
+                />
+              )}
+            </div>
+
+            <CityField label="Domisili (kota)" placeholder="Contoh: Bandung" value={domicile} onChange={setDomicile} openUp />
 
             <label className="tw-modal-consent" htmlFor="prospect-consent">
               <input

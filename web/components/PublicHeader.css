@@ -4,7 +4,7 @@
   justify-content: space-between;
   padding: 12px 16px;
   background-color: var(--tw-background);
-  border-bottom: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+  border-bottom: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-hairline));
   position: sticky;
   top: 0;
   z-index: 40;

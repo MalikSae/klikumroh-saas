@@ -25,7 +25,7 @@
   font-family: inherit;
   color: var(--tw-text-primary);
   background-color: var(--tw-background);
-  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border: 1.5px solid var(--tw-divider-strong);
   border-radius: var(--radius-md);
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -41,7 +41,8 @@
 .tw-form-select:focus,
 .tw-form-textarea:focus {
   border-color: var(--tw-brand-primary);
-  box-shadow: 0 0 0 3px var(--tw-focus-ring);
+  /* One thick border in the brand color (no second, tinted halo). */
+  box-shadow: 0 0 0 1px var(--tw-brand-primary);
 }
 
 .tw-form-input--error,
@@ -88,4 +89,12 @@
 .tw-terms-list li::marker {
   color: var(--tw-brand-primary);
   font-weight: 600;
+}
+
+/* A field with an error keeps one color when focused too. */
+.tw-form-input--error:focus,
+.tw-form-select--error:focus,
+.tw-form-textarea--error:focus {
+  border-color: var(--tw-brand-secondary);
+  box-shadow: 0 0 0 1px var(--tw-brand-secondary);
 }

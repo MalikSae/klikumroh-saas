@@ -14,7 +14,7 @@
   font-family: inherit;
   color: var(--tw-text-primary);
   background-color: var(--tw-background);
-  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border: 1.5px solid var(--tw-divider-strong);
   border-radius: var(--radius-md);
   outline: none;
   cursor: pointer;
@@ -29,7 +29,8 @@
 .tw-dropdown__trigger:focus,
 .tw-dropdown__trigger--open {
   border-color: var(--tw-brand-primary);
-  box-shadow: 0 0 0 3px var(--tw-focus-ring);
+  /* One thick border in the brand color (no second, tinted halo). */
+  box-shadow: 0 0 0 1px var(--tw-brand-primary);
 }
 
 .tw-dropdown__trigger--error {
@@ -39,7 +40,7 @@
 .tw-dropdown__trigger:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background-color: #F3F4F6;
+  background-color: var(--tw-gray-100);
 }
 
 .tw-dropdown__value {
@@ -79,7 +80,7 @@
   right: 0;
   z-index: 999;
   background-color: var(--tw-background);
-  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, rgba(0, 0, 0, 0.06));
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-hairline));
   border-radius: var(--radius-md);
   box-shadow: var(--tw-modal-shadow);
   max-height: 220px;
@@ -120,12 +121,12 @@
 }
 
 .tw-dropdown__item:hover {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 8%, #FFFFFF);
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 8%, var(--tw-background));
   color: var(--tw-brand-primary);
 }
 
 .tw-dropdown__item--selected {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 12%, #FFFFFF);
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background));
   color: var(--tw-brand-primary);
   font-weight: 400;
 }

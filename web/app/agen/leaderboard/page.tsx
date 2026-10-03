@@ -1,639 +1,262 @@
 'use client';
 
+// Agent leaderboard: active agents ranked by closed jamaah for a chosen period (this month, this year, all time).
+// Tab page of the agent bottom navbar, so no back button. Brand color marks "your" position.
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, RefreshCw, Users, ArrowLeft, Trophy, Medal, Loader2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, Medal, Loader2, Crown } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import { CustomDropdown } from '../../../components/CustomDropdown';
+import { HabitBadge } from '../../../components/HabitBadge';
+import './Leaderboard.css';
 
 interface LeaderboardEntry {
   rank: number;
   name: string;
   total_jamaah_closing: number;
   is_me: boolean;
+  photo_url?: string | null;
+  /** Highest habit streak badge in days (7, 30, 100); 0 when none. */
+  habit_badge?: number;
 }
+
+// Period options; keys match the API query parameter "period".
+const PERIODS = [
+  { key: 'bulan', label: 'Bulan ini', caption: 'bulan ini' },
+  { key: 'tahun', label: 'Tahun ini', caption: 'tahun ini' },
+  { key: 'semua', label: 'Semua', caption: 'sejak bergabung' },
+] as const;
+type PeriodKey = (typeof PERIODS)[number]['key'];
+
+const PAGE_SIZE = 10;
+
+// Podium order on screen: 2nd left, 1st in the middle (tallest), 3rd right.
+const PODIUM_ORDER = [1, 0, 2];
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
+const initial = (name: string) => (name.trim()[0] || '?').toUpperCase();
 
 export default function AgenLeaderboardPage() {
   const router = useRouter();
 
+  const [period, setPeriod] = useState<PeriodKey>('semua');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Infinite scroll pagination state (10 items per load)
-  const PAGE_SIZE = 10;
+  // Infinite scroll: PAGE_SIZE rows more each time the end of the list comes into view.
   const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+  // Only the latest request may fill the list (switching periods quickly).
+  const requestSeq = useRef(0);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (p: PeriodKey) => {
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
       return;
     }
-
+    const seq = ++requestSeq.current;
     try {
       setLoading(true);
       setError(null);
-
-      const res = await fetch('/api/agent/leaderboard', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await fetch(`/api/agent/leaderboard?period=${p}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.status === 401) {
         localStorage.removeItem('agent_token');
         router.push('/agen/login');
         return;
       }
-
       // Leaderboard is for active partners only; a pending/inactive agent sees their account status.
       if (res.status === 403) {
         router.push('/agen/status');
         return;
       }
-
-      if (!res.ok) {
-        throw new Error('Gagal memuat data leaderboard');
-      }
-
+      if (!res.ok) throw new Error('Gagal memuat data leaderboard');
       const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      setLeaderboard(list);
+      if (seq !== requestSeq.current) return;
+      setLeaderboard(Array.isArray(data) ? data : []);
       setVisibleCount(PAGE_SIZE);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem';
-      setError(msg);
+      if (seq !== requestSeq.current) return;
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem');
     } finally {
-      setLoading(false);
+      if (seq === requestSeq.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLeaderboard();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
+    fetchLeaderboard(period);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [period]);
 
   const myEntry = leaderboard.find((item) => item.is_me);
-
-  // Paginated leaderboard items
-  const displayedLeaderboard = useMemo(() => {
-    return leaderboard.slice(0, visibleCount);
-  }, [leaderboard, visibleCount]);
-
-  const totalItemsCount = leaderboard.length;
-  const hasMore = displayedLeaderboard.length < totalItemsCount;
+  const periodInfo = PERIODS.find((p) => p.key === period) ?? PERIODS[2];
+  const displayed = useMemo(() => leaderboard.slice(0, visibleCount), [leaderboard, visibleCount]);
+  const hasMore = displayed.length < leaderboard.length;
 
   const loadMore = useCallback(() => {
-    setVisibleCount((prev) => {
-      if (prev >= totalItemsCount) return prev;
-      return Math.min(prev + PAGE_SIZE, totalItemsCount);
-    });
-  }, [totalItemsCount]);
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, leaderboard.length));
+  }, [leaderboard.length]);
 
-  // Infinite scroll sentinel observer
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // 1. IntersectionObserver
   useEffect(() => {
     if (!hasMore) return;
     const el = sentinelRef.current;
     if (!el) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0] && entries[0].isIntersecting) {
-          loadMore();
-        }
+        if (entries[0]?.isIntersecting) loadMore();
       },
       { root: null, rootMargin: '300px', threshold: 0 }
     );
-
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
 
-  // 2. Window scroll event listener failsafe
+  // Tapping "Peringkat Anda" loads the list down to your row, scrolls to it and highlights it briefly.
+  const [jumpPending, setJumpPending] = useState<boolean>(false);
+  const [flashMe, setFlashMe] = useState<boolean>(false);
+  const jumpToMe = () => {
+    if (!myEntry) return;
+    const index = leaderboard.indexOf(myEntry);
+    setVisibleCount((prev) => Math.max(prev, Math.ceil((index + 1) / PAGE_SIZE) * PAGE_SIZE));
+    setJumpPending(true);
+  };
   useEffect(() => {
-    if (!hasMore) return;
+    if (!jumpPending) return;
+    const row = document.getElementById('lb-row-me');
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- runs once the row is rendered after the jump
+    setJumpPending(false);
+    setFlashMe(true);
+    const t = setTimeout(() => setFlashMe(false), 1600);
+    return () => clearTimeout(t);
+  }, [jumpPending, visibleCount]);
 
-    const handleScroll = () => {
-      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-      const windowHeight = window.innerHeight;
-      const documentHeight = Math.max(
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.offsetHeight
-      );
-
-      if (scrollY + windowHeight >= documentHeight - 350) {
-        loadMore();
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    const timer = setTimeout(handleScroll, 150);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      clearTimeout(timer);
-    };
-  }, [hasMore, loadMore]);
+  // Nobody closed in the period: every total is 0, so a ranking means nothing yet.
+  const allZero = leaderboard.length > 0 && leaderboard.every((e) => e.total_jamaah_closing === 0);
 
   return (
     <MobileContainer>
-      {/* Sticky Header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.push('/agen/dashboard')}
-          aria-label="Kembali ke Dashboard"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
-          >
-            Leaderboard
-          </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-            Peringkat closing mitra agen aktif
-          </span>
-        </div>
-
-        {myEntry && (
-          <div
-            style={{
-              padding: '4px 8px',
-              borderRadius: '6px',
-              backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))',
-              color: 'var(--tw-brand-primary)',
-              fontSize: '11px',
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            Peringkat #{myEntry.rank}
-          </div>
-        )}
+      <header className="lb-header">
+        <h1 className="lb-header__title">Leaderboard</h1>
+        {/* Period filter as a compact dropdown in the header (keeps the podium at the top of the page). */}
+        <CustomDropdown
+          name="period"
+          className="lb-period"
+          value={period}
+          options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
+          onChange={(e) => setPeriod(String(e.target.value) as PeriodKey)}
+        />
       </header>
 
-      {/* Main Canvas */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* Highlight Banner Posisi Saya (jika terdaftar) - Solid Brand Color */}
-        {!loading && !error && myEntry && (
-          <div
-            style={{
-              backgroundColor: 'var(--tw-brand-primary)',
-              borderRadius: '12px',
-              border: 'none',
-              padding: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              boxShadow: '0 4px 16px color-mix(in srgb, var(--tw-brand-primary) 28%, transparent)',
-              color: 'var(--tw-on-brand)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Subtle background decoration */}
-            <div
-              style={{
-                position: 'absolute',
-                right: '-20px',
-                top: '-20px',
-                width: '100px',
-                height: '100px',
-                borderRadius: '50%',
-                backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 8%, transparent)',
-                pointerEvents: 'none',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                right: '40px',
-                bottom: '-30px',
-                width: '70px',
-                height: '70px',
-                borderRadius: '50%',
-                backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 5%, transparent)',
-                pointerEvents: 'none',
-              }}
-            />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative', zIndex: 1 }}>
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 18%, transparent)',
-                  color: 'var(--tw-on-brand)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Trophy size={22} />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--tw-on-brand) 85%, transparent)', fontWeight: 600 }}>
-                  Posisi Anda Saat Ini
-                </span>
-                <span
-                  style={{
-                    fontSize: '18px',
-                    fontWeight: 800,
-                    color: 'var(--tw-on-brand)',
-                    fontFamily: 'var(--tw-font-heading)',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Peringkat #{myEntry.rank}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px', position: 'relative', zIndex: 1 }}>
-              <span style={{ fontSize: '11px', color: 'color-mix(in srgb, var(--tw-on-brand) 85%, transparent)', fontWeight: 600 }}>
-                Total Closing
-              </span>
-              <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--tw-on-brand)', lineHeight: 1.2 }}>
-                {myEntry.total_jamaah_closing}{' '}
-                <span style={{ fontSize: '12px', fontWeight: 500, color: 'color-mix(in srgb, var(--tw-on-brand) 85%, transparent)' }}>
-                  Jamaah
-                </span>
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Content Body */}
+      <div className="lb-page">
         {loading ? (
-          <div
-            style={{
-              padding: '60px 20px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                border: '3px solid var(--tw-border)',
-                borderTopColor: 'var(--tw-brand-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)' }}>
-              Memuat peringkat agen...
-            </span>
-            <style jsx>{`
-              @keyframes spin {
-                to {
-                  transform: rotate(360deg);
-                }
-              }
-            `}</style>
+          <div className="lb-state">
+            <Loader2 size={24} className="lb-spin" aria-hidden="true" />
+            <p className="lb-muted">Memuat peringkat...</p>
           </div>
         ) : error ? (
-          <div
-            style={{
-              padding: '36px 16px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div style={{ color: 'var(--tw-brand-primary)' }}>
-              <AlertCircle size={32} />
-            </div>
-            <p style={{ fontSize: '14px', color: 'var(--tw-text-primary)', margin: 0, fontWeight: 600 }}>
-              {error}
-            </p>
-            <button
-              type="button"
-              onClick={() => fetchLeaderboard()}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <RefreshCw size={13} />
-              <span>Coba Lagi</span>
+          <div className="lb-state">
+            <AlertCircle size={28} aria-hidden="true" />
+            <p className="lb-muted">{error}</p>
+            <button type="button" className="lb-btn" onClick={() => fetchLeaderboard(period)}>
+              <RefreshCw size={16} aria-hidden="true" />
+              <span>Coba lagi</span>
             </button>
           </div>
-        ) : leaderboard.length === 0 ? (
-          <div
-            style={{
-              padding: '48px 20px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div style={{ color: 'var(--tw-text-muted)' }}>
-              <Users size={36} />
-            </div>
-            <h2
-              style={{
-                fontSize: '15px',
-                fontWeight: 700,
-                margin: 0,
-                color: 'var(--tw-text-primary)',
-                fontFamily: 'var(--tw-font-heading)',
-              }}
-            >
-              Belum Ada Data Peringkat
-            </h2>
-            <p
-              style={{
-                fontSize: '13px',
-                color: 'var(--tw-text-secondary)',
-                margin: 0,
-                lineHeight: 1.5,
-                maxWidth: '280px',
-              }}
-            >
-              Daftar peringkat akan terisi otomatis seiring verifikasi jamaah closing di sistem.
-            </p>
+        ) : leaderboard.length === 0 || allZero ? (
+          <div className="lb-state">
+            <Medal size={28} aria-hidden="true" />
+            <h2 className="lb-title">Belum ada closing {periodInfo.caption}</h2>
+            <p className="lb-muted">Peringkat muncul setelah ada jamaah closing dari link agen.</p>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            {displayedLeaderboard.map((item) => {
-              const isMe = item.is_me;
-              const isFirst = item.rank === 1;
-              const isSecond = item.rank === 2;
-              const isThird = item.rank === 3;
-
-              // Rank badge styling
-              let rankBg = 'var(--tw-surface-tint)';
-              let rankColor = 'var(--tw-text-secondary)';
-              let rankBorder = '1px solid transparent';
-
-              if (isFirst) {
-                rankBg = 'color-mix(in srgb, var(--tw-status-contacted) 16%, var(--tw-background))';
-                rankColor = 'var(--tw-status-contacted-text)';
-                rankBorder = '1px solid color-mix(in srgb, var(--tw-status-contacted) 35%, transparent)';
-              } else if (isSecond) {
-                rankBg = 'color-mix(in srgb, var(--tw-neutral-500) 14%, var(--tw-background))';
-                rankColor = 'var(--tw-neutral-600)';
-                rankBorder = '1px solid color-mix(in srgb, var(--tw-neutral-500) 30%, transparent)';
-              } else if (isThird) {
-                rankBg = 'color-mix(in srgb, var(--tw-warning-strong) 14%, var(--tw-background))';
-                rankColor = 'var(--tw-status-contacted-text)';
-                rankBorder = '1px solid color-mix(in srgb, var(--tw-warning-strong) 30%, transparent)';
-              }
-
-              return (
-                <div
-                  key={item.rank}
-                  style={{
-                    backgroundColor: isMe
-                      ? 'color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-background))'
-                      : 'var(--tw-background)',
-                    borderRadius: '10px',
-                    border: isMe
-                      ? '1.5px solid color-mix(in srgb, var(--tw-brand-primary) 30%, transparent)'
-                      : '1px solid var(--tw-hairline)',
-                    padding: '12px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                    boxShadow: 'var(--tw-card-shadow)',
-                  }}
+          <>
+            {/* Gamified podium for the top 3 on the travel's brand color, then your own position.
+                Tapping it jumps to your row in the list. */}
+            {myEntry ? (
+              <>
+                <button
+                  type="button"
+                  className="lb-hero"
+                  onClick={jumpToMe}
+                  aria-label={`Peringkat Anda #${myEntry.rank} dari ${leaderboard.length} agen, ${myEntry.total_jamaah_closing} jamaah closing. Lihat di daftar`}
                 >
-                  {/* Left Column: Nomor Urut & Nama */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      overflow: 'hidden',
-                      minWidth: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '6px',
-                        backgroundColor: rankBg,
-                        color: rankColor,
-                        border: rankBorder,
-                        fontSize: '13px',
-                        fontWeight: isFirst || isSecond || isThird ? 800 : 600,
-                        fontFamily: 'var(--tw-font-heading)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {item.rank}
-                    </span>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        overflow: 'hidden',
-                        minWidth: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: isMe ? 700 : 600,
-                          color: 'var(--tw-text-primary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {item.name}
-                      </span>
-                      {isMe && (
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            color: 'var(--tw-brand-primary)',
-                            backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            flexShrink: 0,
-                          }}
-                        >
-                          Anda
+                  <span className="lb-podium" aria-hidden="true">
+                    {PODIUM_ORDER.filter((i) => leaderboard[i]).map((i) => {
+                      const e = leaderboard[i];
+                      return (
+                        <span key={e.rank} className={`lb-podium__slot lb-podium__slot--${e.rank}${e.is_me ? ' lb-podium__slot--me' : ''}`}>
+                          {e.rank === 1 && <Crown size={22} className="lb-podium__crown" />}
+                          <span className="lb-podium__avatar">
+                            {e.photo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
+                              <img src={e.photo_url} alt="" />
+                            ) : (
+                              initial(e.name)
+                            )}
+                          </span>
+                          <span className="lb-podium__name">{e.is_me ? 'Anda' : firstName(e.name)}</span>
+                          <span className="lb-podium__score">{e.total_jamaah_closing} jamaah</span>
+                          <span className="lb-podium__block">{e.rank}</span>
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right Column: Angka Jamaah Closing */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: '4px',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        color: 'var(--tw-text-primary)',
-                        fontFamily: 'var(--tw-font-heading)',
-                      }}
-                    >
-                      {item.total_jamaah_closing}
+                      );
+                    })}
+                  </span>
+                  <span className="lb-hero__me">
+                    <span>
+                      Peringkat Anda <strong>#{myEntry.rank}</strong> dari {leaderboard.length} agen
                     </span>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--tw-text-muted)',
-                      }}
-                    >
-                      jamaah
+                    <span>
+                      <strong>{myEntry.total_jamaah_closing}</strong> jamaah
                     </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  </span>
+                </button>
+            {/* Only needed when your row is not on the first page of the list. */}
+                {myEntry.rank > PAGE_SIZE && (
+                  <button type="button" className="lb-link" onClick={jumpToMe}>
+                    Lihat posisi saya di daftar
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="lb-muted">Jumlah jamaah closing {periodInfo.caption}</p>
+            )}
 
-        {/* Infinite Scroll Sentinel & Load Indicator */}
-        {!loading && !error && totalItemsCount > 0 && (
-          <div
-            ref={sentinelRef}
-            style={{
-              marginTop: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              paddingBottom: '16px',
-            }}
-          >
-            {hasMore ? (
-              <button
-                type="button"
-                onClick={loadMore}
-                style={{
-                  padding: '10px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  color: 'var(--tw-brand-primary)',
-                  backgroundColor: 'var(--tw-background)',
-                  border: '1px solid var(--tw-border)',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px var(--tw-surface-tint)',
-                }}
-              >
-                <Loader2 size={15} color="var(--tw-brand-primary)" style={{ animation: 'spin 1s linear infinite' }} />
-                <span>Memuat peringkat berikutnya ({displayedLeaderboard.length} dari {totalItemsCount})...</span>
-              </button>
-            ) : totalItemsCount > PAGE_SIZE ? (
-              <div
-                style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '11px',
-                  color: 'var(--tw-text-muted)',
-                }}
-              >
-                Menampilkan seluruh {totalItemsCount} mitra agen
+            <ol className="lb-list">
+              {displayed.map((item) => (
+                <li
+                  key={`${item.rank}-${item.name}`}
+                  id={item.is_me ? 'lb-row-me' : undefined}
+                  className={`lb-row${item.is_me ? ' lb-row--me' : ''}${item.is_me && flashMe ? ' lb-row--flash' : ''}`}
+                >
+                  <span className={`lb-row__rank${item.rank <= 3 ? ` lb-row__rank--${item.rank}` : ''}`}>
+                    {item.rank <= 3 ? <Medal size={20} aria-label={`Peringkat ${item.rank}`} /> : item.rank}
+                  </span>
+                  <span className="lb-row__name">
+                    {item.name}
+                    {!!item.habit_badge && <HabitBadge days={item.habit_badge} variant="icon" />}
+                    {item.is_me && <span className="lb-row__you">Anda</span>}
+                  </span>
+                  <span className="lb-row__total">
+                    <strong>{item.total_jamaah_closing}</strong> jamaah
+                  </span>
+                </li>
+              ))}
+            </ol>
+
+            {hasMore && (
+              <div ref={sentinelRef} className="lb-state lb-state--more">
+                <Loader2 size={18} className="lb-spin" aria-hidden="true" />
+                <span className="lb-muted">
+                  {displayed.length} dari {leaderboard.length} agen
+                </span>
               </div>
-            ) : null}
-          </div>
+            )}
+          </>
         )}
       </div>
 

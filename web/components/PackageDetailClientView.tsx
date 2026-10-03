@@ -10,32 +10,22 @@ import {
   ChevronRight,
   Calendar,
   Plane,
-  ShieldCheck,
-  CheckCircle2,
   Star,
   Check,
   X,
+  MessageCircle,
+  ArrowRight,
 } from 'lucide-react';
-import { seatsLabel, type PublicPackage } from './publicPackage';
+import type { PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { MobileContainer } from './MobileContainer';
-import { PublicFooter } from './PublicFooter';
 import { ProspectModal } from './ProspectModal';
 import { Button } from './Button';
+import { agentPackageLink, canShareFiles, packagePhotoFile, sharePackage } from '../lib/packageShare';
+import { logHabit } from '../lib/agentHabits';
+import { ConsultantCard } from './ConsultantCard';
+import { useConsultant } from '../lib/consultant';
 import './PackageDetailClientView.css';
-
-const WhatsAppIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className = '' }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className={className}
-    aria-hidden="true"
-  >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.05 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-  </svg>
-);
 
 export interface PackageDetailClientViewProps {
   pkg: PublicPackage;
@@ -44,6 +34,7 @@ export interface PackageDetailClientViewProps {
 
 export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = ({ pkg, tenantInfo }) => {
   const router = useRouter();
+  const consultant = useConsultant();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'facilities' | 'accommodation' | 'itinerary' | 'terms'>('facilities');
   const [isProspectModalOpen, setIsProspectModalOpen] = useState(false);
@@ -61,7 +52,6 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
   }, [pkg.id, pkg.name, pkg.price]);
 
   const ppiuNumber = tenantInfo?.ppiu_number?.trim().replace(/^PPIU\s*/i, '').replace(/^No\.?\s*/i, '') || '';
-  const guarantee = tenantInfo?.trust_guarantee?.trim() || '';
 
   const photos = pkg.photos && pkg.photos.length > 0
     ? pkg.photos
@@ -80,11 +70,10 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
     : 'Hubungi Kami';
 
   const formattedDate = pkg.departure_date
-    ? new Date(pkg.departure_date).toLocaleDateString('id-ID', {
+    ? new Date(pkg.departure_date.slice(0, 10) + 'T00:00:00').toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
-        timeZone: 'UTC',
       })
     : 'Jadwal Fleksibel';
 
@@ -96,18 +85,47 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
     }
   };
 
-  const handleShare = () => {
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      navigator
-        .share({
-          title: pkg.name,
-          text: `Lihat paket umroh ${pkg.name} dari ${tenantInfo?.name || 'kami'}`,
-          url: window.location.href,
-        })
-        .catch(() => {});
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Tautan paket berhasil disalin ke clipboard');
+  // An active agent viewing this page shares through their referral route, so the jamaah who opens the
+  // link is recorded as theirs. Everyone else shares the page address.
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let token: string | null = null;
+    try {
+      token = localStorage.getItem('agent_token');
+    } catch {}
+    if (!token) return;
+    fetch('/api/agent/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        const agent = json?.agent || json?.data?.agent || json;
+        if (agent?.status === 'active' && agent?.referral_code) setReferralCode(agent.referral_code);
+      })
+      .catch(() => {});
+  }, []);
+
+  // The photo travels with the message; prepared ahead so the share sheet opens right on tap.
+  const sharePhoto = pkg.photos && pkg.photos.length > 0 ? photos[0].file_path : '';
+  useEffect(() => {
+    if (!sharePhoto || !canShareFiles()) return;
+    let alive = true;
+    packagePhotoFile(sharePhoto, pkg.name).then((f) => {
+      if (alive) setPhotoFile(f);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [sharePhoto, pkg.name]);
+
+  const handleShare = async () => {
+    const link = referralCode ? agentPackageLink(referralCode, pkg.id) : `${window.location.origin}/paket/${pkg.id}`;
+    if (referralCode) logHabit('share');
+    const result = await sharePackage(pkg, link, photoFile);
+    if (result === 'copied' || result === 'failed') {
+      setShareMsg(result === 'copied' ? 'Pesan dan link paket tersalin' : 'Gagal membagikan paket');
+      setTimeout(() => setShareMsg(null), 2500);
     }
   };
 
@@ -182,7 +200,10 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
 
   const parseLines = (text?: string | null) => {
     if (!text) return [];
-    return text.split('\n').map((l) => l.trim()).filter(Boolean);
+    return text
+      .split('\n')
+      .map((l) => l.trim().replace(/^(?:[-*\u2022]|\d+[.)])\s*/, '').trim())
+      .filter(Boolean);
   };
 
   interface ParsedHotel {
@@ -222,16 +243,16 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
     try {
       const parsed = JSON.parse(text);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((item: any) => ({
+        return parsed.map((item: { city?: string; name?: string; stars?: unknown }) => ({
           city: item.city || 'Hotel',
           name: item.name || '',
-          stars: typeof item.stars === 'number' && item.stars >= 1 && item.stars <= 5 ? item.stars : 5,
+          stars: typeof item.stars === 'number' && item.stars >= 1 && item.stars <= 5 ? item.stars : 0,
         }));
       }
     } catch {
       const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
       return lines.map((line) => {
-        let stars = 5;
+        let stars = 0;
         const starMatch = line.match(/bintang\s*(\d)/i);
         if (starMatch) {
           const s = parseInt(starMatch[1], 10);
@@ -250,6 +271,16 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
     return [];
   };
 
+  const routeLegs = (text?: string) =>
+    (text || '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(/\s+-\s+/).map((p) => p.trim()).filter(Boolean);
+        return parts.length >= 2 ? { stops: parts, text: '' } : { stops: [] as string[], text: line };
+      });
+
   const itineraryItems = parseItinerary(pkg.itinerary);
   const includedFacilities = parseLines(pkg.facilities_included);
   const excludedFacilities = parseLines(pkg.facilities_excluded);
@@ -257,9 +288,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
   const parsedFlight = parseFlight(pkg.flight_info);
   const termsList = parseLines(pkg.terms_conditions);
 
-  const flightSummary = parsedFlight?.airline
-    ? parsedFlight.airline.replace(/\(.*?\)/g, '').trim() || 'Penerbangan PP'
-    : 'Penerbangan PP';
+  const flightSummary = parsedFlight?.airline ? parsedFlight.airline.replace(/\(.*?\)/g, '').trim() : '';
 
   const brandingStyle = tenantInfo?.brand_primary_color
     ? ({ '--tw-brand-primary': tenantInfo.brand_primary_color } as React.CSSProperties)
@@ -288,29 +317,30 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
             <Share2 size={19} />
           </button>
         </header>
+        {shareMsg && (
+          <p className="tw-pkg-share-toast" role="status">
+            {shareMsg}
+          </p>
+        )}
 
         {/* 2. Hero Photo Gallery */}
         <div className="tw-pkg-gallery">
           <div className="tw-pkg-gallery__image-wrap">
+            {/* eslint-disable-next-line @next/next/no-img-element -- package photo uploaded by the travel, served as-is */}
             <img
               src={photos[currentPhotoIndex].file_path}
               alt={pkg.name}
               className="tw-pkg-gallery__img"
             />
 
-            {/* Floating Quota Badge (top-left, frosted glass matching Home) */}
-            {seatsLabel(pkg) && (
-              <div className="tw-pkg-gallery__badge">
-                <span>{seatsLabel(pkg)}</span>
+            {/* Floating Photo Counter (clean text, no icon) */}
+            {photos.length > 1 && (
+              <div className="tw-pkg-gallery__counter">
+                <span>
+                  {currentPhotoIndex + 1} / {photos.length}
+                </span>
               </div>
             )}
-
-            {/* Floating Photo Counter (clean text, no icon) */}
-            <div className="tw-pkg-gallery__counter">
-              <span>
-                {currentPhotoIndex + 1} / {photos.length}
-              </span>
-            </div>
 
             {/* Gallery Navigation for Multiple Photos */}
             {photos.length > 1 && (
@@ -349,47 +379,27 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
 
         {/* 3. Package Main Info & Content */}
         <div className="tw-pkg-content-wrap">
-          {/* Main Info (clean text tag, no icon) */}
           <div className="tw-pkg-main-info">
-            <div className="tw-pkg-travel-tag">
-              <span>
-                {tenantInfo?.name || 'KlikUmroh Travel'}
-                {ppiuNumber ? ` • PPIU No. ${ppiuNumber}` : ''}
-              </span>
-            </div>
+            <p className="tw-pkg-travel-tag">
+              {tenantInfo?.name || 'Travel umroh'}
+              {ppiuNumber ? ` · Izin PPIU ${ppiuNumber}` : ''}
+            </p>
             <h1 className="tw-pkg-title">{pkg.name}</h1>
-          </div>
-
-          {/* Price Banner Card (clean badge, no icon) */}
-          <div className="tw-pkg-price-card">
-            <div className="tw-pkg-price-card__left">
-              <span className="tw-pkg-price-card__label">Mulai dari</span>
-              <div className="tw-pkg-price-card__amount">{formattedPrice}</div>
-              <span className="tw-pkg-price-card__sublabel">/ jamaah (Sekamar berempat)</span>
-            </div>
-            <div className="tw-pkg-price-card__badge">
-              <span>{seatsLabel(pkg) ?? 'Tersedia'}</span>
-            </div>
-          </div>
-
-          {/* Quick Specs Grid (2x2 with icons) */}
-          {/* Quick Specs Grid (Keberangkatan & Penerbangan - Clean standalone icons) */}
-          <div className="tw-pkg-specs">
-            <div className="tw-pkg-spec-card">
-              <Calendar size={18} className="tw-pkg-spec-icon" />
-              <div className="tw-pkg-spec-info">
-                <span className="tw-pkg-spec-label">Keberangkatan</span>
-                <span className="tw-pkg-spec-val">{formattedDate}</span>
-              </div>
-            </div>
-
-            <div className="tw-pkg-spec-card">
-              <Plane size={18} className="tw-pkg-spec-icon" />
-              <div className="tw-pkg-spec-info">
-                <span className="tw-pkg-spec-label">Penerbangan</span>
-                <span className="tw-pkg-spec-val">{flightSummary}</span>
-              </div>
-            </div>
+            <ul className="tw-pkg-facts">
+              <li className="tw-pkg-fact">
+                <Calendar size={16} className="tw-pkg-fact__icon" aria-hidden="true" />
+                <span>
+                  Berangkat <b>{formattedDate}</b>
+                </span>
+              </li>
+              {flightSummary && (
+                <li className="tw-pkg-fact">
+                  <Plane size={16} className="tw-pkg-fact__icon" aria-hidden="true" />
+                  <span>{flightSummary}</span>
+                </li>
+              )}
+            </ul>
+            <ConsultantCard consultant={consultant} travelName={tenantInfo?.name || 'travel ini'} className="tw-consultant--below" onAsk={() => setIsProspectModalOpen(true)} />
           </div>
 
           {/* Package Description (Seamless) */}
@@ -402,9 +412,11 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
 
           {/* 4. Seamless Underline Tabs */}
           <div className="tw-pkg-tabs-wrapper">
-            <div className="tw-pkg-tabs-nav">
+            <div className="tw-pkg-tabs-nav" role="tablist" aria-label="Informasi paket">
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'facilities'}
                 className={`tw-pkg-tab-btn ${activeTab === 'facilities' ? 'active' : ''}`}
                 onClick={() => setActiveTab('facilities')}
               >
@@ -412,6 +424,8 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'accommodation'}
                 className={`tw-pkg-tab-btn ${activeTab === 'accommodation' ? 'active' : ''}`}
                 onClick={() => setActiveTab('accommodation')}
               >
@@ -419,13 +433,17 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'itinerary'}
                 className={`tw-pkg-tab-btn ${activeTab === 'itinerary' ? 'active' : ''}`}
                 onClick={() => setActiveTab('itinerary')}
               >
-                Itinerary
+                Jadwal Perjalanan
               </button>
               <button
                 type="button"
+                role="tab"
+                aria-selected={activeTab === 'terms'}
                 className={`tw-pkg-tab-btn ${activeTab === 'terms' ? 'active' : ''}`}
                 onClick={() => setActiveTab('terms')}
               >
@@ -442,7 +460,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
                 {/* Termasuk */}
                 <div className="tw-facility-card tw-facility-card--included">
                   <div className="tw-facility-header">
-                    <span className="tw-facility-title">Sudah Termasuk (Included)</span>
+                    <h2 className="tw-facility-title">Termasuk</h2>
                   </div>
                   {includedFacilities.length > 0 ? (
                     <ul className="tw-facility-list">
@@ -454,14 +472,14 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
                       ))}
                     </ul>
                   ) : (
-                    <p className="tw-pkg-empty-text">Informasi fasilitas termasuk belum tersedia.</p>
+                    <p className="tw-pkg-empty-text">Belum ada informasi fasilitas.</p>
                   )}
                 </div>
 
                 {/* Belum Termasuk */}
                 <div className="tw-facility-card tw-facility-card--excluded">
                   <div className="tw-facility-header">
-                    <span className="tw-facility-title">Belum Termasuk (Excluded)</span>
+                    <h2 className="tw-facility-title">Tidak termasuk</h2>
                   </div>
                   {excludedFacilities.length > 0 ? (
                     <ul className="tw-facility-list">
@@ -473,92 +491,70 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
                       ))}
                     </ul>
                   ) : (
-                    <p className="tw-pkg-empty-text">Informasi fasilitas belum termasuk belum tersedia.</p>
+                    <p className="tw-pkg-empty-text">Belum ada informasi.</p>
                   )}
                 </div>
               </div>
             )}
 
-            {/* TAB 2: AKOMODASI (Clean typography cards, structured hotel & flight) */}
+            {/* TAB 2: AKOMODASI: hotels and flight, each in one tinted panel */}
             {activeTab === 'accommodation' && (
               <div className="tw-pkg-accommodation-view">
-                {/* Hotel Card (Unified Single Card) */}
-                <div className="tw-accomm-section">
-                  <div className="tw-accomm-section-header">
-                    <span>Hotel Penginapan</span>
-                  </div>
+                <section>
+                  <h2 className="tw-accomm-section-header">Hotel</h2>
                   {hotels.length > 0 ? (
-                    <div className="tw-hotel-card">
+                    <ul className="tw-accomm-panel">
                       {hotels.map((h, idx) => (
-                        <React.Fragment key={idx}>
-                          {idx > 0 && <div className="tw-hotel-card__divider" />}
-                          <div className="tw-hotel-card__row">
-                            <span className="tw-hotel-card__city-label">{h.city}</span>
-                            <div className="tw-hotel-card__content">
-                              <div className="tw-hotel-card__name">{h.name}</div>
-                              <div className="tw-hotel-card__stars" aria-label={`Bintang ${h.stars} dari 5`}>
-                                {[1, 2, 3, 4, 5].map((starNum) => {
-                                  const isFilled = starNum <= h.stars;
-                                  return (
-                                    <Star
-                                      key={starNum}
-                                      size={14}
-                                      className={`tw-hotel-star-icon ${isFilled ? 'tw-hotel-star-icon--filled' : 'tw-hotel-star-icon--empty'}`}
-                                      fill="currentColor"
-                                      stroke="none"
-                                    />
-                                  );
-                                })}
-                              </div>
-                            </div>
+                        <li key={idx} className="tw-hotel-row">
+                          <div className="tw-hotel-row__main">
+                            <span className="tw-hotel-row__city">{h.city}</span>
+                            <span className="tw-hotel-row__name">{h.name}</span>
                           </div>
-                        </React.Fragment>
+                          {h.stars > 0 && (
+                            <span className="tw-hotel-row__stars" aria-label={`Bintang ${h.stars}`}>
+                              <Star size={13} className="tw-hotel-star-icon--filled" fill="currentColor" stroke="none" aria-hidden="true" />
+                              {h.stars}
+                            </span>
+                          )}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   ) : (
-                    <div className="tw-pkg-empty-box">
-                      Informasi hotel belum diunggah untuk paket ini.
-                    </div>
+                    <div className="tw-pkg-empty-box">Informasi hotel belum diunggah untuk paket ini.</div>
                   )}
-                </div>
+                </section>
 
-                {/* Flight Card */}
-                <div className="tw-accomm-section">
-                  <div className="tw-accomm-section-header">
-                    <span>Maskapai & Penerbangan</span>
-                  </div>
+                <section>
+                  <h2 className="tw-accomm-section-header">Penerbangan</h2>
                   {parsedFlight && (parsedFlight.airline || parsedFlight.route) ? (
-                    <div className="tw-flight-card">
+                    <div className="tw-accomm-panel">
                       {parsedFlight.airline && (
-                        <div className="tw-flight-card__row">
-                          <div className="tw-flight-card__label">
-                            <span>Maskapai Penerbangan</span>
-                          </div>
-                          <div className="tw-flight-card__value tw-flight-card__value--airline">
-                            {parsedFlight.airline}
-                          </div>
+                        <div className="tw-flight-airline">
+                          <Plane size={16} aria-hidden="true" />
+                          <span>{parsedFlight.airline}</span>
                         </div>
                       )}
-                      {parsedFlight.airline && parsedFlight.route && (
-                        <div className="tw-flight-card__divider" />
-                      )}
-                      {parsedFlight.route && (
-                        <div className="tw-flight-card__row">
-                          <div className="tw-flight-card__label">
-                            <span>Rute Perjalanan</span>
-                          </div>
-                          <div className="tw-flight-card__value">
-                            {formatText(parsedFlight.route)}
-                          </div>
-                        </div>
+                      {routeLegs(parsedFlight.route).length > 0 && (
+                        <ul className="tw-flight-legs">
+                          {routeLegs(parsedFlight.route).map((leg, idx) => (
+                            <li key={idx} className="tw-flight-leg">
+                              {leg.stops.length > 0
+                                ? leg.stops.map((stop, i) => (
+                                    <React.Fragment key={i}>
+                                      {i > 0 && <ArrowRight size={14} className="tw-flight-leg__arrow" aria-label="ke" />}
+                                      <span>{stop}</span>
+                                    </React.Fragment>
+                                  ))
+                                : leg.text}
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   ) : (
-                    <div className="tw-pkg-empty-box">
-                      Informasi maskapai penerbangan belum diunggah untuk paket ini.
-                    </div>
+                    <div className="tw-pkg-empty-box">Informasi penerbangan belum diunggah untuk paket ini.</div>
                   )}
-                </div>
+                </section>
               </div>
             )}
 
@@ -593,7 +589,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
               <div className="tw-pkg-terms-view">
                 <div className="tw-terms-card">
                   <div className="tw-terms-header">
-                    <span className="tw-terms-title">Ketentuan & Kebijakan Pembatalan</span>
+                    <h2 className="tw-terms-title">Ketentuan & kebijakan pembatalan</h2>
                   </div>
                   {termsList.length > 0 ? (
                     <ul className="tw-terms-list">
@@ -614,49 +610,15 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
             )}
           </div>
 
-          {/* 6. Trust & Security Strip with icons */}
-          {/* Only the travel's own data: licence number and guarantee as entered, never a default claim. */}
-          {(ppiuNumber || guarantee) && (
-            <div className="tw-pkg-trust-strip">
-              {ppiuNumber && (
-                <div className="tw-pkg-trust-item">
-                  <ShieldCheck size={20} className="tw-pkg-trust-icon" />
-                  <div className="tw-pkg-trust-text">
-                    <div className="tw-pkg-trust-label">Izin PPIU</div>
-                    <div className="tw-pkg-trust-sub">No. {ppiuNumber}</div>
-                  </div>
-                </div>
-              )}
-              {guarantee && (
-                <div className="tw-pkg-trust-item">
-                  <CheckCircle2 size={20} className="tw-pkg-trust-icon" />
-                  <div className="tw-pkg-trust-text">
-                    <div className="tw-pkg-trust-label">{guarantee}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* 7. Public Footer (Full width of MobileContainer, identical to Home) */}
-        <PublicFooter
-          tenantName={tenantInfo?.name}
-          address={tenantInfo?.address}
-          phone={tenantInfo?.phone}
-          whatsappNumber={tenantInfo?.whatsapp_number}
-          email={tenantInfo?.email}
-          ppiuNumber={tenantInfo?.ppiu_number}
-        />
+        <div className="tw-pkg-sticky-space" aria-hidden="true" />
 
         {/* 9. STICKY BOTTOM ACTION BAR (Price & Consultation Button) */}
         <div className="tw-pkg-sticky-bar">
           <div className="tw-pkg-sticky-price">
             <span className="tw-pkg-sticky-price__label">Mulai dari</span>
-            <div className="tw-pkg-sticky-price__row">
-              <span className="tw-pkg-sticky-price__amount">{formattedPrice}</span>
-              <span className="tw-pkg-sticky-price__unit">/jamaah</span>
-            </div>
+            <span className="tw-pkg-sticky-price__amount">{formattedPrice}</span>
           </div>
 
           {/* Tombol Konsultasi (UTAMA) */}
@@ -667,7 +629,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
             className="tw-pkg-sticky-consult-btn"
             onClick={() => setIsProspectModalOpen(true)}
           >
-            <WhatsAppIcon size={16} />
+            <MessageCircle size={18} aria-hidden="true" />
             <span>Konsultasi Sekarang</span>
           </Button>
         </div>

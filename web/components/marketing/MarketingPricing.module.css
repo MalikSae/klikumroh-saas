@@ -25,7 +25,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #09090B;
+  color: var(--km-ink);
   text-transform: uppercase;
 }
 
@@ -68,13 +68,13 @@
 
 .pricingCard:hover {
   transform: translateY(-2px);
-  border-color: #09090B;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  border-color: var(--km-ink);
+  box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--km-shadow-color) 8%, transparent);
 }
 
 .pricingCardPopular {
-  border: 2px solid #09090B;
-  box-shadow: 0 12px 32px rgba(9, 9, 11, 0.08);
+  border: 2px solid var(--km-ink);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .badgeWrapper {
@@ -100,8 +100,8 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #FFFFFF;
-  background-color: #09090B;
+  color: var(--km-paper);
+  background-color: var(--km-ink);
   padding: 4px 12px;
   border-radius: 6px;
 }
@@ -157,7 +157,7 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .divider {
@@ -200,7 +200,7 @@
 }
 
 .checkIcon {
-  color: #09090B;
+  color: var(--km-ink);
   flex-shrink: 0;
 }
 
@@ -209,7 +209,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #FFFFFF;
+  background-color: var(--km-paper);
   border: 1px solid var(--km-line);
   color: var(--km-ink);
   font-family: var(--tw-font-body), sans-serif;
@@ -222,9 +222,9 @@
 }
 
 .ctaBtn:hover {
-  background-color: #F4F4F5;
-  border-color: #09090B;
-  color: #09090B;
+  background-color: var(--km-surface-subtle);
+  border-color: var(--km-ink);
+  color: var(--km-ink);
 }
 
 .ctaBtnPopular {
@@ -232,8 +232,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   font-family: var(--tw-font-body), sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -241,11 +241,11 @@
   border-radius: 8px;
   text-decoration: none;
   transition: background-color 0.15s ease;
-  box-shadow: 0 4px 12px rgba(9, 9, 11, 0.2);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--km-ink) 20%, transparent);
 }
 
 .ctaBtnPopular:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
 }
 
 .reassuranceRow {
@@ -264,7 +264,7 @@
 }
 
 .reassuranceIcon {
-  color: #09090B;
+  color: var(--km-ink);
   flex-shrink: 0;
   margin-top: 2px;
 }

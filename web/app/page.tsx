@@ -1,11 +1,9 @@
 import React from 'react';
 import { headers } from 'next/headers';
-import { HomeClientView } from '../components/HomeClientView';
+import { TravelHome } from '../components/home/TravelHome';
 import { SiteUnavailableView } from '../components/SiteUnavailableView';
 import type { PublicPackage } from '../components/publicPackage';
-import type { PublicBannerItem } from '../components/HeroCarousel';
-import type { PublicTestimonialItem } from '../components/TestimonialSection';
-import type { PublicFAQItem } from '../components/FAQAccordion';
+import type { PublicBannerItem, PublicFAQItem, PublicTestimonialItem } from '../components/home/homeData';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +62,8 @@ async function getPublishedPackages(host: string): Promise<PublicPackage[]> {
   }
 }
 
-async function getTenantInfo(host: string): Promise<PublicTenantInfo | null> {
+// null: no active travel for this host. 'down': the API could not be reached or failed (5xx).
+async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'down'> {
   const backendUrl = getBackendBaseUrl();
   try {
     const res = await fetch(`${backendUrl}/api/public/tenant-info`, {
@@ -76,14 +75,15 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null> {
     });
 
     if (!res.ok) {
-      return null;
+      const fromApi = (res.headers.get('content-type') || '').includes('application/json');
+      return res.status < 500 && fromApi ? null : 'down';
     }
 
     const data = await res.json();
     return data || null;
   } catch (err) {
     console.error('Failed to fetch tenant info:', err);
-    return null;
+    return 'down';
   }
 }
 
@@ -189,6 +189,10 @@ export default async function HomePage() {
 
   // No active tenant for this hostname (unknown subdomain or tenant not yet active):
   // show a neutral notice, never the KlikUmroh sales page.
+  if (tenantInfo === 'down') {
+    return <SiteUnavailableView reason="down" />;
+  }
+
   if (!tenantInfo) {
     return <SiteUnavailableView />;
   }
@@ -199,13 +203,7 @@ export default async function HomePage() {
   }
 
   return (
-    <HomeClientView
-      packages={packages}
-      tenantInfo={tenantInfo}
-      banners={banners}
-      testimonials={testimonials}
-      faqs={faqs}
-    />
+    <TravelHome tenantInfo={tenantInfo} packages={packages} banners={banners} testimonials={testimonials} faqs={faqs} />
   );
 }
 

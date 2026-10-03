@@ -5,6 +5,7 @@ import './globals.css';
 import '../components/FormInput.css';
 import { TravelAgencyJsonLd } from '../components/TravelAgencyJsonLd';
 import { MetaPixel } from '../components/MetaPixel';
+import { DemoRibbon } from '../components/DemoRibbon';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--tw-font-heading',
@@ -159,6 +160,8 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: imageUrl ? [imageUrl] : undefined,
     },
+    // The demo travel is made up: keep it out of search engines.
+    robots: tenantInfo.is_demo ? { index: false, follow: false } : undefined,
     other: {
       ...(tenantInfo.city ? { 'geo.placename': tenantInfo.city } : {}),
       ...(tenantInfo.province ? { 'geo.region': tenantInfo.province } : {}),
@@ -206,9 +209,11 @@ export default async function RootLayout({
             <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
           </>
         )}
-        <TravelAgencyJsonLd tenantInfo={tenantInfo} host={host} />
+        {/* No travel agency structured data for the made-up demo travel. */}
+        {!tenantInfo?.is_demo && <TravelAgencyJsonLd tenantInfo={tenantInfo} host={host} />}
       </head>
       <body suppressHydrationWarning>
+        {tenantInfo?.is_demo && <DemoRibbon />}
         {children}
         {metaPixelId && <MetaPixel pixelId={metaPixelId} />}
       </body>

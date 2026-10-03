@@ -3,16 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  Search,
-  X,
-  Users,
-  ChevronRight,
-  TrendingUp,
-} from 'lucide-react';
+import { ArrowLeft, Search, X, ChevronRight, ChevronDown, CheckCircle2, Users } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import './SumberJamaah.css';
+import { fetchSumberDone } from '../../../lib/agentHabits';
 import sumberDataRaw from '../../../data/sumber-jamaah.json';
 
 interface SumberJamaahItem {
@@ -24,14 +18,16 @@ interface SumberJamaahItem {
   contoh: string;
 }
 
-const STORAGE_KEY = 'klikumroh_agent_sumber_completed';
 
 export default function SumberJamaahPage() {
   const router = useRouter();
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Keluarga & Relasi Pribadi');
+  // Categories shown open (the first one starts open); every category is a collapsible group.
+  const [openCategories, setOpenCategories] = useState<string[]>(['Keluarga & Relasi Pribadi']);
+  const toggleCategory = (kategori: string) =>
+    setOpenCategories((prev) => (prev.includes(kategori) ? prev.filter((k) => k !== kategori) : [...prev, kategori]));
 
   // Completed checklist tracker (stored in localStorage)
   const [completedIds, setCompletedIds] = useState<number[]>([]);
@@ -59,31 +55,11 @@ export default function SumberJamaahPage() {
     };
     checkAuth();
 
-    // Load completed list from localStorage
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setCompletedIds(parsed);
-      }
-    } catch {
-      // Ignore parse error
-    }
-  }, [router]);
-
-  // Toggle checklist status
-  const toggleCompleted = (id: number) => {
-    setCompletedIds((prev) => {
-      const isCompleted = prev.includes(id);
-      const updated = isCompleted ? prev.filter((item) => item !== id) : [...prev, id];
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch {
-        // Ignore quota error
-      }
-      return updated;
+    // Tried sources come from the server (an old browser-only list is moved up once).
+    fetchSumberDone().then((ids) => {
+      if (ids) setCompletedIds(ids);
     });
-  };
+  }, [router]);
 
   // Get all unique categories with counts
   const categoriesWithCounts = useMemo(() => {
@@ -94,13 +70,10 @@ export default function SumberJamaahPage() {
     return Array.from(map.entries()).map(([kategori, count]) => ({ kategori, count }));
   }, []);
 
-  // Filtered items
+  // Search results across all categories (shown as one flat list while searching).
   const filteredItems = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return (sumberDataRaw as SumberJamaahItem[]).filter((item) => {
-      const matchesCategory =
-        !selectedCategory || selectedCategory === 'Semua' || item.kategori === selectedCategory;
-      if (!matchesCategory) return false;
       if (!q) return true;
       return (
         item.sumber.toLowerCase().includes(q) ||
@@ -110,452 +83,110 @@ export default function SumberJamaahPage() {
         item.contoh.toLowerCase().includes(q)
       );
     });
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery]);
 
   const totalItems = (sumberDataRaw as SumberJamaahItem[]).length;
   const completedCount = completedIds.length;
   const progressPercent = totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
 
+  const isSearching = searchQuery.trim() !== '';
+  const allItems = sumberDataRaw as SumberJamaahItem[];
+
+  const renderRow = (item: SumberJamaahItem, showCategory: boolean) => {
+    const done = completedIds.includes(item.id);
+    return (
+      <li key={item.id}>
+        <Link href={`/agen/sumber-jamaah/${item.id}`} className="sj-row">
+          <span className={`sj-row__num${done ? ' sj-row__num--done' : ''}`}>
+            {done ? <CheckCircle2 size={20} aria-label="Sudah dicoba" /> : item.id}
+          </span>
+          <span className="sj-row__text">
+            <span className="sj-row__title">{item.sumber}</span>
+            {showCategory && <span className="sj-muted">{item.kategori}</span>}
+          </span>
+          <ChevronRight size={18} className="sj-row__go" aria-hidden="true" />
+        </Link>
+      </li>
+    );
+  };
+
   return (
     <MobileContainer>
-      {/* Sticky Header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Kembali"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
+      {/* Drill-down page (opened from the home menu): back button, no bottom tab bar. */}
+      <header className="sj-header">
+        <button type="button" onClick={() => router.back()} aria-label="Kembali" className="sj-icon-btn">
           <ArrowLeft size={20} />
         </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
-          >
-            99 Sumber Jamaah
-          </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-            Bingung mau cari jamaah dari mana? Pilih salah satu.
-          </span>
-        </div>
-
-        {/* Progress indicator in header */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            gap: '3px',
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '13px',
-              fontWeight: 800,
-              color: 'var(--tw-brand-primary)',
-              fontFamily: 'var(--tw-font-heading)',
-            }}
-          >
-            {progressPercent}%
-          </span>
-          <div
-            style={{
-              width: '48px',
-              height: '4px',
-              borderRadius: '9999px',
-              backgroundColor: 'var(--tw-border)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                width: `${progressPercent}%`,
-                height: '100%',
-                backgroundColor: 'var(--tw-brand-primary)',
-                borderRadius: '9999px',
-                transition: 'width 0.3s ease',
-              }}
-            />
-          </div>
-        </div>
+        <h1 className="sj-header__title">99 sumber jamaah</h1>
       </header>
 
-      {/* Main Content */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* Progress Card */}
-        <div
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            padding: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-          }}
-        >
-          <TrendingUp size={20} color="var(--tw-brand-primary)" style={{ flexShrink: 0 }} />
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tw-text-primary)' }}>
-                Progres Eksplorasi
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)' }}>
-                <strong style={{ color: 'var(--tw-text-primary)' }}>{completedCount}</strong> / {totalItems}
-              </span>
-            </div>
-            <div
-              style={{
-                width: '100%',
-                height: '6px',
-                borderRadius: '9999px',
-                backgroundColor: 'var(--tw-hairline)',
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  width: `${progressPercent}%`,
-                  height: '100%',
-                  backgroundColor: 'var(--tw-brand-primary)',
-                  borderRadius: '9999px',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
-          </div>
-
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 800,
-              color: progressPercent === 100 ? 'var(--tw-brand-primary)' : 'var(--tw-text-secondary)',
-              fontFamily: 'var(--tw-font-heading)',
-              flexShrink: 0,
-            }}
-          >
-            {progressPercent}%
+      <div className="sj-page">
+        {/* Progress, once */}
+        <div className="sj-progress" aria-label={`${completedCount} dari ${totalItems} sumber sudah dicoba`}>
+          <p className="sj-progress__text">
+            <strong>{completedCount}</strong> dari {totalItems} sumber sudah dicoba
+          </p>
+          <span className="sj-progress__bar">
+            <span className="sj-progress__fill" style={{ width: `${progressPercent}%` }} />
           </span>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ position: 'relative' }}>
-          <div
-            style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--tw-text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <Search size={15} />
-          </div>
+        {/* Search */}
+        <div className="sj-search">
+          <Search size={18} className="sj-search__icon" aria-hidden="true" />
           <input
-            type="text"
-            placeholder="Cari ide relasi, contoh obrolan..."
+            type="search"
+            aria-label="Cari sumber jamaah"
+            placeholder="Cari ide relasi, contoh obrolan"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 36px 10px 36px',
-              borderRadius: '8px',
-              border: '1px solid var(--tw-divider)',
-              backgroundColor: 'var(--tw-background)',
-              color: 'var(--tw-text-primary)',
-              fontSize: '13px',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
+            className="tw-field sj-search__input"
           />
           {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: 'var(--tw-text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title="Hapus pencarian"
-            >
-              <X size={14} />
+            <button type="button" onClick={() => setSearchQuery('')} className="sj-search__clear" aria-label="Hapus pencarian">
+              <X size={18} />
             </button>
           )}
         </div>
 
-        {/* Category Filter Chips */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {categoriesWithCounts.map(({ kategori, count }) => {
-            const isSelected = selectedCategory === kategori;
-            return (
-              <button
-                key={kategori}
-                type="button"
-                onClick={() => setSelectedCategory(isSelected ? '' : kategori)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: isSelected
-                    ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid var(--tw-border)',
-                  backgroundColor: isSelected ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{kategori}</span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    backgroundColor: isSelected ? 'var(--tw-on-brand-subtle)' : 'var(--tw-hairline)',
-                    color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {count}
-                </span>
+        {isSearching ? (
+          filteredItems.length === 0 ? (
+            <div className="sj-empty">
+              <Users size={28} aria-hidden="true" />
+              <p className="sj-muted">Tidak ada sumber yang cocok dengan &quot;{searchQuery.trim()}&quot;.</p>
+              <button type="button" className="sj-btn" onClick={() => setSearchQuery('')}>
+                Hapus pencarian
               </button>
-            );
-          })}
-        </div>
-
-        {/* Result count + reset */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)' }}>
-            {filteredItems.length} dari {totalItems} sumber
-          </span>
-          {(searchQuery || selectedCategory !== 'Keluarga & Relasi Pribadi') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('Keluarga & Relasi Pribadi');
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--tw-brand-primary)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: 0,
-              }}
-            >
-              Reset Filter
-            </button>
-          )}
-        </div>
-
-        {/* Empty State */}
-        {filteredItems.length === 0 && (
-          <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              padding: '40px 16px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <Users size={32} color="var(--tw-text-muted)" />
-            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tw-text-primary)', fontFamily: 'var(--tw-font-heading)' }}>
-              Tidak Ada Sumber yang Cocok
-            </span>
-            <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)', maxWidth: '260px', lineHeight: 1.5 }}>
-              Coba kata kunci lain atau reset filter kategori.
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('Keluarga & Relasi Pribadi');
-              }}
-              style={{
-                marginTop: '4px',
-                padding: '8px 20px',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Tampilkan Semua Sumber
-            </button>
-          </div>
-        )}
-
-        {/* List */}
-        {filteredItems.length > 0 && (
-          <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              overflow: 'hidden',
-            }}
-          >
-            {filteredItems.map((item, idx) => {
-              const isCompleted = completedIds.includes(item.id);
+            </div>
+          ) : (
+            <>
+              <p className="sj-muted">{filteredItems.length} sumber ditemukan</p>
+              <ul className="sj-panel">{filteredItems.map((item) => renderRow(item, true))}</ul>
+            </>
+          )
+        ) : (
+          /* Every category as a collapsible group with its own progress. */
+          <div className="sj-groups">
+            {categoriesWithCounts.map(({ kategori, count }) => {
+              const items = allItems.filter((i) => i.kategori === kategori);
+              const done = items.filter((i) => completedIds.includes(i.id)).length;
+              const open = openCategories.includes(kategori);
               return (
-                <Link
-                  key={item.id}
-                  href={`/agen/sumber-jamaah/${item.id}`}
-                  style={{
-                    padding: '13px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                    textDecoration: 'none',
-                    borderBottom:
-                      idx < filteredItems.length - 1
-                        ? '1px solid var(--tw-border-subtle)'
-                        : 'none',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color: isCompleted ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)',
-                        fontFamily: 'monospace',
-                        backgroundColor: isCompleted
-                          ? 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))'
-                          : 'var(--tw-page-bg)',
-                        padding: '3px 7px',
-                        borderRadius: '5px',
-                        flexShrink: 0,
-                        minWidth: '32px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {String(item.id).padStart(2, '0')}
+                <section key={kategori} className="sj-panel">
+                  <button type="button" className="sj-group" onClick={() => toggleCategory(kategori)} aria-expanded={open}>
+                    <span className="sj-group__name">{kategori}</span>
+                    <span className={`sj-group__count${done === count ? ' sj-group__count--done' : ''}`}>
+                      {done}/{count}
                     </span>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                      <span
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          color: 'var(--tw-text-primary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {item.sumber}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
-                        {item.kategori}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    {isCompleted && (
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          color: 'var(--tw-brand-primary)',
-                          backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        Selesai
-                      </span>
-                    )}
-                    <ChevronRight size={16} color="var(--tw-text-muted)" />
-                  </div>
-                </Link>
+                    <ChevronDown size={18} className={`sj-group__chev${open ? ' sj-group__chev--open' : ''}`} aria-hidden="true" />
+                  </button>
+                  {open && <ul className="sj-list">{items.map((item) => renderRow(item, false))}</ul>}
+                </section>
               );
             })}
           </div>
         )}
       </div>
-
-      <AgentBottomNavbar />
     </MobileContainer>
   );
 }

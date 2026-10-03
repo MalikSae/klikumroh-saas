@@ -2,29 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  ImagePlus,
-  RefreshCw,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
-  Lock,
-  Mail,
-  Phone,
-  User,
-  MapPin,
-  Building2,
-  CreditCard,
-  Eye,
-  EyeOff,
-  LogOut,
-  Loader2,
-  Calendar,
-} from 'lucide-react';
+import { ImagePlus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Loader2, ChevronRight, Copy, Check, User, Landmark, KeyRound, X } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
-import regenciesData from '../../../data/indonesia-regencies.json';
+import { BankField } from '../../../components/BankField';
+import { CityField } from '../../../components/CityField';
+import { QrCode } from '../../../components/QrCode';
+import { HabitBadge } from '../../../components/HabitBadge';
+import { fetchHabitSummary } from '../../../lib/agentHabits';
 import './AgenProfil.css';
 
 interface AgentProfileData {
@@ -61,9 +46,8 @@ function formatIndonesianDate(dateStr: string): string {
 export default function AgenProfilPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const domisiliRef = useRef<HTMLDivElement>(null);
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
   const [agent, setAgent] = useState<AgentProfileData | null>(null);
 
   // Form Data Diri
@@ -71,8 +55,6 @@ export default function AgenProfilPage() {
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [domisili, setDomisili] = useState<string>('');
-  const [domisiliQuery, setDomisiliQuery] = useState<string>('');
-  const [domisiliOpen, setDomisiliOpen] = useState<boolean>(false);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
   const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -98,8 +80,6 @@ export default function AgenProfilPage() {
   const [removingPhoto, setRemovingPhoto] = useState<boolean>(false);
   const [photoMsg, setPhotoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Logout Confirmation Modal
-  const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
 
   // Fetch initial profile
   useEffect(() => {
@@ -133,14 +113,13 @@ export default function AgenProfilPage() {
           setPhone(ag.phone || '');
           setEmail(ag.email || '');
           setDomisili(ag.domisili || '');
-          setDomisiliQuery(ag.domisili || '');
 
           setBankName(ag.bank_name || '');
           setBankAccountNumber(ag.bank_account_number || '');
           setBankAccountHolder(ag.bank_account_holder || '');
         }
-      } catch (err: any) {
-        setProfileMsg({ type: 'error', text: err.message || 'Gagal memuat profil agen' });
+      } catch (err: unknown) {
+        setProfileMsg({ type: 'error', text: (err instanceof Error && err.message) || 'Gagal memuat profil agen' });
       } finally {
         setLoading(false);
       }
@@ -148,31 +127,6 @@ export default function AgenProfilPage() {
 
     fetchProfile();
   }, [router]);
-
-  // Outside click listener for domisili dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (domisiliRef.current && !domisiliRef.current.contains(e.target as Node)) {
-        setDomisiliOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Filter regencies
-  const filteredRegencies =
-    domisiliQuery.trim().length >= 2
-      ? (regenciesData as Array<{ code: string; name: string }>)
-        .filter((item) => item.name.toLowerCase().includes(domisiliQuery.toLowerCase()))
-        .slice(0, 15)
-      : [];
-
-  const handleSelectDomisili = (item: { code: string; name: string }) => {
-    setDomisili(item.name);
-    setDomisiliQuery(item.name);
-    setDomisiliOpen(false);
-  };
 
   // Upload Photo Handler
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,8 +174,8 @@ export default function AgenProfilPage() {
         setAgent((prev) => (prev ? { ...prev, photo_url: updated.photo_url } : null));
       }
       setPhotoMsg({ type: 'success', text: 'Foto profil berhasil diperbarui' });
-    } catch (err: any) {
-      setPhotoMsg({ type: 'error', text: err.message || 'Terjadi kesalahan saat upload foto' });
+    } catch (err: unknown) {
+      setPhotoMsg({ type: 'error', text: (err instanceof Error && err.message) || 'Terjadi kesalahan saat upload foto' });
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) {
@@ -308,8 +262,8 @@ export default function AgenProfilPage() {
       const updated = json.agent || json.data?.agent || json;
       setAgent((prev) => (prev ? { ...prev, ...updated } : null));
       setProfileMsg({ type: 'success', text: 'Data diri berhasil disimpan' });
-    } catch (err: any) {
-      setProfileMsg({ type: 'error', text: err.message || 'Terjadi kesalahan saat menyimpan data diri' });
+    } catch (err: unknown) {
+      setProfileMsg({ type: 'error', text: (err instanceof Error && err.message) || 'Terjadi kesalahan saat menyimpan data diri' });
     } finally {
       setSavingProfile(false);
     }
@@ -341,7 +295,9 @@ export default function AgenProfilPage() {
 
     try {
       setSavingBank(true);
-      const res = await fetch('/api/agent/bank-info', {
+      // Bank details go through the profile update (only the fields sent are changed); there is no
+      // separate bank-info endpoint (that old URL answered 404).
+      const res = await fetch('/api/agent/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -362,8 +318,8 @@ export default function AgenProfilPage() {
       const updated = json.agent || json.data?.agent || json;
       setAgent((prev) => (prev ? { ...prev, ...updated } : null));
       setBankMsg({ type: 'success', text: 'Info rekening berhasil disimpan' });
-    } catch (err: any) {
-      setBankMsg({ type: 'error', text: err.message || 'Terjadi kesalahan saat menyimpan rekening' });
+    } catch (err: unknown) {
+      setBankMsg({ type: 'error', text: (err instanceof Error && err.message) || 'Terjadi kesalahan saat menyimpan rekening' });
     } finally {
       setSavingBank(false);
     }
@@ -416,8 +372,8 @@ export default function AgenProfilPage() {
       setNewPassword('');
       setConfirmPassword('');
       setPasswordMsg({ type: 'success', text: 'Password berhasil diubah' });
-    } catch (err: any) {
-      setPasswordMsg({ type: 'error', text: err.message || 'Terjadi kesalahan saat mengubah password' });
+    } catch (err: unknown) {
+      setPasswordMsg({ type: 'error', text: (err instanceof Error && err.message) || 'Terjadi kesalahan saat mengubah password' });
     } finally {
       setSavingPassword(false);
     }
@@ -444,862 +400,256 @@ export default function AgenProfilPage() {
     router.push('/agen/login');
   };
 
+  // One sheet at a time: the form for a menu row, or the logout confirmation.
+  const [sheet, setSheet] = useState<'profile' | 'bank' | 'password' | 'logout' | null>(null);
+  const [refCopied, setRefCopied] = useState<boolean>(false);
+  // Referral link shown as a QR code on the ID card (same /ref/{code} route as the share links).
+  const referralLink = agent?.referral_code && typeof window !== 'undefined' ? `${window.location.origin}/ref/${agent.referral_code}` : '';
+  // Travel name for the ID card.
+  const [travelName, setTravelName] = useState<string>('');
+  // Highest habit streak badge, shown on the ID card (0 when none).
+  const [topBadge, setTopBadge] = useState<number>(0);
+  useEffect(() => {
+    fetchHabitSummary().then((s) => {
+      const days = (s?.badges || []).map((b) => b.days);
+      if (days.length > 0) setTopBadge(Math.max(...days));
+    });
+  }, []);
+  useEffect(() => {
+    fetch('/api/public/tenant-info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.name) setTravelName(json.name);
+      })
+      .catch(() => {});
+  }, []);
+  const openSheet = (s: 'profile' | 'bank' | 'password' | 'logout') => {
+    setProfileMsg(null);
+    setBankMsg(null);
+    setPasswordMsg(null);
+    setSheet(s);
+  };
+  const copyReferral = () => {
+    if (!agent?.referral_code) return;
+    navigator.clipboard.writeText(agent.referral_code).catch(() => {});
+    setRefCopied(true);
+    setTimeout(() => setRefCopied(false), 2000);
+  };
+
+  const msgBox = (m: { type: 'success' | 'error'; text: string } | null) =>
+    m && (
+      <p className={`pf-msg pf-msg--${m.type}`} role={m.type === 'error' ? 'alert' : 'status'}>
+        {m.type === 'success' ? <CheckCircle2 size={16} aria-hidden="true" /> : <AlertCircle size={16} aria-hidden="true" />}
+        <span>{m.text}</span>
+      </p>
+    );
+
+  const passwordField = (id: string, label: string, value: string, set: (v: string) => void, shown: boolean, toggle: () => void, autoComplete: string) => (
+    <div>
+      <label className="tw-field-label" htmlFor={id}>
+        {label}
+      </label>
+      <div className="pf-pass">
+        <input id={id} type={shown ? 'text' : 'password'} value={value} onChange={(e) => set(e.target.value)} autoComplete={autoComplete} className="tw-field tw-field--pw" />
+        <button type="button" className="pf-pass__toggle" onClick={toggle} aria-label={shown ? 'Sembunyikan password' : 'Tampilkan password'}>
+          {shown ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </div>
+  );
+
+  const bankSummary = agent?.bank_name && agent?.bank_account_number ? `${agent.bank_name} · ${agent.bank_account_number}` : 'Belum diisi';
+
   return (
     <MobileContainer>
-      {/* Top Header Navigation */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Kembali"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
-          >
-            Profil Saya
-          </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-            Kelola akun &amp; rekening pencairan
-          </span>
-        </div>
+      {/* Tab page (bottom navbar): title only. */}
+      <header className="pf-header">
+        <h1 className="pf-header__title">Profil</h1>
       </header>
 
-      {/* Main Canvas */}
-      <main
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(84px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* 1. Header Section: Foto Profil */}
-        <section
-          aria-label="Foto Profil"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            boxShadow: 'var(--tw-card-shadow)',
-            padding: '20px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-            textAlign: 'center',
-          }}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/jpeg,image/png,image/webp"
-            style={{ display: 'none' }}
-          />
-
-          {agent?.photo_url ? (
-            <div className="tw-photo-slot">
+      <div className="pf-page">
+        {/* Lanyard ID card: brand band with an Islamic eight-point star pattern and a lanyard slot, round photo,
+            name, travel, and a QR code of the agent's referral link (prospects scan it from the agent's phone). */}
+        <section className="pf-idcard" aria-label="Kartu mitra agen">
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/jpeg,image/png,image/webp" hidden />
+          <div className="pf-idcard__band" aria-hidden="true">
+            <svg className="pf-idcard__pattern" width="100%" height="100%">
+              <defs>
+                <pattern id="pf-star" width="28" height="28" patternUnits="userSpaceOnUse">
+                  <path d="M14 2l3.5 8.5L26 14l-8.5 3.5L14 26l-3.5-8.5L2 14l8.5-3.5z" fill="none" stroke="currentColor" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#pf-star)" />
+            </svg>
+            <span className="pf-idcard__slot" />
+          </div>
+          <div className="pf-idcard__photo">
+            {agent?.photo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- uploaded agent photo, served as-is
               <img src={agent.photo_url} alt={agent.name} />
-              <div className="tw-photo-slot__actions">
-                <button
-                  type="button"
-                  className="tw-photo-slot__action"
-                  aria-label="Ganti foto profil"
-                  title="Ganti"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPhoto || removingPhoto}
-                >
-                  <RefreshCw size={14} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="tw-photo-slot__action"
-                  aria-label="Hapus foto profil"
-                  title="Hapus"
-                  onClick={handleRemovePhoto}
-                  disabled={uploadingPhoto || removingPhoto}
-                >
-                  <Trash2 size={14} aria-hidden="true" />
-                </button>
-              </div>
-              {(uploadingPhoto || removingPhoto) && (
-                <span className="tw-photo-slot__busy">
-                  <Loader2 size={18} className="tw-animate-spin" aria-label={removingPhoto ? 'Menghapus' : 'Mengunggah'} />
-                </span>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="tw-photo-slot tw-photo-slot--empty"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-            >
-              {uploadingPhoto ? <Loader2 size={18} className="tw-animate-spin" aria-hidden="true" /> : <ImagePlus size={18} aria-hidden="true" />}
-              <span>{uploadingPhoto ? 'Mengunggah...' : 'Unggah foto'}</span>
-            </button>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--tw-text-primary)', fontFamily: 'var(--tw-font-heading)' }}>
-              {agent?.name || 'Mitra Agen'}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)' }}>
-              Kode Referral: <strong>{agent?.referral_code || '-'}</strong>
-            </span>
+            ) : (
+              <span className="pf-idcard__initial" aria-hidden="true">
+                {agent?.name?.trim().charAt(0).toUpperCase() || '?'}
+              </span>
+            )}
+            {(uploadingPhoto || removingPhoto) && (
+              <span className="pf-idcard__busy">
+                <Loader2 size={20} className="tw-animate-spin" aria-label={removingPhoto ? 'Menghapus' : 'Mengunggah'} />
+              </span>
+            )}
           </div>
-
-          <span className="tw-photo-hint">JPG, PNG, atau WebP, maks. 5 MB.</span>
-
-          {photoMsg && (
-            <div
-              style={{
-                fontSize: '12px',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: photoMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
-                color: photoMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
-              }}
-            >
-              {photoMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-              <span>{photoMsg.text}</span>
+          <p className="pf-idcard__name">{agent?.name || 'Mitra Agen'}</p>
+          <p className="pf-idcard__role">Mitra Agen · {travelName || 'Travel Umroh'}</p>
+          {topBadge > 0 && <HabitBadge days={topBadge} className="pf-idcard__badge" />}
+          {referralLink && (
+            <div className="pf-idcard__qr">
+              <QrCode value={referralLink} size={136} label={`QR link pendaftaran ${agent?.name || ''}`} />
+              <span className="pf-muted">Pindai untuk daftar lewat saya</span>
             </div>
           )}
-        </section>
-
-        {/* 2. Section: Form Data Diri */}
-        <section
-          aria-label="Data Diri Agen"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            boxShadow: 'var(--tw-card-shadow)',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tw-text-primary)', margin: 0, fontFamily: 'var(--tw-font-heading)' }}>
-              Data Diri
-            </h2>
-            <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
-              Informasi identitas akun kemitraan Anda
-            </span>
-          </div>
-
-          {profileMsg && (
-            <div
-              style={{
-                fontSize: '12px',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: profileMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
-                color: profileMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
-              }}
-            >
-              {profileMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-              <span>{profileMsg.text}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Nama Lengkap */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Nama Lengkap
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Nama Lengkap"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <User size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-            </div>
-
-            {/* Nomor WhatsApp */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Nomor WhatsApp
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="081234567890"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <Phone size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Email
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nama@email.com"
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <Mail size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-            </div>
-
-            {/* Domisili (Autocomplete) */}
-            <div ref={domisiliRef} style={{ position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Domisili (Kota/Kabupaten)
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={domisiliQuery}
-                  onChange={(e) => {
-                    setDomisiliQuery(e.target.value);
-                    setDomisili(e.target.value);
-                    setDomisiliOpen(true);
-                  }}
-                  onFocus={() => setDomisiliOpen(true)}
-                  placeholder="Ketik minimal 2 huruf..."
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <MapPin size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-
-              {domisiliOpen && filteredRegencies.length > 0 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 4px)',
-                    left: 0,
-                    right: 0,
-                    zIndex: 20,
-                    backgroundColor: 'var(--tw-background)',
-                    border: '1px solid var(--tw-divider)',
-                    borderRadius: '8px',
-                    boxShadow: '0 10px 15px -3px var(--tw-divider)',
-                    maxHeight: '180px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {filteredRegencies.map((item) => (
-                    <button
-                      key={item.code}
-                      type="button"
-                      onClick={() => handleSelectDomisili(item)}
-                      style={{
-                        width: '100%',
-                        padding: '9px 12px',
-                        border: 'none',
-                        borderBottom: '1px solid var(--tw-border-subtle)',
-                        backgroundColor: 'transparent',
-                        textAlign: 'left',
-                        fontSize: '13px',
-                        color: 'var(--tw-text-primary)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={savingProfile}
-              style={{
-                marginTop: '2px',
-                padding: '10px 16px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 700,
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                border: 'none',
-                cursor: savingProfile ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-            >
-              {savingProfile && <Loader2 size={14} className="tw-animate-spin" />}
-              <span>Simpan Data Diri</span>
-            </button>
-          </form>
-        </section>
-
-        {/* 3. Section: Info Rekening */}
-        <section
-          aria-label="Info Rekening Bank"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            boxShadow: 'var(--tw-card-shadow)',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tw-text-primary)', margin: 0, fontFamily: 'var(--tw-font-heading)' }}>
-              Info Rekening
-            </h2>
-            <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
-              Rekening bank tujuan untuk pencairan komisi Anda
-            </span>
-          </div>
-
-          {bankMsg && (
-            <div
-              style={{
-                fontSize: '12px',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: bankMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
-                color: bankMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
-              }}
-            >
-              {bankMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-              <span>{bankMsg.text}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSaveBank} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Nama Bank */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Nama Bank
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  placeholder="Contoh: BCA, Mandiri, BSI"
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <Building2 size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-            </div>
-
-            {/* Nomor Rekening */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Nomor Rekening
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={bankAccountNumber}
-                  onChange={(e) => setBankAccountNumber(e.target.value)}
-                  placeholder="Nomor rekening bank"
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <CreditCard size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-            </div>
-
-            {/* Atas Nama Rekening */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Nama Pemilik Rekening
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={bankAccountHolder}
-                  onChange={(e) => setBankAccountHolder(e.target.value)}
-                  placeholder="Sesuai buku tabungan"
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <User size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={savingBank}
-              style={{
-                marginTop: '2px',
-                padding: '10px 16px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 700,
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                border: 'none',
-                cursor: savingBank ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-            >
-              {savingBank && <Loader2 size={14} className="tw-animate-spin" />}
-              <span>Simpan Info Rekening</span>
-            </button>
-          </form>
-        </section>
-
-        {/* 4. Section: Ubah Password */}
-        <section
-          aria-label="Ubah Password"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            boxShadow: 'var(--tw-card-shadow)',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--tw-text-primary)', margin: 0, fontFamily: 'var(--tw-font-heading)' }}>
-              Ubah Password
-            </h2>
-            <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)' }}>
-              Pastikan gunakan password yang kuat dan aman
-            </span>
-          </div>
-
-          {passwordMsg && (
-            <div
-              style={{
-                fontSize: '12px',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: passwordMsg.type === 'success' ? 'var(--tw-badge-success-bg)' : 'var(--tw-danger-bg)',
-                color: passwordMsg.type === 'success' ? 'var(--tw-income)' : 'var(--tw-danger-text)',
-              }}
-            >
-              {passwordMsg.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-              <span>{passwordMsg.text}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSavePassword} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Current Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Password Saat Ini
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showCurrentPass ? 'text' : 'password'}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Password saat ini"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 36px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <Lock size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPass(!showCurrentPass)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '10px',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    color: 'var(--tw-text-muted)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showCurrentPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            {/* New Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Password Baru (Minimal 8 Karakter)
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showNewPass ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Password baru"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 36px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <Lock size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPass(!showNewPass)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '10px',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    color: 'var(--tw-text-muted)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--tw-text-primary)', marginBottom: '5px' }}>
-                Konfirmasi Password Baru
-              </label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showConfirmPass ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Ulangi password baru"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '9px 36px 9px 36px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '13px',
-                    color: 'var(--tw-text-primary)',
-                    backgroundColor: 'var(--tw-background)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <Lock size={15} color="var(--tw-text-muted)" style={{ position: 'absolute', left: '12px', top: '11px' }} />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPass(!showConfirmPass)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '10px',
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    color: 'var(--tw-text-muted)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={savingPassword}
-              style={{
-                marginTop: '2px',
-                padding: '10px 16px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: 700,
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                border: 'none',
-                cursor: savingPassword ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-            >
-              {savingPassword && <Loader2 size={14} className="tw-animate-spin" />}
-              <span>Ubah Password</span>
-            </button>
-          </form>
-        </section>
-
-        {/* 5. Read-only info: Bergabung sejak */}
-        {agent?.created_at && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              fontSize: '11px',
-              color: 'var(--tw-text-muted)',
-              padding: '2px 0',
-            }}
-          >
-            <Calendar size={12} color="var(--tw-text-muted)" />
-            <span>Bergabung sejak {formatIndonesianDate(agent.created_at)}</span>
-          </div>
-        )}
-
-        {/* 6. Tombol Logout (Keluar) */}
-        <section
-          aria-label="Logout"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            boxShadow: 'var(--tw-card-shadow)',
-            overflow: 'hidden',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setShowLogoutModal(true)}
-            style={{
-              width: '100%',
-              padding: '13px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--tw-expense, var(--tw-danger))',
-              fontSize: '13px',
-              fontWeight: 700,
-            }}
-          >
-            <LogOut size={16} color="var(--tw-expense, var(--tw-danger))" />
-            <span>Keluar dari Akun</span>
+          <button type="button" className="pf-idcard__code" onClick={copyReferral} aria-label={`Salin kode referral ${agent?.referral_code || ''}`}>
+            {agent?.referral_code || '-'}
+            {refCopied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
           </button>
+          {agent?.created_at && <p className="pf-muted">Bergabung sejak {formatIndonesianDate(agent.created_at)}</p>}
         </section>
-      </main>
+        <div className="pf-avatar__actions">
+          <button type="button" className="pf-link" onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto || removingPhoto}>
+            {agent?.photo_url ? <RefreshCw size={14} aria-hidden="true" /> : <ImagePlus size={14} aria-hidden="true" />}
+            {agent?.photo_url ? 'Ganti foto' : 'Unggah foto'}
+          </button>
+          {agent?.photo_url && (
+            <button type="button" className="pf-link pf-link--muted" onClick={handleRemovePhoto} disabled={uploadingPhoto || removingPhoto}>
+              <Trash2 size={14} aria-hidden="true" />
+              Hapus foto
+            </button>
+          )}
+        </div>
+        {msgBox(photoMsg)}
 
-      {/* Confirmation Modal for Logout */}
-      {showLogoutModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            backgroundColor: 'var(--tw-modal-overlay)',
-            backdropFilter: 'blur(3px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '14px',
-              padding: '20px',
-              width: '100%',
-              maxWidth: '340px',
-              boxShadow: '0 20px 25px -5px var(--tw-divider)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tw-text-primary)', margin: 0, fontFamily: 'var(--tw-font-heading)' }}>
-                Konfirmasi Keluar
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--tw-text-secondary)', margin: 0, lineHeight: 1.4 }}>
-                Apakah Anda yakin ingin keluar dari akun kemitraan agen ini?
-              </p>
-            </div>
+        {/* Settings as menu rows; each opens its own sheet. */}
+        <nav className="pf-menu" aria-label="Pengaturan akun">
+          <button type="button" className="pf-row" onClick={() => openSheet('profile')}>
+            <User size={20} className="pf-row__icon" aria-hidden="true" />
+            <span className="pf-row__text">
+              <span className="pf-row__label">Data diri</span>
+              <span className="pf-muted">{[agent?.name, agent?.phone].filter(Boolean).join(' · ') || 'Lengkapi data diri'}</span>
+            </span>
+            <ChevronRight size={18} className="pf-row__go" aria-hidden="true" />
+          </button>
+          <button type="button" className="pf-row" onClick={() => openSheet('bank')}>
+            <Landmark size={20} className="pf-row__icon" aria-hidden="true" />
+            <span className="pf-row__text">
+              <span className="pf-row__label">Rekening pencairan</span>
+              <span className="pf-muted">{bankSummary}</span>
+            </span>
+            <ChevronRight size={18} className="pf-row__go" aria-hidden="true" />
+          </button>
+          <button type="button" className="pf-row" onClick={() => openSheet('password')}>
+            <KeyRound size={20} className="pf-row__icon" aria-hidden="true" />
+            <span className="pf-row__text">
+              <span className="pf-row__label">Ubah password</span>
+              <span className="pf-muted">Ganti password masuk portal</span>
+            </span>
+            <ChevronRight size={18} className="pf-row__go" aria-hidden="true" />
+          </button>
+          <button type="button" className="pf-row pf-row--danger" onClick={() => openSheet('logout')}>
+            <LogOut size={20} className="pf-row__icon" aria-hidden="true" />
+            <span className="pf-row__text">
+              <span className="pf-row__label">Keluar</span>
+            </span>
+          </button>
+        </nav>
+      </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '2px' }}>
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                style={{
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  backgroundColor: 'var(--tw-page-bg)',
-                  border: '1px solid var(--tw-divider)',
-                  color: 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                }}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={executeLogout}
-                style={{
-                  padding: '9px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  backgroundColor: 'var(--tw-expense, var(--tw-danger))',
-                  border: 'none',
-                  color: 'var(--tw-on-brand)',
-                  cursor: 'pointer',
-                }}
-              >
-                Ya, Keluar
+      {sheet && (
+        <div className="pf-sheet" role="presentation" onClick={() => setSheet(null)}>
+          <div className="pf-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="pf-sheet-title" onClick={(e) => e.stopPropagation()}>
+            <span className="pf-sheet__grip" aria-hidden="true" />
+            <div className="pf-sheet__head">
+              <h2 id="pf-sheet-title" className="pf-title">
+                {sheet === 'profile' ? 'Data diri' : sheet === 'bank' ? 'Rekening pencairan' : sheet === 'password' ? 'Ubah password' : 'Keluar dari akun?'}
+              </h2>
+              <button type="button" className="pf-icon-btn" onClick={() => setSheet(null)} aria-label="Tutup">
+                <X size={20} />
               </button>
             </div>
+
+            {sheet === 'profile' && (
+              <form onSubmit={handleSaveProfile} className="pf-form">
+                {msgBox(profileMsg)}
+                <div>
+                  <label className="tw-field-label" htmlFor="pf-name">
+                    Nama lengkap
+                  </label>
+                  <input id="pf-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="tw-field" />
+                </div>
+                <div>
+                  <label className="tw-field-label" htmlFor="pf-phone">
+                    Nomor WhatsApp
+                  </label>
+                  <input id="pf-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="081234567890" required className="tw-field" />
+                </div>
+                <div>
+                  <label className="tw-field-label" htmlFor="pf-email">
+                    Email
+                  </label>
+                  <input id="pf-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@email.com" className="tw-field" />
+                </div>
+                <CityField id="pf-city" label="Domisili (kota/kabupaten)" value={domisili} onChange={setDomisili} openUp labelClassName="tw-field-label" inputClassName="tw-field" />
+                <button type="submit" className="pf-btn" disabled={savingProfile}>
+                  {savingProfile ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </form>
+            )}
+
+            {sheet === 'bank' && (
+              <form onSubmit={handleSaveBank} className="pf-form">
+                {msgBox(bankMsg)}
+                <BankField id="pf-bank" value={bankName} onChange={setBankName} />
+                <div>
+                  <label className="tw-field-label" htmlFor="pf-account">
+                    Nomor rekening
+                  </label>
+                  <input id="pf-account" type="text" inputMode="numeric" value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} required className="tw-field" />
+                </div>
+                <div>
+                  <label className="tw-field-label" htmlFor="pf-holder">
+                    Nama pemilik rekening
+                  </label>
+                  <input id="pf-holder" type="text" value={bankAccountHolder} onChange={(e) => setBankAccountHolder(e.target.value)} required className="tw-field" />
+                </div>
+                <button type="submit" className="pf-btn" disabled={savingBank}>
+                  {savingBank ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </form>
+            )}
+
+            {sheet === 'password' && (
+              <form onSubmit={handleSavePassword} className="pf-form">
+                {msgBox(passwordMsg)}
+                {passwordField('pf-pass-now', 'Password saat ini', currentPassword, setCurrentPassword, showCurrentPass, () => setShowCurrentPass((v) => !v), 'current-password')}
+                {passwordField('pf-pass-new', 'Password baru (minimal 8 karakter)', newPassword, setNewPassword, showNewPass, () => setShowNewPass((v) => !v), 'new-password')}
+                {passwordField('pf-pass-again', 'Ulangi password baru', confirmPassword, setConfirmPassword, showConfirmPass, () => setShowConfirmPass((v) => !v), 'new-password')}
+                <button type="submit" className="pf-btn" disabled={savingPassword}>
+                  {savingPassword ? 'Menyimpan...' : 'Simpan password'}
+                </button>
+              </form>
+            )}
+
+            {sheet === 'logout' && (
+              <div className="pf-form">
+                <p className="pf-text">Anda perlu masuk lagi untuk membuka portal agen.</p>
+                <div className="pf-actions">
+                  <button type="button" className="pf-btn pf-btn--ghost" onClick={() => setSheet(null)}>
+                    Batal
+                  </button>
+                  <button type="button" className="pf-btn pf-btn--danger" onClick={executeLogout}>
+                    Ya, keluar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1309,6 +659,6 @@ export default function AgenProfilPage() {
   );
 }
 
-function jsonBody(data: Record<string, any>): string {
+function jsonBody(data: Record<string, unknown>): string {
   return JSON.stringify(data);
 }

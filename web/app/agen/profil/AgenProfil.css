@@ -82,3 +82,420 @@
   font-size: 12px;
   color: var(--tw-text-muted);
 }
+
+/* Profil page (agen/profil/page.tsx): tab page, summary on top, settings as menu rows that open sheets. */
+.pf-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.pf-header__title,
+.pf-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.pf-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pf-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.pf-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.pf-text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--tw-neutral-700);
+}
+
+.pf-avatar__actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: -4px;
+}
+
+.pf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tw-brand-primary);
+  font: 600 13px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.pf-link--muted {
+  color: var(--tw-neutral-500);
+}
+
+.pf-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pf-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.pf-msg--success {
+  background-color: var(--tw-badge-success-bg);
+  color: var(--tw-income);
+}
+
+.pf-msg--error {
+  background-color: var(--tw-danger-bg);
+  color: var(--tw-danger-text);
+}
+
+/* Settings menu */
+.pf-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.pf-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pf-row + .pf-row {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.pf-row__icon {
+  flex-shrink: 0;
+  color: var(--tw-neutral-500);
+}
+
+.pf-row__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pf-row__text .pf-muted {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pf-row__label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.pf-row__go {
+  flex-shrink: 0;
+  color: var(--tw-neutral-400);
+}
+
+.pf-row--danger .pf-row__label,
+.pf-row--danger .pf-row__icon {
+  color: var(--tw-danger-text);
+}
+
+/* Sheets */
+.pf-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: var(--tw-modal-overlay);
+}
+
+.pf-sheet__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 428px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background-color: var(--tw-background);
+  animation: pf-sheet-in 0.2s ease-out;
+}
+
+@keyframes pf-sheet-in {
+  from {
+    transform: translateY(24px);
+  }
+}
+
+.pf-sheet__grip {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--tw-neutral-200);
+}
+
+.pf-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pf-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+.pf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pf-pass {
+  position: relative;
+}
+
+.pf-pass__toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+.pf-btn {
+  height: 44px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--tw-brand-primary);
+  color: var(--tw-on-brand);
+  font: 600 15px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.pf-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pf-btn--ghost {
+  border: 1px solid var(--tw-neutral-200);
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+}
+
+.pf-btn--danger {
+  background-color: var(--tw-danger-text);
+}
+
+.pf-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Lanyard ID card: white card, brand band on top with a star pattern and a lanyard slot, round photo
+   overlapping the band, then name, role, QR code of the referral link and the partner id. */
+.pf-idcard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  padding-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid var(--tw-neutral-100);
+  border-radius: 20px;
+  background-color: var(--tw-background);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--tw-neutral-900) 12%, transparent);
+  text-align: center;
+}
+
+.pf-idcard__band {
+  position: relative;
+  width: 100%;
+  height: 92px;
+  background-color: var(--tw-brand-primary);
+  background-image: linear-gradient(160deg, var(--tw-brand-primary) 0%, color-mix(in srgb, var(--tw-brand-primary) 70%, var(--tw-neutral-900)) 100%);
+  color: color-mix(in srgb, var(--tw-on-brand) 22%, transparent);
+}
+
+.pf-idcard__pattern {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* Lanyard slot */
+.pf-idcard__slot {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 40px;
+  height: 9px;
+  border-radius: 999px;
+  background-color: var(--tw-background);
+  transform: translateX(-50%);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--tw-neutral-900) 25%, transparent);
+}
+
+.pf-idcard__photo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  margin-top: -46px;
+  overflow: hidden;
+  border: 4px solid var(--tw-background);
+  border-radius: 50%;
+  background-color: var(--tw-neutral-200);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--tw-neutral-900) 18%, transparent);
+}
+
+.pf-idcard__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pf-idcard__initial {
+  font-family: var(--tw-font-heading);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--tw-neutral-600);
+}
+
+.pf-idcard__busy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: color-mix(in srgb, var(--tw-background) 60%, transparent);
+  color: var(--tw-neutral-900);
+}
+
+.pf-idcard__name {
+  margin: 10px 16px 0;
+  font-family: var(--tw-font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.pf-idcard__role {
+  margin: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tw-brand-primary);
+}
+
+.pf-idcard__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 10px 10px 8px;
+  border: 1px solid var(--tw-neutral-100);
+  border-radius: 14px;
+  color: var(--tw-neutral-900);
+}
+
+.pf-idcard__code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 6px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-900);
+  font: 700 15px var(--tw-font-heading);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+/* Screen-reader-only label ("Nama"). */
+.pf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Habit streak badge under the role line. */
+.pf-idcard__badge {
+  margin-top: 6px;
+}

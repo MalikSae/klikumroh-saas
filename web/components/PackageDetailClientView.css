@@ -1,13 +1,14 @@
-/* Package Detail Mobile UI Styles - Clean Modern OTA Layout (Consistent with Home) */
+/* Package detail (mobile). Hierarchy by type and spacing, not by cards: the only accent color is the
+   consultation button (and the active tab). Body text 14px+, weights 400-700 (AGENTS.md 3.4, 3.10). */
 
 .tw-pkg-detail-page {
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
   font-size: 14px;
-  line-height: 1.5;
-  color: #334155;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
 }
 
-/* 1. Mobile Top App Bar */
+/* 1. Top app bar (opaque: content never shows through) */
 .tw-pkg-topbar {
   position: sticky;
   top: 0;
@@ -15,48 +16,45 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 50px;
-  padding: 0 16px;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-bottom: 1px solid #F1F5F9;
+  height: 52px;
+  padding: 0 12px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
 }
 
 .tw-pkg-topbar-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   border: none;
   background-color: transparent;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   cursor: pointer;
-  transition: background-color 0.15s ease;
 }
 
 .tw-pkg-topbar-btn:hover {
-  background-color: #F1F5F9;
+  background-color: var(--tw-neutral-100);
 }
 
 .tw-pkg-topbar-title {
   font-family: var(--tw-font-heading);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
-  color: #0F172A;
+  color: var(--tw-neutral-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 240px;
 }
 
-/* 2. Hero Photo Gallery */
+/* 2. Photo gallery */
 .tw-pkg-gallery {
   position: relative;
   width: 100%;
-  background-color: #F1F5F9;
+  background-color: var(--tw-neutral-100);
 }
 
 .tw-pkg-gallery__image-wrap {
@@ -64,7 +62,7 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background-color: #F1F5F9;
+  background-color: var(--tw-neutral-100);
 }
 
 .tw-pkg-gallery__img {
@@ -74,67 +72,36 @@
   display: block;
 }
 
-/* Floating Quota Badge - Frosted Glass (Identical to Home Package Cards) */
-.tw-pkg-gallery__badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  color: #FFFFFF;
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  line-height: 1.2;
-  letter-spacing: 0.2px;
-}
-
-/* Floating Photo Counter */
 .tw-pkg-gallery__counter {
   position: absolute;
   bottom: 10px;
   right: 10px;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  background: rgba(15, 23, 42, 0.72);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  color: #FFFFFF;
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2.5px 7px;
+  background: color-mix(in srgb, var(--tw-neutral-900) 72%, transparent);
+  color: var(--tw-on-brand);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
   border-radius: 4px;
-  line-height: 1.2;
+  line-height: 1.5;
 }
 
 .tw-pkg-gallery__nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background-color: color-mix(in srgb, var(--tw-background) 85%, transparent);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #0F172A;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  color: var(--tw-neutral-900);
+  box-shadow: 0 2px 6px var(--tw-border);
   z-index: 10;
-  transition: all 0.15s ease;
-}
-
-.tw-pkg-gallery__nav:hover {
-  background-color: #FFFFFF;
-  transform: translateY(-50%) scale(1.05);
 }
 
 .tw-pkg-gallery__nav--prev {
@@ -147,7 +114,7 @@
 
 .tw-pkg-gallery__dots {
   position: absolute;
-  bottom: 10px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -160,172 +127,96 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: color-mix(in srgb, var(--tw-background) 60%, transparent);
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: width 0.2s ease;
 }
 
 .tw-pkg-gallery__dot.active {
-  background-color: #FFFFFF;
+  background-color: var(--tw-background);
   width: 16px;
   border-radius: 3px;
 }
 
-/* 3. Package Main Info & Content */
+/* 3. Content */
 .tw-pkg-content-wrap {
-  padding: 14px 16px 0 16px;
-  background-color: #FFFFFF;
+  padding: 16px 16px 0;
+  background-color: var(--tw-background);
 }
 
+/* Top block: who sells it, what it is, when and how it flies. */
 .tw-pkg-main-info {
-  margin-bottom: 12px;
+  margin: 0 -16px 16px;
+  padding: 0 16px 16px;
+  border-bottom: 8px solid var(--tw-neutral-100);
 }
 
 .tw-pkg-travel-tag {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--tw-brand-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 3px;
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tw-neutral-500);
 }
 
 .tw-pkg-title {
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.3;
-  color: #0F172A;
   margin: 0;
-}
-
-/* Price Card: Sleek compact summary card */
-.tw-pkg-price-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  background-color: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  margin-bottom: 12px;
-}
-
-.tw-pkg-price-card__left {
-  display: flex;
-  flex-direction: column;
-}
-
-.tw-pkg-price-card__label {
-  font-size: 9.5px;
-  color: #94A3B8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.tw-pkg-price-card__amount {
   font-family: var(--tw-font-heading);
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--tw-brand-primary);
-  line-height: 1.2;
-}
-
-.tw-pkg-price-card__sublabel {
-  font-size: 10.5px;
-  color: #64748B;
-  line-height: 1.2;
-  margin-top: 1px;
-}
-
-.tw-pkg-price-card__badge {
-  display: inline-flex;
-  align-items: center;
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 10%, #FFFFFF);
-  color: var(--tw-brand-primary);
-  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 22%, transparent);
-  font-size: 11px;
+  font-size: 22px;
   font-weight: 700;
-  padding: 3.5px 8px;
-  border-radius: 5px;
-  white-space: nowrap;
+  line-height: 1.3;
+  color: var(--tw-neutral-900);
 }
 
-/* Quick Specs Grid (Keberangkatan & Penerbangan - Clean standalone icons) */
-.tw-pkg-specs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.tw-pkg-spec-card {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 12px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-}
-
-.tw-pkg-spec-icon {
-  color: var(--tw-brand-primary);
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-}
-
-.tw-pkg-spec-info {
+.tw-pkg-facts {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  gap: 6px;
 }
 
-.tw-pkg-spec-label {
-  font-size: 10px;
-  color: #64748B;
+.tw-pkg-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tw-neutral-600);
+}
+
+.tw-pkg-fact b {
   font-weight: 500;
-  line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 2px;
+  color: var(--tw-neutral-900);
 }
 
-.tw-pkg-spec-val {
-  font-size: 12px;
-  font-weight: 700;
-  color: #0F172A;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.25;
+.tw-pkg-fact__icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--tw-neutral-500);
 }
 
-/* Package Description Section */
+/* Description */
 .tw-pkg-desc-section {
-  padding: 0;
-  margin-bottom: 16px;
+  margin: 0 -16px 8px;
+  padding: 0 16px 16px;
+  border-bottom: 8px solid var(--tw-neutral-100);
 }
 
 .tw-pkg-desc-title {
   font-family: var(--tw-font-heading);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
   margin-bottom: 6px;
 }
 
 .tw-pkg-desc-text {
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.6;
-  color: #475569;
-  margin: 0;
+  color: var(--tw-neutral-700);
   word-break: break-word;
 }
 
@@ -343,14 +234,14 @@
   font-size: inherit;
 }
 
-/* 4. Seamless Underline Tabs (Identical to Home Rekomendasi B) */
+/* 4. Tabs (underline) */
 .tw-pkg-tabs-wrapper {
   width: 100%;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--tw-neutral-200);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .tw-pkg-tabs-wrapper::-webkit-scrollbar {
@@ -359,33 +250,30 @@
 
 .tw-pkg-tabs-nav {
   display: flex;
-  gap: 18px;
+  gap: 20px;
   width: max-content;
-  padding: 0;
 }
 
 .tw-pkg-tab-btn {
   position: relative;
-  padding: 4px 2px 10px 2px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #64748B;
+  padding: 8px 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-500);
   background-color: transparent;
   border: none;
-  margin-bottom: 0;
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
-  transition: color 0.15s ease;
 }
 
 .tw-pkg-tab-btn:hover {
-  color: #0F172A;
+  color: var(--tw-neutral-900);
 }
 
 .tw-pkg-tab-btn.active {
-  color: var(--tw-brand-primary);
-  font-weight: 700;
+  color: var(--tw-neutral-900);
+  font-weight: 500;
 }
 
 .tw-pkg-tab-btn.active::after {
@@ -394,39 +282,33 @@
   bottom: -1px;
   left: 0;
   right: 0;
-  height: 2.5px;
+  height: 2px;
   background-color: var(--tw-brand-primary);
   border-radius: 2px 2px 0 0;
 }
 
-/* 5. Tab Content Panel */
+/* 5. Tab panels */
 .tw-pkg-tab-panel {
-  padding: 0 0 16px 0;
+  padding: 0 0 20px;
 }
 
-/* TAB 1: Facilities View */
+/* Facilities: two plain lists */
 .tw-pkg-facilities-view {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.tw-facility-card {
-  padding: 14px;
-  border-radius: 10px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  gap: 20px;
 }
 
 .tw-facility-header {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .tw-facility-title {
+  margin: 0;
   font-family: var(--tw-font-heading);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
 }
 
 .tw-facility-list {
@@ -441,136 +323,138 @@
 .tw-facility-item {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: 10px;
+  font-size: 14px;
   line-height: 1.5;
-  color: #334155;
+  color: var(--tw-neutral-700);
 }
 
 .tw-facility-icon {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .tw-facility-icon--inc {
-  color: var(--tw-brand-primary);
+  color: var(--tw-neutral-900);
 }
 
 .tw-facility-icon--exc {
-  color: #94A3B8;
+  color: var(--tw-neutral-400);
 }
 
-/* TAB 2: Accommodation View */
+/* Accommodation: hotel and flight as rows split by dividers */
 .tw-pkg-accommodation-view {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
 
 .tw-accomm-section-header {
+  margin-top: 0;
   font-family: var(--tw-font-heading);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
   margin-bottom: 8px;
 }
 
-.tw-hotel-card,
-.tw-flight-card {
-  padding: 14px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* One tinted panel per group: breaks the white page without another bordered card. */
+.tw-accomm-panel {
+  list-style: none;
+  margin: 0;
+  padding: 4px 14px;
+  border-radius: 12px;
+  background-color: var(--tw-page-bg);
 }
 
-.tw-hotel-card__row {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.tw-hotel-card__divider {
-  height: 1px;
-  background-color: #F1F5F9;
-}
-
-.tw-hotel-card__content {
+.tw-hotel-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  padding: 10px 0;
 }
 
-.tw-hotel-card__city-label {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--tw-brand-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.tw-hotel-row + .tw-hotel-row {
+  border-top: 1px solid var(--tw-neutral-200);
 }
 
-.tw-hotel-card__stars {
+.tw-hotel-row__main {
   display: flex;
-  align-items: center;
-  gap: 2px;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.tw-hotel-star-icon {
+.tw-hotel-row__city {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+  line-height: 1.4;
+}
+
+.tw-hotel-row__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+  line-height: 1.4;
+}
+
+.tw-hotel-row__stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tw-neutral-700);
 }
 
 .tw-hotel-star-icon--filled {
-  color: #F59E0B;
+  color: var(--tw-rating-star);
 }
 
-.tw-hotel-star-icon--empty {
-  color: #CBD5E1;
-}
-
-.tw-hotel-card__name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
-  line-height: 1.35;
-}
-
-.tw-flight-card__row {
+.tw-flight-airline {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.tw-flight-card__label {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #64748B;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.tw-flight-card__value {
-  font-size: 12.5px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  font-size: 15px;
   font-weight: 500;
-  color: #334155;
+  color: var(--tw-neutral-900);
+}
+
+.tw-flight-airline svg {
+  flex-shrink: 0;
+  color: var(--tw-neutral-500);
+}
+
+.tw-flight-legs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--tw-neutral-200);
+}
+
+.tw-flight-leg {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 0;
+  font-size: 14px;
   line-height: 1.5;
-  white-space: pre-line;
+  color: var(--tw-neutral-700);
 }
 
-.tw-flight-card__value--airline {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
+.tw-flight-leg + .tw-flight-leg {
+  border-top: 1px solid var(--tw-neutral-200);
 }
 
-.tw-flight-card__divider {
-  height: 1px;
-  background-color: #F1F5F9;
+.tw-flight-leg__arrow {
+  flex-shrink: 0;
+  color: var(--tw-neutral-400);
 }
 
-/* TAB 3: Itinerary View */
+/* Itinerary: numbered timeline */
 .tw-itinerary-timeline {
   display: flex;
   flex-direction: column;
@@ -585,7 +469,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 24px;
+  width: 26px;
   flex-shrink: 0;
 }
 
@@ -593,60 +477,54 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background-color: var(--tw-brand-primary);
-  color: #FFFFFF;
-  font-size: 11px;
-  font-weight: 700;
-  z-index: 2;
+  border: 1.5px solid var(--tw-neutral-300);
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .tw-itinerary-line {
-  width: 2px;
+  width: 1.5px;
   flex: 1;
-  background-color: #E2E8F0;
-  margin: 3px 0;
+  background-color: var(--tw-neutral-200);
+  margin: 4px 0;
 }
 
 .tw-itinerary-body {
   flex: 1;
-  padding-bottom: 16px;
+  padding: 2px 0 18px;
 }
 
 .tw-itinerary-title {
   font-family: var(--tw-font-heading);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
 }
 
 .tw-itinerary-text {
-  font-size: 12.5px;
-  color: #475569;
-  line-height: 1.55;
-  margin-top: 3px;
+  font-size: 14px;
+  color: var(--tw-neutral-700);
+  line-height: 1.6;
+  margin-top: 2px;
   white-space: pre-line;
 }
 
-/* TAB 4: Terms View */
-.tw-terms-card {
-  padding: 14px;
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px;
-}
-
+/* Terms */
 .tw-terms-header {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .tw-terms-title {
+  margin: 0;
   font-family: var(--tw-font-heading);
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #0F172A;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
 }
 
 .tw-terms-list {
@@ -661,99 +539,37 @@
 .tw-terms-item {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: #475569;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
 }
 
 .tw-terms-bullet {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: var(--tw-brand-primary);
+  background-color: var(--tw-neutral-400);
   flex-shrink: 0;
-  margin-top: 7px;
+  margin-top: 9px;
 }
 
-/* Empty State Helpers */
+/* Empty states */
 .tw-pkg-empty-box {
   padding: 16px;
-  text-align: center;
-  font-size: 12.5px;
-  color: #64748B;
-  background-color: #F8FAFC;
+  font-size: 14px;
+  color: var(--tw-neutral-500);
+  background-color: var(--tw-page-bg);
   border-radius: 8px;
-  border: 1px dashed #CBD5E1;
 }
 
 .tw-pkg-empty-text {
-  font-size: 12.5px;
-  color: #64748B;
+  font-size: 14px;
+  color: var(--tw-neutral-500);
   margin: 0;
 }
 
-/* 6. Trust & Security Strip */
-.tw-pkg-trust-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 14px;
-  background-color: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  margin-top: 14px;
-  margin-bottom: 20px;
-}
-
-.tw-pkg-trust-item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.tw-pkg-trust-icon {
-  color: var(--tw-brand-primary);
-  flex-shrink: 0;
-}
-
-.tw-pkg-trust-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.tw-pkg-trust-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #0F172A;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tw-pkg-trust-sub {
-  font-size: 10px;
-  color: #64748B;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 7. Public Footer override for Detail page */
-.tw-pkg-detail-page .tw-footer {
-  background: #F8FAFC;
-  border-top: 1px solid #E2E8F0;
-  padding: 24px 16px 96px 16px;
-  color: #475569;
-}
-
-/* 9. STICKY BOTTOM ACTION BAR */
+/* 7. Bottom action bar: price + the one primary action */
 .tw-pkg-sticky-bar {
   position: fixed;
   bottom: 0;
@@ -767,75 +583,77 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 16px;
-  background-color: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid #E2E8F0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background-color: var(--tw-background);
+  border-top: 1px solid var(--tw-neutral-200);
 }
 
+/* Price takes the free width; the button keeps its size. */
 .tw-pkg-sticky-price {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 1px;
   min-width: 0;
-  flex-shrink: 0;
 }
 
 .tw-pkg-sticky-price__label {
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #94A3B8;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  line-height: 1.2;
-}
-
-.tw-pkg-sticky-price__row {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .tw-pkg-sticky-price__amount {
   font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--tw-brand-primary);
-  line-height: 1.2;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+  line-height: 1.3;
   white-space: nowrap;
 }
 
-.tw-pkg-sticky-price__unit {
-  font-size: 10.5px;
-  font-weight: 500;
-  color: #64748B;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* Right: Tombol Konsultasi (UTAMA) */
 .tw-pkg-sticky-consult-btn {
   flex: 0 0 auto;
   width: auto;
-  height: 38px;
+  height: 46px;
   padding: 0 16px;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border-radius: 6px;
+  gap: 8px;
+  border-radius: 8px;
   background-color: var(--tw-brand-primary);
-  color: #FFFFFF;
+  color: var(--tw-on-brand);
   border: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: opacity 0.15s ease;
 }
 
 .tw-pkg-sticky-consult-btn:hover {
-  opacity: 0.9;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900));
+}
+
+/* Room for the fixed action bar below the last content. */
+.tw-pkg-sticky-space { flex-shrink: 0; height: calc(67px + env(safe-area-inset-bottom)); }
+
+/* Feedback after sharing falls back to copying the message (no share sheet in this browser). */
+.tw-pkg-share-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tw-neutral-900) 88%, transparent);
+  color: var(--tw-on-brand);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: nowrap;
 }

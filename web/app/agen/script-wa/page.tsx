@@ -3,32 +3,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Search,
-  X,
-  Copy,
-  Check,
-  Share2,
-  Star,
-  MessageSquare,
-  HelpCircle,
-  Lightbulb,
-  CheckCircle2,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
-  User,
-  Building2,
-  Compass,
-  Users,
-  ExternalLink,
-  Edit3,
-  Package,
-  Loader2,
-} from 'lucide-react';
+import { ArrowLeft, Search, X, Copy, Check, Share2, Star, MessageSquare, Lightbulb, ChevronDown, ChevronUp, Compass, Loader2 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import './ScriptWA.css';
+import { logHabit } from '../../../lib/agentHabits';
 import {
   replacePlaceholders,
   getCycleStages,
@@ -87,7 +65,6 @@ function ScriptWAContent() {
   const [prospectName, setProspectName] = useState<string>('');
   const [prospectPhone, setProspectPhone] = useState<string>('');
   const [prospectPackageName, setProspectPackageName] = useState<string>('');
-  const [prospectJumlahJamaah, setProspectJumlahJamaah] = useState<number>(1);
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabType>('greeting');
@@ -142,7 +119,6 @@ function ScriptWAContent() {
     setProspectName(target.name);
     setProspectPhone(target.phone);
     setProspectPackageName(target.package_name || '');
-    setProspectJumlahJamaah(target.jumlah_jamaah || 1);
 
     // Recommend and switch tab automatically
     const recommended = getRecommendedTab(target.status);
@@ -156,7 +132,6 @@ function ScriptWAContent() {
     setProspectName('');
     setProspectPhone('');
     setProspectPackageName('');
-    setProspectJumlahJamaah(1);
   };
 
   // Load user data and saved state
@@ -171,6 +146,7 @@ function ScriptWAContent() {
     try {
       const savedTenant = localStorage.getItem('klikumroh_agent_tenant_name');
       if (savedTenant && savedTenant.trim() !== '' && savedTenant.trim() !== 'Travel Umroh') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the browser after hydration; not available on the server render
         setTenantName(savedTenant.trim());
       }
       const savedAgent = localStorage.getItem('klikumroh_agent_name');
@@ -307,6 +283,8 @@ function ScriptWAContent() {
     } catch {
       // Ignore storage error
     }
+    // Runs once per prospect from the URL; handleSelectProspect is a plain function recreated every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, initialProspectId]);
 
   // Persist prospect name in manual mode
@@ -343,13 +321,16 @@ function ScriptWAContent() {
 
   // Copy handler
   const handleCopyText = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+    // Logged first: the habit counts the intent, even if the browser refuses the clipboard.
+    logHabit('contact');
+    navigator.clipboard.writeText(text).catch(() => {});
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
   // Direct WA handler
   const handleOpenWhatsApp = (text: string) => {
+    logHabit('contact');
     const cleanPhone = prospectPhone.replace(/[^0-9]/g, '');
     let url = '';
     if (cleanPhone) {
@@ -466,12 +447,10 @@ function ScriptWAContent() {
 
   // Infinite scroll pagination state (8 items per load)
   const PAGE_SIZE = 8;
-  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
-
-  // Reset pagination on tab or search query change
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [activeTab, searchQuery]);
+  // Pagination resets on tab or search query change: the count belongs to the filter it was loaded for.
+  const pageKey = `${activeTab}|${searchQuery}`;
+  const [paging, setPaging] = useState({ key: pageKey, count: PAGE_SIZE });
+  const visibleCount = paging.key === pageKey ? paging.count : PAGE_SIZE;
 
   // Paginated standard scripts
   const displayedStandardScripts = useMemo(() => {
@@ -499,11 +478,12 @@ function ScriptWAContent() {
   const hasMore = currentlyDisplayedCount < totalActiveItemsCount;
 
   const loadMore = useCallback(() => {
-    setVisibleCount((prev) => {
-      if (prev >= totalActiveItemsCount) return prev;
-      return Math.min(prev + PAGE_SIZE, totalActiveItemsCount);
+    setPaging((p) => {
+      const prev = p.key === pageKey ? p.count : PAGE_SIZE;
+      if (prev >= totalActiveItemsCount) return p;
+      return { key: pageKey, count: Math.min(prev + PAGE_SIZE, totalActiveItemsCount) };
     });
-  }, [totalActiveItemsCount]);
+  }, [totalActiveItemsCount, pageKey]);
 
   // Infinite scroll sentinel observer
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -555,718 +535,163 @@ function ScriptWAContent() {
     };
   }, [hasMore, loadMore]);
 
+  // Recipient sheet: pick a jamaah (searchable) or type a name by hand.
+  const [sheetOpen, setSheetOpen] = useState<boolean>(false);
+  const [sheetQuery, setSheetQuery] = useState<string>('');
+  const sheetResults = useMemo(() => {
+    const q = sheetQuery.trim().toLowerCase();
+    if (!q) return prospectList;
+    return prospectList.filter((p) => p.name.toLowerCase().includes(q) || p.phone.replace(/\D/g, '').includes(q.replace(/\D/g, '') || q));
+  }, [prospectList, sheetQuery]);
+  const pickProspect = (id: number) => {
+    setPersonalizationMode('prospect');
+    handleSelectProspect(id);
+    setSheetOpen(false);
+    setSheetQuery('');
+  };
+
+  // One-line tab copy for every script list item.
+  const renderCopyButton = (text: string, key: string, label = 'Salin') => {
+    const isCopied = copiedKey === key;
+    return (
+      <button type="button" onClick={() => handleCopyText(text, key)} className={`sw-icon-btn${isCopied ? ' sw-icon-btn--done' : ''}`} aria-label={label}>
+        {isCopied ? <Check size={16} /> : <Copy size={16} />}
+      </button>
+    );
+  };
+
+  const TGJP_STEPS = [
+    { key: 'terima', label: '1. Terima: empati dan validasi', tone: 'brand' },
+    { key: 'gali', label: '2. Gali: temukan akar masalah', tone: 'star' },
+    { key: 'jawab', label: '3. Jawab: pilih solusi yang pas', tone: 'muted' },
+    { key: 'pastikan', label: '4. Pastikan: konfirmasi dan arahkan kembali', tone: 'brand' },
+  ] as const;
+
   return (
     <MobileContainer>
-      {/* Sticky Header — konsisten dengan halaman agen lain */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Kembali"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
+      {/* Drill-down page (opened from the home menu): back button, no bottom tab bar. */}
+      <header className="sw-header">
+        <button type="button" onClick={() => router.back()} aria-label="Kembali" className="sw-icon-btn sw-icon-btn--lg">
           <ArrowLeft size={20} />
         </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
-          >
-            Script Chat WhatsApp
-          </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-            Sapaan · Kualifikasi · Closing · Keberatan
-          </span>
-        </div>
+        <h1 className="sw-header__title">Script chat</h1>
       </header>
 
-      {/* Main Content Area */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* Personalization Box */}
-        <section
-          aria-label="Personalisasi Pesan"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            padding: '14px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
-        >
-          {/* Header Row: Title & Mode Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sparkles size={14} color="var(--tw-brand-primary)" />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--tw-text-primary)' }}>
-                Personalisasi Pesan
+      <div className="sw-page">
+        {/* Recipient: one compact row; opens the picker sheet. */}
+        <button type="button" className="sw-target" onClick={() => setSheetOpen(true)} aria-haspopup="dialog">
+          <span className="sw-target__text">
+            <span className="sw-target__label">Untuk</span>
+            <span className="sw-target__name">{prospectName.trim() || 'Pilih calon jamaah'}</span>
+            {selectedProspect ? (
+              <span className="sw-target__meta">
+                <span className={`sw-status sw-status--${selectedProspect.status}`}>{STATUS_LABELS[selectedProspect.status] || selectedProspect.status}</span>
+                {' · '}
+                {selectedProspect.package_name || 'Belum pilih paket'}
               </span>
-            </div>
-
-            {/* Mode Switcher */}
-            <div
-              style={{
-                display: 'flex',
-                backgroundColor: 'var(--tw-page-bg)',
-                borderRadius: '6px',
-                padding: '2px',
-                border: '1px solid var(--tw-hairline)',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setPersonalizationMode('prospect')}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  border: personalizationMode === 'prospect' ? '1px solid var(--tw-border)' : '1px solid transparent',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  backgroundColor: personalizationMode === 'prospect' ? 'var(--tw-background)' : 'transparent',
-                  color: personalizationMode === 'prospect' ? 'var(--tw-brand-primary)' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Users size={11} />
-                <span>Dari Prospek ({prospectList.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPersonalizationMode('manual')}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  border: personalizationMode === 'manual' ? '1px solid var(--tw-border)' : '1px solid transparent',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  backgroundColor: personalizationMode === 'manual' ? 'var(--tw-background)' : 'transparent',
-                  color: personalizationMode === 'manual' ? 'var(--tw-brand-primary)' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Edit3 size={11} />
-                <span>Ketik Manual</span>
-              </button>
-            </div>
-          </div>
-
-          {/* MODE 1: PILIH DARI DATA PROSPEK */}
-          {personalizationMode === 'prospect' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label htmlFor="select-prospect" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tw-text-secondary)' }}>
-                Pilih Calon Jamaah dari Pipeline:
-              </label>
-
-              {loadingProspects ? (
-                <div style={{ fontSize: '12px', color: 'var(--tw-text-muted)', padding: '6px 0' }}>
-                  Memuat data jamaah...
-                </div>
-              ) : prospectList.length === 0 ? (
-                <div
-                  style={{
-                    backgroundColor: 'var(--tw-page-bg)',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    fontSize: '12px',
-                    color: 'var(--tw-text-secondary)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                  }}
-                >
-                  <span>Belum ada prospek tercatat di akun Anda.</span>
-                  <button
-                    type="button"
-                    onClick={() => setPersonalizationMode('manual')}
-                    style={{
-                      alignSelf: 'flex-start',
-                      fontSize: '11px',
-                      color: 'var(--tw-brand-primary)',
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Ketik nama &amp; no WhatsApp manual
-                  </button>
-                </div>
-              ) : (
-                <div style={{ position: 'relative' }}>
-                  <select
-                    id="select-prospect"
-                    value={selectedProspectId ?? ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val) handleSelectProspect(Number(val));
-                      else handleClearProspect();
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '9px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--tw-divider)',
-                      fontSize: '12px',
-                      backgroundColor: 'var(--tw-page-bg)',
-                      color: 'var(--tw-text-primary)',
-                      outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="">-- Pilih Calon Jamaah ({prospectList.length} tersedia) --</option>
-                    {prospectList.map((p) => {
-                      const statusLabel = STATUS_LABELS[p.status] || p.status;
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.phone}) • {statusLabel}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-
-              {/* Selected Prospect Context Capsule */}
-              {selectedProspect && (
-                <div
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 5%, var(--tw-background))',
-                    border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 18%, transparent)',
-                    borderRadius: '10px',
-                    padding: '10px 12px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          backgroundColor:
-                            selectedProspect.status === 'closing'
-                              ? 'var(--tw-badge-success-bg)'
-                              : selectedProspect.status === 'tertarik'
-                              ? 'color-mix(in srgb, var(--tw-brand-primary) 15%, var(--tw-background))'
-                              : 'var(--tw-badge-neutral-bg)',
-                          color:
-                            selectedProspect.status === 'closing'
-                              ? 'var(--tw-badge-success-text)'
-                              : selectedProspect.status === 'tertarik'
-                              ? 'var(--tw-brand-primary)'
-                              : 'var(--tw-badge-neutral-text)',
-                        }}
-                      >
-                        {STATUS_LABELS[selectedProspect.status] || selectedProspect.status}
-                      </span>
-                      <strong style={{ fontSize: '13px', color: 'var(--tw-text-primary)' }}>
-                        {selectedProspect.name}
-                      </strong>
-                    </div>
-
-                    <Link
-                      href={`/agen/jamaah/${selectedProspect.id}`}
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--tw-brand-primary)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span>Detail</span>
-                      <ExternalLink size={12} />
-                    </Link>
-                  </div>
-
-                  {/* Context Info Row */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '11px', color: 'var(--tw-text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Package size={12} color="var(--tw-text-muted)" />
-                      <span>{selectedProspect.package_name || 'Paket Umum'}</span>
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Users size={12} color="var(--tw-text-muted)" />
-                      <span>{selectedProspect.jumlah_jamaah || 1} Jamaah</span>
-                    </span>
-                    <span>WA: {selectedProspect.phone}</span>
-                  </div>
-
-                  {/* Smart Recommendation Banner */}
-                  <div
-                    style={{
-                      backgroundColor: 'var(--tw-background)',
-                      borderRadius: '6px',
-                      padding: '6px 8px',
-                      fontSize: '11px',
-                      color: 'var(--tw-text-primary)',
-                      borderLeft: '3px solid var(--tw-brand-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
-                  >
-                    <span style={{ lineHeight: 1.4 }}>{getRecommendationTip(selectedProspect.status)}</span>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab(getRecommendedTab(selectedProspect.status))}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--tw-brand-primary)',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        padding: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Buka Tab Saran
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* MODE 2: KETIK MANUAL */}
-          {personalizationMode === 'manual' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label htmlFor="input-prospect-name" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tw-text-secondary)' }}>
-                  Nama Calon Jamaah
-                </label>
-                <input
-                  id="input-prospect-name"
-                  type="text"
-                  placeholder="Contoh: Bu Fatimah"
-                  value={prospectName}
-                  onChange={(e) => handleManualNameChange(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '12px',
-                    backgroundColor: 'var(--tw-page-bg)',
-                    color: 'var(--tw-text-primary)',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label htmlFor="input-prospect-phone" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tw-text-secondary)' }}>
-                  No WA Jamaah (Opsional)
-                </label>
-                <input
-                  id="input-prospect-phone"
-                  type="tel"
-                  placeholder="0812xxxx"
-                  value={prospectPhone}
-                  onChange={(e) => setProspectPhone(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-divider)',
-                    fontSize: '12px',
-                    backgroundColor: 'var(--tw-page-bg)',
-                    color: 'var(--tw-text-primary)',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Quick Context Bar */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingTop: '8px',
-              borderTop: '1px dashed var(--tw-border)',
-              fontSize: '11px',
-              color: 'var(--tw-text-muted)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Building2 size={12} />
-                <strong style={{ color: 'var(--tw-text-secondary)' }}>{tenantName}</strong>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <User size={12} />
-                <span>{agentName}</span>
-              </span>
-            </div>
-
-            {prospectName && (
-              <span style={{ color: 'var(--tw-brand-primary)', fontWeight: 700 }}>
-                Target: {prospectName}
-              </span>
+            ) : (
+              <span className="sw-target__meta">Opsional, untuk menyapa nama di pesan</span>
             )}
-          </div>
-        </section>
+          </span>
+          <ChevronDown size={20} className="sw-target__chev" aria-hidden="true" />
+        </button>
 
-        {/* Search Bar */}
-        <div style={{ position: 'relative' }}>
-          <div
-            style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--tw-text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <Search size={15} />
-          </div>
+        {selectedProspect && (
+          <p className="sw-tip">
+            <span>{getRecommendationTip(selectedProspect.status)}</span>{' '}
+            <button type="button" className="sw-link" onClick={() => setActiveTab(getRecommendedTab(selectedProspect.status))}>
+              Buka script yang disarankan
+            </button>
+            {' · '}
+            <Link href={`/agen/jamaah/${selectedProspect.id}`} className="sw-link">
+              Detail jamaah
+            </Link>
+          </p>
+        )}
 
+        {/* Search */}
+        <div className="sw-search">
+          <Search size={18} className="sw-search__icon" aria-hidden="true" />
           <input
-            type="text"
-            placeholder="Cari script (mahal, halo, dp, lansia)..."
+            type="search"
+            aria-label="Cari script"
+            placeholder="Cari script (mahal, halo, dp, lansia)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 36px 10px 36px',
-              borderRadius: '8px',
-              border: '1px solid var(--tw-divider)',
-              backgroundColor: 'var(--tw-background)',
-              fontSize: '13px',
-              color: 'var(--tw-text-primary)',
-              outline: 'none',
-            }}
+            className="tw-field sw-search__input"
           />
-
           {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: 'var(--tw-text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title="Hapus pencarian"
-            >
-              <X size={14} />
+            <button type="button" onClick={() => setSearchQuery('')} className="sw-search__clear" aria-label="Hapus pencarian">
+              <X size={18} />
             </button>
           )}
         </div>
 
-        {/* Horizontal Navigation Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {tabs.map((tab) => {
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  padding: '7px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: isSelected
-                    ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid var(--tw-border)',
-                  backgroundColor: isSelected ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{tab.label}</span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    backgroundColor: isSelected
-                      ? 'var(--tw-on-brand-subtle)'
-                      : 'var(--tw-hairline)',
-                    color: isSelected ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+        {/* Phase tabs */}
+        <div className="sw-chips" role="tablist" aria-label="Fase percakapan">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`sw-chip${activeTab === tab.id ? ' sw-chip--active' : ''}`}
+            >
+              {tab.label}
+              <span className="sw-chip__count">{tab.count}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Stage Strategy Insight Box */}
+        {/* Phase goal in one line */}
         {activeStageInfo && activeTab !== 'favorites' && (
-          <div
-            style={{
-              backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-background))',
-              border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 20%, transparent)',
-              borderRadius: '10px',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '5px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Lightbulb size={14} color="var(--tw-brand-primary)" />
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: 'var(--tw-brand-primary)',
-                }}
-              >
-                Panduan Fase: {activeStageInfo.nama}
-              </span>
-            </div>
-            <p style={{ fontSize: '11px', color: 'var(--tw-text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              <strong>Tujuan:</strong> {activeStageInfo.tujuan}
-            </p>
-            {activeStageInfo.prinsip && (
-              <p
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--tw-text-muted)',
-                  margin: 0,
-                  lineHeight: 1.4,
-                  fontStyle: 'italic',
-                }}
-              >
-                <strong>Prinsip:</strong>{' '}
-                {Array.isArray(activeStageInfo.prinsip)
-                  ? activeStageInfo.prinsip[0]
-                  : activeStageInfo.prinsip}
-              </p>
-            )}
-          </div>
+          <p className="sw-goal">
+            <Lightbulb size={16} className="sw-goal__icon" aria-hidden="true" />
+            <span>{activeStageInfo.tujuan}</span>
+          </p>
         )}
 
-        {/* Standard Scripts List */}
+        {/* Standard scripts */}
         {activeTab !== 'objection' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="sw-list">
             {displayedStandardScripts.map((item) => {
               const personalizedText = replacePlaceholders(item.script, replacements);
               const isFav = favoriteKeys.includes(item.id);
               const isCopied = copiedKey === item.id;
-
               return (
-                <article
-                  key={item.id}
-                  style={{
-                    backgroundColor: 'var(--tw-background)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--tw-hairline)',
-                    padding: '14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: 'var(--tw-card-shadow)',
-                  }}
-                >
-                  {/* Card Header: Title & Bookmark */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <h2
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          color: 'var(--tw-text-primary)',
-                          margin: 0,
-                          fontFamily: 'var(--tw-font-heading)',
-                        }}
-                      >
-                        {item.title}
-                      </h2>
-                      {item.use_when && (
-                        <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-                          {item.use_when}
-                        </span>
-                      )}
+                <article key={item.id} className="sw-card">
+                  <div className="sw-card__head">
+                    <div className="sw-card__titles">
+                      <h2 className="sw-card__title">{item.title}</h2>
+                      {item.use_when && <p className="sw-muted">{item.use_when}</p>}
                     </div>
-
                     <button
                       type="button"
                       onClick={() => toggleFavorite(item.id)}
-                      aria-label={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: '4px',
-                        cursor: 'pointer',
-                        color: isFav ? 'var(--tw-rating-star)' : 'var(--tw-text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
+                      aria-label={isFav ? 'Hapus dari tersimpan' : 'Simpan script'}
+                      aria-pressed={isFav}
+                      className={`sw-icon-btn${isFav ? ' sw-icon-btn--fav' : ''}`}
                     >
-                      <Star size={16} fill={isFav ? 'currentColor' : 'none'} />
+                      <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
                     </button>
                   </div>
 
-                  {/* Prospect Example Bubble */}
                   {item.prospect_example && (
-                    <div
-                      style={{
-                        backgroundColor: 'var(--tw-page-bg)',
-                        borderRadius: '8px',
-                        padding: '6px 10px',
-                        fontSize: '11px',
-                        color: 'var(--tw-text-secondary)',
-                        borderLeft: '3px solid var(--tw-divider)',
-                      }}
-                    >
-                      <strong>Pesan Jamaah:</strong> &quot;{item.prospect_example}&quot;
-                    </div>
+                    <p className="sw-example">
+                      <strong>Pesan jamaah:</strong> &quot;{item.prospect_example}&quot;
+                    </p>
                   )}
 
-                  {/* Script Text Box */}
-                  <div
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 3%, var(--tw-background))',
-                      border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, transparent)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      fontSize: '13px',
-                      lineHeight: 1.6,
-                      color: 'var(--tw-text-primary)',
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    {personalizedText}
-                  </div>
+                  <div className="sw-script">{personalizedText}</div>
 
-                  {/* Action Buttons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText(personalizedText, item.id)}
-                      style={{
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--tw-divider)',
-                        backgroundColor: 'var(--tw-background)',
-                        color: isCopied ? 'var(--tw-brand-primary)' : 'var(--tw-text-primary)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      {isCopied ? <Check size={14} color="var(--tw-brand-primary)" /> : <Copy size={14} />}
-                      <span>{isCopied ? 'Tersalin' : 'Salin Pesan'}</span>
+                  <div className="sw-card__actions">
+                    <button type="button" onClick={() => handleCopyText(personalizedText, item.id)} className={`sw-btn${isCopied ? ' sw-btn--done' : ''}`}>
+                      {isCopied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                      <span>{isCopied ? 'Tersalin' : 'Salin pesan'}</span>
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenWhatsApp(personalizedText)}
-                      style={{
-                        padding: '9px 12px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        backgroundColor: 'var(--tw-brand-primary)',
-                        color: 'var(--tw-on-brand)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <Share2 size={14} />
+                    <button type="button" onClick={() => handleOpenWhatsApp(personalizedText)} className="sw-btn sw-btn--primary">
+                      <Share2 size={16} aria-hidden="true" />
                       <span>Kirim ke WA</span>
                     </button>
                   </div>
@@ -1276,311 +701,80 @@ function ScriptWAContent() {
           </div>
         )}
 
-        {/* Objection Scripts List (TGJP Framework Accordion - Default Collapsed) */}
+        {/* Objection scripts: TGJP steps, collapsed by default */}
         {(activeTab === 'objection' || (activeTab === 'favorites' && displayedObjections.length > 0)) && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="sw-list">
             {activeTab === 'objection' && (
-              <div
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--tw-text-secondary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '2px 2px',
-                }}
-              >
-                <Compass size={14} color="var(--tw-brand-primary)" />
-                <span>Format 4 Langkah TGJP: <strong>Terima, Gali, Jawab, Pastikan</strong></span>
-              </div>
+              <p className="sw-goal">
+                <Compass size={16} className="sw-goal__icon" aria-hidden="true" />
+                <span>
+                  4 langkah TGJP: <strong>Terima, Gali, Jawab, Pastikan</strong>
+                </span>
+              </p>
             )}
 
             {displayedObjections.map((obj) => {
               const isFav = favoriteKeys.includes(obj.id);
-              // Default collapsed: hanya tampilkan judul dan preview pertanyaan prospek
               const isExpanded = Boolean(expandedObjections[obj.id]);
-
               return (
-                <article
-                  key={obj.id}
-                  style={{
-                    backgroundColor: 'var(--tw-background)',
-                    borderRadius: '12px',
-                    border: isExpanded ? '1px solid color-mix(in srgb, var(--tw-success) 25%, transparent)' : '1px solid var(--tw-hairline)',
-                    padding: isExpanded ? '14px' : '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: isExpanded ? '12px' : '0px',
-                    boxShadow: 'var(--tw-card-shadow)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {/* Objection Header - Klik judul untuk expand / collapse */}
-                  <div
-                    onClick={() => toggleObjectionExpand(obj.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0 }}>
-                      <h2
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          color: isExpanded ? 'var(--tw-brand-primary)' : 'var(--tw-text-primary)',
-                          margin: 0,
-                          fontFamily: 'var(--tw-font-heading)',
-                          transition: 'color 0.15s ease',
-                        }}
-                      >
-                        {obj.title}
-                      </h2>
+                <article key={obj.id} className={`sw-card${isExpanded ? ' sw-card--open' : ''}`}>
+                  <div className="sw-card__head">
+                    <button type="button" className="sw-card__toggle" onClick={() => toggleObjectionExpand(obj.id)} aria-expanded={isExpanded}>
+                      <span className="sw-card__title">{obj.title}</span>
                       {obj.prospect_examples && obj.prospect_examples.length > 0 && (
-                        <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-                          Sering muncul: &quot;{obj.prospect_examples[0]}&quot;
-                        </span>
+                        <span className="sw-muted">Sering muncul: &quot;{obj.prospect_examples[0]}&quot;</span>
                       )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(obj.id);
-                        }}
-                        aria-label={isFav ? 'Hapus favorit' : 'Simpan favorit'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: '4px',
-                          cursor: 'pointer',
-                          color: isFav ? 'var(--tw-rating-star)' : 'var(--tw-text-muted)',
-                        }}
-                      >
-                        <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleObjectionExpand(obj.id);
-                        }}
-                        aria-label={isExpanded ? 'Tutup detail objection' : 'Buka detail objection'}
-                        style={{
-                          background: isExpanded ? 'color-mix(in srgb, var(--tw-success) 8%, transparent)' : 'var(--tw-hairline-soft)',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '5px',
-                          cursor: 'pointer',
-                          color: isExpanded ? 'var(--tw-brand-primary)' : 'var(--tw-text-secondary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                    </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleFavorite(obj.id)}
+                      aria-label={isFav ? 'Hapus dari tersimpan' : 'Simpan script'}
+                      aria-pressed={isFav}
+                      className={`sw-icon-btn${isFav ? ' sw-icon-btn--fav' : ''}`}
+                    >
+                      <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleObjectionExpand(obj.id)}
+                      aria-label={isExpanded ? 'Tutup langkah' : 'Buka langkah'}
+                      className="sw-icon-btn"
+                    >
+                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
                   </div>
 
-                  {/* TGJP 4 Steps Accordion Content */}
                   {isExpanded && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {/* Step 1: TERIMA */}
-                      <div
-                        style={{
-                          backgroundColor: 'var(--tw-page-bg)',
-                          borderRadius: '8px',
-                          padding: '10px 12px',
-                          borderLeft: '3px solid var(--tw-brand-primary)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                        }}
-                      >
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-brand-primary)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                          1. Terima — Empati &amp; Validasi
-                        </span>
-                        {obj.tgjp.terima.map((item, idx) => {
-                          const text = replacePlaceholders(item, replacements);
-                          const key = `${obj.id}_terima_${idx}`;
-                          const isCopied = copiedKey === key;
-                          return (
-                            <div
-                              key={key}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px',
-                                fontSize: '12px',
-                                color: 'var(--tw-text-primary)',
-                              }}
-                            >
-                              <span style={{ flex: 1, lineHeight: 1.5 }}>{text}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(text, key)}
-                                style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: isCopied ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)', flexShrink: 0 }}
-                                title="Salin"
-                              >
-                                {isCopied ? <Check size={13} color="var(--tw-brand-primary)" /> : <Copy size={13} />}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Step 2: GALI */}
-                      <div
-                        style={{
-                          backgroundColor: 'var(--tw-page-bg)',
-                          borderRadius: '8px',
-                          padding: '10px 12px',
-                          borderLeft: '3px solid var(--tw-rating-star)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                        }}
-                      >
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-rating-star)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                          2. Gali — Temukan Akar Masalah
-                        </span>
-                        {obj.tgjp.gali.map((item, idx) => {
-                          const text = replacePlaceholders(item, replacements);
-                          const key = `${obj.id}_gali_${idx}`;
-                          const isCopied = copiedKey === key;
-                          return (
-                            <div
-                              key={key}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px',
-                                fontSize: '12px',
-                                color: 'var(--tw-text-primary)',
-                              }}
-                            >
-                              <span style={{ flex: 1, lineHeight: 1.5 }}>{text}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(text, key)}
-                                style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: isCopied ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)', flexShrink: 0 }}
-                                title="Salin"
-                              >
-                                {isCopied ? <Check size={13} color="var(--tw-brand-primary)" /> : <Copy size={13} />}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Step 3: JAWAB */}
-                      <div
-                        style={{
-                          backgroundColor: 'var(--tw-page-bg)',
-                          borderRadius: '8px',
-                          padding: '10px 12px',
-                          borderLeft: '3px solid var(--tw-brand-secondary)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '8px',
-                        }}
-                      >
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                          3. Jawab — Pilih Solusi yang Pas
-                        </span>
-                        {obj.tgjp.jawab.map((jItem, idx) => {
-                          const text = replacePlaceholders(jItem.script, replacements);
-                          const key = `${obj.id}_jawab_${idx}`;
-                          const isCopied = copiedKey === key;
-                          return (
-                            <div
-                              key={key}
-                              style={{
-                                backgroundColor: 'var(--tw-background)',
-                                borderRadius: '6px',
-                                padding: '8px 10px',
-                                border: '1px solid var(--tw-hairline)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '4px',
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-text-muted)', textTransform: 'uppercase' }}>
-                                  {jItem.reason.replace(/_/g, ' ')}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyText(text, key)}
-                                  style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: isCopied ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)' }}
-                                  title="Salin jawaban ini"
-                                >
-                                  {isCopied ? <Check size={12} color="var(--tw-brand-primary)" /> : <Copy size={12} />}
-                                </button>
-                              </div>
-                              <span style={{ fontSize: '12px', color: 'var(--tw-text-primary)', lineHeight: 1.5 }}>
-                                {text}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Step 4: PASTIKAN */}
-                      <div
-                        style={{
-                          backgroundColor: 'var(--tw-page-bg)',
-                          borderRadius: '8px',
-                          padding: '10px 12px',
-                          borderLeft: '3px solid var(--tw-brand-primary)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                        }}
-                      >
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-brand-primary)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                          4. Pastikan — Konfirmasi &amp; Arahkan Kembali
-                        </span>
-                        {obj.tgjp.pastikan.map((item, idx) => {
-                          const text = replacePlaceholders(item, replacements);
-                          const key = `${obj.id}_pastikan_${idx}`;
-                          const isCopied = copiedKey === key;
-                          return (
-                            <div
-                              key={key}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px',
-                                fontSize: '12px',
-                                color: 'var(--tw-text-primary)',
-                              }}
-                            >
-                              <span style={{ flex: 1, lineHeight: 1.5 }}>{text}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(text, key)}
-                                style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: isCopied ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)', flexShrink: 0 }}
-                                title="Salin"
-                              >
-                                {isCopied ? <Check size={13} color="var(--tw-brand-primary)" /> : <Copy size={13} />}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    <div className="sw-steps">
+                      {TGJP_STEPS.map((step) => (
+                        <section key={step.key} className={`sw-step sw-step--${step.tone}`}>
+                          <h3 className="sw-step__label">{step.label}</h3>
+                          {step.key === 'jawab'
+                            ? obj.tgjp.jawab.map((jItem, idx) => {
+                                const text = replacePlaceholders(jItem.script, replacements);
+                                const key = `${obj.id}_jawab_${idx}`;
+                                return (
+                                  <div key={key} className="sw-answer">
+                                    <div className="sw-answer__head">
+                                      <span className="sw-answer__reason">{jItem.reason.replace(/_/g, ' ')}</span>
+                                      {renderCopyButton(text, key, 'Salin jawaban ini')}
+                                    </div>
+                                    <p className="sw-step__text">{text}</p>
+                                  </div>
+                                );
+                              })
+                            : obj.tgjp[step.key].map((line, idx) => {
+                                const text = replacePlaceholders(line, replacements);
+                                const key = `${obj.id}_${step.key}_${idx}`;
+                                return (
+                                  <div key={key} className="sw-step__row">
+                                    <p className="sw-step__text">{text}</p>
+                                    {renderCopyButton(text, key)}
+                                  </div>
+                                );
+                              })}
+                        </section>
+                      ))}
                     </div>
                   )}
                 </article>
@@ -1589,105 +783,142 @@ function ScriptWAContent() {
           </div>
         )}
 
-        {/* Infinite Scroll Sentinel & Load Indicator */}
+        {/* Load more */}
         {totalActiveItemsCount > 0 && (
-          <div
-            ref={sentinelRef}
-            style={{
-              marginTop: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              paddingBottom: '16px',
-            }}
-          >
+          <div ref={sentinelRef} className="sw-more">
             {hasMore ? (
-              <button
-                type="button"
-                onClick={loadMore}
-                style={{
-                  padding: '10px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  color: 'var(--tw-brand-primary)',
-                  backgroundColor: 'var(--tw-background)',
-                  border: '1px solid var(--tw-border)',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px var(--tw-surface-tint)',
-                }}
-              >
-                <Loader2 size={15} color="var(--tw-brand-primary)" style={{ animation: 'spin 1s linear infinite' }} />
-                <span>Memuat script berikutnya ({currentlyDisplayedCount} dari {totalActiveItemsCount})...</span>
+              <button type="button" onClick={loadMore} className="sw-btn">
+                <Loader2 size={16} className="sw-spin" aria-hidden="true" />
+                <span>
+                  Memuat script ({currentlyDisplayedCount} dari {totalActiveItemsCount})
+                </span>
               </button>
             ) : totalActiveItemsCount > PAGE_SIZE ? (
-              <div
-                style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '11px',
-                  color: 'var(--tw-text-muted)',
-                }}
-              >
-                Menampilkan seluruh {totalActiveItemsCount} script
-              </div>
+              <p className="sw-muted">Semua {totalActiveItemsCount} script sudah tampil</p>
             ) : null}
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Empty */}
         {filteredStandardScripts.length === 0 && filteredObjections.length === 0 && (
-          <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              padding: '48px 16px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '10px',
-            }}
-          >
-            <MessageSquare size={32} color="var(--tw-text-muted)" />
-            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--tw-text-primary)', fontFamily: 'var(--tw-font-heading)' }}>
-              Tidak Ada Script Ditemukan
-            </span>
-            <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)', maxWidth: '260px', lineHeight: 1.5 }}>
+          <div className="sw-empty">
+            <MessageSquare size={32} aria-hidden="true" />
+            <h2 className="sw-card__title">Tidak ada script</h2>
+            <p className="sw-muted">
               {activeTab === 'favorites'
-                ? 'Belum ada script yang Anda tandai bintang. Klik ikon bintang pada kartu script untuk menyimpannya di sini.'
-                : `Tidak ditemukan script yang cocok dengan kata kunci "${searchQuery}".`}
-            </span>
+                ? 'Ketuk ikon bintang di kartu script untuk menyimpannya di sini.'
+                : `Tidak ada script yang cocok dengan "${searchQuery}".`}
+            </p>
             {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                style={{
-                  marginTop: '4px',
-                  padding: '8px 20px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  backgroundColor: 'var(--tw-brand-primary)',
-                  color: 'var(--tw-on-brand)',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Hapus Pencarian
+              <button type="button" onClick={() => setSearchQuery('')} className="sw-btn">
+                Hapus pencarian
               </button>
             )}
           </div>
         )}
       </div>
 
-      <AgentBottomNavbar />
+      {/* Recipient picker sheet */}
+      {sheetOpen && (
+        <div className="sw-sheet" role="presentation" onClick={() => setSheetOpen(false)}>
+          <div className="sw-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sw-sheet-title" onClick={(e) => e.stopPropagation()}>
+            <span className="sw-sheet__grip" aria-hidden="true" />
+            <div className="sw-sheet__head">
+              <h2 id="sw-sheet-title" className="sw-card__title">
+                Kirim untuk siapa?
+              </h2>
+              <button type="button" className="sw-icon-btn" onClick={() => setSheetOpen(false)} aria-label="Tutup">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="sw-seg" role="tablist" aria-label="Sumber nama">
+              <button type="button" role="tab" aria-selected={personalizationMode === 'prospect'} className={`sw-seg__btn${personalizationMode === 'prospect' ? ' sw-seg__btn--on' : ''}`} onClick={() => setPersonalizationMode('prospect')}>
+                Dari jamaah ({prospectList.length})
+              </button>
+              <button type="button" role="tab" aria-selected={personalizationMode === 'manual'} className={`sw-seg__btn${personalizationMode === 'manual' ? ' sw-seg__btn--on' : ''}`} onClick={() => setPersonalizationMode('manual')}>
+                Ketik manual
+              </button>
+            </div>
+
+            {personalizationMode === 'prospect' ? (
+              loadingProspects ? (
+                <p className="sw-muted">Memuat data jamaah...</p>
+              ) : prospectList.length === 0 ? (
+                <p className="sw-muted">Belum ada jamaah di akun Anda. Pakai &quot;Ketik manual&quot;.</p>
+              ) : (
+                <>
+                  <div className="sw-search">
+                    <Search size={18} className="sw-search__icon" aria-hidden="true" />
+                    <input
+                      type="search"
+                      aria-label="Cari jamaah"
+                      placeholder="Cari nama atau nomor WA"
+                      value={sheetQuery}
+                      onChange={(e) => setSheetQuery(e.target.value)}
+                      className="tw-field sw-search__input"
+                    />
+                  </div>
+                  <ul className="sw-picks">
+                    {sheetResults.map((p) => (
+                      <li key={p.id}>
+                        <button type="button" className={`sw-pick${p.id === selectedProspectId ? ' sw-pick--on' : ''}`} onClick={() => pickProspect(p.id)}>
+                          <span className="sw-pick__name">{p.name}</span>
+                          <span className="sw-pick__meta">
+                            <span className={`sw-status sw-status--${p.status}`}>{STATUS_LABELS[p.status] || p.status}</span>
+                            {' · '}
+                            {p.phone}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                    {sheetResults.length === 0 && <li className="sw-muted">Tidak ada jamaah yang cocok.</li>}
+                  </ul>
+                  {selectedProspect && (
+                    <button
+                      type="button"
+                      className="sw-link"
+                      onClick={() => {
+                        handleClearProspect();
+                        setSheetOpen(false);
+                      }}
+                    >
+                      Kosongkan pilihan
+                    </button>
+                  )}
+                </>
+              )
+            ) : (
+              <div className="sw-manual">
+                <label className="tw-field-label" htmlFor="input-prospect-name">
+                  Nama calon jamaah
+                </label>
+                <input
+                  id="input-prospect-name"
+                  type="text"
+                  placeholder="Bu Fatimah"
+                  value={prospectName}
+                  onChange={(e) => {
+                    handleManualNameChange(e.target.value);
+                    if (selectedProspect) {
+                      setSelectedProspect(null);
+                      setSelectedProspectId(null);
+                    }
+                  }}
+                  className="tw-field"
+                />
+                <label className="tw-field-label" htmlFor="input-prospect-phone">
+                  Nomor WA (opsional)
+                </label>
+                <input id="input-prospect-phone" type="tel" placeholder="0812xxxx" value={prospectPhone} onChange={(e) => setProspectPhone(e.target.value)} className="tw-field" />
+                <button type="button" className="sw-btn sw-btn--primary" onClick={() => setSheetOpen(false)}>
+                  Pakai nama ini
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </MobileContainer>
   );
 }
@@ -1705,9 +936,7 @@ export default function ScriptWAPage() {
     <Suspense
       fallback={
         <MobileContainer>
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--tw-text-muted)', fontSize: '14px' }}>
-            Memuat Script WhatsApp...
-          </div>
+          <p className="sw-loading">Memuat script...</p>
         </MobileContainer>
       }
     >

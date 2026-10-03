@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Wallet,
   Copy,
   Check,
   MousePointerClick,
@@ -13,25 +12,27 @@ import {
   ChevronRight,
   RefreshCw,
   AlertCircle,
-  TrendingUp,
   Eye,
   EyeOff,
-  ShieldCheck,
   MessageSquareShare,
   Users,
   Quote,
-  Images,
-  Target,
   Gift,
-  Bell,
+  Megaphone,
+  MessageCircle,
+  ArrowDownToLine,
   History,
-  User,
+  Bell,
+  Flame,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import type { PublicPackage } from '../../../components/publicPackage';
 import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
-import { Button } from '../../../components/Button';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { initAudioUnlock, playNotificationSound } from '../../../lib/notificationSound';
+import { HABITS, fetchHabitSummary, habitHeadline, logHabit, type HabitSummary } from '../../../lib/agentHabits';
+import { canShareFiles, packagePhotoFile, packageShareText, sharePackage } from '../../../lib/packageShare';
+import './AgenDashboard.css';
 
 interface AgentFunnelSummary {
   baru: number;
@@ -64,6 +65,8 @@ interface AgentDashboardSummary {
   saldo_tertunda: number;
   // Komisi dari jamaah yang sudah DP (closing) tapi belum lunas: belum bisa dicairkan.
   saldo_tertahan?: number;
+  // Commission from paid-off jamaah, before withdrawals: always has a value once the agent earned anything.
+  total_komisi?: number;
   jamaah_tertunda_count: number;
   targets: AgentTargetView[];
   minimum_payout_amount: number | null;
@@ -76,6 +79,23 @@ interface AgentDashboardSummary {
   travel_suspended?: boolean;
 }
 
+// Today's date in Indonesian, with the Hijri date (Umm al-Qura, computed in the browser; may differ by a day
+// from the official Kemenag date). Falls back to the Gregorian date alone if the calendar is not available.
+function todayLabel(): string {
+  const now = new Date();
+  const masehi = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
+  try {
+    const hijri = new Intl.DateTimeFormat('id-ID-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+    return `${masehi} · ${hijri}`;
+  } catch {
+    return masehi;
+  }
+}
+
+interface TravelBrand {
+  name?: string;
+}
+
 export default function AgenDashboardPage() {
   const router = useRouter();
 
@@ -85,6 +105,43 @@ export default function AgenDashboardPage() {
   const [copied, setCopied] = useState<boolean>(false);
   const [showBalance, setShowBalance] = useState<boolean>(true);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [travel, setTravel] = useState<TravelBrand | null>(null);
+  const [packages, setPackages] = useState<PublicPackage[]>([]);
+  // Package picked for "Syiarkan!" (bottom sheet with copy / WhatsApp).
+  const [syiarPkg, setSyiarPkg] = useState<PublicPackage | null>(null);
+  const [syiarCopied, setSyiarCopied] = useState(false);
+  const [syiarPhoto, setSyiarPhoto] = useState<{ id: number; file: File | null } | null>(null);
+  const syiarFile = syiarPhoto && syiarPkg && syiarPhoto.id === syiarPkg.id ? syiarPhoto.file : null;
+  // Habit tracker card (today's 5 habits and the streak).
+  const [habits, setHabits] = useState<HabitSummary | null>(null);
+
+  useEffect(() => {
+    fetchHabitSummary().then(setHabits);
+  }, []);
+  // Sharing from this page is a habit: log it, then refresh the card so the dot fills in.
+  const logShare = () => {
+    logHabit('share');
+    setTimeout(() => fetchHabitSummary().then((h) => h && setHabits(h)), 800);
+  };
+
+  useEffect(() => {
+    fetch('/api/public/packages')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        const list: PublicPackage[] = Array.isArray(json) ? json : json?.packages || json?.items || [];
+        setPackages(list);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/public/tenant-info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json) setTravel({ name: json.name });
+      })
+      .catch(() => {});
+  }, []);
 
   const initDashboard = async () => {
     const token = localStorage.getItem('agent_token');
@@ -176,8 +233,8 @@ export default function AgenDashboardPage() {
       } catch {
         // Silently continue
       }
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat memuat dasbor');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat dasbor');
     } finally {
       setLoading(false);
     }
@@ -217,6 +274,7 @@ export default function AgenDashboardPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
     initDashboard();
     const cleanupAudio = initAudioUnlock();
 
@@ -241,6 +299,7 @@ export default function AgenDashboardPage() {
       document.removeEventListener('visibilitychange', handleVis);
       window.removeEventListener('focus', handleFocus);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatRupiah = (val: number | null | undefined): string => {
@@ -251,8 +310,55 @@ export default function AgenDashboardPage() {
   const handleCopyLink = () => {
     if (!summary?.referral_link) return;
     navigator.clipboard.writeText(summary.referral_link);
+    logShare();
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Link to one package through the agent's referral route (counts the click, then opens the package).
+  const packageLink = (pkg: PublicPackage): string =>
+    summary?.referral_link ? `${summary.referral_link}?to=${encodeURIComponent(`/paket/${pkg.id}`)}` : '';
+
+  const copyPackageLink = (pkg: PublicPackage) => {
+    const link = packageLink(pkg);
+    if (!link) return;
+    navigator.clipboard.writeText(link);
+    logShare();
+    setSyiarCopied(true);
+    setTimeout(() => {
+      setSyiarCopied(false);
+      setSyiarPkg(null);
+    }, 1200);
+  };
+
+  const packageShareUrl = (pkg: PublicPackage): string => {
+    const link = packageLink(pkg);
+    if (!link) return '#';
+    return `https://wa.me/?text=${encodeURIComponent(packageShareText(pkg, link))}`;
+  };
+
+  // "Bagikan dengan foto": the system share sheet with the package photo and the message as its caption.
+  // The photo is prepared when the sheet opens, so the share sheet opens right on tap.
+  useEffect(() => {
+    if (!syiarPkg || !canShareFiles()) return;
+    const photo = [...(syiarPkg.photos || [])].sort((x, y) => x.sort_order - y.sort_order)[0];
+    if (!photo) return;
+    let alive = true;
+    const id = syiarPkg.id;
+    packagePhotoFile(photo.file_path, syiarPkg.name).then((file) => {
+      if (alive) setSyiarPhoto({ id, file });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [syiarPkg]);
+
+  const sharePackageWithPhoto = async (pkg: PublicPackage) => {
+    const link = packageLink(pkg);
+    if (!link) return;
+    logShare();
+    const result = await sharePackage(pkg, link, syiarFile);
+    if (result !== 'cancelled') setSyiarPkg(null);
   };
 
   const getWhatsAppShareUrl = (): string => {
@@ -261,92 +367,15 @@ export default function AgenDashboardPage() {
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
-  const getReferralCode = (): string => {
-    if (!summary?.referral_link) return '';
-    const parts = summary.referral_link.split('/ref/');
-    return parts.length > 1 ? parts[1].toUpperCase() : '';
-  };
 
   if (loading) {
     return (
       <MobileContainer>
-        {/* Sticky Header Portal Agen (konsisten, tidak flash nama travel) */}
-        <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 30,
-            backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid var(--tw-border-subtle)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-            }}
-          >
-            Portal Agen
-          </h1>
-
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              border: '1px solid var(--tw-hairline)',
-              backgroundColor: 'var(--tw-background)',
-              color: 'var(--tw-text-secondary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Bell size={16} />
-          </div>
-        </header>
-
-        <div
-          style={{
-            backgroundColor: 'var(--tw-page-bg)',
-            minHeight: 'calc(100vh - 62px)',
-            padding: '80px 20px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '16px',
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              border: '3px solid var(--tw-border)',
-              borderTopColor: 'var(--tw-brand-primary)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }}
-          />
-          <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)' }}>
-            Memuat beranda agen Anda...
-          </span>
-          <style jsx>{`
-            @keyframes spin {
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
+        <AgentHeader travel={travel} />
+        <div className="ag-center" role="status">
+          <span className="ag-spinner" aria-hidden="true" />
+          <span>Memuat beranda agen...</span>
         </div>
-
         <AgentBottomNavbar />
       </MobileContainer>
     );
@@ -355,1162 +384,377 @@ export default function AgenDashboardPage() {
   if (error || !summary) {
     return (
       <MobileContainer>
-        {/* Sticky Header Portal Agen */}
-        <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 30,
-            backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid var(--tw-border-subtle)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '18px',
-              fontWeight: 800,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-            }}
-          >
-            Portal Agen
-          </h1>
-        </header>
-        <div
-          style={{
-            backgroundColor: 'var(--tw-page-bg)',
-            minHeight: 'calc(100vh - 62px)',
-            padding: '60px 20px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '16px',
-          }}
-        >
-          <div style={{ color: 'var(--tw-brand-primary)' }}>
-            <AlertCircle size={36} />
-          </div>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--tw-text-primary)' }}>
-            Gagal Memuat Dasbor
-          </h2>
-          <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--tw-text-secondary)', margin: 0 }}>
-            {error}
-          </p>
-          <Button variant="primary" style={{ borderRadius: '8px' }} onClick={() => initDashboard()}>
-            <RefreshCw size={14} />
-            <span>Coba Lagi</span>
-          </Button>
+        <AgentHeader travel={travel} />
+        <div className="ag-center">
+          <AlertCircle size={28} className="ag-center__icon" aria-hidden="true" />
+          <h2 className="ag-title">Beranda belum bisa dimuat</h2>
+          <p className="ag-note">{error}</p>
+          <button type="button" className="ag-btn ag-btn--outline" onClick={() => initDashboard()}>
+            <RefreshCw size={18} aria-hidden="true" />
+            Coba lagi
+          </button>
         </div>
         <AgentBottomNavbar />
       </MobileContainer>
     );
   }
 
-  const minPayout = summary.minimum_payout_amount ?? 0;
-  const isBelowMinimum = summary.saldo_siap_cair < minPayout;
+  const money = (v: number | null | undefined) => (showBalance ? formatRupiah(v) : 'Rp ••••••');
 
-  const quickMenus = [
+  // Only targets whose period is still running (an "active" target whose end date passed is history).
+  const today = new Date().toLocaleDateString('en-CA');
+  const targets = (summary.targets || []).filter((t) => !t.period_end || t.period_end.slice(0, 10) >= today);
+
+  const sharePackages = packages
+    .filter((p) => !p.departure_date || p.departure_date.slice(0, 10) >= today)
+    .sort((x, y) => (x.departure_date || '9999').localeCompare(y.departure_date || '9999'))
+    .slice(0, 6);
+
+  const menu = [
+    { key: 'tarik', icon: <ArrowDownToLine size={22} aria-hidden="true" />, label: 'Tarik saldo', href: summary.travel_suspended ? undefined : '/agen/tarik-saldo' },
+    { key: 'riwayat', icon: <History size={22} aria-hidden="true" />, label: 'Riwayat', href: '/agen/riwayat-komisi' },
+    { key: 'salin', icon: copied ? <Check size={22} aria-hidden="true" /> : <Copy size={22} aria-hidden="true" />, label: copied ? 'Tersalin' : 'Salin link', onClick: handleCopyLink },
+    { key: 'wa', icon: <Share2 size={22} aria-hidden="true" />, label: 'Bagikan', external: getWhatsAppShareUrl() },
+    { key: 'script', tone: 'green', icon: <MessageSquareShare size={22} aria-hidden="true" />, label: 'Script WA', href: '/agen/script-wa' },
+    { key: 'sumber', tone: 'blue', icon: <Users size={22} aria-hidden="true" />, label: '99 sumber', href: '/agen/sumber-jamaah' },
+    { key: 'caption', tone: 'indigo', icon: <Quote size={22} aria-hidden="true" />, label: 'Caption', href: '/agen/bank-caption' },
+    // Labels stay on one line: the rank only fits up to #9 ("Peringkat #12" would overflow the tile).
     {
-      id: 'script-wa',
-      title: 'Script WA',
-      desc: 'Template chat follow-up, closing, & sapaan calon...',
-      icon: <MessageSquareShare size={20} color="var(--tw-brand-primary)" />,
-      iconBg: 'color-mix(in srgb, var(--tw-brand-primary) 14%, var(--tw-background))',
-    },
-    {
-      id: 'sumber-jamaah',
-      title: 'Sumber Jamaah',
-      desc: 'Panduan menjaring prospek majelis taklim &...',
-      icon: <Users size={20} color="var(--tw-rating-star)" />,
-      iconBg: 'color-mix(in srgb, var(--tw-rating-star) 16%, var(--tw-background))',
-    },
-    {
-      id: 'bank-caption',
-      title: 'Bank Caption',
-      desc: 'Copy-paste caption siap pakai Instagram & TikTok',
-      icon: <Quote size={20} color="var(--tw-brand-primary)" />,
-      iconBg: 'color-mix(in srgb, var(--tw-brand-primary) 14%, var(--tw-background))',
-    },
-    {
-      id: 'bank-konten',
-      title: 'Bank Konten',
-      desc: 'Flyer brosur cetak & video reels resolusi tinggi',
-      icon: <Images size={20} color="color-mix(in srgb, var(--tw-brand-secondary) 80%, var(--tw-brand-primary))" />,
-      iconBg: 'color-mix(in srgb, var(--tw-brand-secondary) 10%, var(--tw-background))',
+      key: 'peringkat',
+      tone: 'amber',
+      icon: <Trophy size={22} aria-hidden="true" />,
+      label: summary.leaderboard_preview.rank_saya > 0 && summary.leaderboard_preview.rank_saya < 10 ? `Peringkat #${summary.leaderboard_preview.rank_saya}` : 'Peringkat',
+      href: '/agen/leaderboard',
     },
   ];
 
-  const targets = summary.targets || [];
-
   return (
     <MobileContainer>
-      {/* 1. Sleek App Header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-border-subtle)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '18px',
-            fontWeight: 800,
-            color: 'var(--tw-text-primary)',
-            margin: 0,
-            fontFamily: 'var(--tw-font-heading)',
-          }}
-        >
-          Portal Agen
-        </h1>
-
-        <button
-          type="button"
-          aria-label="Notifikasi"
-          onClick={() => router.push('/agen/notifikasi')}
-          style={{
-            position: 'relative',
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            border: '1px solid var(--tw-hairline)',
-            backgroundColor: 'var(--tw-background)',
-            color: 'var(--tw-text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <Bell size={16} />
-          {unreadCount > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '7px',
-                right: '7px',
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--tw-brand-primary)',
-              }}
-            />
-          )}
-        </button>
-      </header>
+      <AgentHeader brand travel={travel} unreadCount={unreadCount} onBell={() => router.push('/agen/notifikasi')} />
 
       {summary.travel_suspended && <AgentTravelSuspendedNotice />}
 
-      {/* Main Canvas */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '16px 16px calc(76px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-        }}
-      >
-        {/* Profil Singkat Agen & Badge Mitra Resmi (di atas Card Komisi) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <Link
-            href="/agen/profil"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
-              color: 'inherit',
-              flex: 1,
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '50%',
-                backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-                color: 'var(--tw-brand-primary)',
-                border: '2px solid var(--tw-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
-            >
+      <div className="ag-home">
+        {/* Colored band: greeting */}
+        <div className="ag-band">
+          <Link href="/agen/profil" className="ag-greet">
+            <span className="ag-greet__photo" aria-hidden="true">
               {summary.photo_url ? (
-                <img
-                  src={summary.photo_url}
-                  alt={summary.name}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: '50%',
-                  }}
-                />
+                // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
+                <img src={summary.photo_url} alt="" />
               ) : (
-                <User size={24} />
+                <span className="ag-greet__initial">{summary.name?.trim().charAt(0).toUpperCase() || '?'}</span>
               )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--tw-text-muted)',
-                  lineHeight: 1.2,
-                  fontWeight: 500,
-                }}
-              >
-                Assalamu&apos;alaikum,
-              </span>
-              <span
-                style={{
-                  fontSize: '17px',
-                  fontWeight: 700,
-                  color: 'var(--tw-text-primary)',
-                  lineHeight: 1.3,
-                  fontFamily: 'var(--tw-font-heading)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {summary.name}
-              </span>
-            </div>
+            </span>
+            <span className="ag-greet__text">
+              <span className="ag-greet__hi">Assalamu&apos;alaikum,</span>
+              <span className="ag-greet__name">{summary.name}</span>
+              <span className="ag-greet__date">{todayLabel()}</span>
+            </span>
+            <ChevronRight size={20} className="ag-greet__chev" aria-hidden="true" />
           </Link>
-
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '5px 10px',
-              borderRadius: '6px',
-              backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: 'var(--tw-brand-primary)',
-              flexShrink: 0,
-            }}
-          >
-            <ShieldCheck size={13} color="var(--tw-brand-primary)" />
-            <span>Mitra Resmi</span>
-          </div>
         </div>
 
-        {/* JTBD 1: Premium Fintech Wallet Card */}
-        <section
-          aria-label="Kartu Saldo Komisi"
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            backgroundColor: 'var(--tw-brand-primary)',
-            backgroundImage: 'linear-gradient(135deg, color-mix(in srgb, var(--tw-on-brand) 22%, transparent) 0%, color-mix(in srgb, var(--tw-on-brand) 5%, transparent) 50%, var(--tw-border) 100%)',
-            borderRadius: '20px',
-            padding: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-            color: 'var(--tw-background)',
-          }}
-        >
-          {/* Subtle concentric rings decoration for fintech authenticity */}
-          <div
-            style={{
-              position: 'absolute',
-              right: '-30px',
-              top: '-30px',
-              width: '160px',
-              height: '160px',
-              borderRadius: '50%',
-              border: '1px solid color-mix(in srgb, var(--tw-on-brand) 18%, transparent)',
-              pointerEvents: 'none',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              right: '-10px',
-              top: '-10px',
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              border: '1px solid color-mix(in srgb, var(--tw-on-brand) 12%, transparent)',
-              pointerEvents: 'none',
-            }}
-          />
-
-          {/* Top Row: Label & Eye Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              position: 'relative',
-              zIndex: 1,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Wallet size={15} color="var(--tw-on-brand)" style={{ opacity: 0.95 }} />
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  letterSpacing: '0.6px',
-                  textTransform: 'uppercase',
-                  color: 'color-mix(in srgb, var(--tw-background) 92%, transparent)',
-                }}
-              >
-                Komisi Siap Cair
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowBalance(!showBalance)}
-                aria-label={showBalance ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '2px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'color-mix(in srgb, var(--tw-background) 90%, transparent)',
-                }}
-              >
-                {showBalance ? <Eye size={13} /> : <EyeOff size={13} />}
-              </button>
-            </div>
-
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'color-mix(in srgb, var(--tw-background) 88%, transparent)',
-                letterSpacing: '0.2px',
-              }}
-            >
-              Dompet Mitra
-            </span>
-          </div>
-
-          {/* Balance Display */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              position: 'relative',
-              zIndex: 1,
-            }}
-          >
-            <span
-              style={{
-                fontSize: '32px',
-                fontWeight: 800,
-                color: 'var(--tw-background)',
-                letterSpacing: showBalance ? '-0.5px' : '2px',
-                lineHeight: 1,
-                fontFamily: 'var(--tw-font-heading)',
-                textShadow: '0 1px 2px var(--tw-divider)',
-              }}
-            >
-              {showBalance ? formatRupiah(summary.saldo_siap_cair) : '••••••••'}
-            </span>
-          </div>
-
-          {/* Pending Balance Frosted Glass Capsule */}
-          <div
-            style={{
-              position: 'relative',
-              zIndex: 1,
-              backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 16%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--tw-on-brand) 22%, transparent)',
-              borderRadius: '8px',
-              padding: '7px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-              backdropFilter: 'blur(6px)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--tw-background)',
-                }}
-              />
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--tw-background)',
-                  fontWeight: 500,
-                }}
-              >
-                Potensi Komisi:{' '}
-                <strong>{showBalance ? formatRupiah(summary.saldo_tertunda) : '••••••••'}</strong>
-                {' '}({summary.jamaah_tertunda_count} jamaah)
-                {(summary.saldo_tertahan || 0) > 0 && (
-                  <>
-                    {' · '}Tertahan (menunggu lunas):{' '}
-                    <strong>{showBalance ? formatRupiah(summary.saldo_tertahan || 0) : '••••••••'}</strong>
-                  </>
-                )}
-              </span>
-            </div>
-          </div>
-
-          {/* Action Buttons: Tarik Saldo & Riwayat Komisi */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '10px',
-              position: 'relative',
-              zIndex: 1,
-              paddingTop: '2px',
-            }}
-          >
+        {/* Balance card overlapping the band */}
+        <section className="ag-card ag-balance" aria-labelledby="ag-komisi">
+          <div className="ag-balance__label">
+            <h2 id="ag-komisi">Total komisi diraih</h2>
             <button
               type="button"
-              disabled={isBelowMinimum}
-              onClick={() => {
-                if (!isBelowMinimum) {
-                  router.push('/agen/tarik-saldo');
-                }
-              }}
-              style={{
-                padding: '11px 12px',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '13px',
-                border: 'none',
-                backgroundColor: 'var(--tw-background)',
-                color: 'var(--tw-brand-primary)',
-                cursor: isBelowMinimum ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'transform 0.1s ease',
-                whiteSpace: 'nowrap',
-              }}
+              className="ag-icon-btn"
+              onClick={() => setShowBalance(!showBalance)}
+              aria-label={showBalance ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
             >
-              <TrendingUp size={15} color="var(--tw-brand-primary)" />
-              <span>Tarik Saldo</span>
+              {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
-
-            <button
-              type="button"
-              onClick={() => router.push('/agen/riwayat-komisi')}
-              style={{
-                padding: '11px 12px',
-                borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '13px',
-                border: '1px solid color-mix(in srgb, var(--tw-on-brand) 35%, transparent)',
-                backgroundColor: 'color-mix(in srgb, var(--tw-on-brand) 16%, transparent)',
-                backdropFilter: 'blur(6px)',
-                color: 'var(--tw-background)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                transition: 'background-color 0.15s ease',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <History size={15} color="var(--tw-on-brand)" />
-              <span>Riwayat Komisi</span>
-            </button>
+          </div>
+          <p className="ag-balance__amount">{money(summary.total_komisi ?? 0)}</p>
+          <div className="ag-balance__foot">
+            <span>
+              Potensi <b>{money(summary.saldo_tertunda)}</b> · {summary.jamaah_tertunda_count} jamaah
+              {(summary.saldo_tertahan || 0) > 0 && <> · tertahan {money(summary.saldo_tertahan)}</>}
+            </span>
           </div>
         </section>
 
-        {/* Target & Reward Section (Jika Ada Target Aktif) */}
-        {targets.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {targets.map((t) => {
-              const targetPct = t.metric_value > 0
-                ? Math.min(100, Math.max(0, Math.round((t.progress_value / t.metric_value) * 100)))
-                : 0;
-              const remaining = Math.max(0, t.metric_value - t.progress_value);
-              const unit = t.metric_type === 'closing_pax' ? 'jamaah' : 'mitra';
-              const targetTitle = t.title ? `${t.title} (${t.period_label})` : `${t.metric_label} (${t.period_label})`;
-
+        {/* Menu grid */}
+        <nav className="ag-card ag-menu" aria-label="Menu agen">
+          {menu.map((m) => {
+            const inner = (
+              <>
+                <span className={`ag-menu__icon${m.tone ? ` ag-menu__icon--${m.tone}` : ''}`}>{m.icon}</span>
+                <span className="ag-menu__label">{m.label}</span>
+              </>
+            );
+            if (m.onClick) {
               return (
-                <section
-                  key={t.id}
-                  aria-label={t.title || t.metric_label}
-                  style={{
-                    backgroundColor: 'var(--tw-background)',
-                    borderRadius: '16px',
-                    padding: '14px 16px',
-                    border: '1px solid var(--tw-hairline)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Target size={15} color="var(--tw-brand-primary)" />
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          color: 'var(--tw-text-primary)',
-                        }}
-                      >
-                        {targetTitle}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color: 'var(--tw-brand-primary)',
-                      }}
-                    >
-                      {t.progress_value} / {t.metric_value} ({targetPct}%)
-                    </span>
-                  </div>
-
-                  {/* Clean Progress Bar */}
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '7px',
-                      borderRadius: '4px',
-                      backgroundColor: 'color-mix(in srgb, var(--tw-border) 60%, var(--tw-background))',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${targetPct}%`,
-                        height: '100%',
-                        borderRadius: '4px',
-                        backgroundColor: 'var(--tw-brand-primary)',
-                        transition: 'width 0.4s ease',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--tw-text-muted)',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {t.achieved
-                        ? 'Target tercapai! Terus pertahankan ritme promosi.'
-                        : `${remaining} ${unit} lagi untuk mencapai target reward.`}
-                    </span>
-                    {t.achieved && (
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-                          color: 'var(--tw-brand-primary)',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Tercapai
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Reward Box (jika ada deskripsi reward) */}
-                  {t.reward_description && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-background))',
-                        border: '1px dashed color-mix(in srgb, var(--tw-brand-primary) 25%, transparent)',
-                      }}
-                    >
-                      <Gift size={14} color="var(--tw-brand-primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div style={{ fontSize: '11px', color: 'var(--tw-text-primary)', lineHeight: 1.4 }}>
-                        <span style={{ fontWeight: 700 }}>Hadiah: </span>
-                        {t.reward_description}
-                      </div>
-                    </div>
-                  )}
-                </section>
+                <button key={m.key} type="button" className="ag-menu__item" onClick={m.onClick}>
+                  {inner}
+                </button>
               );
-            })}
-          </div>
+            }
+            if (m.external) {
+              return (
+                <a key={m.key} href={m.external} target="_blank" rel="noopener noreferrer" className="ag-menu__item" onClick={logShare}>
+                  {inner}
+                </a>
+              );
+            }
+            if (!m.href) {
+              return (
+                <button key={m.key} type="button" className="ag-menu__item" disabled>
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <Link key={m.key} href={m.href} className="ag-menu__item">
+                {inner}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Habit tracker: today's progress and streak; opens the full checklist. */}
+        {habits && (
+          <Link href="/agen/kebiasaan" className="ag-card ag-habit" aria-label={`${habitHeadline(habits).title}. ${habits.done_today.length} dari ${habits.total} langkah, streak ${habits.streak} hari`}>
+            {/* Text takes the full width (title stays on one line); the five dots sit under it. */}
+            <span className="ag-habit__text">
+              <span className="ag-habit__title">{habitHeadline(habits).title}</span>
+              <span className="ag-muted">{habitHeadline(habits).sub}</span>
+              <span className="ag-habit__dots" aria-hidden="true">
+                {HABITS.map((h) => (
+                  <span key={h.key} className={`ag-habit__dot${habits.done_today.includes(h.key) ? ' ag-habit__dot--on' : ''}`} />
+                ))}
+              </span>
+            </span>
+            <span className="ag-habit__streak">
+              <Flame size={18} aria-hidden="true" />
+              {habits.streak}
+            </span>
+          </Link>
         )}
 
-        {/* JTBD 2: Tautan Afiliasi (Sleek Card Sesuai Referensi) */}
-        <section
-          aria-label="Tautan Afiliasi Anda"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '18px',
-            border: '1px solid var(--tw-hairline)',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.6px',
-                  textTransform: 'uppercase',
-                  color: 'var(--tw-text-muted)',
-                }}
-              >
-                Tautan Afiliasi Anda
-              </span>
-              <h2
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  color: 'var(--tw-text-primary)',
-                  margin: 0,
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                Mulai Syiar dan dapatkan komisi
-              </h2>
-            </div>
-
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 10px',
-                borderRadius: '20px',
-                backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))',
-                border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 22%, transparent)',
-                color: 'var(--tw-brand-primary)',
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.2px',
-                whiteSpace: 'nowrap',
-              }}
-              title="Jumlah klik pada tautan afiliasi Anda"
-            >
-              <MousePointerClick size={13} color="var(--tw-brand-primary)" />
-              <span>{summary?.total_clicks ?? 0} Klik</span>
-            </div>
-          </div>
-
-          {/* Capsule Code / Link display */}
-          <div
-            style={{
-              backgroundColor: 'var(--tw-page-bg)',
-              borderRadius: '10px',
-              padding: '8px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '8px',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '12px',
-                color: 'var(--tw-text-secondary)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                fontFamily: 'monospace',
-              }}
-            >
-              {summary.referral_link}
-            </span>
-
-            <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                color: 'var(--tw-brand-primary)',
-                backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-                padding: '3px 7px',
-                borderRadius: '5px',
-                flexShrink: 0,
-              }}
-            >
-              {getReferralCode() || 'MITRA'}
+        {/* Referral link */}
+        <section className="ag-card" aria-labelledby="ag-link">
+          <div className="ag-card__head">
+            <h2 id="ag-link" className="ag-title">
+              Link referral
+            </h2>
+            <span className="ag-muted ag-inline">
+              <MousePointerClick size={16} aria-hidden="true" />
+              {summary.total_clicks ?? 0} klik
             </span>
           </div>
-
-          {/* Dual Action Buttons (Salin & Share ke WA) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="ag-linkbox">
+            <span className="ag-linkbox__url">{summary.referral_link}</span>
             <button
               type="button"
+              className="ag-linkbox__copy"
               onClick={handleCopyLink}
-              style={{
-                flex: 1,
-                padding: '9px 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--tw-border)',
-                backgroundColor: 'var(--tw-background)',
-                color: copied ? 'var(--tw-brand-primary)' : 'var(--tw-text-primary)',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
+              aria-label={copied ? 'Link tersalin' : 'Salin link referral'}
             >
-              {copied ? <Check size={14} color="var(--tw-brand-primary)" /> : <Copy size={14} />}
-              <span>{copied ? 'Tersalin' : 'Salin Tautan'}</span>
+              {copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+              {copied ? 'Tersalin' : 'Salin'}
             </button>
-
-            <a
-              href={getWhatsAppShareUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                flex: 1.2,
-                padding: '9px 14px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-background)',
-                fontSize: '12px',
-                fontWeight: 700,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-            >
-              <Share2 size={14} />
-              <span>Share ke WA</span>
-            </a>
-          </div>
-
-          <span
-            style={{
-              fontSize: '11px',
-              color: 'var(--tw-text-muted)',
-              lineHeight: 1.3,
-            }}
-          >
-            Komisi otomatis tercatat di sistem setiap calon jamaah mendaftar via link ini.
-          </span>
-        </section>
-
-        {/* JTBD 3: Alat & Materi Promosi (Grid 2x2 Sesuai Referensi) */}
-        <section
-          aria-label="Alat dan Materi Promosi"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 2px',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: '16px',
-                fontWeight: 700,
-                color: 'var(--tw-text-primary)',
-                margin: 0,
-                fontFamily: 'var(--tw-font-heading)',
-              }}
-            >
-              Alat & Materi Promosi
-            </h2>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '12px',
-            }}
-          >
-            {quickMenus.map((item) => (
-              <Link
-                key={item.id}
-                href={
-                  item.id === 'script-wa'
-                    ? '/agen/script-wa'
-                    : item.id === 'sumber-jamaah'
-                    ? '/agen/sumber-jamaah'
-                    : item.id === 'bank-caption'
-                    ? '/agen/bank-caption'
-                    : '#'
-                }
-                style={{
-                  backgroundColor: 'var(--tw-background)',
-                  borderRadius: '18px',
-                  border: '1px solid var(--tw-hairline)',
-                  padding: '16px 14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  textDecoration: 'none',
-                  minHeight: '130px',
-                  transition: 'transform 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '14px',
-                    backgroundColor: item.iconBg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      color: 'var(--tw-text-primary)',
-                      lineHeight: 1.3,
-                      fontFamily: 'var(--tw-font-heading)',
-                    }}
-                  >
-                    {item.title}
-                  </span>
-                  <p
-                    style={{
-                      fontSize: '11px',
-                      color: 'var(--tw-text-secondary)',
-                      lineHeight: 1.4,
-                      margin: 0,
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                </div>
-              </Link>
-            ))}
           </div>
         </section>
 
-        {/* JTBD 4: Performa Jamaah (Fluid Stat Row - Tanpa Kotak Bertingkat) */}
-        <section
-          aria-label="Performa Jamaah"
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '18px',
-            border: '1px solid var(--tw-hairline)',
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.6px',
-                  textTransform: 'uppercase',
-                  color: 'var(--tw-text-muted)',
-                }}
-              >
-                Pipeline Jamaah
-              </span>
-              <h2
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  color: 'var(--tw-text-primary)',
-                  margin: 0,
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                Daftar Jamaah Saya
+        {/* Packages to share */}
+        {sharePackages.length > 0 && (
+          <section className="ag-card ag-share" aria-labelledby="ag-share">
+            <div className="ag-card__head">
+              <h2 id="ag-share" className="ag-title">
+                Paket untuk dibagikan
               </h2>
+              {/* The full public catalog; sharing from a package page there uses the agent's referral link. */}
+              <Link href="/paket" className="ag-textlink">
+                Lihat semua
+                <ChevronRight size={16} aria-hidden="true" />
+              </Link>
             </div>
+            <ul className="ag-share__list">
+              {sharePackages.map((pkg) => {
+                const photo = [...(pkg.photos || [])].sort((x, y) => x.sort_order - y.sort_order)[0];
+                return (
+                  <li key={pkg.id} className="ag-share__item">
+                    {/* Photo, name and details open the package page (plain link, not the referral route:
+                        the agent's own visit is not counted as a click). */}
+                    <Link href={`/paket/${pkg.id}`} className="ag-share__link">
+                      <span className="ag-share__media">
+                        {photo && (
+                          // eslint-disable-next-line @next/next/no-img-element -- package photo uploaded by the travel
+                          <img src={photo.file_path} alt="" loading="lazy" />
+                        )}
+                      </span>
+                      <span className="ag-share__name">{pkg.name}</span>
+                      <span className="ag-muted">
+                        {pkg.departure_date
+                          ? new Date(pkg.departure_date.slice(0, 10) + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Jadwal menyusul'}
+                        {pkg.price ? ` · ${formatRupiah(pkg.price)}` : ''}
+                      </span>
+                    </Link>
+                    <button type="button" className="ag-share__btn" onClick={() => setSyiarPkg(pkg)}>
+                      <Megaphone size={16} aria-hidden="true" />
+                      Syiarkan!
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
-            <Link
-              href="/agen/prospek"
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--tw-brand-primary)',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-              }}
-            >
-              <span>Lihat Detail</span>
-              <ChevronRight size={14} />
+        {/* Prospect pipeline */}
+        <section className="ag-card" aria-labelledby="ag-jamaah">
+          <div className="ag-card__head">
+            <h2 id="ag-jamaah" className="ag-title">
+              Calon jamaah
+            </h2>
+            <Link href="/agen/prospek" className="ag-textlink">
+              Lihat semua
+              <ChevronRight size={16} aria-hidden="true" />
             </Link>
           </div>
-
-          {/* 3 Metric Columns with Soft Subtle Wash (Clean & Elevated) */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '10px',
-            }}
-          >
-            {/* Baru */}
-            <div
-              style={{
-                backgroundColor: 'var(--tw-page-bg)',
-                borderRadius: '12px',
-                padding: '12px 8px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 800,
-                  color: 'var(--tw-text-primary)',
-                  lineHeight: 1.1,
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                {summary.funnel_ringkasan.baru}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--tw-text-muted)',
-                    display: 'inline-block',
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: 'var(--tw-text-secondary)',
-                  }}
-                >
-                  Baru
-                </span>
-              </div>
+          <dl className="ag-stats">
+            <div className="ag-stat ag-stat--new">
+              <dt>Baru</dt>
+              <dd>{summary.funnel_ringkasan.baru}</dd>
             </div>
-
-            {/* Diproses */}
-            <div
-              style={{
-                backgroundColor: 'var(--tw-page-bg)',
-                borderRadius: '12px',
-                padding: '12px 8px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 800,
-                  color: 'var(--tw-text-primary)',
-                  lineHeight: 1.1,
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                {summary.funnel_ringkasan.diproses}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--tw-rating-star)',
-                    display: 'inline-block',
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: 'var(--tw-text-secondary)',
-                  }}
-                >
-                  Diproses
-                </span>
-              </div>
+            <div className="ag-stat ag-stat--progress">
+              <dt>Diproses</dt>
+              <dd>{summary.funnel_ringkasan.diproses}</dd>
             </div>
-
-            {/* Closing */}
-            <div
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 8%, var(--tw-page-bg))',
-                borderRadius: '12px',
-                padding: '12px 8px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 800,
-                  color: 'var(--tw-brand-primary)',
-                  lineHeight: 1.1,
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                {summary.funnel_ringkasan.closing}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--tw-brand-primary)',
-                    display: 'inline-block',
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: 'var(--tw-brand-primary)',
-                  }}
-                >
-                  Closing
-                </span>
-              </div>
+            <div className="ag-stat ag-stat--closing">
+              <dt>Closing</dt>
+              <dd>{summary.funnel_ringkasan.closing}</dd>
             </div>
-          </div>
+          </dl>
         </section>
 
-        {/* JTBD 5: Teaser Leaderboard (Hall of Fame) */}
-        <section aria-label="Teaser Leaderboard">
-          <Link
-            href="/agen/leaderboard"
-            style={{
-              textDecoration: 'none',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '18px',
-              border: '1px solid var(--tw-hairline)',
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              transition: 'transform 0.15s ease',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '12px',
-                  backgroundColor: 'color-mix(in srgb, var(--tw-rating-star) 15%, var(--tw-background))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Trophy size={18} color="var(--tw-rating-star)" />
-              </div>
+        {/* Running targets */}
+        {targets.length > 0 && (
+          <section className="ag-card" aria-labelledby="ag-target">
+            <h2 id="ag-target" className="ag-title">
+              Target dan reward
+            </h2>
+            <ul className="ag-targets">
+              {targets.map((t) => {
+                const pct = t.metric_value > 0 ? Math.min(100, Math.max(0, Math.round((t.progress_value / t.metric_value) * 100))) : 0;
+                const remaining = Math.max(0, t.metric_value - t.progress_value);
+                const unit = t.metric_type === 'closing_pax' ? 'jamaah' : 'mitra';
+                return (
+                  <li key={t.id} className="ag-target">
+                    <div className="ag-target__head">
+                      <span className="ag-target__name">{t.title || t.metric_label}</span>
+                      <span className="ag-target__count">
+                        {t.progress_value}/{t.metric_value}
+                      </span>
+                    </div>
+                    <div
+                      className="ag-progress"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={pct}
+                      aria-label={`${t.title || t.metric_label}: ${pct}%`}
+                    >
+                      <span style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="ag-muted">
+                      {t.period_label} · {t.achieved ? 'Target tercapai' : `${remaining} ${unit} lagi`}
+                    </p>
+                    {t.reward_description && (
+                      <p className="ag-target__reward">
+                        <Gift size={16} aria-hidden="true" />
+                        {t.reward_description}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: 'var(--tw-text-primary)',
-                    lineHeight: 1.2,
-                    fontFamily: 'var(--tw-font-heading)',
-                  }}
-                >
-                  Peringkat #{summary.leaderboard_preview.rank_saya} dari {summary.leaderboard_preview.total_agen} Mitra
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--tw-text-muted)',
-                    lineHeight: 1.3,
-                  }}
-                >
-                  Lihat ranking & perolehan poin bulan ini
-                </span>
-              </div>
-            </div>
-
-            <div style={{ color: 'var(--tw-text-muted)', display: 'flex', alignItems: 'center' }}>
-              <ChevronRight size={16} />
-            </div>
-          </Link>
-        </section>
       </div>
 
-      {/* Navigasi Bawah Agen */}
+      {syiarPkg && (
+        <div className="ag-sheet" role="presentation" onClick={() => setSyiarPkg(null)}>
+          <div className="ag-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ag-sheet-title" onClick={(e) => e.stopPropagation()}>
+            <span className="ag-sheet__grip" aria-hidden="true" />
+            <h2 id="ag-sheet-title" className="ag-title">
+              Syiarkan paket ini
+            </h2>
+            <p className="ag-muted">{syiarPkg.name}</p>
+            <div className="ag-sheet__options">
+              {syiarFile && (
+                <button type="button" className="ag-sheet__option" onClick={() => sharePackageWithPhoto(syiarPkg)}>
+                  <span className="ag-sheet__icon">
+                    <Share2 size={20} aria-hidden="true" />
+                  </span>
+                  <span className="ag-sheet__text">
+                    <span className="ag-sheet__label">Bagikan dengan foto</span>
+                    <span className="ag-muted">Foto paket, pesan, dan link Anda sekaligus</span>
+                  </span>
+                </button>
+              )}
+              <button type="button" className="ag-sheet__option" onClick={() => copyPackageLink(syiarPkg)}>
+                <span className="ag-sheet__icon">{syiarCopied ? <Check size={20} aria-hidden="true" /> : <Copy size={20} aria-hidden="true" />}</span>
+                <span className="ag-sheet__text">
+                  <span className="ag-sheet__label">{syiarCopied ? 'Link tersalin' : 'Salin link'}</span>
+                  <span className="ag-muted">Tempel di grup, status, atau media sosial</span>
+                </span>
+              </button>
+              <a
+                href={packageShareUrl(syiarPkg)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ag-sheet__option"
+                onClick={() => {
+                  logShare();
+                  setSyiarPkg(null);
+                }}
+              >
+                <span className="ag-sheet__icon ag-sheet__icon--wa">
+                  <MessageCircle size={20} aria-hidden="true" />
+                </span>
+                <span className="ag-sheet__text">
+                  <span className="ag-sheet__label">Bagikan ke WhatsApp</span>
+                  <span className="ag-muted">Pesan siap kirim berisi link Anda</span>
+                </span>
+              </a>
+            </div>
+            <button type="button" className="ag-sheet__cancel" onClick={() => setSyiarPkg(null)}>
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
       <AgentBottomNavbar />
     </MobileContainer>
   );
 }
+
+// Portal header: 'Portal Agen' with the travel's name in small text below; notification bell on the right.
+const AgentHeader: React.FC<{ brand?: boolean; travel?: TravelBrand | null; unreadCount?: number; onBell?: () => void }> = ({
+  brand,
+  travel,
+  unreadCount = 0,
+  onBell,
+}) => (
+  <header className={`ag-header${brand ? ' ag-header--brand' : ''}`}>
+    <div className="ag-header__brand">
+      <h1 className="ag-header__title">Portal Agen</h1>
+      {travel?.name && <span className="ag-header__travel">{travel.name}</span>}
+    </div>
+    {onBell && (
+      <button type="button" className="ag-icon-btn ag-header__bell" aria-label="Notifikasi" onClick={onBell}>
+        <Bell size={20} />
+        {unreadCount > 0 && <span className="ag-header__dot" aria-hidden="true" />}
+      </button>
+    )}
+  </header>
+);

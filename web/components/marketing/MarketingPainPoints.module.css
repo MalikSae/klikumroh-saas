@@ -30,7 +30,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
 }
 
@@ -70,8 +70,8 @@
 
 .problemCard:hover {
   transform: translateY(-2px);
-  border-color: #09090B;
-  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
+  border-color: var(--km-ink);
+  box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--km-shadow-color) 6%, transparent);
 }
 
 .cardTop {
@@ -85,7 +85,7 @@
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 13px;
   font-weight: 700;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
   letter-spacing: 0.05em;
 }
 
@@ -93,15 +93,15 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .cardIcon {
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .cardTitle {

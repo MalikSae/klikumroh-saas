@@ -1,0 +1,536 @@
+/* Agent commission history (app/agen/riwayat-komisi/page.tsx), bank-statement style. Same header as the
+   withdraw page, no bottom tab bar. Green only for money coming in; content text 14px+, labels 13px. */
+
+.rk-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 8px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.rk-header__title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.rk-icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.rk-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.rk-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 12px 16px 32px;
+  background-color: var(--tw-page-bg);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.rk-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.rk-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+/* Summary: a deck of credit-card style cards (85.6 x 54 mm proportions). The front card sits left; the cards
+   behind are pushed right (--peek each) and shorter, showing their title vertically on the visible edge.
+   Tapping a card behind brings it to the front. Withdrawable green, held amber, paid out blue. */
+.rk-summary {
+  --peek: 34px;
+  position: relative;
+  aspect-ratio: 1.75 / 1;
+  width: calc(100% - 2 * var(--peek));
+  max-height: 190px;
+  margin-right: calc(2 * var(--peek));
+}
+
+.rk-stat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: 16px 18px;
+  overflow: hidden;
+  border: none;
+  border-radius: 18px;
+  font: inherit;
+  text-align: left;
+  color: var(--tw-on-brand);
+  background-color: var(--card);
+  cursor: pointer;
+  transition: transform 0.3s ease, top 0.3s ease, height 0.3s ease, box-shadow 0.3s ease;
+}
+
+.rk-stat--main {
+  --card: color-mix(in srgb, var(--tw-success-strong) 75%, var(--tw-neutral-900));
+}
+
+.rk-stat--wait {
+  --card: color-mix(in srgb, var(--tw-warning-strong) 75%, var(--tw-neutral-900));
+}
+
+.rk-stat--done {
+  --card: var(--tw-status-new-text);
+}
+
+.rk-stat--pos0 {
+  z-index: 3;
+  transform: none;
+  background-image:
+    radial-gradient(circle at 100% 0%, var(--tw-on-brand-subtle) 0 30%, transparent 30.5%),
+    radial-gradient(circle at 112% 22%, var(--tw-on-brand-subtle) 0 28%, transparent 28.5%),
+    linear-gradient(135deg, var(--card) 0%, color-mix(in srgb, var(--card) 80%, var(--tw-neutral-900)) 100%);
+  box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--card) 70%, transparent);
+  cursor: default;
+}
+
+.rk-stat--pos1 {
+  z-index: 2;
+  top: 8%;
+  height: 84%;
+  transform: translateX(var(--peek));
+}
+
+.rk-stat--pos2 {
+  z-index: 1;
+  top: 16%;
+  height: 68%;
+  transform: translateX(calc(2 * var(--peek)));
+}
+
+/* Cards behind show only their edge, with the title written vertically on it. */
+.rk-stat--pos1 > *:not(.rk-stat__edge),
+.rk-stat--pos2 > *:not(.rk-stat__edge) {
+  visibility: hidden;
+}
+
+.rk-stat__edge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--peek);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+.rk-stat--pos1 .rk-stat__edge,
+.rk-stat--pos2 .rk-stat__edge {
+  display: flex;
+}
+
+
+.rk-stat__issuer {
+  max-width: 100%;
+  margin-bottom: auto;
+  overflow: hidden;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+
+.rk-stat__label {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.rk-stat__value {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--tw-font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* Segmented filter */
+.rk-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background-color: var(--tw-neutral-100);
+}
+
+.rk-tab {
+  min-height: 40px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  font: 500 14px var(--tw-font-body);
+  color: var(--tw-neutral-600);
+  cursor: pointer;
+}
+
+.rk-tab--on {
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+/* Search (long lists only) */
+.rk-search {
+  position: relative;
+}
+
+.rk-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--tw-neutral-400);
+  pointer-events: none;
+}
+
+.rk-search__input {
+  padding-left: 40px;
+  padding-right: 44px;
+}
+
+.rk-search__clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+/* Day groups */
+.rk-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rk-day__label {
+  margin: 6px 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-neutral-500);
+}
+
+.rk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.rk-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rk-list li + li .rk-row {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.rk-row__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--tw-success-bg);
+  color: var(--tw-success-strong);
+}
+
+.rk-row__icon--out {
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-700);
+}
+
+.rk-row__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* One line; the full text is in the detail sheet. */
+.rk-row__title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rk-row__meta {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  gap: 0 8px;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+/* The jamaah count or time stays whole; the status shortens with an ellipsis. */
+.rk-row__meta > span:not(.rk-status) {
+  flex-shrink: 0;
+}
+
+.rk-row__meta > .rk-status {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rk-status--ok {
+  color: var(--tw-success-strong);
+}
+
+.rk-status--wait {
+  color: var(--tw-status-contacted-text);
+}
+
+.rk-status--info {
+  color: var(--tw-status-new-text);
+}
+
+.rk-status--muted {
+  color: var(--tw-neutral-500);
+}
+
+.rk-row__amount {
+  flex-shrink: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rk-row__amount--in {
+  color: var(--tw-success-strong);
+}
+
+.rk-row__amount--void {
+  color: var(--tw-neutral-400);
+  text-decoration: line-through;
+}
+
+/* Loading / error / empty */
+.rk-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 56px 16px;
+  text-align: center;
+  color: var(--tw-neutral-500);
+}
+
+.rk-center--empty {
+  border-radius: 16px;
+  background-color: var(--tw-background);
+}
+
+.rk-center__icon {
+  color: var(--tw-danger-strong);
+}
+
+.rk-muted-icon {
+  color: var(--tw-neutral-400);
+}
+
+.rk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--tw-neutral-300);
+  border-radius: 10px;
+  background-color: var(--tw-background);
+  font: 600 15px var(--tw-font-body);
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.rk-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--tw-neutral-200);
+  border-top-color: var(--tw-neutral-900);
+  border-radius: 50%;
+  animation: rk-spin 0.8s linear infinite;
+}
+
+@keyframes rk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Transaction detail sheet */
+.rk-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: var(--tw-modal-overlay);
+}
+
+.rk-sheet__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  max-width: 428px;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background-color: var(--tw-background);
+  animation: rk-sheet-in 0.2s ease-out;
+}
+
+@keyframes rk-sheet-in {
+  from {
+    transform: translateY(24px);
+  }
+}
+
+.rk-sheet__grip {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  margin-bottom: 12px;
+  border-radius: 2px;
+  background-color: var(--tw-neutral-200);
+}
+
+.rk-sheet__amount {
+  margin: 0 0 8px;
+  font-family: var(--tw-font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.rk-sheet__list {
+  margin: 0;
+}
+
+.rk-sheet__list div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.rk-sheet__list dt {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.rk-sheet__list dd {
+  margin: 0;
+  font-size: 15px;
+  color: var(--tw-neutral-900);
+}
+
+.rk-sheet__list dd.rk-status--ok {
+  color: var(--tw-success-strong);
+}
+
+.rk-sheet__list dd.rk-status--wait {
+  color: var(--tw-status-contacted-text);
+}
+
+.rk-sheet__list dd.rk-status--info {
+  color: var(--tw-status-new-text);
+}
+
+.rk-sheet__close {
+  justify-content: center;
+  margin-top: 12px;
+}
+
+
+
+/* Billions (Rp 1.250.000.000) get a smaller size so the full amount still fits a small phone. */
+.rk-stat__value--long {
+  font-size: 19px;
+}

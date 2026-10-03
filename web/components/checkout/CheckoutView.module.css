@@ -1,14 +1,14 @@
 /* CheckoutView.module.css — Monochrome Design System
-   Palet: #09090B, #27272A, #3F3F46, #71717A, #A1A1AA, #D4D4D8, #E4E4E7, #F4F4F5, #FAFAFA, #FFFFFF
+   Palet: token --km-* di app/globals.css (design-tokens.json -> marketing)
 */
 
 /* ─── Page Shell ─────────────────────────────────────────────────────────── */
 
 .page {
   min-height: 100vh;
-  background-color: #FAFAFA;
+  background-color: var(--km-bg);
   font-family: var(--font-body, 'Roboto', sans-serif);
-  color: #09090B;
+  color: var(--km-ink);
   display: flex;
   flex-direction: column;
 }
@@ -16,8 +16,8 @@
 /* ─── Navigation Header ─────────────────────────────────────────────────── */
 
 .navbar {
-  background-color: #FFFFFF;
-  border-bottom: 1px solid #E4E4E7;
+  background-color: var(--km-paper);
+  border-bottom: 1px solid var(--km-line);
   height: 72px;
   display: flex;
   align-items: center;
@@ -57,13 +57,13 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background-color: #F4F4F5;
+  background-color: var(--km-surface-subtle);
   border-radius: 6px;
-  border: 1px solid #E4E4E7;
+  border: 1px solid var(--km-line);
 }
 
 .navSecureIcon {
-  color: #09090B;
+  color: var(--km-ink);
   flex-shrink: 0;
 }
 
@@ -71,7 +71,7 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
   font-weight: 600;
-  color: #3F3F46;
+  color: var(--km-neutral-700);
   white-space: nowrap;
 }
 
@@ -127,7 +127,7 @@
 }
 
 .backArrow {
-  color: #71717A;
+  color: var(--km-muted);
   flex-shrink: 0;
   transition: color 0.15s ease;
 }
@@ -136,13 +136,13 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
   font-weight: 500;
-  color: #71717A;
+  color: var(--km-muted);
   transition: color 0.15s ease;
 }
 
 .backLink:hover .backArrow,
 .backLink:hover .backText {
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 /* Heading */
@@ -156,7 +156,7 @@
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 28px;
   font-weight: 800;
-  color: #09090B;
+  color: var(--km-ink);
   line-height: 1.2;
   margin: 0;
 }
@@ -170,7 +170,7 @@
 .checkoutDesc {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 14px;
-  color: #71717A;
+  color: var(--km-muted);
   line-height: 1.5;
   margin: 0;
 }
@@ -181,18 +181,18 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  background-color: rgba(185, 28, 28, 0.06);
-  border: 1px solid rgba(185, 28, 28, 0.2);
+  background-color: color-mix(in srgb, var(--km-danger-strong) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--km-danger-strong) 20%, transparent);
   border-radius: 8px;
-  color: #B91C1C;
+  color: var(--km-danger-strong);
   font-size: 13px;
   line-height: 1.4;
 }
 
 /* Travel Registration Form Card */
 .formCard {
-  background-color: #FFFFFF;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -210,7 +210,7 @@
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 17px;
   font-weight: 700;
-  color: #09090B;
+  color: var(--km-ink);
   margin: 0;
 }
 
@@ -226,34 +226,34 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
   font-weight: 600;
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .fieldInput {
   width: 100%;
   height: 44px;
   border-radius: 8px;
-  border: 1px solid #E4E4E7;
-  background-color: #FFFFFF;
+  border: 1px solid var(--km-line);
+  background-color: var(--km-paper);
   padding: 0 13px;
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 14px;
-  color: #09090B;
+  color: var(--km-ink);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .fieldInput::placeholder {
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .fieldInput:focus {
-  border-color: #09090B;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+  border-color: var(--km-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .fieldInputError {
-  border-color: #B91C1C !important;
+  border-color: var(--km-danger-strong) !important;
 }
 
 /* Subdomain Container */
@@ -262,15 +262,15 @@
   align-items: center;
   height: 44px;
   border-radius: 8px;
-  border: 1px solid #E4E4E7;
-  background-color: #FFFFFF;
+  border: 1px solid var(--km-line);
+  background-color: var(--km-paper);
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .subdomainContainer:focus-within {
-  border-color: #09090B;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+  border-color: var(--km-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .subdomainInputField {
@@ -282,18 +282,18 @@
   padding: 0 13px;
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 14px;
-  color: #09090B;
+  color: var(--km-ink);
   min-width: 0;
 }
 
 .subdomainInputField::placeholder {
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .subdomainSuffixBox {
   height: 100%;
-  background-color: #F4F4F5;
-  border-left: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  border-left: 1px solid var(--km-line);
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -304,7 +304,7 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
   font-weight: 600;
-  color: #3F3F46;
+  color: var(--km-neutral-700);
   white-space: nowrap;
 }
 
@@ -327,15 +327,15 @@
   align-items: center;
   height: 44px;
   border-radius: 8px;
-  border: 1px solid #E4E4E7;
-  background-color: #FFFFFF;
+  border: 1px solid var(--km-line);
+  background-color: var(--km-paper);
   padding: 0 13px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .passwordContainer:focus-within {
-  border-color: #09090B;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+  border-color: var(--km-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .passwordInputField {
@@ -347,18 +347,18 @@
   padding: 0;
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 14px;
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .passwordInputField::placeholder {
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .passwordToggleBtn {
   background: none;
   border: none;
   padding: 4px;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -368,13 +368,13 @@
 }
 
 .passwordToggleBtn:hover {
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 /* Feedback Texts */
 .errorText {
   font-size: 12px;
-  color: #B91C1C;
+  color: var(--km-danger-strong);
   font-family: var(--font-body, 'Roboto', sans-serif);
 }
 
@@ -383,7 +383,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .statusAvailable {
@@ -391,13 +391,13 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #09090B;
+  color: var(--km-ink);
   font-weight: 600;
 }
 
 .statusUnavailable {
   font-size: 12px;
-  color: #B91C1C;
+  color: var(--km-danger-strong);
 }
 
 /* Terms Agreement */
@@ -413,8 +413,8 @@
   width: 17px;
   height: 17px;
   border-radius: 4px;
-  border: 1px solid #D4D4D8;
-  accent-color: #09090B;
+  border: 1px solid var(--km-neutral-300);
+  accent-color: var(--km-ink);
   cursor: pointer;
   flex-shrink: 0;
   margin-top: 1px;
@@ -423,7 +423,7 @@
 .termsText {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
-  color: #71717A;
+  color: var(--km-muted);
   line-height: 1.5;
 }
 
@@ -432,8 +432,8 @@
   width: 100%;
   height: 48px;
   border-radius: 8px;
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 14px;
   font-weight: 700;
@@ -448,7 +448,7 @@
 }
 
 .submitBtn:hover:not(:disabled) {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
 }
 
 .submitBtn:disabled {
@@ -471,14 +471,14 @@
 }
 
 .trustIcon {
-  color: #71717A;
+  color: var(--km-muted);
   flex-shrink: 0;
 }
 
 .trustText {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 /* Existing Account Prompt */
@@ -493,14 +493,14 @@
 .existingAccountText {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .loginLink {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
   font-weight: 700;
-  color: #09090B;
+  color: var(--km-ink);
   text-decoration: underline;
 }
 
@@ -511,8 +511,8 @@
 /* ─── Plan Selection Section ────────────────────────────────────────────── */
 
 .planSection {
-  background-color: #FFFFFF;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-paper);
+  border: 1px solid var(--km-line);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -524,7 +524,7 @@
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 17px;
   font-weight: 700;
-  color: #09090B;
+  color: var(--km-ink);
   margin: 0;
 }
 
@@ -542,11 +542,11 @@
 
 .planCard {
   position: relative;
-  border: 1.5px solid #E4E4E7;
+  border: 1.5px solid var(--km-line);
   border-radius: 10px;
   padding: 16px 14px;
   cursor: pointer;
-  background-color: #FAFAFA;
+  background-color: var(--km-bg);
   transition: border-color 0.15s ease, background-color 0.15s ease;
   display: flex;
   flex-direction: column;
@@ -555,14 +555,14 @@
 }
 
 .planCard:hover {
-  border-color: #A1A1AA;
-  background-color: #F4F4F5;
+  border-color: var(--km-neutral-400);
+  background-color: var(--km-surface-subtle);
 }
 
 .planCardActive {
-  border-color: #09090B !important;
-  background-color: #FFFFFF !important;
-  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+  border-color: var(--km-ink) !important;
+  background-color: var(--km-paper) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--km-ink) 8%, transparent);
 }
 
 .planBadge {
@@ -570,8 +570,8 @@
   top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 9px;
   font-weight: 800;
@@ -586,7 +586,7 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
   font-weight: 600;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -595,33 +595,33 @@
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 20px;
   font-weight: 800;
-  color: #09090B;
+  color: var(--km-ink);
   line-height: 1;
 }
 
 .planPriceUnit {
   font-size: 11px;
   font-weight: 500;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .planSaveBadge {
   display: inline-block;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   border-radius: 4px;
   padding: 2px 7px;
   font-size: 10px;
   font-weight: 700;
-  color: #3F3F46;
+  color: var(--km-neutral-700);
   margin-top: 2px;
   width: fit-content;
 }
 
 .planCardActive .planSaveBadge {
-  background-color: #09090B;
-  border-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  border-color: var(--km-ink);
+  color: var(--km-paper);
 }
 
 .planRadioIndicator {
@@ -635,8 +635,8 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  border: 1.5px solid #D4D4D8;
-  background-color: #FFFFFF;
+  border: 1.5px solid var(--km-neutral-300);
+  background-color: var(--km-paper);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -644,15 +644,15 @@
 }
 
 .planRadioDotActive {
-  border-color: #09090B;
-  background-color: #09090B;
+  border-color: var(--km-ink);
+  background-color: var(--km-ink);
 }
 
 .planRadioDotInner {
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background-color: #FFFFFF;
+  background-color: var(--km-paper);
 }
 
 /* ─── Right: Order Summary Column ────────────────────────────────────────── */
@@ -669,8 +669,8 @@
 
 /* Order Summary Card */
 .summaryCard {
-  background-color: #09090B;
-  border: 1px solid #27272A;
+  background-color: var(--km-ink);
+  border: 1px solid var(--km-neutral-800);
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -703,7 +703,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
 }
 
@@ -718,13 +718,13 @@
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 20px;
   font-weight: 800;
-  color: #FFFFFF;
+  color: var(--km-paper);
   margin: 0;
   line-height: 1.2;
 }
 
 .popularBadge {
-  background-color: #FFFFFF;
+  background-color: var(--km-paper);
   border-radius: 5px;
   padding: 3px 8px;
   display: inline-flex;
@@ -738,7 +738,7 @@
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  color: #09090B;
+  color: var(--km-ink);
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -770,7 +770,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
   font-weight: 600;
@@ -779,33 +779,33 @@
   white-space: nowrap;
   text-decoration: underline;
   text-underline-offset: 3px;
-  text-decoration-color: #3F3F46;
+  text-decoration-color: var(--km-neutral-700);
 }
 
 .changePlanBtn:hover {
-  color: #FFFFFF;
-  text-decoration-color: #A1A1AA;
+  color: var(--km-paper);
+  text-decoration-color: var(--km-neutral-400);
 }
 
 .changePlanChevron {
   transition: transform 0.2s ease, color 0.15s ease;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .changePlanBtn:hover .changePlanChevron {
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .changePlanChevronOpen {
   transform: rotate(180deg);
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 /* Plan Selection Accordion */
 .planAccordion {
   margin-top: 10px;
-  background-color: #18181B;
-  border: 1px solid #27272A;
+  background-color: var(--km-neutral-900);
+  border: 1px solid var(--km-neutral-800);
   border-radius: 10px;
   padding: 8px;
   animation: accordionSlideDown 0.2s ease-out;
@@ -844,20 +844,20 @@
 }
 
 .planAccordionOption:hover {
-  background-color: #27272A;
-  border-color: #3F3F46;
+  background-color: var(--km-neutral-800);
+  border-color: var(--km-neutral-700);
 }
 
 .planAccordionOptionSelected {
-  background-color: #27272A;
-  border-color: #52525B;
+  background-color: var(--km-neutral-800);
+  border-color: var(--km-neutral-600);
 }
 
 .planOptionRadioCircle {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  border: 1.5px solid #71717A;
+  border: 1.5px solid var(--km-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -867,14 +867,14 @@
 }
 
 .planAccordionOptionSelected .planOptionRadioCircle {
-  border-color: #FFFFFF;
+  border-color: var(--km-paper);
 }
 
 .planOptionRadioDot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background-color: #FFFFFF;
+  background-color: var(--km-paper);
 }
 
 .planOptionInfo {
@@ -895,12 +895,12 @@
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 13px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .planOptionPopularTag {
-  background-color: #FFFFFF;
-  color: #09090B;
+  background-color: var(--km-paper);
+  color: var(--km-ink);
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 9px;
   font-weight: 800;
@@ -911,9 +911,9 @@
 }
 
 .planOptionDiscountTag {
-  background-color: #27272A;
-  color: #D4D4D8;
-  border: 1px solid #3F3F46;
+  background-color: var(--km-neutral-800);
+  color: var(--km-neutral-300);
+  border: 1px solid var(--km-neutral-700);
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 9px;
   font-weight: 700;
@@ -927,20 +927,20 @@
   gap: 6px;
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
-  color: #D4D4D8;
+  color: var(--km-neutral-300);
   font-weight: 500;
 }
 
 .planOptionTotal {
   font-size: 11px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .monthlyPrice {
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 32px;
   font-weight: 800;
-  color: #FFFFFF;
+  color: var(--km-paper);
   line-height: 1;
 }
 
@@ -948,20 +948,20 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
   font-weight: 500;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .billingNote {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
-  color: #71717A;
+  color: var(--km-muted);
   line-height: 1.4;
 }
 
 /* Dividers */
 .summaryDivider {
   height: 1px;
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
   width: 100%;
 }
 
@@ -982,14 +982,14 @@
 }
 
 .featureCheck {
-  color: #FFFFFF;
+  color: var(--km-paper);
   flex-shrink: 0;
 }
 
 .featureText {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
-  color: #D4D4D8;
+  color: var(--km-neutral-300);
   line-height: 1.4;
 }
 
@@ -1004,7 +1004,7 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
   font-weight: 600;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .couponRow {
@@ -1016,8 +1016,8 @@
   flex: 1;
   height: 42px;
   border-radius: 7px;
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: color-mix(in srgb, var(--km-paper) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--km-paper) 12%, transparent);
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -1026,11 +1026,11 @@
 }
 
 .couponInputContainer:focus-within {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: color-mix(in srgb, var(--km-paper) 30%, transparent);
 }
 
 .couponIcon {
-  color: #71717A;
+  color: var(--km-muted);
   flex-shrink: 0;
 }
 
@@ -1042,18 +1042,18 @@
   background: transparent;
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .couponInputField::placeholder {
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .applyCouponBtn {
   height: 42px;
   border-radius: 7px;
-  background-color: #FFFFFF;
-  color: #09090B;
+  background-color: var(--km-paper);
+  color: var(--km-ink);
   border: none;
   padding: 0 14px;
   font-family: var(--font-body, 'Roboto', sans-serif);
@@ -1082,11 +1082,11 @@
 }
 
 .couponSuccess {
-  color: #D4D4D8;
+  color: var(--km-neutral-300);
 }
 
 .couponError {
-  color: #FCA5A5;
+  color: var(--km-danger-soft);
 }
 
 /* Order Totals */
@@ -1106,7 +1106,7 @@
 .discountLabel {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .subtotalValue,
@@ -1114,7 +1114,7 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
   font-weight: 500;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .grandTotalRow {
@@ -1122,7 +1122,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 10px;
-  border-top: 1px solid #27272A;
+  border-top: 1px solid var(--km-neutral-800);
   margin-top: 2px;
 }
 
@@ -1130,14 +1130,14 @@
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 13px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .grandTotalValue {
   font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   font-size: 22px;
   font-weight: 800;
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 /* Payment Security Note (Below summary card) */
@@ -1149,14 +1149,14 @@
 }
 
 .securityIcon {
-  color: #71717A;
+  color: var(--km-muted);
   flex-shrink: 0;
 }
 
 .securityText {
   font-family: var(--font-body, 'Roboto', sans-serif);
   font-size: 12px;
-  color: #71717A;
+  color: var(--km-muted);
   line-height: 1.4;
 }
 

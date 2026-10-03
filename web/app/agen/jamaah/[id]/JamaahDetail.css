@@ -1,0 +1,374 @@
+/* Agent prospect detail (app/agen/jamaah/[id]/page.tsx). Drill-down page: back button, no bottom tab bar.
+   Contact actions on the page background; the rest in plain white panels with a 13px title. Content text
+   14px+, labels 13px. One strong color: the WhatsApp button. The status modal keeps page.module.css. */
+
+.jd-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 16px 0 4px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.jd-header__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jd-icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.jd-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.jd-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 16px 16px 32px;
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.jd-page--center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.jd-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.jd-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.jd-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tw-danger-text);
+}
+
+/* Buttons: neutral outline by default, 40px; small variant 36px. */
+.jd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.jd-btn:hover:not(:disabled) {
+  background-color: var(--tw-neutral-100);
+}
+
+.jd-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.jd-btn--sm {
+  height: 36px;
+  padding: 0 12px;
+}
+
+/* Secondary action next to WhatsApp: soft gray fill, no outline. */
+.jd-btn--soft {
+  border-color: transparent;
+  background-color: var(--tw-neutral-100);
+}
+
+.jd-btn--soft:hover:not(:disabled) {
+  background-color: var(--tw-neutral-200);
+}
+
+/* WhatsApp green, darkened so white text reads at 4.5:1 or more. */
+.jd-btn--wa {
+  border-color: transparent;
+  background-color: color-mix(in srgb, var(--tw-success-strong) 80%, var(--tw-neutral-900));
+  color: var(--tw-on-brand);
+}
+
+.jd-btn--wa:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--tw-success-strong) 70%, var(--tw-neutral-900));
+}
+
+/* Sticky bottom bar with the two contact actions (stays visible while the page scrolls). */
+.jd-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--tw-neutral-100);
+  background-color: var(--tw-background);
+}
+
+/* Status as colored text (pipeline colors, never the brand color). */
+.jd-status {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-neutral-500);
+}
+
+.jd-status--lg {
+  font-size: 16px;
+}
+
+.jd-status--baru {
+  color: var(--tw-status-new-text);
+}
+
+.jd-status--dihubungi {
+  color: var(--tw-status-contacted-text);
+}
+
+.jd-status--tertarik {
+  color: var(--tw-accent-indigo-text);
+}
+
+.jd-status--closing {
+  color: var(--tw-success-strong);
+}
+
+/* Panels */
+.jd-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+/* Every panel opens with the same head; its height follows the title, so all panels start alike. */
+.jd-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+/* A heading, not a label: darker and larger than the 13px row labels. */
+.jd-panel__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--tw-neutral-900);
+}
+
+/* A button in the head does not make the head taller. */
+.jd-panel__head .jd-btn--sm {
+  margin: -8px 0;
+}
+
+.jd-panel__foot {
+  margin: 4px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--tw-neutral-100);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.jd-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Label / value rows */
+.jd-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.jd-rows__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.jd-rows__item + .jd-rows__item {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.jd-rows__item dt {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.jd-rows__item dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+  text-align: right;
+}
+
+/* Package names can be long: label above, value on its own line. */
+.jd-rows__item--full {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jd-rows__item--full dd {
+  text-align: left;
+}
+
+/* Commission */
+.jd-amount {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.jd-amount {
+  line-height: 1.3;
+}
+
+/* "Rp 1.000.000 x 2 jamaah" right under the amount; the explanation follows with a little more space. */
+.jd-amount__calc {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.jd-tag {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-neutral-500);
+}
+
+.jd-tag--ok {
+  color: var(--tw-success-strong);
+}
+
+.jd-tag--wait {
+  color: var(--tw-status-contacted-text);
+}
+
+.jd-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+/* Status history */
+.jd-history {
+  display: flex;
+  flex-direction: column;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jd-history__item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.jd-history__what {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+/* Notes */
+.jd-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jd-note-form__input {
+  min-height: 72px;
+}
+
+.jd-note-form__submit {
+  align-self: flex-end;
+}
+
+.jd-notes {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jd-notes__item {
+  padding: 10px 0;
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.jd-notes__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--tw-neutral-900);
+  white-space: pre-wrap;
+}

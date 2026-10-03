@@ -66,7 +66,10 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({
       )}
 
       <div className="tw-footer__bottom">
-        &copy; {new Date().getFullYear()} {tenantName}. Powered by KlikUmroh.id
+        &copy; {new Date().getFullYear()} {tenantName}. Powered by{' '}
+        <a href="https://klikumroh.id" target="_blank" rel="noopener" className="tw-footer__brand-link">
+          KlikUmroh.id
+        </a>
       </div>
     </footer>
   );

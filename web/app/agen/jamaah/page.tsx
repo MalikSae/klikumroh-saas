@@ -3,22 +3,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Users,
-  Plus,
-  ChevronRight,
-  RefreshCw,
-  AlertCircle,
-  Calendar,
-  Package as PackageIcon,
-  X,
-  Search,
-  ArrowLeft,
-} from 'lucide-react';
+import { Users, Plus, RefreshCw, AlertCircle, X, Search, MessageCircle } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
+import { CityField } from '../../../components/CityField';
 import styles from './page.module.css';
+import './Jamaah.css';
+import { logHabit } from '../../../lib/agentHabits';
 
 const PAGE_SIZE = 20;
 
@@ -71,6 +63,21 @@ const STATUS_OPTIONS = [
   { key: 'tidak_lanjut', label: 'Tidak Lanjut' },
 ];
 
+const STATUS_LABEL: Record<string, string> = {
+  baru: 'Baru',
+  dihubungi: 'Dihubungi',
+  tertarik: 'Tertarik',
+  closing: 'Closing',
+  tidak_lanjut: 'Tidak Lanjut',
+};
+
+// wa.me needs the number in international form without "+": 0812... -> 62812...
+const whatsAppUrl = (phone: string, name: string, travelName: string) => {
+  const clean = phone.replace(/\D/g, '').replace(/^0/, '62');
+  const greeting = `Assalamu'alaikum ${name}, perkenalkan saya mitra resmi ${travelName || 'travel kami'}. Terkait rencana ibadah umroh Bapak/Ibu, apakah ada informasi yang ingin ditanyakan?`;
+  return `https://wa.me/${clean}?text=${encodeURIComponent(greeting)}`;
+};
+
 export default function AgenJamaahListPage() {
   const router = useRouter();
 
@@ -88,6 +95,8 @@ export default function AgenJamaahListPage() {
   const requestSeq = useRef(0);
   // The travel's subscription is suspended: the portal is read-only, so adding jamaah is not offered.
   const [travelSuspended, setTravelSuspended] = useState<boolean>(false);
+  // Travel name for the WhatsApp greeting.
+  const [travelName, setTravelName] = useState<string>('');
   // Paged list: the API returns PAGE_SIZE jamaah at a time; "Muat lebih banyak" appends the next page.
   const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
@@ -124,10 +133,6 @@ export default function AgenJamaahListPage() {
 
     const seq = ++requestSeq.current;
     try {
-      if (pageToLoad === 1) setLoading(true);
-      else setLoadingMore(true);
-      setError(null);
-
       const params = new URLSearchParams({ page: String(pageToLoad), page_size: String(PAGE_SIZE) });
       if (statusFilter) params.set('status', statusFilter);
       if (search.trim()) params.set('search', search.trim());
@@ -165,6 +170,13 @@ export default function AgenJamaahListPage() {
     }
   };
 
+  // Raised by whatever starts a load, so the effect that runs fetchJamaah sets no state synchronously.
+  const beginLoad = (pageToLoad: number) => {
+    if (pageToLoad === 1) setLoading(true);
+    else setLoadingMore(true);
+    setError(null);
+  };
+
   const fetchPackages = async () => {
     try {
       const res = await fetch('/api/public/packages');
@@ -178,17 +190,29 @@ export default function AgenJamaahListPage() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    const timer = setTimeout(() => {
+      if (searchQuery !== debouncedSearch) beginLoad(1);
+      setDebouncedSearch(searchQuery);
+    }, 350);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
     fetchJamaah(activeStatus, 1, debouncedSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStatus, debouncedSearch]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
     fetchPackages();
+    fetch('/api/public/tenant-info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.name) setTravelName(json.name);
+      })
+      .catch(() => {});
     const token = localStorage.getItem('agent_token');
     if (!token) return;
     fetch('/api/agent/me', { headers: { Authorization: `Bearer ${token}` } })
@@ -307,60 +331,10 @@ export default function AgenJamaahListPage() {
     if (!dateStr) return '-';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+      const sameYear = d.getFullYear() === new Date().getFullYear();
+      return d.toLocaleDateString('id-ID', sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
     } catch {
       return dateStr;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'baru':
-        return {
-          label: 'Baru',
-          bg: 'color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background))',
-          color: 'var(--tw-status-new-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-new) 30%, transparent)',
-        };
-      case 'dihubungi':
-        return {
-          label: 'Dihubungi',
-          bg: 'color-mix(in srgb, var(--tw-status-contacted) 12%, var(--tw-background))',
-          color: 'var(--tw-status-contacted-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-contacted) 30%, transparent)',
-        };
-      case 'tertarik':
-        return {
-          label: 'Tertarik',
-          bg: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-          color: 'var(--tw-brand-primary)',
-          border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 28%, transparent)',
-        };
-      case 'closing':
-        return {
-          label: 'Closing',
-          bg: 'var(--tw-badge-success-bg)',
-          color: 'var(--tw-income)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
-        };
-      case 'tidak_lanjut':
-        return {
-          label: 'Tidak Lanjut',
-          bg: 'var(--tw-badge-neutral-bg)',
-          color: 'var(--tw-text-muted)',
-          border: '1px solid var(--tw-border)',
-        };
-      default:
-        return {
-          label: status,
-          bg: 'var(--tw-badge-neutral-bg)',
-          color: 'var(--tw-text-muted)',
-          border: '1px solid var(--tw-border)',
-        };
     }
   };
 
@@ -369,37 +343,12 @@ export default function AgenJamaahListPage() {
 
   return (
     <MobileContainer>
-      {/* Sticky Header */}
-      <header
-        className={styles.listheader1}
-      >
-        <button
-          type="button"
-          onClick={() => router.push('/agen/dashboard')}
-          aria-label="Kembali ke Dashboard"
-          className={styles.listbutton2}
-        >
-          <ArrowLeft size={20} />
-        </button>
-
-        <div className={styles.listdiv3}>
-          <h1
-            className={styles.listh14}
-          >
-            Prospek Jamaah
-          </h1>
-          <span className={styles.listspan5}>
-            Kelola prospek &amp; jamaah referral Anda
-          </span>
-        </div>
-
+      {/* Tab page (bottom navbar): no back button */}
+      <header className="jm-header">
+        <h1 className="jm-header__title">Jamaah</h1>
         {!travelSuspended && (
-          <button
-            type="button"
-            onClick={handleOpenModal}
-            className={styles.listbutton6}
-          >
-            <Plus size={15} />
+          <button type="button" onClick={handleOpenModal} className="jm-add">
+            <Plus size={16} aria-hidden="true" />
             <span>Tambah</span>
           </button>
         )}
@@ -407,57 +356,42 @@ export default function AgenJamaahListPage() {
 
       {travelSuspended && <AgentTravelSuspendedNotice />}
 
-      {/* Main Canvas */}
-      <div
-        className={styles.listdiv7}
-      >
-        {/* Search Bar */}
-        <div
-          className={styles.listdiv8}
-        >
-          <div
-            className={styles.listdiv9}
-          >
-            <Search size={15} />
-          </div>
+      <div className="jm-page">
+        <div className="jm-search">
+          <Search size={18} className="jm-search__icon" aria-hidden="true" />
           <input
-            type="text"
-            placeholder="Cari nama, nomor WA, atau paket..."
+            type="search"
+            placeholder="Cari nama, nomor WA, atau paket"
+            aria-label="Cari jamaah"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.listinput10}
+            className="tw-field jm-search__input"
           />
           {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className={styles.listbutton11}
-              title="Hapus pencarian"
-            >
-              <X size={14} />
+            <button type="button" onClick={() => setSearchQuery('')} className="jm-search__clear" aria-label="Hapus pencarian">
+              <X size={18} />
             </button>
           )}
         </div>
 
-        {/* Filter Status Tabs (Horizontal Scroll) */}
-        <div
-          className={styles.listdiv12}
-        >
+        {/* Status filter: scrolls sideways; the right edge fades to show there is more. */}
+        <div className="jm-chips" role="tablist" aria-label="Filter status">
           {STATUS_OPTIONS.map((tab) => {
             const isActive = activeStatus === tab.key;
             return (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setActiveStatus(tab.key)}
-                className={`${styles.listbutton13} ${isActive ? styles.listbutton14 : styles.listbutton15}`}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => {
+                  if (tab.key !== activeStatus) beginLoad(1);
+                  setActiveStatus(tab.key);
+                }}
+                className={`jm-chip${isActive ? ' jm-chip--active' : ''}`}
               >
-                <span>{tab.label}</span>
-                <span
-                  className={`${styles.listspan16} ${isActive ? styles.listspan17 : styles.listspan18}`}
-                >
-                  {(tab.key === '' ? statusCounts.total : statusCounts[tab.key]) || 0}
-                </span>
+                {tab.label}
+                <span className="jm-chip__count">{(tab.key === '' ? statusCounts.total : statusCounts[tab.key]) || 0}</span>
               </button>
             );
           })}
@@ -494,7 +428,10 @@ export default function AgenJamaahListPage() {
             </p>
             <button
               type="button"
-              onClick={() => fetchJamaah()}
+              onClick={() => {
+                beginLoad(1);
+                fetchJamaah();
+              }}
               className={styles.listbutton25}
             >
               <RefreshCw size={13} />
@@ -537,104 +474,58 @@ export default function AgenJamaahListPage() {
             )}
           </div>
         ) : (
-          <div className={styles.listdiv32}>
-            {filteredJamaah.map((item) => {
-              const badge = getStatusBadge(item.status);
-              const isManual = item.entry_method === 'agent_manual';
-
-              return (
-                <Link
-                  key={item.id}
-                  href={`/agen/jamaah/${item.id}`}
-                  className={styles.listlink33}
-                >
-                  {/* Row 1: Nama & Badge Status */}
-                  <div
-                    className={styles.listdiv34}
-                  >
-                    <div className={styles.listdiv35}>
-                      <span
-                        className={styles.listspan36}
+          <>
+            <ul className="jm-list">
+              {filteredJamaah.map((item) => {
+                const isManual = item.entry_method === 'agent_manual';
+                const statusText =
+                  (STATUS_LABEL[item.status] || item.status) +
+                  (item.status === 'closing' ? (item.paid_off_at ? ' · Lunas' : ' · Belum lunas') : '');
+                const meta = [`${item.jumlah_jamaah || 1} jamaah`, item.package_name, isManual ? 'Manual' : '']
+                  .filter(Boolean)
+                  .join(' · ');
+                return (
+                  <li key={item.id} className="jm-row">
+                    <Link href={`/agen/jamaah/${item.id}`} className="jm-row__main">
+                      <span className="jm-row__top">
+                        <span className="jm-row__name">{item.name}</span>
+                        <span className="jm-row__date">{formatDate(item.created_at)}</span>
+                      </span>
+                      <span className="jm-row__meta">
+                        <span className={`jm-status jm-status--${item.status}`}>{statusText}</span>
+                        <span className="jm-row__info">{meta}</span>
+                      </span>
+                    </Link>
+                    {item.phone && (
+                      <a
+                        href={whatsAppUrl(item.phone, item.name, travelName)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="jm-wa"
+                        onClick={() => logHabit('contact')}
+                        aria-label={`Chat WhatsApp ${item.name}`}
                       >
-                        {item.name}
-                      </span>
-                      <span
-                        className={styles.listspan37}
-                      >
-                        {item.phone}
-                      </span>
-                    </div>
-
-                    <span
-                      className={styles.listspan38} style={{
-  backgroundColor: badge.bg,
-  color: badge.color,
-  border: badge.border
-}}
-                    >
-                      {badge.label}
-                      {item.status === 'closing' && (item.paid_off_at ? ' · Lunas' : ' · Menunggu lunas')}
-                    </span>
-                  </div>
-
-                  {/* Row 2: Paket & Jumlah Jamaah */}
-                  <div
-                    className={styles.listdiv39}
-                  >
-                    <div
-                      className={styles.listdiv40}
-                    >
-                      <PackageIcon size={14} color="var(--tw-text-muted)" className={styles.noShrink} />
-                      <span className={styles.listspan41}>
-                        {item.package_name || 'Paket Pilihan'}
-                      </span>
-                    </div>
-
-                    <div
-                      className={styles.listdiv42}
-                    >
-                      <Users size={13} color="var(--tw-text-muted)" />
-                      <span>{item.jumlah_jamaah || 1} Jamaah</span>
-                    </div>
-                  </div>
-
-                  {/* Row 3: Tanggal Masuk & Entry Method */}
-                  <div
-                    className={styles.listdiv43}
-                  >
-                    <div className={styles.listdiv44}>
-                      <div className={styles.listdiv45}>
-                        <Calendar size={12} />
-                        <span>{formatDate(item.created_at)}</span>
-                      </div>
-                      {isManual && (
-                        <span
-                          className={styles.listspan46}
-                        >
-                          Manual
-                        </span>
-                      )}
-                    </div>
-
-                    <div className={styles.listdiv47}>
-                      <span>Detail</span>
-                      <ChevronRight size={14} />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+                        <MessageCircle size={20} aria-hidden="true" />
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
             {jamaahList.length < total && (
               <button
                 type="button"
-                className={styles.listbutton63}
-                onClick={() => fetchJamaah(activeStatus, page + 1)}
+                className="jm-more"
+                onClick={() => {
+                  beginLoad(page + 1);
+                  fetchJamaah(activeStatus, page + 1);
+                }}
                 disabled={loadingMore}
               >
                 {loadingMore ? 'Memuat...' : `Muat lebih banyak (${jamaahList.length} dari ${total})`}
               </button>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -780,20 +671,16 @@ export default function AgenJamaahListPage() {
               )}
 
               {/* Domisili */}
-              <div className={styles.listdiv57}>
-                <label className={styles.listlabel58} htmlFor="manual-domicile">
-                  Domisili (Kota)
-                </label>
-                <input
-                  id="manual-domicile"
-                  type="text"
-                  maxLength={100}
-                  placeholder="Contoh: Bandung"
-                  value={formData.domicile}
-                  onChange={(e) => setFormData({ ...formData, domicile: e.target.value })}
-                  className={styles.listinput60}
-                />
-              </div>
+              <CityField
+                id="manual-domicile"
+                label="Domisili (Kota)"
+                placeholder="Contoh: Bandung"
+                value={formData.domicile}
+                onChange={(v) => setFormData({ ...formData, domicile: v })}
+                className={styles.listdiv57}
+                labelClassName={styles.listlabel58}
+                inputClassName={styles.listinput60}
+              />
 
               {/* Persetujuan (UU PDP) */}
               <label className={styles.manualConsent} htmlFor="manual-consent">

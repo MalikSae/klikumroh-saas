@@ -1,7 +1,6 @@
 ﻿'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { AlertTriangle, MessageCircle, Phone, Mail, LogIn } from 'lucide-react';
 import { MobileContainer } from './MobileContainer';
 import type { PublicTenantInfo } from '../app/page';
@@ -12,7 +11,7 @@ export interface SuspendedViewProps {
 }
 
 export const SuspendedView: React.FC<SuspendedViewProps> = ({ tenantInfo }) => {
-  const brandPrimary = tenantInfo?.brand_primary_color || '#006E67';
+  const brandPrimary = tenantInfo?.brand_primary_color;
   const travelName = tenantInfo?.name || 'Travel Umroh';
 
   const formatWaUrl = (phone: string, travel: string) => {
@@ -25,13 +24,14 @@ export const SuspendedView: React.FC<SuspendedViewProps> = ({ tenantInfo }) => {
   return (
     <div
       className="tw-suspended-wrapper"
-      style={{ '--tw-brand-primary': brandPrimary } as React.CSSProperties}
+      style={brandPrimary ? ({ '--tw-brand-primary': brandPrimary } as React.CSSProperties) : undefined}
     >
       <MobileContainer>
         <div className="tw-suspended-container">
           {/* Tenant Brand Identity */}
           <div className="tw-suspended-brand">
             {tenantInfo?.brand_logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- travel logo uploaded by the tenant, served as-is
               <img
                 src={tenantInfo.brand_logo_url}
                 alt={travelName}

@@ -1,7 +1,7 @@
 .footer {
-  background-color: #09090B;
+  background-color: var(--km-ink);
   padding: 66px 96px 36px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--km-paper) 10%, transparent);
 }
 
 .container {
@@ -30,7 +30,7 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
 }
 
 .linksGrid {
@@ -49,7 +49,7 @@
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 14px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--km-paper);
   letter-spacing: -0.01em;
 }
 
@@ -65,13 +65,13 @@
 .colLinks a {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 14px;
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .colLinks a:hover {
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .footerBottom {
@@ -79,7 +79,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--km-paper) 8%, transparent);
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -87,13 +87,13 @@
 .copyright {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 13px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 .legal {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 13px;
-  color: #71717A;
+  color: var(--km-muted);
 }
 
 @media (max-width: 1024px) {

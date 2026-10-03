@@ -23,7 +23,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -58,9 +58,9 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: #52525B;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  color: var(--km-neutral-600);
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -68,37 +68,37 @@
 }
 
 .pillBtn:hover {
-  background-color: #E4E4E7;
-  color: #09090B;
+  background-color: var(--km-line);
+  color: var(--km-ink);
   transform: translateY(-1px);
 }
 
 .pillActive {
-  background-color: #09090B;
-  color: #FFFFFF;
-  border-color: #09090B;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
+  border-color: var(--km-ink);
 }
 
 .pillActive:hover {
-  background-color: #27272A;
-  color: #FFFFFF;
+  background-color: var(--km-neutral-800);
+  color: var(--km-paper);
 }
 
 .pillActiveClosing {
-  background-color: #09090B;
-  color: #FFFFFF;
-  border-color: #09090B;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: var(--km-ink);
+  color: var(--km-paper);
+  border-color: var(--km-ink);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--km-shadow-color) 15%, transparent);
 }
 
 .pillArrow {
-  color: #A1A1AA;
+  color: var(--km-neutral-400);
   font-weight: 700;
 }
 
 .toastBanner {
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   font-family: var(--tw-font-body), sans-serif;
   font-size: 12px;
   line-height: 1.5;
@@ -109,9 +109,9 @@
 }
 
 .filterBtnActive {
-  background-color: #09090B !important;
-  color: #FFFFFF !important;
-  border-color: #09090B !important;
+  background-color: var(--km-ink) !important;
+  color: var(--km-paper) !important;
+  border-color: var(--km-ink) !important;
 }
 
 .tableRowAnimated {
@@ -128,7 +128,7 @@
   border: 1px solid var(--km-line);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--km-shadow-color) 6%, transparent);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -166,8 +166,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
@@ -179,7 +179,7 @@
 }
 
 .addBtn:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
 }
 
 .filtersRow {
@@ -205,7 +205,7 @@
 }
 
 .filterBtn:hover {
-  border-color: #09090B;
+  border-color: var(--km-ink);
 }
 
 .tableResponsive {
@@ -254,26 +254,26 @@
 }
 
 .status_baru {
-  background-color: #F4F4F5;
-  color: #52525B;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  color: var(--km-neutral-600);
+  border: 1px solid var(--km-line);
 }
 
 .status_dihubungi {
-  background-color: #F4F4F5;
-  color: #52525B;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  color: var(--km-neutral-600);
+  border: 1px solid var(--km-line);
 }
 
 .status_tertarik {
-  background-color: #F4F4F5;
-  color: #18181B;
-  border: 1px solid #D4D4D8;
+  background-color: var(--km-surface-subtle);
+  color: var(--km-neutral-900);
+  border: 1px solid var(--km-neutral-300);
 }
 
 .status_closing {
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
 }
 
 @media (max-width: 1024px) {

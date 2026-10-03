@@ -1,0 +1,804 @@
+/* Agent portal home (app/agen/dashboard/page.tsx) in the BRImo / Livin' pattern picked by the founder:
+   white header, a band in the travel's color with the greeting, a white balance card overlapping the band,
+   a white 4x2 menu grid, then white cards on a light canvas. Content text 14px+, weights 400-700. */
+
+/* Header: 'Portal Agen' + travel name, bell on the right (white, founder's decision) */
+.ag-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 8px 0 16px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.ag-header__brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ag-header__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--tw-neutral-900);
+}
+
+.ag-header__travel {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ag-header__bell {
+  position: relative;
+}
+
+.ag-header__dot {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--tw-background);
+  background-color: var(--tw-brand-primary);
+}
+
+.ag-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-600);
+  cursor: pointer;
+}
+
+.ag-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-900);
+}
+
+/* Page: light canvas */
+.ag-home {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  background-color: var(--tw-page-bg);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+/* Colored band with the greeting */
+.ag-band {
+  padding: 16px 16px 64px;
+  background-color: var(--tw-brand-primary);
+  background-image: linear-gradient(160deg, var(--tw-brand-primary) 0%, color-mix(in srgb, var(--tw-brand-primary) 78%, var(--tw-neutral-900)) 100%);
+  color: var(--tw-on-brand);
+}
+
+.ag-greet {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ag-greet__photo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid var(--tw-on-brand-subtle);
+  background-color: var(--tw-on-brand-subtle);
+  color: var(--tw-on-brand);
+}
+
+.ag-greet__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ag-greet__initial {
+  font-family: var(--tw-font-heading);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ag-greet__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ag-greet__hi {
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.ag-greet__name {
+  overflow: hidden;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ag-greet__chev {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* White cards */
+.ag-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.ag-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ag-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.ag-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.ag-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ag-textlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-brand-primary);
+  text-decoration: none;
+}
+
+/* Balance card overlapping the band */
+.ag-balance {
+  gap: 4px;
+  margin-top: -64px;
+  box-shadow: var(--tw-card-hover-shadow);
+}
+
+.ag-balance__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -10px -10px -6px 0;
+}
+
+.ag-balance__label h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-500);
+}
+
+.ag-balance__amount {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--tw-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-balance__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--tw-neutral-200);
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.ag-balance__foot b {
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+/* Menu grid 4 x 2 */
+.ag-menu {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 4px;
+  padding: 16px 8px;
+}
+
+.ag-menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--tw-neutral-900);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ag-menu__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background));
+  color: var(--tw-brand-primary);
+}
+
+/* Hover follows each icon's own color (brand or tool tone), so it works for any travel color. */
+.ag-menu__item:hover:not(:disabled) .ag-menu__icon {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 35%, transparent);
+}
+
+/* One line per label: every tile lines up (labels are kept short). */
+.ag-menu__label {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.ag-menu__item:disabled {
+  cursor: not-allowed;
+  color: var(--tw-neutral-400);
+}
+
+.ag-menu__item:disabled .ag-menu__icon {
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-400);
+}
+
+/* Referral link box with an inline copy button */
+.ag-linkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 10px;
+  background-color: var(--tw-page-bg);
+}
+
+.ag-linkbox__url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ag-linkbox__copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--tw-brand-primary);
+  font: 600 14px var(--tw-font-body);
+  color: var(--tw-on-brand);
+  cursor: pointer;
+}
+
+/* Pipeline */
+.ag-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.ag-stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.ag-stat dt {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ag-stat dd {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Same status colors as the travel dashboard (Baru / Dihubungi / Closing). */
+.ag-stat--new {
+  background-color: color-mix(in srgb, var(--tw-status-new) 10%, var(--tw-background));
+  color: var(--tw-status-new-text);
+}
+
+.ag-stat--progress {
+  background-color: color-mix(in srgb, var(--tw-status-contacted) 12%, var(--tw-background));
+  color: var(--tw-status-contacted-text);
+}
+
+.ag-stat--closing {
+  background-color: color-mix(in srgb, var(--tw-status-closing) 12%, var(--tw-background));
+  color: var(--tw-status-closing-text);
+}
+
+/* Targets */
+.ag-targets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ag-target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.ag-target + .ag-target {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.ag-target__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ag-target__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.ag-target__count {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: var(--tw-neutral-100);
+}
+
+.ag-progress span {
+  display: block;
+  height: 100%;
+  min-width: 8px;
+  border-radius: 4px;
+  background-color: var(--tw-brand-primary);
+}
+
+.ag-target__reward {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background));
+  font-size: 14px;
+  color: var(--tw-neutral-900);
+}
+
+.ag-target__reward svg {
+  flex-shrink: 0;
+  color: var(--tw-status-contacted-text);
+}
+
+/* Loading / error */
+.ag-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 72px 24px;
+  text-align: center;
+  color: var(--tw-neutral-500);
+}
+
+.ag-center__icon {
+  color: var(--tw-danger-strong);
+}
+
+.ag-center .ag-note {
+  margin: 0;
+  font-size: 14px;
+}
+
+.ag-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--tw-neutral-300);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  font: 600 15px var(--tw-font-body);
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.ag-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--tw-neutral-200);
+  border-top-color: var(--tw-neutral-900);
+  border-radius: 50%;
+  animation: ag-spin 0.8s linear infinite;
+}
+
+@keyframes ag-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Packages to share: swipeable cards */
+.ag-share {
+  padding-right: 0;
+}
+
+.ag-share__list {
+  list-style: none;
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0 16px 4px 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.ag-share__list::-webkit-scrollbar {
+  display: none;
+}
+
+.ag-share__item {
+  flex: 0 0 168px;
+  /* Fixed width: a long nowrap name must not stretch one card wider than the others. */
+  width: 168px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scroll-snap-align: start;
+}
+
+.ag-share__media {
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: var(--tw-neutral-100);
+}
+
+.ag-share__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ag-share__name {
+  margin-top: 4px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ag-share__btn {
+  width: 100%;
+  background-color: var(--tw-background);
+  font-family: var(--tw-font-body);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  margin-top: 4px;
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 30%, var(--tw-background));
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+  text-decoration: none;
+}
+
+.ag-share__btn:hover {
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-background));
+}
+
+/* Menu tones: money actions keep the travel color; promotion tools get their own hue so the grid reads as two groups. */
+.ag-menu__icon--green { background-color: color-mix(in srgb, var(--tw-status-closing) 14%, var(--tw-background)); color: var(--tw-status-closing-text); }
+.ag-menu__icon--blue { background-color: color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background)); color: var(--tw-status-new-text); }
+.ag-menu__icon--indigo { background-color: color-mix(in srgb, var(--tw-accent-indigo) 12%, var(--tw-background)); color: var(--tw-accent-indigo-text); }
+.ag-menu__icon--amber { background-color: color-mix(in srgb, var(--tw-rating-star) 16%, var(--tw-background)); color: var(--tw-status-contacted-text); }
+
+/* Home: header in the travel's color, one continuous band with the greeting (BRImo pattern). */
+.ag-header--brand {
+  background-color: var(--tw-brand-primary);
+  border-bottom-color: transparent;
+}
+
+.ag-header--brand .ag-header__title {
+  color: var(--tw-on-brand);
+}
+
+.ag-header--brand .ag-header__travel {
+  color: var(--tw-on-brand);
+  opacity: 0.8;
+}
+
+.ag-header--brand .ag-header__bell {
+  color: var(--tw-on-brand);
+}
+
+.ag-header--brand .ag-header__bell:hover {
+  background-color: var(--tw-on-brand-subtle);
+  color: var(--tw-on-brand);
+}
+
+.ag-header--brand .ag-header__dot {
+  border-color: var(--tw-brand-primary);
+  background-color: var(--tw-on-brand);
+}
+
+.ag-header--brand + .ag-home .ag-band,
+.ag-header--brand ~ .ag-home .ag-band {
+  padding-top: 8px;
+  background-image: linear-gradient(180deg, var(--tw-brand-primary) 0%, color-mix(in srgb, var(--tw-brand-primary) 78%, var(--tw-neutral-900)) 100%);
+}
+
+/* "Syiarkan!" bottom sheet */
+.ag-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: var(--tw-modal-overlay);
+}
+
+.ag-sheet__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 428px;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background-color: var(--tw-background);
+  animation: ag-sheet-in 0.2s ease-out;
+}
+
+@keyframes ag-sheet-in {
+  from {
+    transform: translateY(24px);
+  }
+}
+
+.ag-sheet__grip {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  margin-bottom: 10px;
+  border-radius: 2px;
+  background-color: var(--tw-neutral-200);
+}
+
+.ag-sheet__options {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.ag-sheet__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 0;
+  border: none;
+  border-top: 1px solid var(--tw-neutral-100);
+  background: none;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ag-sheet__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background));
+  color: var(--tw-brand-primary);
+}
+
+.ag-sheet__icon--wa {
+  background-color: color-mix(in srgb, var(--tw-status-closing) 14%, var(--tw-background));
+  color: var(--tw-status-closing-text);
+}
+
+.ag-sheet__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.ag-sheet__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.ag-sheet__cancel {
+  min-height: 48px;
+  margin-top: 8px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 10px;
+  background-color: var(--tw-background);
+  font: 600 15px var(--tw-font-body);
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+/* Today: Gregorian + Hijri, small, under the name */
+.ag-greet__date {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.85;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Habit tracker card: title and what is left today, five dots (one per habit), the streak. */
+.ag-habit {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ag-habit__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ag-habit__title {
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.ag-habit__dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ag-habit__dot {
+  flex: 1;
+  max-width: 40px;
+  height: 6px;
+  border-radius: 3px;
+  background-color: var(--tw-neutral-200);
+}
+
+.ag-habit__dot--on {
+  background-color: var(--tw-brand-primary);
+}
+
+.ag-habit__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 40px;
+  justify-content: flex-end;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tw-warning-strong);
+}
+
+/* Package photo + name + details open the package page; keeps the item's column layout. */
+.ag-share__link {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ag-share__link:hover .ag-share__name {
+  color: var(--tw-brand-primary);
+}

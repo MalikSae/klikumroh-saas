@@ -27,7 +27,7 @@
   width: 360px;
   height: 360px;
   border-radius: 9999px;
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: color-mix(in srgb, var(--km-shadow-color) 3%, transparent);
   filter: blur(40px);
   z-index: 0;
 }
@@ -41,7 +41,7 @@
   border: 1px solid var(--km-line);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--km-shadow-color) 8%, transparent);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -74,14 +74,14 @@
   width: 36px;
   height: 36px;
   border-radius: 9999px;
-  background-color: #09090B;
+  background-color: var(--km-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--tw-font-heading), sans-serif;
   font-size: 13px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .targetCard {
@@ -123,13 +123,13 @@
 
 .targetProgress {
   height: 100%;
-  background-color: #09090B;
+  background-color: var(--km-ink);
   border-radius: 9999px;
 }
 
 .balanceCard {
-  background: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  background: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   border-radius: 8px;
   padding: 14px;
   display: flex;
@@ -142,7 +142,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
 }
 
@@ -210,8 +210,8 @@
 }
 
 .actionBtn:hover {
-  background-color: #F4F4F5;
-  border-color: #09090B;
+  background-color: var(--km-surface-subtle);
+  border-color: var(--km-ink);
 }
 
 .recentSection {
@@ -249,9 +249,9 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #09090B;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  color: var(--km-ink);
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -260,9 +260,9 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #71717A;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  color: var(--km-muted);
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -278,7 +278,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
   margin-bottom: 12px;
 }
@@ -318,7 +318,7 @@
   width: 22px;
   height: 22px;
   border-radius: 9999px;
-  background-color: #09090B;
+  background-color: var(--km-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,7 +326,7 @@
 }
 
 .checkIcon {
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .checkText {

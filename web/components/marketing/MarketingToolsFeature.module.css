@@ -30,7 +30,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #71717A;
+  color: var(--km-muted);
   text-transform: uppercase;
 }
 
@@ -64,7 +64,7 @@
   border: 1px solid var(--km-line);
   border-radius: 12px;
   padding: 28px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--km-shadow-color) 6%, transparent);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -90,9 +90,9 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #09090B;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  color: var(--km-ink);
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   padding: 4px 10px;
   border-radius: 4px;
   width: fit-content;
@@ -111,7 +111,7 @@
   width: 44px;
   height: 44px;
   border-radius: 8px;
-  background-color: #09090B;
+  background-color: var(--km-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,7 +119,7 @@
 }
 
 .scriptHeaderIcon {
-  color: #FFFFFF;
+  color: var(--km-paper);
 }
 
 .scenarioTabs {
@@ -134,9 +134,9 @@
   font-family: var(--tw-font-body), sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: #71717A;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  color: var(--km-muted);
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -144,20 +144,20 @@
 }
 
 .scenarioTab:hover {
-  background-color: #E4E4E7;
-  color: #09090B;
+  background-color: var(--km-line);
+  color: var(--km-ink);
   transform: translateY(-1px);
 }
 
 .scenarioTabActive {
-  background-color: #09090B;
-  color: #FFFFFF;
-  border-color: #09090B;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
+  border-color: var(--km-ink);
 }
 
 .scenarioTabActive:hover {
-  background-color: #27272A;
-  color: #FFFFFF;
+  background-color: var(--km-neutral-800);
+  color: var(--km-paper);
 }
 
 .chatFlow {
@@ -178,8 +178,8 @@
 }
 
 .answerBubble {
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   border-radius: 8px;
   padding: 14px 16px;
   display: flex;
@@ -201,7 +201,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: #09090B;
+  color: var(--km-ink);
   text-transform: uppercase;
 }
 
@@ -217,8 +217,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #09090B;
-  color: #FFFFFF;
+  background-color: var(--km-ink);
+  color: var(--km-paper);
   border: none;
   border-radius: 8px;
   padding: 12px 20px;
@@ -230,7 +230,7 @@
 }
 
 .copyBtn:hover {
-  background-color: #27272A;
+  background-color: var(--km-neutral-800);
 }
 
 /* Tools Grid */
@@ -253,8 +253,8 @@
 
 .toolCard:hover {
   transform: translateY(-2px);
-  border-color: #09090B;
-  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
+  border-color: var(--km-ink);
+  box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--km-shadow-color) 6%, transparent);
 }
 
 .toolCardTop {
@@ -267,26 +267,26 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background-color: #F4F4F5;
-  border: 1px solid #E4E4E7;
+  background-color: var(--km-surface-subtle);
+  border: 1px solid var(--km-line);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .toolIcon {
-  color: #09090B;
+  color: var(--km-ink);
 }
 
 .toolBadge {
   font-family: var(--tw-font-body), sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #71717A;
-  background-color: #F4F4F5;
+  color: var(--km-muted);
+  background-color: var(--km-surface-subtle);
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid #E4E4E7;
+  border: 1px solid var(--km-line);
 }
 
 .toolTitle {

@@ -3,18 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Check,
-  CheckCircle2,
-  Circle,
-  MessageSquare,
-} from 'lucide-react';
+import { ArrowLeft, ChevronRight, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { MobileContainer } from '../../../../components/MobileContainer';
-import { AgentBottomNavbar } from '../../../../components/AgentBottomNavbar';
+import './SumberJamaahDetail.css';
+import { fetchSumberDone, setSumberDone } from '../../../../lib/agentHabits';
 import sumberDataRaw from '../../../../data/sumber-jamaah.json';
 
 interface SumberJamaahItem {
@@ -26,7 +18,6 @@ interface SumberJamaahItem {
   contoh: string;
 }
 
-const STORAGE_KEY = 'klikumroh_agent_sumber_completed';
 
 export default function SumberJamaahDetailPage() {
   const router = useRouter();
@@ -61,30 +52,17 @@ export default function SumberJamaahDetailPage() {
     };
     checkAuth();
 
-    // Load completed state for this item
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setIsCompleted(parsed.includes(id));
-      }
-    } catch {
-      // Ignore
-    }
+    // Tried state comes from the server (an old browser-only list is moved up once).
+    fetchSumberDone().then((ids) => {
+      if (ids) setIsCompleted(ids.includes(id));
+    });
   }, [id, router]);
 
-  const toggleCompleted = () => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const parsed: number[] = saved ? JSON.parse(saved) : [];
-      const updated = parsed.includes(id)
-        ? parsed.filter((itemVal) => itemVal !== id)
-        : [...parsed, id];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setIsCompleted(updated.includes(id));
-    } catch {
-      // Ignore
-    }
+  // Optimistic: flip at once, put it back if the server refuses. Marking also counts today's "sumber" habit.
+  const toggleCompleted = async () => {
+    const next = !isCompleted;
+    setIsCompleted(next);
+    if (!(await setSumberDone(id, next))) setIsCompleted(!next);
   };
 
   const handleCopy = (text: string) => {
@@ -96,447 +74,97 @@ export default function SumberJamaahDetailPage() {
   };
 
   const totalItems = (sumberDataRaw as SumberJamaahItem[]).length;
-  const prevId = id > 1 ? id - 1 : null;
-  const nextId = id < totalItems ? id + 1 : null;
+  const nextItem = id < totalItems ? (sumberDataRaw as SumberJamaahItem[]).find((s) => s.id === id + 1) : undefined;
 
-  // Not found state
+  // Back goes one step up the history: the list ("Sumber berikutnya" replaces the entry, so the list stays one
+  // step back). Pushing the list here made list <-> detail loop and Beranda unreachable. Opened directly from a
+  // link (no history): go to the list.
+  const goBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push('/agen/sumber-jamaah');
+  };
+  const header = (title: string) => (
+    <header className="sjd-header">
+      <button type="button" onClick={goBack} aria-label="Kembali ke daftar sumber" className="sjd-icon-btn">
+        <ArrowLeft size={20} />
+      </button>
+      <h1 className="sjd-header__title">{title}</h1>
+    </header>
+  );
+
   if (!item) {
     return (
       <MobileContainer>
-        <header
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 30,
-            backgroundColor: 'var(--tw-background)',
-            borderBottom: '1px solid var(--tw-hairline)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Kembali"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '6px',
-              cursor: 'pointer',
-              color: 'var(--tw-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              borderRadius: '8px',
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <span
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              fontFamily: 'var(--tw-font-heading)',
-            }}
-          >
-            Sumber Jamaah
-          </span>
-        </header>
-        <div
-          style={{
-            backgroundColor: 'var(--tw-page-bg)',
-            minHeight: 'calc(100vh - 62px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            textAlign: 'center',
-            padding: '24px 16px',
-          }}
-        >
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--tw-text-primary)', margin: 0 }}>
-            Sumber Tidak Ditemukan
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--tw-text-muted)', margin: 0 }}>
-            Data sumber yang Anda cari tidak tersedia.
-          </p>
-          <Link
-            href="/agen/sumber-jamaah"
-            style={{
-              marginTop: '4px',
-              padding: '9px 20px',
-              borderRadius: '6px',
-              backgroundColor: 'var(--tw-brand-primary)',
-              color: 'var(--tw-on-brand)',
-              fontSize: '13px',
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
-            Kembali ke Daftar
+        {header('Sumber jamaah')}
+        <div className="sjd-page sjd-page--center">
+          <h2 className="sjd-title">Sumber tidak ditemukan</h2>
+          <p className="sjd-muted">Data sumber yang Anda cari tidak tersedia.</p>
+          <Link href="/agen/sumber-jamaah" className="sjd-btn">
+            Kembali ke daftar
           </Link>
         </div>
-        <AgentBottomNavbar />
       </MobileContainer>
     );
   }
 
   return (
     <MobileContainer>
-      {/* Sticky Header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          aria-label="Kembali"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
-          <ArrowLeft size={20} />
-        </button>
+      {header(item.sumber)}
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span
-            style={{
-              fontSize: '11px',
-              color: 'var(--tw-text-muted)',
-              fontWeight: 600,
-              display: 'block',
-              lineHeight: 1.2,
-            }}
-          >
-            99 Sumber Jamaah #{String(item.id).padStart(2, '0')} · {item.kategori}
-          </span>
-          <h1
-            style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {item.sumber}
-          </h1>
-        </div>
+      <div className="sjd-page">
+        <p className="sjd-muted">
+          #{item.id} · {item.kategori}
+        </p>
 
-        {/* Toggle Selesai — compact, in header */}
-        <button
-          type="button"
-          onClick={toggleCompleted}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '6px 10px',
-            borderRadius: '6px',
-            border: isCompleted
-              ? '1px solid var(--tw-brand-primary)'
-              : '1px solid var(--tw-divider)',
-            backgroundColor: isCompleted
-              ? 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))'
-              : 'var(--tw-background)',
-            color: isCompleted ? 'var(--tw-brand-primary)' : 'var(--tw-text-muted)',
-            fontSize: '11px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          {isCompleted ? (
-            <>
-              <CheckCircle2 size={14} color="var(--tw-brand-primary)" />
-              <span>Dicoba</span>
-            </>
-          ) : (
-            <>
-              <Circle size={14} />
-              <span>Tandai</span>
-            </>
-          )}
-        </button>
-      </header>
+        <section className="sjd-section">
+          <h2 className="sjd-label">Kenapa layak dicoba</h2>
+          <p className="sjd-text">{item.kenapa_dicoba}</p>
+        </section>
 
-      {/* Main Content */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* Detail Card */}
-        <div
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: isCompleted
-              ? '1px solid color-mix(in srgb, var(--tw-brand-primary) 30%, transparent)'
-              : '1px solid var(--tw-hairline)',
-            padding: '18px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-          }}
-        >
-          {/* Card Top */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: 'var(--tw-brand-primary)',
-                  backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 10%, var(--tw-background))',
-                  padding: '2px 7px',
-                  borderRadius: '4px',
-                }}
-              >
-                #{String(item.id).padStart(2, '0')}
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--tw-text-muted)', fontWeight: 600 }}>
-                {item.kategori}
-              </span>
-            </div>
-            <h2
-              style={{
-                fontSize: '20px',
-                fontWeight: 800,
-                color: 'var(--tw-text-primary)',
-                margin: 0,
-                fontFamily: 'var(--tw-font-heading)',
-                lineHeight: 1.25,
-              }}
-            >
-              {item.sumber}
-            </h2>
+        <section className="sjd-section">
+          <h2 className="sjd-label">Langkah pendekatan</h2>
+          <p className="sjd-text">{item.cara_mulai}</p>
+        </section>
+
+        {/* The opener is the only framed block: it is meant to be copied or sent. */}
+        <section className="sjd-section">
+          {/* Copy sits next to the heading as a small text action, not a separate button row. */}
+          <div className="sjd-label-row">
+            <h2 className="sjd-label">Contoh pembuka obrolan</h2>
+            <button type="button" onClick={() => handleCopy(item.contoh)} className={`sjd-copy${isCopied ? ' sjd-copy--done' : ''}`}>
+              {isCopied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+              <span>{isCopied ? 'Tersalin' : 'Salin'}</span>
+            </button>
           </div>
+          <div className="sjd-script">{item.contoh}</div>
+        </section>
 
-          {/* Kenapa Layak Dicoba */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--tw-text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              Kenapa Layak Dicoba?
+        {/* Next source as a titled row ("read next"), instead of bare previous/next links. */}
+        {nextItem && (
+          <Link href={`/agen/sumber-jamaah/${nextItem.id}`} replace className="sjd-next">
+            <span className="sjd-next__text">
+              <span className="sjd-muted">Sumber berikutnya</span>
+              <span className="sjd-next__title">{nextItem.sumber}</span>
             </span>
-            <p
-              style={{
-                fontSize: '14px',
-                color: 'var(--tw-text-secondary)',
-                margin: 0,
-                lineHeight: 1.65,
-              }}
-            >
-              {item.kenapa_dicoba}
-            </p>
-          </div>
-
-          {/* Langkah Pendekatan */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--tw-text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              Langkah Pendekatan
-            </span>
-            <p
-              style={{
-                fontSize: '14px',
-                color: 'var(--tw-text-primary)',
-                margin: 0,
-                lineHeight: 1.65,
-                backgroundColor: 'var(--tw-page-bg)',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid var(--tw-hairline)',
-              }}
-            >
-              {item.cara_mulai}
-            </p>
-          </div>
-
-          {/* Contoh Obrolan */}
-          <div
-            style={{
-              backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 5%, var(--tw-background))',
-              borderRadius: '10px',
-              border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 18%, transparent)',
-              padding: '14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MessageSquare size={14} color="var(--tw-brand-primary)" />
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tw-brand-primary)' }}>
-                  Contoh Pembuka Obrolan
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleCopy(item.contoh)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--tw-brand-primary)',
-                  backgroundColor: 'var(--tw-background)',
-                  color: 'var(--tw-brand-primary)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-                title="Salin kalimat pembuka obrolan"
-              >
-                {isCopied ? (
-                  <>
-                    <Check size={13} color="var(--tw-brand-primary)" />
-                    <span>Tersalin</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={13} />
-                    <span>Salin</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <p
-              style={{
-                fontSize: '14px',
-                color: 'var(--tw-text-primary)',
-                margin: 0,
-                lineHeight: 1.65,
-                fontStyle: 'italic',
-                fontWeight: 500,
-              }}
-            >
-              &ldquo;{item.contoh}&rdquo;
-            </p>
-          </div>
-        </div>
-
-        {/* Prev / Next Pager */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '10px',
-          }}
-        >
-          {prevId ? (
-            <Link
-              href={`/agen/sumber-jamaah/${prevId}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '10px 14px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-background)',
-                border: '1px solid var(--tw-border)',
-                color: 'var(--tw-text-primary)',
-                fontSize: '12px',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              <ChevronLeft size={16} />
-              <span>Sebelumnya</span>
-            </Link>
-          ) : (
-            <div />
-          )}
-
-          <Link
-            href="/agen/sumber-jamaah"
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--tw-text-muted)',
-              textDecoration: 'none',
-            }}
-          >
-            Daftar Sumber
+            <ChevronRight size={20} aria-hidden="true" />
           </Link>
-
-          {nextId ? (
-            <Link
-              href={`/agen/sumber-jamaah/${nextId}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '10px 14px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-background)',
-                border: '1px solid var(--tw-border)',
-                color: 'var(--tw-text-primary)',
-                fontSize: '12px',
-                fontWeight: 600,
-                textDecoration: 'none',
-              }}
-            >
-              <span>Berikutnya</span>
-              <ChevronRight size={16} />
-            </Link>
-          ) : (
-            <div />
-          )}
-        </div>
+        )}
       </div>
 
-      <AgentBottomNavbar />
+      {/* Main action, stuck to the bottom: mark this source as tried (fills the progress on the list). */}
+      <div className="sjd-bar">
+        <button type="button" onClick={toggleCompleted} aria-pressed={isCompleted} className={`sjd-mark${isCompleted ? ' sjd-mark--done' : ''}`}>
+          {isCompleted ? (
+            <>
+              <CheckCircle2 size={18} aria-hidden="true" />
+              <span>Sudah dicoba</span>
+              <span className="sjd-mark__undo">Batalkan</span>
+            </>
+          ) : (
+            <span>Tandai sudah dicoba</span>
+          )}
+        </button>
+      </div>
     </MobileContainer>
   );
 }

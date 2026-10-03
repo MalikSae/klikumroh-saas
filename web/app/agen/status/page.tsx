@@ -1,28 +1,27 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+// Agent partnership status. One question per visit: "where am I, and what do I do next?". A step bar shows
+// the stage (sign up, pay when the travel charges a fee, verification, active); below it only the current
+// stage's content: the transfer details and proof upload, the waiting notice, the rejection reason, or the
+// referral link once active.
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Upload,
-  Copy,
   Check,
-  LogOut,
+  Copy,
+  ImageUp,
   RefreshCw,
   Share2,
-  CreditCard,
-  MapPin,
-  Eye,
   MessageCircle,
+  XCircle,
   PauseCircle,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
-import { BottomNavbar } from '../../../components/BottomNavbar';
+import { PublicFooter } from '../../../components/PublicFooter';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import designTokens from '../../../../design-tokens.json';
@@ -54,6 +53,87 @@ interface AgentMeData {
   agent_bank_account_holder?: string;
 }
 
+// Travel contact data for the footer (public tenant info).
+interface FooterInfo {
+  name?: string;
+  address?: string | null;
+  phone?: string | null;
+  whatsapp_number?: string | null;
+  email?: string | null;
+  ppiu_number?: string | null;
+}
+
+const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+
+const formatRupiah = (val?: number) => 'Rp ' + (val ?? 0).toLocaleString('id-ID');
+
+/* ---------- Step bar ---------- */
+type StepState = 'done' | 'current' | 'todo';
+
+const StepBar: React.FC<{ steps: { label: string; state: StepState }[] }> = ({ steps }) => (
+  <ol className="tw-st-steps" aria-label="Tahap kemitraan">
+    {steps.map((s, i) => (
+      <li key={s.label} className={`tw-st-step tw-st-step--${s.state}`} aria-current={s.state === 'current' ? 'step' : undefined}>
+        <span className="tw-st-step__dot" aria-hidden="true">
+          {s.state === 'done' ? <Check size={12} strokeWidth={3} /> : i + 1}
+        </span>
+        <span className="tw-st-step__label">{s.label}</span>
+      </li>
+    ))}
+  </ol>
+);
+
+/* ---------- Proof upload (custom picker with preview) ---------- */
+const ProofUpload: React.FC<{
+  submitLabel: string;
+  uploading: boolean;
+  previewUrl: string | null;
+  error: string | null;
+  onPick: (file: File | null) => void;
+  onSubmit: (e: React.FormEvent) => void;
+}> = ({ submitLabel, uploading, previewUrl, error, onPick, onSubmit }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <form onSubmit={onSubmit} className="tw-st-upload">
+      <input
+        ref={inputRef}
+        id="proof-file"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="tw-st-upload__input"
+        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        disabled={uploading}
+      />
+      {previewUrl ? (
+        <div className="tw-st-upload__preview">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local preview (blob URL) of the chosen file */}
+          <img src={previewUrl} alt="Pratinjau bukti transfer" />
+          <button type="button" className="tw-st-link" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            Ganti foto
+          </button>
+        </div>
+      ) : (
+        <label htmlFor="proof-file" className="tw-st-upload__drop">
+          <ImageUp size={24} aria-hidden="true" />
+          <span className="tw-st-upload__title">Pilih foto bukti transfer</span>
+          <span className="tw-st-upload__hint">JPG, PNG, atau WebP, maks. 5 MB</span>
+        </label>
+      )}
+
+      {error && (
+        <p className="tw-st-alert tw-st-alert--error" role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      )}
+
+      <Button type="submit" variant="primary" size="lg" disabled={uploading || !previewUrl} className="tw-st-submit">
+        {uploading ? 'Mengirim...' : submitLabel}
+      </Button>
+    </form>
+  );
+};
+
 export default function AgenStatusPage() {
   const router = useRouter();
 
@@ -61,6 +141,7 @@ export default function AgenStatusPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [footer, setFooter] = useState<FooterInfo | null>(null);
 
   // Upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -80,7 +161,6 @@ export default function AgenStatusPage() {
   const proofRef = data?.agent.payment_proof_url || null;
   const [proofSrc, setProofSrc] = useState<string | null>(null);
   useEffect(() => {
-    setProofSrc(null);
     const token = localStorage.getItem('agent_token');
     if (!proofRef || !token) return;
     const controller = new AbortController();
@@ -101,7 +181,17 @@ export default function AgenStatusPage() {
     };
   }, [proofRef]);
 
-  const fetchAgentMe = async (isManualRefresh = false) => {
+  // Footer: the travel's public contact data.
+  useEffect(() => {
+    fetch('/api/public/tenant-info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json) setFooter(json);
+      })
+      .catch(() => {});
+  }, []);
+
+  const loadAgentMe = async () => {
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
@@ -109,14 +199,8 @@ export default function AgenStatusPage() {
     }
 
     try {
-      if (isManualRefresh) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-
       const res = await fetch('/api/agent/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.status === 401) {
@@ -124,7 +208,6 @@ export default function AgenStatusPage() {
         router.push('/agen/login');
         return;
       }
-
       if (!res.ok) {
         throw new Error('Gagal memuat status akun agen');
       }
@@ -135,7 +218,7 @@ export default function AgenStatusPage() {
       const rawTenant = rawData.tenant || {};
       const paymentInfo = rawAgent.payment_info || rawData.payment_info || {};
 
-      const normalized: AgentMeData = {
+      setData({
         agent: {
           id: rawAgent.id,
           tenant_id: rawAgent.tenant_id,
@@ -159,18 +242,26 @@ export default function AgenStatusPage() {
         agent_bank_name: rawData.agent_bank_name || paymentInfo.bank_name,
         agent_bank_account_number: rawData.agent_bank_account_number || paymentInfo.bank_account_number,
         agent_bank_account_holder: rawData.agent_bank_account_holder || paymentInfo.bank_account_holder,
-      };
-      setData(normalized);
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat memuat status');
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat status');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  // Manual refresh ("Cek status terbaru", retry, after an upload).
+  const refresh = () => {
+    setRefreshing(true);
+    setError(null);
+    return loadAgentMe();
+  };
+
   useEffect(() => {
-    fetchAgentMe();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
+    loadAgentMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBack = () => {
@@ -193,27 +284,24 @@ export default function AgenStatusPage() {
     router.push('/agen/login');
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pickFile = (file: File | null) => {
     setUploadError(null);
     setUploadSuccess(null);
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadError('Ukuran file maksimal adalah 5MB');
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    if (!file) return;
+    if (file.size > MAX_PROOF_BYTES) {
+      setUploadError('Ukuran foto maksimal 5 MB.');
+      return;
     }
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
   };
 
   const handleUploadPaymentProof = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) {
-      setUploadError('Silakan pilih file bukti transfer terlebih dahulu');
+      setUploadError('Pilih foto bukti transfer terlebih dahulu.');
       return;
     }
-
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
@@ -227,28 +315,23 @@ export default function AgenStatusPage() {
 
       const formData = new FormData();
       formData.append('file', selectedFile);
-
       const res = await fetch('/api/agent/payment-proof', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-
       const json = await res.json();
-
       if (!res.ok) {
-        setUploadError(json.error || 'Gagal mengunggah bukti transfer');
+        setUploadError(json.error || 'Gagal mengunggah bukti transfer.');
         return;
       }
 
-      setUploadSuccess('Bukti transfer berhasil diunggah dan sedang menunggu verifikasi!');
+      setUploadSuccess('Bukti transfer terkirim. Admin travel akan memverifikasinya.');
       setSelectedFile(null);
       setPreviewUrl(null);
-      await fetchAgentMe(true);
-    } catch (err: any) {
-      setUploadError(err.message || 'Koneksi bermasalah saat mengunggah');
+      await refresh();
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Koneksi bermasalah saat mengunggah.');
     } finally {
       setUploading(false);
     }
@@ -279,17 +362,10 @@ export default function AgenStatusPage() {
     }
   };
 
-  const formatRupiah = (val?: number) => {
-    if (val === undefined || val === null) return 'Rp 0';
-    return 'Rp ' + val.toLocaleString('id-ID');
-  };
-
   const layoutStyle = Object.fromEntries(
     Object.entries(designTokens.publicConversionLayout).map(([key, value]) => ['--cro-' + key, value])
   );
-  const brandingStyle = data?.tenant?.brand_primary_color
-    ? { '--tw-brand-primary': data.tenant.brand_primary_color }
-    : {};
+  const brandingStyle = data?.tenant?.brand_primary_color ? { '--tw-brand-primary': data.tenant.brand_primary_color } : {};
 
   // No travel WhatsApp number -> hide the contact button instead of pointing to a placeholder number.
   const helpWaUrl = whatsappLink(
@@ -297,621 +373,277 @@ export default function AgenStatusPage() {
     `Halo Admin, saya mitra agen ${data?.tenant?.name || 'travel'} ingin menanyakan status kemitraan`
   );
 
+  const footerEl = (
+    <PublicFooter
+      tenantName={footer?.name || data?.tenant?.name}
+      address={footer?.address}
+      phone={footer?.phone}
+      whatsappNumber={footer?.whatsapp_number || data?.tenant?.whatsapp_number}
+      email={footer?.email}
+      ppiuNumber={footer?.ppiu_number}
+    />
+  );
+
+  const shell = (children: React.ReactNode) => (
+    <div className="tw-agen-status-wrap tw-st" style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}>
+      <MobileContainer>
+        <PublicHeader title="Status Kemitraan" showBack={true} onBackClick={handleBack} backHref="/" hideNotification={true} />
+        {children}
+        {footerEl}
+      </MobileContainer>
+    </div>
+  );
+
   if (loading) {
-    return (
-      <div
-        className="tw-agen-status-wrap"
-        style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}
-      >
-        <MobileContainer>
-          <PublicHeader
-            title="Status Kemitraan"
-            showBack={true}
-            onBackClick={handleBack}
-            backHref="/"
-            hideNotification={true}
-          />
-          <div style={{ padding: '60px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                border: '3px solid var(--tw-neutral-200)',
-                borderTopColor: 'var(--tw-brand-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <span style={{ fontSize: '13px', color: 'var(--tw-neutral-500)' }}>
-              Memuat status kemitraan agen Anda...
-            </span>
-            <style jsx>{`
-              @keyframes spin {
-                to {
-                  transform: rotate(360deg);
-                }
-              }
-            `}</style>
-          </div>
-          <BottomNavbar waNumber={data?.tenant?.whatsapp_number || undefined} />
-        </MobileContainer>
+    return shell(
+      <div className="tw-st-center" role="status">
+        <span className="tw-st-spinner" aria-hidden="true" />
+        <span>Memuat status kemitraan...</span>
       </div>
     );
   }
 
   if (error || !data) {
-    return (
-      <div
-        className="tw-agen-status-wrap"
-        style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}
-      >
-        <MobileContainer>
-          <PublicHeader
-            title="Status Kemitraan"
-            showBack={true}
-            onBackClick={handleBack}
-            backHref="/"
-            hideNotification={true}
-          />
-          <div style={{ padding: '40px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-            <div style={{ color: 'var(--tw-danger-strong)', background: 'var(--tw-danger-bg)', padding: '14px', borderRadius: '50%' }}>
-              <AlertCircle size={32} />
-            </div>
-            <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--tw-neutral-900)' }}>Gagal Memuat Status</h2>
-            <p style={{ fontSize: '13px', color: 'var(--tw-neutral-500)', margin: 0 }}>{error}</p>
-            <Button variant="primary" size="md" onClick={() => fetchAgentMe()}>
-              <RefreshCw size={15} />
-              <span>Coba Lagi</span>
-            </Button>
-          </div>
-          <BottomNavbar waNumber={data?.tenant?.whatsapp_number || undefined} />
-        </MobileContainer>
+    return shell(
+      <div className="tw-st-center">
+        <AlertCircle size={28} className="tw-st-center__icon" aria-hidden="true" />
+        <h1 className="tw-st-title">Status belum bisa dimuat</h1>
+        <p className="tw-st-desc">{error}</p>
+        <Button variant="secondary" size="md" fullWidth={false} onClick={() => refresh()}>
+          <RefreshCw size={16} aria-hidden="true" />
+          <span>Coba lagi</span>
+        </Button>
       </div>
     );
   }
 
   const { agent, tenant } = data;
+  const paid = agent.payment_status !== 'not_applicable';
+  const awaitingProof = agent.status === 'pending' && agent.payment_status === 'awaiting_proof';
+  const verifying = agent.status === 'pending' && !awaitingProof;
 
-  return (
-    <div
-      className="tw-agen-status-wrap"
-      style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}
-    >
-      <MobileContainer>
-        {/* App Bar Header (Back button + Title, Logo strictly Home only) */}
-        <PublicHeader
-          title="Status Kemitraan"
-          showBack={true}
-          onBackClick={handleBack}
-          backHref="/"
-          hideNotification={true}
-        />
+  // Step bar for the normal path; a rejected or paused account shows its notice instead.
+  const showSteps = agent.status === 'pending' || agent.status === 'active';
+  const stepLabels = ['Daftar', ...(paid ? ['Bayar'] : []), 'Verifikasi', 'Aktif'];
+  const currentIdx = agent.status === 'active' ? stepLabels.length : awaitingProof ? 1 : stepLabels.length - 2;
+  const steps = stepLabels.map((label, i) => ({
+    label,
+    state: (i < currentIdx ? 'done' : i === currentIdx ? 'current' : 'todo') as StepState,
+  }));
 
-        <div className="tw-agen-status-body">
-          {/* 1. Header Banner */}
-          <div className="tw-agen-status-header">
-            <span className="tw-agen-status-tag">
-              {tenant?.name || 'Portal Mitra Agen'}
-            </span>
-            <h1 className="tw-agen-status-title">
-              Status Kemitraan Agen
-            </h1>
-            <p className="tw-agen-status-subtitle">
-              Pantau perkembangan verifikasi akun dan akses tautan syiar Anda.
-            </p>
-          </div>
+  const contactButtons = (
+    <div className="tw-st-actions">
+      {helpWaUrl && (
+        <a href={helpWaUrl} target="_blank" rel="noopener noreferrer" className="tw-button tw-button--secondary tw-button--md">
+          <MessageCircle size={16} aria-hidden="true" />
+          <span>Hubungi admin travel</span>
+        </a>
+      )}
+      <Link href="/" className="tw-st-link tw-st-link--center">
+        Kembali ke beranda
+      </Link>
+    </div>
+  );
 
-          {/* 2. User Profile Bar */}
-          <div className="tw-agen-status-profile-card">
-            <div className="tw-agen-status-profile-info">
-              <div className="tw-agen-status-avatar">
-                {agent.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="tw-agen-status-profile-text">
-                <span className="tw-agen-status-profile-name">{agent.name}</span>
-                <span className="tw-agen-status-profile-loc">
-                  <MapPin size={11} />
-                  <span>{agent.domisili || 'Indonesia'}</span>
-                </span>
-              </div>
+  return shell(
+    <div className="tw-st-body">
+      {showSteps && <StepBar steps={steps} />}
+
+      {uploadSuccess && (
+        <p className="tw-st-alert tw-st-alert--success" role="status">
+          <CheckCircle2 size={16} aria-hidden="true" />
+          <span>{uploadSuccess}</span>
+        </p>
+      )}
+
+      {/* 1. Paid sign-up, proof not sent yet */}
+      {awaitingProof && (
+        <>
+          <section className="tw-st-section">
+            <h1 className="tw-st-title">Selesaikan pembayaran</h1>
+            <p className="tw-st-desc">Transfer biaya kemitraan ke rekening travel, lalu kirim foto bukti transfernya.</p>
+
+            <div className="tw-st-transfer">
+              <span className="tw-st-transfer__label">Jumlah transfer</span>
+              <span className="tw-st-transfer__amount">{formatRupiah(data.agent_registration_fee)}</span>
+              <dl className="tw-st-bank">
+                <div className="tw-st-bank__row">
+                  <dt>Bank</dt>
+                  <dd>{data.agent_bank_name || '-'}</dd>
+                </div>
+                <div className="tw-st-bank__row">
+                  <dt>No. rekening</dt>
+                  <dd className="tw-st-bank__account">
+                    <span>{data.agent_bank_account_number || '-'}</span>
+                    {data.agent_bank_account_number && (
+                      <button
+                        type="button"
+                        onClick={handleCopyBank}
+                        className="tw-st-copy"
+                        aria-label={copiedBank ? 'Nomor rekening tersalin' : 'Salin nomor rekening'}
+                      >
+                        {copiedBank ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                        <span>{copiedBank ? 'Tersalin' : 'Salin'}</span>
+                      </button>
+                    )}
+                  </dd>
+                </div>
+                <div className="tw-st-bank__row">
+                  <dt>Atas nama</dt>
+                  <dd>{data.agent_bank_account_holder || '-'}</dd>
+                </div>
+              </dl>
             </div>
+          </section>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="tw-agen-status-btn-logout"
-              title="Keluar dari akun"
-            >
-              <LogOut size={13} />
-              <span>Keluar</span>
-            </button>
-          </div>
+          <section className="tw-st-section">
+            <h2 className="tw-st-subtitle">Kirim bukti transfer</h2>
+            <ProofUpload
+              submitLabel="Kirim bukti transfer"
+              uploading={uploading}
+              previewUrl={previewUrl}
+              error={uploadError}
+              onPick={pickFile}
+              onSubmit={handleUploadPaymentProof}
+            />
+          </section>
+        </>
+      )}
 
-          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              KONDISI 1: BERBAYAR & BELUM UPLOAD BUKTI (awaiting_proof)
-              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {agent.payment_status === 'awaiting_proof' && agent.status === 'pending' && (
-            <>
-              {/* Kartu Tagihan Transfer */}
-              <div className="tw-agen-status-card">
-                <div className="tw-agen-status-card-header">
-                  <CreditCard size={18} color="var(--tw-brand-primary)" />
-                  <h2 className="tw-agen-status-card-title">
-                    Instruksi Pembayaran Registrasi
-                  </h2>
-                </div>
+      {/* 2. Waiting for the travel: proof sent, or free sign-up under review */}
+      {verifying && (
+        <section className="tw-st-section">
+          <h1 className="tw-st-title">{paid ? 'Pembayaran sedang diverifikasi' : 'Pendaftaran sedang ditinjau'}</h1>
+          <p className="tw-st-desc">
+            {paid
+              ? 'Bukti transfer Anda sudah diterima. Admin travel memverifikasinya, biasanya dalam 1x24 jam kerja.'
+              : 'Data pendaftaran Anda sedang ditinjau travel. Anda akan dihubungi bila ada data yang perlu dilengkapi.'}
+          </p>
 
-                <div className="tw-agen-status-amount-box">
-                  <span className="tw-agen-status-amount-label">
-                    Jumlah yang Harus Ditransfer
-                  </span>
-                  <div className="tw-agen-status-amount-val">
-                    {formatRupiah(data.agent_registration_fee)}
-                  </div>
-                </div>
-
-                {/* Rincian Rekening Bank */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--tw-neutral-500)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Tujuan Rekening Bank Travel
-                  </span>
-
-                  <div className="tw-agen-status-bank-box">
-                    <div className="tw-agen-status-bank-row">
-                      <span className="tw-agen-status-bank-label">Bank</span>
-                      <span className="tw-agen-status-bank-value">{data.agent_bank_name || '-'}</span>
-                    </div>
-
-                    <div className="tw-agen-status-bank-row">
-                      <span className="tw-agen-status-bank-label">No. Rekening</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.5px', color: 'var(--tw-neutral-900)' }}>
-                          {data.agent_bank_account_number || '-'}
-                        </span>
-                        {data.agent_bank_account_number && (
-                          <button
-                            type="button"
-                            onClick={handleCopyBank}
-                            className={`tw-agen-status-copy-btn ${copiedBank ? 'tw-agen-status-copy-btn--copied' : ''}`}
-                            title="Salin nomor rekening"
-                          >
-                            {copiedBank ? <Check size={14} /> : <Copy size={14} />}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="tw-agen-status-bank-row">
-                      <span className="tw-agen-status-bank-label">Atas Nama</span>
-                      <span className="tw-agen-status-bank-value">{data.agent_bank_account_holder || '-'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form Upload Bukti Transfer */}
-              <form onSubmit={handleUploadPaymentProof} className="tw-agen-status-card">
-                <div className="tw-agen-status-card-header">
-                  <Upload size={18} color="var(--tw-brand-primary)" />
-                  <h3 className="tw-agen-status-card-title">
-                    Unggah Bukti Transfer
-                  </h3>
-                </div>
-
-                <p style={{ fontSize: '12.5px', color: 'var(--tw-neutral-500)', margin: 0, lineHeight: 1.5 }}>
-                  Setelah transfer berhasil, mohon unggah foto atau tangkapan layar struk transfer (maksimal 5MB, format JPG/PNG/WebP).
-                </p>
-
-                {uploadError && (
-                  <div className="tw-agen-status-alert tw-agen-status-alert--error">
-                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                    <span>{uploadError}</span>
-                  </div>
-                )}
-
-                {uploadSuccess && (
-                  <div className="tw-agen-status-alert tw-agen-status-alert--success">
-                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                    <span>{uploadSuccess}</span>
-                  </div>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleFileChange}
-                  disabled={uploading}
-                  className="tw-agen-status-file-input"
-                />
-
-                {previewUrl && (
-                  <div className="tw-agen-status-preview-box">
-                    <img
-                      src={previewUrl}
-                      alt="Preview Bukti Transfer"
-                      className="tw-agen-status-preview-img"
-                    />
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={uploading || !selectedFile}
-                >
-                  <Upload size={15} />
-                  <span>{uploading ? 'Mengunggah Bukti...' : 'Kirim Bukti Transfer'}</span>
-                </Button>
-              </form>
-            </>
-          )}
-
-          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              KONDISI 2: BERBAYAR & SUDAH UPLOAD (pending_verification)
-              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {agent.payment_status === 'pending_verification' && agent.status === 'pending' && (
-            <div className="tw-agen-status-card tw-agen-status-card-center">
-              <div className="tw-agen-status-icon-badge tw-agen-status-icon-badge--pending">
-                <Clock size={30} />
-              </div>
-
-              <div>
-                <h2 className="tw-agen-status-state-title">
-                  Bukti Pembayaran Sedang Diverifikasi
-                </h2>
-                <p className="tw-agen-status-state-desc">
-                  Bukti transfer Anda telah berhasil diterima. Admin travel sedang memverifikasi pembayaran Anda (biasanya dalam 1x24 jam kerja).
-                </p>
-              </div>
-
-              {agent.payment_proof_url && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '11.5px', color: 'var(--tw-neutral-500)', fontWeight: 600 }}>
-                    Bukti yang Diunggah:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowProofModal(true)}
-                    className="tw-agen-status-proof-thumb"
-                    title="Lihat bukti ukuran penuh"
-                  >
-                    <img
-                      src={proofSrc || undefined}
-                      alt="Bukti Transfer"
-                      className="tw-agen-status-proof-thumb-img"
-                    />
-                    <div className="tw-agen-status-proof-thumb-overlay">
-                      <Eye size={18} />
-                    </div>
-                  </button>
-                </div>
+          {paid && agent.payment_proof_url && (
+            <button type="button" onClick={() => setShowProofModal(true)} className="tw-st-proof">
+              {proofSrc && (
+                // eslint-disable-next-line @next/next/no-img-element -- private file shown from a blob URL
+                <img src={proofSrc} alt="" />
               )}
-
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => fetchAgentMe(true)}
-                disabled={refreshing}
-              >
-                <RefreshCw size={15} />
-                <span>{refreshing ? 'Memperbarui...' : 'Cek Status Terbaru'}</span>
-              </Button>
-            </div>
+              <span>Lihat bukti yang dikirim</span>
+            </button>
           )}
 
-          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              KONDISI 3: GRATIS & MENUNGGU PENINJAUAN (not_applicable & pending)
-              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {agent.payment_status === 'not_applicable' && agent.status === 'pending' && (
-            <div className="tw-agen-status-card tw-agen-status-card-center">
-              <div className="tw-agen-status-icon-badge tw-agen-status-icon-badge--pending">
-                <Clock size={30} />
+          <Button variant="secondary" size="md" onClick={() => refresh()} disabled={refreshing}>
+            <RefreshCw size={16} aria-hidden="true" />
+            <span>{refreshing ? 'Memperbarui...' : 'Cek status terbaru'}</span>
+          </Button>
+        </section>
+      )}
+
+      {/* 3. Rejected: reason, contact, and a new proof upload */}
+      {agent.status === 'rejected' && (
+        <>
+          <section className="tw-st-section">
+            <h1 className="tw-st-title tw-st-title--icon">
+              <XCircle size={22} className="tw-st-icon--danger" aria-hidden="true" />
+              Pendaftaran belum disetujui
+            </h1>
+            <p className="tw-st-desc">Pengajuan kemitraan Anda ditolak oleh travel.</p>
+            {agent.rejection_reason && (
+              <div className="tw-st-reason">
+                <span className="tw-st-reason__label">Alasan dari admin</span>
+                <p>{agent.rejection_reason}</p>
               </div>
+            )}
+            {contactButtons}
+          </section>
 
-              <div>
-                <h2 className="tw-agen-status-state-title">
-                  Pendaftaran Sedang Ditinjau
-                </h2>
-                <p className="tw-agen-status-state-desc">
-                  Terima kasih telah mendaftar sebagai mitra agen. Data pendaftaran Anda sedang ditinjau oleh manajemen travel. Kami akan menghubungi Anda jika ada data tambahan yang diperlukan.
-                </p>
-              </div>
+          <section className="tw-st-section">
+            <h2 className="tw-st-subtitle">Kirim ulang bukti transfer</h2>
+            <p className="tw-st-desc">Jika penolakan karena bukti transfer, kirim foto bukti yang baru. Admin akan meninjaunya kembali.</p>
+            <ProofUpload
+              submitLabel="Kirim ulang bukti transfer"
+              uploading={uploading}
+              previewUrl={previewUrl}
+              error={uploadError}
+              onPick={pickFile}
+              onSubmit={handleUploadPaymentProof}
+            />
+          </section>
+        </>
+      )}
 
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => fetchAgentMe(true)}
-                disabled={refreshing}
-              >
-                <RefreshCw size={15} />
-                <span>{refreshing ? 'Memperbarui...' : 'Cek Status Terbaru'}</span>
-              </Button>
-            </div>
-          )}
+      {/* 4. Paused by the travel */}
+      {agent.status === 'inactive' && (
+        <section className="tw-st-section">
+          <h1 className="tw-st-title tw-st-title--icon">
+            <PauseCircle size={22} className="tw-st-icon--muted" aria-hidden="true" />
+            Akun agen dinonaktifkan
+          </h1>
+          <p className="tw-st-desc">
+            Travel menonaktifkan kemitraan Anda. Link referral, daftar jamaah, dan pencairan komisi tidak bisa dipakai sampai
+            akun diaktifkan kembali.
+          </p>
+          {contactButtons}
+        </section>
+      )}
 
-          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              KONDISI 4: DITOLAK (rejected)
-              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {agent.status === 'rejected' && (
-            <>
-              <div className="tw-agen-status-card tw-agen-status-card-center">
-                <div className="tw-agen-status-icon-badge tw-agen-status-icon-badge--rejected">
-                  <XCircle size={30} />
-                </div>
+      {/* 5. Active: referral link */}
+      {agent.status === 'active' && (
+        <section className="tw-st-section">
+          <h1 className="tw-st-title">Kemitraan aktif</h1>
+          <p className="tw-st-desc">Bagikan link Anda. Setiap calon jamaah dari link ini tercatat atas nama Anda.</p>
 
-                <div>
-                  <h2 className="tw-agen-status-state-title" style={{ color: 'var(--tw-danger-strong)' }}>
-                    Pendaftaran Belum Disetujui
-                  </h2>
-                  <p className="tw-agen-status-state-desc">
-                    Mohon maaf, pengajuan pendaftaran kemitraan agen Anda saat ini ditolak oleh pihak manajemen travel.
-                  </p>
-
-                  {agent.rejection_reason && (
-                    <div
-                      style={{
-                        backgroundColor: 'var(--tw-danger-bg)',
-                        border: '1px solid var(--tw-danger-soft)',
-                        borderRadius: '8px',
-                        padding: '12px 14px',
-                        marginTop: '12px',
-                        fontSize: '13px',
-                        color: 'var(--tw-danger-text)',
-                        textAlign: 'left',
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--tw-danger-deep)' }}>
-                        Alasan Penolakan dari Admin:
-                      </strong>
-                      <span>{agent.rejection_reason}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '280px', marginTop: '14px' }}>
-                  {helpWaUrl && (
-                    <a
-                      href={helpWaUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="tw-button tw-button--secondary tw-button--md"
-                      style={{ textDecoration: 'none', justifyContent: 'center' }}
-                    >
-                      <MessageCircle size={15} />
-                      <span>Hubungi Admin Travel</span>
-                    </a>
-                  )}
-
-                  <Link
-                    href="/"
-                    className="tw-button tw-button--secondary tw-button--md"
-                    style={{ textDecoration: 'none', justifyContent: 'center' }}
-                  >
-                    <span>Kembali ke Beranda</span>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Form Unggah Ulang Bukti Pembayaran (Agar tidak buntu) */}
-              <form onSubmit={handleUploadPaymentProof} className="tw-agen-status-card">
-                <div className="tw-agen-status-card-header">
-                  <Upload size={18} color="var(--tw-brand-primary)" />
-                  <h3 className="tw-agen-status-card-title">
-                    Unggah Ulang Bukti Pembayaran
-                  </h3>
-                </div>
-
-                <p style={{ fontSize: '12.5px', color: 'var(--tw-neutral-500)', margin: 0, lineHeight: 1.5 }}>
-                  Jika penolakan terkait kesalahan bukti transfer, silakan unggah kembali bukti transfer baru yang jelas dan valid. Status akun akan otomatis ditinjau kembali oleh admin.
-                </p>
-
-                {uploadError && (
-                  <div className="tw-agen-status-alert tw-agen-status-alert--error">
-                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                    <span>{uploadError}</span>
-                  </div>
-                )}
-
-                {uploadSuccess && (
-                  <div className="tw-agen-status-alert tw-agen-status-alert--success">
-                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                    <span>{uploadSuccess}</span>
-                  </div>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleFileChange}
-                  disabled={uploading}
-                  className="tw-agen-status-file-input"
-                />
-
-                {previewUrl && (
-                  <div className="tw-agen-status-preview-box">
-                    <img
-                      src={previewUrl}
-                      alt="Preview Bukti Transfer Baru"
-                      className="tw-agen-status-preview-img"
-                    />
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={uploading || !selectedFile}
-                >
-                  <Upload size={16} />
-                  <span>{uploading ? 'Mengunggah...' : 'Kirim Ulang Bukti Transfer'}</span>
-                </Button>
-              </form>
-            </>
-          )}
-
-          {/* KONDISI 4b: DINONAKTIFKAN (inactive) — the travel paused this partnership. */}
-          {agent.status === 'inactive' && (
-            <div className="tw-agen-status-card tw-agen-status-card-center">
-              <div className="tw-agen-status-icon-badge tw-agen-status-icon-badge--inactive">
-                <PauseCircle size={30} />
-              </div>
-
-              <div>
-                <h2 className="tw-agen-status-state-title">Akun Agen Dinonaktifkan</h2>
-                <p className="tw-agen-status-state-desc">
-                  Kemitraan agen Anda sedang dinonaktifkan oleh travel. Link referral, daftar jamaah, dan pencairan
-                  komisi tidak bisa dipakai sampai akun diaktifkan kembali. Hubungi admin travel untuk informasi lebih lanjut.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '280px', marginTop: '14px' }}>
-                {helpWaUrl && (
-                  <a
-                    href={helpWaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tw-button tw-button--secondary tw-button--md"
-                    style={{ textDecoration: 'none', justifyContent: 'center' }}
-                  >
-                    <MessageCircle size={15} />
-                    <span>Hubungi Admin Travel</span>
-                  </a>
-                )}
-                <Link
-                  href="/"
-                  className="tw-button tw-button--secondary tw-button--md"
-                  style={{ textDecoration: 'none', justifyContent: 'center' }}
-                >
-                  <span>Kembali ke Beranda</span>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              KONDISI 5: AKTIF (active)
-              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {agent.status === 'active' && (
-            <>
-              {/* Kartu Status Aktif */}
-              <div className="tw-agen-status-card tw-agen-status-card-center">
-                <div className="tw-agen-status-icon-badge tw-agen-status-icon-badge--success">
-                  <CheckCircle2 size={32} />
-                </div>
-
-                <div>
-                  <h2 className="tw-agen-status-state-title">
-                    Kemitraan Agen Aktif
-                  </h2>
-                  <p className="tw-agen-status-state-desc">
-                    Selamat! Akun kemitraan agen Anda sudah aktif dan siap digunakan untuk menyebarkan syiar umroh.
-                  </p>
-                </div>
-              </div>
-
-              {/* Kartu Tautan Referral */}
-              <div className="tw-agen-status-card">
-                <div className="tw-agen-status-card-header">
-                  <Share2 size={18} color="var(--tw-brand-primary)" />
-                  <h3 className="tw-agen-status-card-title">
-                    Tautan Syiar & Kode Referral
-                  </h3>
-                </div>
-
-                {/* Kode Referral */}
-                <div className="tw-agen-status-ref-code-box">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--tw-neutral-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>
-                      Kode Referral Anda
-                    </span>
-                    <span className="tw-agen-status-ref-code-val">
-                      {agent.referral_code}
-                    </span>
-                  </div>
-                </div>
-
-                {/* URL Referral */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tw-neutral-700)' }}>
-                    Link Landing Page Travel Anda:
-                  </span>
-                  <div className="tw-agen-status-ref-link-box">
-                    {getReferralUrl()}
-                  </div>
-                </div>
-
-                {/* Tombol Aksi Bagikan */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <Button variant="primary" size="md" onClick={handleCopyRefLink}>
-                    {copiedRef ? <Check size={15} /> : <Copy size={15} />}
-                    <span>{copiedRef ? 'Tautan Tersalin!' : 'Salin Tautan Referral'}</span>
-                  </Button>
-
-                  {typeof window !== 'undefined' && (
-                    <a
-                      href={`https://wa.me/?text=${encodeURIComponent(
-                        `Bismillah, mari wujudkan niat suci ibadah umroh bersama ${tenant?.name || 'kami'}. Info paket lengkap dan pendaftaran: ${getReferralUrl()}`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="tw-button tw-button--secondary tw-button--md"
-                      style={{ textDecoration: 'none', justifyContent: 'center' }}
-                    >
-                      <Share2 size={15} />
-                      <span>Bagikan ke WhatsApp</span>
-                    </a>
-                  )}
-
-                  <Link
-                    href="/agen/dashboard"
-                    className="tw-button tw-button--primary tw-button--md"
-                    style={{
-                      textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span>Buka Dasbor Agen</span>
-                  </Link>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Modal Preview Bukti Transfer Full */}
-        {showProofModal && agent.payment_proof_url && (
-          <div
-            className="tw-agen-status-modal-overlay"
-            onClick={() => setShowProofModal(false)}
-          >
-            <div
-              className="tw-agen-status-modal-content"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--tw-neutral-900)' }}>
-                Bukti Pembayaran
-              </h3>
-              <img
-                src={proofSrc || undefined}
-                alt="Bukti Transfer Penuh"
-                className="tw-agen-status-modal-img"
-              />
-              <Button variant="secondary" size="sm" onClick={() => setShowProofModal(false)}>
-                <span>Tutup Pratinjau</span>
-              </Button>
-            </div>
+          <div className="tw-st-transfer">
+            <span className="tw-st-transfer__label">Kode referral</span>
+            <span className="tw-st-transfer__amount">{agent.referral_code}</span>
+            <span className="tw-st-reflink">{getReferralUrl()}</span>
           </div>
-        )}
 
-        {/* Persistent Bottom Navbar */}
-        <BottomNavbar waNumber={tenant?.whatsapp_number || undefined} />
-      </MobileContainer>
+          <div className="tw-st-actions">
+            <Button variant="primary" size="lg" onClick={handleCopyRefLink}>
+              {copiedRef ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+              <span>{copiedRef ? 'Link tersalin' : 'Salin link referral'}</span>
+            </Button>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `Bismillah, mari wujudkan niat ibadah umroh bersama ${tenant?.name || 'kami'}. Info paket dan pendaftaran: ${getReferralUrl()}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tw-button tw-button--secondary tw-button--md"
+            >
+              <Share2 size={16} aria-hidden="true" />
+              <span>Bagikan ke WhatsApp</span>
+            </a>
+            <Link href="/agen/dashboard" className="tw-st-link tw-st-link--center">
+              Buka dasbor agen
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Signed-in account, quietly at the end: the page is about the stage, not the profile. */}
+      <p className="tw-st-signed">
+        Masuk sebagai <b>{agent.name}</b>
+        <span aria-hidden="true"> · </span>
+        <button type="button" onClick={handleLogout} className="tw-st-link">
+          Keluar
+        </button>
+      </p>
+
+      {/* Proof lightbox */}
+      {showProofModal && agent.payment_proof_url && (
+        <div className="tw-agen-status-modal-overlay" onClick={() => setShowProofModal(false)}>
+          <div className="tw-agen-status-modal-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Bukti pembayaran">
+            <h2 className="tw-st-subtitle">Bukti pembayaran</h2>
+            {proofSrc && (
+              // eslint-disable-next-line @next/next/no-img-element -- private file shown from a blob URL
+              <img src={proofSrc} alt="Bukti transfer" className="tw-agen-status-modal-img" />
+            )}
+            <Button variant="secondary" size="md" onClick={() => setShowProofModal(false)}>
+              Tutup
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

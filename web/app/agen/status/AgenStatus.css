@@ -1,4 +1,6 @@
-﻿/* Agen Status Page - Matches Home, Paket, Login, and Daftar Screen Aesthetic */
+/* Agent partnership status (app/agen/status/page.tsx). Mobile app style: step bar, then only the current
+   stage. No card stacks: sections split by a grey band, one tinted panel for the key figures.
+   The only accent color is the primary button and the current step. Text 14px+ for content. */
 
 .tw-agen-status-wrap {
   min-height: 100vh;
@@ -7,394 +9,434 @@
   background-color: var(--tw-background);
 }
 
-.tw-agen-status-body {
-  padding: 0 0 96px 0;
+.tw-st {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.tw-st-body {
   display: flex;
   flex-direction: column;
 }
 
-/* Header Banner */
-.tw-agen-status-header {
-  padding: 16px 16px 14px 16px;
-  background-color: var(--tw-background);
-}
-
-.tw-agen-status-tag {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--tw-brand-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 3px;
-  display: block;
-}
-
-.tw-agen-status-title {
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--tw-neutral-900);
-  line-height: 1.3;
-  margin: 0 0 4px 0;
-}
-
-.tw-agen-status-subtitle {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--tw-neutral-500);
+/* Step bar */
+.tw-st-steps {
+  list-style: none;
   margin: 0;
-}
-
-/* Profile Bar Card */
-.tw-agen-status-profile-card {
-  margin: 0 16px 14px 16px;
-  padding: 12px 14px;
-  background-color: var(--tw-background);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: var(--radius-md, 10px);
-  box-shadow: 0 1px 3px var(--tw-surface-tint);
+  padding: 20px 16px 16px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  border-bottom: 8px solid var(--tw-neutral-100);
 }
 
-.tw-agen-status-profile-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.tw-agen-status-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
-  color: var(--tw-brand-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-
-.tw-agen-status-profile-text {
+.tw-st-step {
+  position: relative;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-}
-
-.tw-agen-status-profile-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tw-agen-status-profile-loc {
-  font-size: 11.5px;
-  color: var(--tw-neutral-500);
-  display: flex;
   align-items: center;
-  gap: 3px;
-}
-
-.tw-agen-status-btn-logout {
-  background: none;
-  border: 1px solid var(--tw-neutral-200);
-  color: var(--tw-neutral-500);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm, 6px);
-  background-color: var(--tw-page-bg);
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.tw-agen-status-btn-logout:hover {
-  background-color: var(--tw-danger-bg);
-  color: var(--tw-danger-strong);
-  border-color: var(--tw-danger-line);
-}
-
-/* Card Container Common */
-.tw-agen-status-card {
-  margin: 0 16px 14px 16px;
-  padding: 18px 16px;
-  background-color: var(--tw-background);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: var(--radius-md, 10px);
-  box-shadow: 0 1px 3px var(--tw-surface-tint);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.tw-agen-status-card-center {
+  gap: 6px;
   text-align: center;
-  align-items: center;
-  gap: 14px;
 }
 
-.tw-agen-status-card-header {
+/* Connector to the previous step */
+.tw-st-step + .tw-st-step::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: calc(-50% + 16px);
+  right: calc(50% + 16px);
+  height: 2px;
+  background-color: var(--tw-neutral-200);
+}
+
+.tw-st-step--done + .tw-st-step::before {
+  background-color: var(--tw-neutral-900);
+}
+
+.tw-st-step__dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--tw-neutral-200);
+  background-color: var(--tw-background);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tw-neutral-400);
+}
+
+.tw-st-step--done .tw-st-step__dot {
+  border-color: var(--tw-neutral-900);
+  background-color: var(--tw-neutral-900);
+  color: var(--tw-on-brand);
+}
+
+.tw-st-step--current .tw-st-step__dot {
+  border-color: var(--tw-brand-primary);
+  color: var(--tw-brand-primary);
+}
+
+.tw-st-step__label {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.tw-st-step--done .tw-st-step__label {
+  color: var(--tw-neutral-700);
+}
+
+.tw-st-step--current .tw-st-step__label {
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+/* Sections */
+.tw-st-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 16px;
+}
+
+.tw-st-section + .tw-st-section {
+  border-top: 8px solid var(--tw-neutral-100);
+}
+
+.tw-st-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--tw-neutral-900);
+}
+
+.tw-st-title--icon {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.tw-agen-status-card-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-  margin: 0;
-}
-
-/* Status Big Icon */
-.tw-agen-status-icon-badge {
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tw-st-icon--danger {
   flex-shrink: 0;
-}
-
-.tw-agen-status-icon-badge--pending {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
-  color: var(--tw-brand-primary);
-}
-
-.tw-agen-status-icon-badge--success {
-  background-color: var(--tw-success-bg);
-  color: var(--tw-success-strong);
-}
-
-.tw-agen-status-icon-badge--rejected {
-  background-color: var(--tw-danger-bg);
   color: var(--tw-danger-strong);
 }
 
-/* Deactivated by the travel: neutral, not an error the agent caused. */
-.tw-agen-status-icon-badge--inactive {
-  background-color: var(--tw-neutral-100);
+.tw-st-icon--muted {
+  flex-shrink: 0;
+  color: var(--tw-neutral-500);
+}
+
+.tw-st-subtitle {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.tw-st-desc {
+  margin: -4px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--tw-neutral-600);
 }
 
-.tw-agen-status-state-title {
-  font-family: var(--tw-font-heading);
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--tw-neutral-900);
-  margin: 0 0 6px 0;
-}
-
-.tw-agen-status-state-desc {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--tw-neutral-500);
-  margin: 0;
-  max-width: 320px;
-}
-
-/* Fee & Transfer Box */
-.tw-agen-status-amount-box {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 8%, transparent);
-  border-radius: var(--radius-md, 8px);
-  padding: 14px;
-  text-align: center;
-  border: 1px dashed color-mix(in srgb, var(--tw-brand-primary) 30%, transparent);
-}
-
-.tw-agen-status-amount-label {
-  font-size: 11px;
-  color: var(--tw-neutral-500);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  display: block;
-}
-
-.tw-agen-status-amount-val {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--tw-brand-primary);
-  margin-top: 2px;
-}
-
-/* Bank Account Detail Box */
-.tw-agen-status-bank-box {
-  background-color: var(--tw-page-bg);
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--tw-neutral-200);
-  padding: 12px 14px;
+/* Key figures panel: transfer amount + bank, or referral code + link */
+.tw-st-transfer {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background-color: var(--tw-page-bg);
 }
 
-.tw-agen-status-bank-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.tw-st-transfer__label {
   font-size: 13px;
-}
-
-.tw-agen-status-bank-label {
   color: var(--tw-neutral-500);
-  font-size: 12px;
 }
 
-.tw-agen-status-bank-value {
+.tw-st-transfer__amount {
+  font-family: var(--tw-font-heading);
+  font-size: 24px;
   font-weight: 700;
-  color: var(--tw-neutral-900);
-}
-
-.tw-agen-status-copy-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--tw-neutral-500);
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 6px;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.tw-agen-status-copy-btn:hover {
-  background-color: var(--tw-neutral-200);
-  color: var(--tw-brand-primary);
-}
-
-.tw-agen-status-copy-btn--copied {
-  color: var(--tw-success-strong);
-}
-
-/* Upload Dropzone Box */
-.tw-agen-status-file-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px dashed var(--tw-neutral-300);
-  border-radius: var(--radius-md, 8px);
-  font-size: 12.5px;
-  background-color: var(--tw-page-bg);
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.tw-agen-status-file-input:focus {
-  outline: none;
-  border-color: var(--tw-brand-primary);
-}
-
-.tw-agen-status-preview-box {
-  text-align: center;
-  margin-top: 2px;
-}
-
-.tw-agen-status-preview-img {
-  max-height: 160px;
-  max-width: 100%;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--tw-neutral-200);
-  object-fit: contain;
-}
-
-/* Proof Thumbnail in Verification State */
-.tw-agen-status-proof-thumb {
-  position: relative;
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  border-radius: var(--radius-md, 8px);
-  overflow: hidden;
-  box-shadow: 0 1px 3px var(--tw-border);
-  display: block;
-}
-
-.tw-agen-status-proof-thumb-img {
-  width: 90px;
-  height: 90px;
-  object-fit: cover;
-  display: block;
-}
-
-.tw-agen-status-proof-thumb-overlay {
-  position: absolute;
-  inset: 0;
-  background-color: color-mix(in srgb, var(--tw-neutral-900) 40%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--tw-on-brand);
-  opacity: 0.85;
-  transition: opacity 0.2s ease;
-}
-
-.tw-agen-status-proof-thumb:hover .tw-agen-status-proof-thumb-overlay {
-  opacity: 1;
-}
-
-/* Referral & Share Card Elements */
-.tw-agen-status-ref-code-box {
-  background-color: var(--tw-page-bg);
-  padding: 12px 14px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--tw-neutral-200);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tw-agen-status-ref-code-val {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--tw-brand-primary);
-  letter-spacing: 1px;
-}
-
-.tw-agen-status-ref-link-box {
-  background-color: var(--tw-page-bg);
-  padding: 10px 12px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--tw-neutral-200);
-  font-size: 12px;
+  line-height: 1.3;
   color: var(--tw-neutral-900);
   word-break: break-all;
-  font-family: monospace;
 }
 
-/* Alert Messages */
-.tw-agen-status-alert {
-  padding: 10px 12px;
-  border-radius: var(--radius-md, 8px);
-  font-size: 12.5px;
-  line-height: 1.4;
+.tw-st-bank {
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tw-st-bank__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  border-top: 1px solid var(--tw-neutral-200);
+}
+
+.tw-st-bank__row dt {
+  font-size: 14px;
+  color: var(--tw-neutral-500);
+}
+
+.tw-st-bank__row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+  text-align: right;
+}
+
+.tw-st-bank__account {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-variant-numeric: tabular-nums;
 }
 
-.tw-agen-status-alert--error {
+.tw-st-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--tw-neutral-300);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  font: 500 13px var(--tw-font-body);
+  color: var(--tw-neutral-700);
+  cursor: pointer;
+}
+
+.tw-st-copy:hover {
+  border-color: var(--tw-neutral-400);
+}
+
+.tw-st-reflink {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--tw-neutral-600);
+  word-break: break-all;
+}
+
+/* Proof upload */
+.tw-st-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tw-st-upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tw-st-upload__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 132px;
+  padding: 16px;
+  border: 1.5px dashed var(--tw-neutral-300);
+  border-radius: 12px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-500);
+  text-align: center;
+  cursor: pointer;
+}
+
+.tw-st-upload__drop:hover {
+  border-color: var(--tw-neutral-400);
+}
+
+.tw-st-upload__input:focus-visible + .tw-st-upload__drop {
+  border-color: var(--tw-brand-primary);
+}
+
+.tw-st-upload__title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.tw-st-upload__hint {
+  font-size: 13px;
+}
+
+.tw-st-upload__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tw-st-upload__preview img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 12px;
+  background-color: var(--tw-page-bg);
+}
+
+/* Disabled primary: a plain grey button (not a faded brand color). */
+.tw-st .tw-button:disabled {
+  opacity: 1;
+  background-color: var(--tw-neutral-200);
+  border-color: transparent;
+  color: var(--tw-neutral-500);
+}
+
+.tw-st .tw-button--secondary {
+  border-color: var(--tw-neutral-300);
+  color: var(--tw-neutral-900);
+  text-decoration: none;
+}
+
+.tw-st .tw-button--secondary:hover:not(:disabled) {
+  background-color: var(--tw-page-bg);
+}
+
+.tw-st-submit {
+  min-height: 48px;
+  font-weight: 600;
+}
+
+/* Text link button */
+.tw-st-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: 500 14px var(--tw-font-body);
+  color: var(--tw-neutral-900);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.tw-st-link--center {
+  align-self: center;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tw-st-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Rejection reason */
+.tw-st-reason {
+  padding: 12px 14px;
+  border-radius: 12px;
   background-color: var(--tw-danger-bg);
-  border: 1px solid var(--tw-danger-line);
+  color: var(--tw-danger-text);
+}
+
+.tw-st-reason__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tw-st-reason p {
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+
+/* Proof already sent */
+.tw-st-proof {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 12px;
+  background-color: var(--tw-background);
+  font: 500 14px var(--tw-font-body);
+  color: var(--tw-neutral-900);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tw-st-proof img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Alerts */
+.tw-st-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tw-st-alert svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.tw-st-alert--error {
+  background-color: var(--tw-danger-bg);
   color: var(--tw-danger-strong);
 }
 
-.tw-agen-status-alert--success {
+.tw-st-alert--success {
+  margin: 12px 16px 0;
   background-color: var(--tw-success-bg);
-  border: 1px solid var(--tw-success-border);
   color: var(--tw-success-strong);
+}
+
+/* Loading / error */
+.tw-st-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--tw-neutral-500);
+}
+
+.tw-st-center__icon {
+  color: var(--tw-danger-strong);
+}
+
+.tw-st-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--tw-neutral-200);
+  border-top-color: var(--tw-neutral-900);
+  border-radius: 50%;
+  animation: tw-st-spin 0.8s linear infinite;
+}
+
+@keyframes tw-st-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Lightbox Modal */
@@ -402,7 +444,6 @@
   position: fixed;
   inset: 0;
   background-color: color-mix(in srgb, var(--tw-neutral-900) 65%, transparent);
-  backdrop-filter: blur(2px);
   z-index: 999;
   display: flex;
   align-items: center;
@@ -412,7 +453,7 @@
 
 .tw-agen-status-modal-content {
   background-color: var(--tw-background);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: 12px;
   max-width: 440px;
   width: 100%;
   padding: 16px;
@@ -426,5 +467,20 @@
   max-width: 100%;
   max-height: 70vh;
   object-fit: contain;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 8px;
+}
+
+/* Signed-in account line at the end of the content */
+.tw-st-signed {
+  margin: 0;
+  padding: 16px;
+  border-top: 8px solid var(--tw-neutral-100);
+  font-size: 14px;
+  color: var(--tw-neutral-500);
+  text-align: center;
+}
+
+.tw-st-signed b {
+  font-weight: 500;
+  color: var(--tw-neutral-900);
 }

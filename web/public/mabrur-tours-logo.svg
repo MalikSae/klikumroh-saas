@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="72" viewBox="0 0 380 72" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Mabrur Tours</title>
+  <g aria-hidden="true">
+    <path d="M5 16.5 36 5l31 11.5v49L36 77 5 65.5v-49Z" fill="#900609"/>
+    <path d="M5 16.5 36 28l31-11.5M36 28v49" stroke="#fff" stroke-width="2.4"/>
+    <path d="M5 29h62" stroke="#fff" stroke-width="5"/>
+    <path d="M5 35h62" stroke="#fff" stroke-width="1.4"/>
+    <path d="M53 12.3v6.2" stroke="#fff" stroke-width="2.2"/>
+  </g>
+  <text x="82" y="45" fill="#900609" font-family="'Plus Jakarta Sans', 'Avenir Next', Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="-1.5">Mabrur</text>
+  <text x="84" y="66" fill="#900609" font-family="Roboto, Arial, sans-serif" font-size="14" font-weight="500" letter-spacing="5.2">TOURS</text>
+</svg>

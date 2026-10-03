@@ -1,4 +1,5 @@
-﻿/* Agen Login Page - Matches Home and Paket Screen Aesthetic */
+/* Agent login (app/agen/login/page.tsx). One form, no cards: brand, title, two fields, one primary button.
+   Fields use the shared .tw-field standard (app/globals.css). Content text 14px+. */
 
 .tw-agen-login-wrap {
   min-height: 100vh;
@@ -8,182 +9,113 @@
 }
 
 .tw-agen-login-body {
-  padding: 0 0 96px 0;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  padding: 20px 16px 32px;
 }
 
-/* Header Banner */
 .tw-agen-login-header {
-  padding: 16px 16px 14px 16px;
-  background-color: var(--tw-background);
-}
-
-.tw-agen-login-tag {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--tw-brand-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 3px;
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .tw-agen-login-title {
+  margin: 8px 0 0;
   font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--tw-neutral-900);
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1.3;
-  margin: 0 0 4px 0;
+  color: var(--tw-neutral-900);
 }
 
 .tw-agen-login-subtitle {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--tw-neutral-500);
   margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tw-neutral-600);
 }
 
-/* Alert Banner */
 .tw-agen-login-alert {
-  margin: 0 16px 14px 16px;
-  padding: 12px 14px;
-  border-radius: var(--radius-md, 8px);
-  background-color: var(--tw-danger-bg);
-  border: 1px solid var(--tw-danger-line);
-  color: var(--tw-danger-strong);
-  font-size: 13px;
-  line-height: 1.4;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: var(--tw-danger-bg);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tw-danger-strong);
 }
 
-/* Card Container */
-.tw-agen-login-card {
-  margin: 0 16px 16px 16px;
-  padding: 20px 16px;
-  background-color: var(--tw-background);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: var(--radius-md, 10px);
-  box-shadow: 0 1px 3px var(--tw-surface-tint);
+.tw-agen-login-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tw-agen-login-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-/* Input Fields with Icons */
 .tw-agen-login-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
-.tw-agen-login-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--tw-neutral-700);
-}
-
-.tw-agen-login-input-wrap {
+/* Password field with the show/hide button inside */
+.tw-agen-login-pw {
   position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.tw-agen-login-icon-left {
-  position: absolute;
-  left: 12px;
-  color: var(--tw-neutral-400);
-  pointer-events: none;
-  flex-shrink: 0;
-}
-
-.tw-agen-login-input {
-  width: 100%;
-  height: 42px;
-  padding: 0 40px 0 38px;
-  background-color: var(--tw-page-bg);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: var(--radius-md, 8px);
-  font-family: var(--tw-font-body, 'Roboto', sans-serif);
-  font-size: 14px;
-  color: var(--tw-neutral-900);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.tw-agen-login-input:focus {
-  background-color: var(--tw-background);
-  border-color: var(--tw-brand-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tw-brand-primary) 15%, transparent);
-}
-
-.tw-agen-login-input::placeholder {
-  color: var(--tw-neutral-400);
 }
 
 .tw-agen-login-toggle-pw {
   position: absolute;
-  right: 8px;
-  background: none;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border: none;
-  padding: 6px;
-  color: var(--tw-neutral-400);
+  background: none;
+  color: var(--tw-neutral-500);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: color 0.15s ease;
 }
 
 .tw-agen-login-toggle-pw:hover {
-  color: var(--tw-neutral-700);
+  color: var(--tw-neutral-900);
 }
 
-/* Secondary Registration CTA Card */
-.tw-agen-login-register-card {
-  margin: 0 16px 16px 16px;
-  padding: 16px;
-  background-color: var(--tw-page-bg);
-  border: 1px dashed var(--tw-neutral-300);
-  border-radius: var(--radius-md, 10px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-}
-
-.tw-agen-login-register-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--tw-neutral-800);
-  margin: 0;
-}
-
-.tw-agen-login-register-desc {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--tw-neutral-500);
-  margin: 0;
-}
-
-/* WhatsApp Help Link */
-.tw-agen-login-help {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--tw-neutral-500);
+.tw-agen-login-submit {
+  min-height: 48px;
   margin-top: 4px;
-  text-decoration: none;
-  padding: 6px 12px;
+  font-weight: 600;
 }
 
-.tw-agen-login-help:hover {
-  color: var(--tw-brand-primary);
+/* Text links (help, sign-up) */
+.tw-agen-login-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tw-agen-login-form .tw-agen-login-link {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.tw-agen-login-register {
+  margin: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--tw-neutral-100);
+  font-size: 14px;
+  color: var(--tw-neutral-600);
+  text-align: center;
 }

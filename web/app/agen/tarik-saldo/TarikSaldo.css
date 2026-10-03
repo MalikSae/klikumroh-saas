@@ -1,0 +1,329 @@
+/* Agent withdraw page (app/agen/tarik-saldo/page.tsx). Same look as the agent home: light canvas, white cards,
+   one brand-colored action (Ajukan penarikan) pinned to the bottom. No bottom tab bar: this is a one-task page.
+   Content text 14px+, labels 13px (form standard), weights 400-700. */
+
+.ts-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 8px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.ts-header__title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.ts-icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.ts-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.ts-page {
+  min-height: calc(100vh - 56px);
+  padding: 12px 16px calc(96px + env(safe-area-inset-bottom));
+  background-color: var(--tw-page-bg);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.ts-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ts-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.ts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ts-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-500);
+}
+
+.ts-amount {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--tw-neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.ts-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.ts-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+/* Label sitting in a row with a text button (no extra bottom margin) */
+.ts-flush {
+  margin-bottom: 0;
+}
+
+.ts-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -12px -4px -12px 0;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  font: 600 14px var(--tw-font-body);
+  color: var(--tw-brand-primary);
+  cursor: pointer;
+}
+
+.ts-link:disabled {
+  color: var(--tw-neutral-400);
+  cursor: not-allowed;
+}
+
+/* Amount with an "Rp" prefix inside the field */
+.ts-money {
+  position: relative;
+}
+
+.ts-money__prefix {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-500);
+  pointer-events: none;
+}
+
+.ts-money__input {
+  padding-left: 40px;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ts-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Saved bank account, one line */
+.ts-bank {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background-color: var(--tw-page-bg);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.ts-bank svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--tw-neutral-500);
+}
+
+.ts-bank span {
+  display: flex;
+  flex-direction: column;
+}
+
+.ts-bank small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tw-neutral-500);
+}
+
+.ts-badge {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--tw-rating-star) 16%, var(--tw-background));
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-status-contacted-text);
+}
+
+.ts-badge--ok {
+  background-color: var(--tw-success-bg);
+  color: var(--tw-success-strong);
+}
+
+.ts-note {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--tw-neutral-600);
+}
+
+.ts-note svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--tw-neutral-400);
+}
+
+.ts-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ts-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ts-alert--error {
+  background-color: var(--tw-danger-bg);
+  color: var(--tw-danger-strong);
+}
+
+.ts-alert--ok {
+  background-color: var(--tw-success-bg);
+  color: var(--tw-success-strong);
+}
+
+/* Bottom action bar */
+.ts-submit {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 40;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 428px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background-color: var(--tw-background);
+  border-top: 1px solid var(--tw-hairline);
+}
+
+.ts-actions {
+  margin-top: 12px;
+}
+
+.ts-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: 600 15px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.ts-btn--primary {
+  background-color: var(--tw-brand-primary);
+  color: var(--tw-on-brand);
+}
+
+.ts-btn--primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900));
+}
+
+.ts-btn--primary:disabled {
+  background-color: var(--tw-neutral-200);
+  color: var(--tw-neutral-500);
+  cursor: progress;
+}
+
+.ts-btn--outline {
+  border-color: var(--tw-neutral-300);
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+}
+
+/* Loading / error */
+.ts-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 64px 16px;
+  text-align: center;
+  color: var(--tw-neutral-500);
+}
+
+.ts-center__icon {
+  color: var(--tw-danger-strong);
+}
+
+.ts-center .ts-btn {
+  width: auto;
+}
+
+.ts-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--tw-neutral-200);
+  border-top-color: var(--tw-neutral-900);
+  border-radius: 50%;
+  animation: ts-spin 0.8s linear infinite;
+}
+
+@keyframes ts-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

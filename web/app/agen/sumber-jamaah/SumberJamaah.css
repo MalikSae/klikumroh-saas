@@ -1,0 +1,304 @@
+/* Agent "99 sumber jamaah" list (app/agen/sumber-jamaah/page.tsx). Drill-down page: back button, no tab bar.
+   Categories are collapsible groups with their own progress; searching shows one flat list.
+   Content text 14px+, labels 13px, inputs 16px. */
+
+.sj-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 16px 0 4px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.sj-header__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.sj-icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.sj-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.sj-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 12px 16px 32px;
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.sj-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.sj-btn {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 600 14px var(--tw-font-body);
+  cursor: pointer;
+}
+
+/* Progress: one line and a thin brand bar. */
+.sj-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sj-progress__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--tw-neutral-600);
+}
+
+.sj-progress__text strong {
+  font-family: var(--tw-font-heading);
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.sj-progress__bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: var(--tw-neutral-200);
+}
+
+.sj-progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--tw-brand-primary);
+  transition: width 0.3s ease;
+}
+
+/* Search */
+.sj-search {
+  position: relative;
+}
+
+.sj-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--tw-neutral-400);
+  pointer-events: none;
+}
+
+.sj-search__input {
+  padding-left: 40px;
+  padding-right: 44px;
+}
+
+.sj-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.sj-search__clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+/* Category groups */
+.sj-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sj-panel {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border-radius: 14px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.sj-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sj-group__name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.sj-group__count {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.sj-group__count--done {
+  color: var(--tw-success-strong);
+}
+
+.sj-group__chev {
+  flex-shrink: 0;
+  color: var(--tw-neutral-500);
+  transition: transform 0.2s ease;
+}
+
+.sj-group__chev--open {
+  transform: rotate(180deg);
+}
+
+.sj-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+/* Rows */
+.sj-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sj-panel li + li .sj-row {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.sj-row:hover {
+  background-color: var(--tw-page-bg);
+}
+
+.sj-row__num {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-neutral-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.sj-row__num--done {
+  color: var(--tw-success-strong);
+}
+
+.sj-row__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sj-row__title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.sj-row__go {
+  flex-shrink: 0;
+  color: var(--tw-neutral-400);
+}
+
+.sj-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  color: var(--tw-neutral-400);
+  text-align: center;
+}
+
+/* Telling groups and their items apart: an open group's title turns brand-colored, and its items sit on a
+   light gray band inside the panel (indented, lighter text), so header and content never look the same. */
+.sj-group[aria-expanded='true'] .sj-group__name,
+.sj-group[aria-expanded='true'] .sj-group__chev {
+  color: var(--tw-brand-primary);
+}
+
+.sj-groups .sj-list {
+  background-color: var(--tw-neutral-100);
+}
+
+.sj-groups .sj-row {
+  min-height: 46px;
+  padding-left: 18px;
+}
+
+.sj-groups .sj-list li + li .sj-row {
+  border-top-color: var(--tw-neutral-200);
+}
+
+.sj-groups .sj-row:hover {
+  background-color: var(--tw-neutral-200);
+}
+
+.sj-groups .sj-row__title {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--tw-neutral-800);
+}

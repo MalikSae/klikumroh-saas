@@ -170,3 +170,31 @@
   margin-top: 3px;
   accent-color: var(--tw-brand-primary);
 }
+
+/* ─── Bottom sheet (mobile app style, 1 Oct 2026) ───────────────────────────── */
+/* The sheet rises from the bottom, as wide as the mobile canvas. Header and the submit button stay put;
+   only the fields scroll. */
+.tw-modal-overlay { align-items: flex-end; padding: 0; }
+.tw-modal-card {
+  max-width: 428px;
+  max-height: 92vh;
+  padding: 0 16px;
+  border-radius: 16px 16px 0 0;
+  animation: twSheetUp 0.22s ease-out;
+}
+@keyframes twSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+.tw-modal-grip { width: 36px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--tw-divider-strong); }
+.tw-modal-header { position: sticky; top: 0; z-index: 1; margin: 0 -16px 12px; padding: 10px 16px 12px; background: var(--tw-background); border-bottom: 1px solid var(--tw-hairline); }
+.tw-modal-title { font-size: 15px; }
+.tw-modal-close { width: 36px; height: 36px; }
+.tw-modal-form { gap: 12px; }
+.tw-modal-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 10px; }
+.tw-modal-row > :only-child { grid-column: 1 / -1; }
+/* Compact fields; 16px text so iOS does not zoom in (AGENTS.md 3.10). */
+.tw-modal-form .tw-form-group { gap: 4px; }
+.tw-modal-form .tw-form-input, .tw-modal-form .tw-form-select { height: 44px; padding: 0 12px; font-size: 16px; }
+.tw-modal-consent { font-size: 12px; }
+.tw-modal-submit { position: sticky; bottom: 0; margin: 4px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--tw-background); border-top: 1px solid var(--tw-hairline); }
+.tw-modal-submit .tw-button { width: 100%; }
+.tw-modal-footer-note { margin-top: 6px; font-size: 11px; }
+.tw-modal-success { padding: 8px 0 calc(16px + env(safe-area-inset-bottom)); }

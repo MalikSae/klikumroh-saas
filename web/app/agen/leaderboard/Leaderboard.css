@@ -1,0 +1,431 @@
+/* Agent leaderboard (app/agen/leaderboard/page.tsx). Tab page: title only, no back button.
+   Brand color for "your" position (founder's choice); ranks 1-3 get a colored medal, no tinted boxes.
+   Content text 14px+, labels 13px, weights up to 700. */
+
+.lb-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.lb-header__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.lb-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 12px 16px calc(96px + env(safe-area-inset-bottom));
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.lb-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.lb-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+/* Period dropdown in the header: compact and neutral; the menu lines up with the trigger's right edge. */
+.lb-header .lb-period {
+  width: auto;
+  margin-left: auto;
+}
+
+.lb-period .tw-dropdown__trigger {
+  gap: 6px;
+  width: auto;
+  height: 36px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.lb-period .tw-dropdown__trigger:hover:not(:disabled) {
+  border-color: var(--tw-neutral-300);
+}
+
+.lb-period .tw-dropdown__trigger:focus-visible,
+.lb-period .tw-dropdown__trigger--open {
+  border-color: var(--tw-neutral-900);
+  box-shadow: none;
+}
+
+.lb-period .tw-dropdown__chevron {
+  color: var(--tw-neutral-500);
+  opacity: 1;
+}
+
+.lb-period .tw-dropdown__menu {
+  right: 0;
+  left: auto;
+  min-width: 150px;
+}
+
+/* Gamified hero: podium for the top 3 on a lit brand background, your position underneath.
+   Medal colors: gold (rating star), silver (neutral), bronze (warning, darkened). All from tokens. */
+.lb-hero {
+  --gold: var(--tw-rating-star);
+  --silver: var(--tw-neutral-300);
+  --bronze: color-mix(in srgb, var(--tw-warning-strong) 80%, var(--tw-neutral-900));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  padding: 18px 16px 0;
+  border: none;
+  border-radius: 20px;
+  background-color: var(--tw-brand-primary);
+  background-image:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--tw-on-brand) 26%, transparent) 0, transparent 60%),
+    linear-gradient(160deg, var(--tw-brand-primary) 0%, color-mix(in srgb, var(--tw-brand-primary) 65%, var(--tw-neutral-900)) 100%);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--tw-brand-primary) 35%, transparent);
+  color: var(--tw-on-brand);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lb-hero:focus-visible {
+  outline: 2px solid var(--tw-brand-primary);
+  outline-offset: 3px;
+}
+
+.lb-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 8px;
+}
+
+.lb-podium__slot {
+  --medal: var(--silver);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.lb-podium__slot--1 {
+  --medal: var(--gold);
+}
+
+.lb-podium__slot--3 {
+  --medal: var(--bronze);
+}
+
+.lb-podium__crown {
+  margin-bottom: 2px;
+  color: var(--gold);
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--gold) 60%, transparent));
+  animation: lb-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes lb-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.lb-podium__avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--medal);
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--tw-on-brand) 18%, transparent);
+  font-family: var(--tw-font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--medal) 30%, transparent);
+}
+
+/* Profile photo fills the ring; the initial shows when there is none. */
+.lb-podium__avatar {
+  overflow: hidden;
+}
+
+.lb-podium__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lb-podium__slot--1 .lb-podium__avatar {
+  width: 54px;
+  height: 54px;
+  font-size: 20px;
+}
+
+/* You on the podium: a white avatar so it stands out. */
+.lb-podium__slot--me .lb-podium__avatar {
+  background-color: var(--tw-on-brand);
+  color: var(--tw-brand-primary);
+}
+
+.lb-podium__name {
+  max-width: 100%;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lb-podium__score {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--tw-on-brand) 82%, transparent);
+}
+
+/* Podium blocks: lit from the top, medal-colored rim, heights by rank. */
+.lb-podium__block {
+  display: grid;
+  place-items: start center;
+  width: 100%;
+  padding-top: 6px;
+  border-top: 4px solid var(--medal);
+  border-radius: 10px 10px 0 0;
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tw-on-brand) 34%, transparent),
+    color-mix(in srgb, var(--tw-on-brand) 10%, transparent)
+  );
+  font-family: var(--tw-font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  text-shadow: 0 2px 6px color-mix(in srgb, var(--tw-neutral-900) 35%, transparent);
+}
+
+.lb-podium__slot--1 .lb-podium__block {
+  height: 72px;
+}
+
+.lb-podium__slot--2 .lb-podium__block {
+  height: 56px;
+}
+
+.lb-podium__slot--3 .lb-podium__block {
+  height: 44px;
+}
+
+/* Your position under the podium. */
+.lb-hero__me {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 12px 16px;
+  background-color: color-mix(in srgb, var(--tw-neutral-900) 22%, transparent);
+  font-size: 14px;
+}
+
+.lb-hero__me strong {
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-podium__crown {
+    animation: none;
+  }
+}
+
+/* Text link below the card (long lists only). */
+.lb-link {
+  align-self: flex-start;
+  min-height: 32px;
+  margin-top: -4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tw-brand-primary);
+  font: 600 14px var(--tw-font-body);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Ranking list: one panel, rows split by lines. */
+.lb-list {
+  margin: 0;
+  padding: 4px 14px;
+  list-style: none;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+}
+
+.lb-row + .lb-row {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+/* Your row: brand tint across the panel width. */
+.lb-row--me {
+  margin: 0 -14px;
+  padding: 8px 14px;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 8%, var(--tw-background));
+}
+
+/* Brief highlight after jumping to your row. */
+.lb-row--flash {
+  animation: lb-flash 1.6s ease-out;
+}
+
+@keyframes lb-flash {
+  0%,
+  40% {
+    background-color: color-mix(in srgb, var(--tw-brand-primary) 22%, var(--tw-background));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-row--flash {
+    animation: none;
+  }
+}
+
+.lb-row__rank {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-row__rank--1 {
+  color: var(--tw-rating-star);
+}
+
+.lb-row__rank--2 {
+  color: var(--tw-neutral-400);
+}
+
+.lb-row__rank--3 {
+  color: var(--tw-warning-strong);
+}
+
+.lb-row__name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lb-row--me .lb-row__name {
+  font-weight: 700;
+}
+
+.lb-row__you {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-brand-primary);
+}
+
+.lb-row__total {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.lb-row__total strong {
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+/* Loading, error, empty */
+.lb-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  color: var(--tw-neutral-400);
+  text-align: center;
+}
+
+.lb-state--more {
+  flex-direction: row;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.lb-spin {
+  animation: lb-spin 0.9s linear infinite;
+}
+
+@keyframes lb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 600 14px var(--tw-font-body);
+  cursor: pointer;
+}

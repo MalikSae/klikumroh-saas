@@ -2,25 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  Search,
-  X,
-  Copy,
-  Check,
-  Share2,
-  Star,
-  Quote,
-  Sparkles,
-  Package,
-  CheckCircle2,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-} from 'lucide-react';
+import { ArrowLeft, Search, X, Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import './BankCaption.css';
+import { logHabit } from '../../../lib/agentHabits';
 import {
   getAllCopies,
   getCopywritingCategories,
@@ -53,7 +38,6 @@ export default function BankCaptionPage() {
   const [packages, setPackages] = useState<TenantPackage[]>([]);
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
   const [includeReferralLink, setIncludeReferralLink] = useState<boolean>(true);
-  const [showPersonalization, setShowPersonalization] = useState<boolean>(false);
 
   // Filters & State
   const [activeGoal, setActiveGoal] = useState<string>('attraction'); // 'attraction', 'education', etc. or 'favorites'
@@ -61,7 +45,6 @@ export default function BankCaptionPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedPart, setCopiedPart] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [expandedParts, setExpandedParts] = useState<Record<string, boolean>>({});
 
   const allCopies = useMemo(() => getAllCopies(), []);
   const categories = useMemo(() => getCopywritingCategories(), []);
@@ -71,6 +54,7 @@ export default function BankCaptionPage() {
     try {
       const stored = localStorage.getItem(FAVORITES_STORAGE_KEY);
       if (stored) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the browser after hydration; not available on the server render
         setFavorites(JSON.parse(stored));
       }
     } catch {
@@ -207,12 +191,10 @@ export default function BankCaptionPage() {
 
   // Infinite scroll pagination state (8 items per load)
   const PAGE_SIZE = 8;
-  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
-
-  // Reset pagination on category or search query change
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [activeGoal, searchQuery]);
+  // The visible count belongs to one category + search; a new one starts again at PAGE_SIZE (same as Script chat).
+  const pageKey = `${activeGoal}|${searchQuery}`;
+  const [paging, setPaging] = useState({ key: pageKey, count: PAGE_SIZE });
+  const visibleCount = paging.key === pageKey ? paging.count : PAGE_SIZE;
 
   // Paginated copies
   const displayedCopies = useMemo(() => {
@@ -224,11 +206,8 @@ export default function BankCaptionPage() {
   const hasMore = currentlyDisplayedCount < totalActiveItemsCount;
 
   const loadMore = useCallback(() => {
-    setVisibleCount((prev) => {
-      if (prev >= totalActiveItemsCount) return prev;
-      return Math.min(prev + PAGE_SIZE, totalActiveItemsCount);
-    });
-  }, [totalActiveItemsCount]);
+    setPaging({ key: pageKey, count: Math.min(visibleCount + PAGE_SIZE, totalActiveItemsCount) });
+  }, [pageKey, visibleCount, totalActiveItemsCount]);
 
   // Infinite scroll sentinel observer
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -283,6 +262,8 @@ export default function BankCaptionPage() {
   // Copy handler
   const handleCopyFull = async (copy: CopyItem) => {
     const text = assembleFullCaption(copy, replacements);
+    // The habit counts the agent's intent, even if the browser refuses the clipboard.
+    logHabit('caption');
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(copy.id);
@@ -295,6 +276,7 @@ export default function BankCaptionPage() {
 
   const handleCopyPart = async (text: string, copyId: string, partName: string) => {
     const replaced = replaceCopyPlaceholders(text, replacements);
+    logHabit('caption');
     try {
       await navigator.clipboard.writeText(replaced);
       setCopiedId(copyId);
@@ -310,842 +292,236 @@ export default function BankCaptionPage() {
 
   // WhatsApp share
   const handleShareWA = (copy: CopyItem) => {
+    logHabit('caption');
     const text = assembleFullCaption(copy, replacements);
     const encoded = encodeURIComponent(text);
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
   };
 
-  const toggleExpandParts = (id: string) => {
-    setExpandedParts((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
+  // "Salin sebagian" menu open for one card at a time.
+  const [partsOpenId, setPartsOpenId] = useState<string | null>(null);
+  // Package / link settings sheet.
+  const [sheetOpen, setSheetOpen] = useState<boolean>(false);
+  const formatPrice = (v?: number) => (v ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v) : '');
 
-  const getGoalBadge = (goal: string) => {
-    switch (goal) {
-      case 'attraction':
-        return {
-          label: 'Attraction',
-          bg: 'color-mix(in srgb, var(--tw-status-new) 12%, var(--tw-background))',
-          color: 'var(--tw-status-new-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-status-new) 28%, transparent)',
-        };
-      case 'education':
-        return {
-          label: 'Edukasi',
-          bg: 'color-mix(in srgb, var(--tw-rating-star) 12%, var(--tw-background))',
-          color: 'var(--tw-status-contacted-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-rating-star) 28%, transparent)',
-        };
-      case 'desire':
-        return {
-          label: 'Kerinduan',
-          bg: 'color-mix(in srgb, var(--tw-accent-pink) 12%, var(--tw-background))',
-          color: 'var(--tw-accent-pink-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-accent-pink) 28%, transparent)',
-        };
-      case 'trust':
-        return {
-          label: 'Kepercayaan',
-          bg: 'color-mix(in srgb, var(--tw-accent-indigo) 12%, var(--tw-background))',
-          color: 'var(--tw-accent-indigo-text)',
-          border: '1px solid color-mix(in srgb, var(--tw-accent-indigo) 28%, transparent)',
-        };
-      case 'offer':
-        return {
-          label: 'Penawaran',
-          bg: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-          color: 'var(--tw-brand-primary)',
-          border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 28%, transparent)',
-        };
-      default:
-        return {
-          label: goal,
-          bg: 'var(--tw-badge-neutral-bg)',
-          color: 'var(--tw-text-muted)',
-          border: '1px solid var(--tw-border)',
-        };
-    }
-  };
+  const chips = [
+    ...categories.map((c) => ({ id: c.key, label: c.shortName, count: c.count })),
+    { id: 'favorites', label: 'Tersimpan', count: favorites.length },
+  ];
 
   return (
     <MobileContainer>
-      {/* Sticky App Header — Consistent with /agen/jamaah & /agen/script-wa */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.push('/agen/dashboard')}
-          aria-label="Kembali ke Dashboard"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
+      {/* Drill-down page (opened from the home menu): back button, no bottom tab bar. */}
+      <header className="bc-header">
+        <button type="button" onClick={() => router.back()} aria-label="Kembali" className="bc-icon-btn bc-icon-btn--lg">
           <ArrowLeft size={20} />
         </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
-          >
-            Bank Caption
-          </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-            152 materi posting medsos &amp; status WA
-          </span>
-        </div>
-
-        {/* Shortcut to favorites */}
-        <button
-          type="button"
-          onClick={() => setActiveGoal(activeGoal === 'favorites' ? 'attraction' : 'favorites')}
-          aria-label="Filter Favorit"
-          style={{
-            padding: '7px 11px',
-            borderRadius: '6px',
-            border:
-              activeGoal === 'favorites'
-                ? '1px solid var(--tw-rating-star)'
-                : '1px solid var(--tw-border)',
-            backgroundColor:
-              activeGoal === 'favorites'
-                ? 'color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background))'
-                : 'var(--tw-background)',
-            color: activeGoal === 'favorites' ? 'var(--tw-rating-star)' : 'var(--tw-text-secondary)',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            flexShrink: 0,
-          }}
-        >
-          <Star
-            size={14}
-            fill={activeGoal === 'favorites' ? 'currentColor' : 'none'}
-            color="var(--tw-rating-star)"
-          />
-          <span>{favorites.length}</span>
-        </button>
+        <h1 className="bc-header__title">Bank caption</h1>
       </header>
 
-      {/* Main Canvas */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* Personalization Toggle & Package Selector Card */}
-        <div
-          style={{
-            backgroundColor: 'var(--tw-background)',
-            borderRadius: '12px',
-            border: '1px solid var(--tw-hairline)',
-            padding: '12px 14px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            boxShadow: 'var(--tw-card-shadow)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-            }}
-            onClick={() => setShowPersonalization(!showPersonalization)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '6px',
-                  backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Sparkles size={13} color="var(--tw-brand-primary)" />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--tw-text-primary)' }}>
-                  Data Otomatis Caption
-                </span>
-                <span style={{ fontSize: '10px', color: 'var(--tw-text-muted)' }}>
-                  {selectedPackage?.name || 'Paket Pilihan'} • {tenantName}
-                </span>
-              </div>
-            </div>
+      <div className="bc-page">
+        {/* Package and link used in the captions: one row, opens a sheet. */}
+        <button type="button" className="bc-target" onClick={() => setSheetOpen(true)} aria-haspopup="dialog">
+          <span className="bc-target__text">
+            <span className="bc-target__label">Paket di caption</span>
+            <span className="bc-target__name">{selectedPackage?.name || 'Pilih paket'}</span>
+            <span className="bc-target__meta">{includeReferralLink ? 'Link pendaftaran Anda ikut di akhir caption' : 'Tanpa link pendaftaran'}</span>
+          </span>
+          <ChevronDown size={20} className="bc-target__chev" aria-hidden="true" />
+        </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--tw-text-muted)' }}>
-              <span style={{ fontSize: '11px' }}>{showPersonalization ? 'Tutup' : 'Atur'}</span>
-              {showPersonalization ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </div>
-          </div>
-
-          {showPersonalization && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                paddingTop: '8px',
-                borderTop: '1px solid var(--tw-surface-tint)',
-              }}
-            >
-              {/* Package selector */}
-              {packages.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tw-text-secondary)' }}>
-                    Pilih Paket Umroh untuk Auto-Fill (Harga &amp; Fasilitas)
-                  </label>
-                  <select
-                    value={selectedPackageId}
-                    onChange={(e) => setSelectedPackageId(e.target.value)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--tw-divider)',
-                      backgroundColor: 'var(--tw-background)',
-                      color: 'var(--tw-text-primary)',
-                      fontSize: '12px',
-                      outline: 'none',
-                    }}
-                  >
-                    {packages.map((pkg) => (
-                      <option key={pkg.id} value={pkg.id}>
-                        {pkg.name} ({pkg.price ? new Intl.NumberFormat('id-ID').format(pkg.price) : '-'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Toggle Referral Link */}
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '12px',
-                  color: 'var(--tw-text-primary)',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={includeReferralLink}
-                  onChange={(e) => setIncludeReferralLink(e.target.checked)}
-                  style={{ accentColor: 'var(--tw-brand-primary)' }}
-                />
-                <span>Sertakan link pendaftaran referral saya di akhir caption</span>
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* Search Bar — Consistent with /agen/jamaah */}
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              left: '12px',
-              color: 'var(--tw-text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <Search size={15} />
-          </div>
+        {/* Search */}
+        <div className="bc-search">
+          <Search size={18} className="bc-search__icon" aria-hidden="true" />
           <input
-            type="text"
-            placeholder="Cari tema: orang tua, promo, hotel, ka'bah..."
+            type="search"
+            aria-label="Cari caption"
+            placeholder="Cari tema: orang tua, promo, hotel"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 36px 10px 36px',
-              fontSize: '13px',
-              backgroundColor: 'var(--tw-background)',
-              border: '1px solid var(--tw-border)',
-              borderRadius: '8px',
-              color: 'var(--tw-text-primary)',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
+            className="tw-field bc-search__input"
           />
           {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: 'var(--tw-text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title="Hapus pencarian"
-            >
-              <X size={14} />
+            <button type="button" onClick={() => setSearchQuery('')} className="bc-search__clear" aria-label="Hapus pencarian">
+              <X size={18} />
             </button>
           )}
         </div>
 
-        {/* Funnel Stage Tabs (Horizontal Scroll) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {categories.map((cat) => {
-            const isActive = activeGoal === cat.key;
+        {/* Category chips (brand fill for the active one) */}
+        <div className="bc-chips" role="tablist" aria-label="Kategori caption">
+          {chips.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={activeGoal === c.id}
+              onClick={() => setActiveGoal(c.id)}
+              className={`bc-chip${activeGoal === c.id ? ' bc-chip--active' : ''}`}
+            >
+              {c.label}
+              <span className="bc-chip__count">{c.count}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Caption cards */}
+        <div className="bc-list">
+          {displayedCopies.map((copy) => {
+            const isFav = favorites.includes(copy.id);
+            const fullCopied = copiedId === copy.id && !copiedPart;
+            const partsOpen = partsOpenId === copy.id;
+            const meta = [...(copy.tags || []).map((t) => `#${t}`), copy.format ? copy.format.charAt(0).toUpperCase() + copy.format.slice(1) : '']
+              .filter(Boolean)
+              .join(' · ');
             return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setActiveGoal(cat.key)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: isActive
-                    ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid var(--tw-border)',
-                  backgroundColor: isActive ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{cat.shortName}</span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    backgroundColor: isActive ? 'var(--tw-on-brand-subtle)' : 'var(--tw-hairline)',
-                    color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {cat.count}
-                </span>
-              </button>
+              <article key={copy.id} className="bc-card">
+                <div className="bc-card__head">
+                  <div className="bc-card__titles">
+                    <h2 className="bc-card__title">{copy.title}</h2>
+                    {meta && <p className="bc-muted">{meta}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPartsOpenId(partsOpen ? null : copy.id)}
+                    aria-expanded={partsOpen}
+                    aria-label="Salin sebagian"
+                    className={`bc-icon-btn${partsOpen ? ' bc-icon-btn--on' : ''}`}
+                  >
+                    <MoreHorizontal size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(copy.id)}
+                    aria-label={isFav ? 'Hapus dari tersimpan' : 'Simpan caption'}
+                    aria-pressed={isFav}
+                    className={`bc-icon-btn${isFav ? ' bc-icon-btn--fav' : ''}`}
+                  >
+                    <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
+                  </button>
+                </div>
+
+                {partsOpen && (
+                  <div className="bc-parts" role="group" aria-label="Salin sebagian">
+                    <span className="bc-muted">Salin:</span>
+                    {([
+                      ['hook', 'Pembuka', copy.hook],
+                      ['body', 'Isi', copy.body],
+                      ['cta', 'Ajakan', copy.cta],
+                    ] as const).map(([key, label, text]) => (
+                      <button key={key} type="button" className="bc-part" onClick={() => handleCopyPart(text, copy.id, key)}>
+                        {copiedId === copy.id && copiedPart === key ? <Check size={14} aria-hidden="true" /> : null}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* The caption as it will be copied: opener in bold, then body and call to action. */}
+                <div className="bc-text">
+                  <strong>{replaceCopyPlaceholders(copy.hook, replacements)}</strong>
+                  {copy.body && `\n\n${replaceCopyPlaceholders(copy.body, replacements)}`}
+                  {copy.cta && `\n\n${replaceCopyPlaceholders(copy.cta, replacements)}`}
+                  {/* The link block is long; the preview only notes it (the copied text includes it in full). */}
+                  {replacements.link && <span className="bc-text__link">{'\n\n+ link pendaftaran Anda'}</span>}
+                </div>
+
+                <div className="bc-card__actions">
+                  <button type="button" onClick={() => handleCopyFull(copy)} className={`bc-btn${fullCopied ? ' bc-btn--done' : ''}`}>
+                    {fullCopied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                    <span>{fullCopied ? 'Tersalin' : 'Salin'}</span>
+                  </button>
+                  <button type="button" onClick={() => handleShareWA(copy)} className="bc-btn bc-btn--primary">
+                    <Share2 size={16} aria-hidden="true" />
+                    <span>Kirim ke WA</span>
+                  </button>
+                </div>
+              </article>
             );
           })}
         </div>
 
-
-        {/* Caption Cards List */}
-        {filteredCopies.length === 0 ? (
-          <div
-            style={{
-              padding: '48px 20px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div style={{ color: 'var(--tw-text-muted)' }}>
-              <Quote size={36} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <h2
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  margin: 0,
-                  color: 'var(--tw-text-primary)',
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                Tidak Ditemukan Caption
-              </h2>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: 'var(--tw-text-secondary)',
-                  margin: 0,
-                  lineHeight: 1.5,
-                  maxWidth: '280px',
-                }}
-              >
-                {activeGoal === 'favorites'
-                  ? 'Belum ada caption yang ditandai bintang. Tekan ikon bintang pada caption untuk menyimpannya di sini.'
-                  : 'Coba ubah kata kunci pencarian atau ganti filter kategori di atas.'}
-              </p>
-            </div>
-
-            {(searchQuery || activeGoal !== 'attraction') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveGoal('attraction');
-                }}
-                style={{
-                  marginTop: '4px',
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--tw-brand-primary)',
-                  color: 'var(--tw-on-brand)',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                Reset Filter
+        {/* Load more */}
+        {totalActiveItemsCount > 0 && (
+          <div ref={sentinelRef} className="bc-more">
+            {hasMore ? (
+              <button type="button" onClick={loadMore} className="bc-btn">
+                <Loader2 size={16} className="bc-spin" aria-hidden="true" />
+                <span>
+                  Memuat caption ({currentlyDisplayedCount} dari {totalActiveItemsCount})
+                </span>
               </button>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {displayedCopies.map((copy) => {
-              const goalBadge = getGoalBadge(copy.goal);
-              const isFav = favorites.includes(copy.id);
-              const isJustCopied = copiedId === copy.id && !copiedPart;
-              const isPartsExpanded = Boolean(expandedParts[copy.id]);
-
-              return (
-                <article
-                  key={copy.id}
-                  style={{
-                    backgroundColor: 'var(--tw-background)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--tw-hairline)',
-                    padding: '14px 15px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: 'var(--tw-card-shadow)',
-                  }}
-                >
-                  {/* Card Header: Badges & Favorite Toggle */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          backgroundColor: goalBadge.bg,
-                          color: goalBadge.color,
-                          border: goalBadge.border,
-                        }}
-                      >
-                        {goalBadge.label}
-                      </span>
-
-                      {copy.format && (
-                        <span
-                          style={{
-                            padding: '3px 7px',
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            fontWeight: 600,
-                            backgroundColor: 'var(--tw-surface-tint)',
-                            color: 'var(--tw-text-muted)',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {copy.format}
-                        </span>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleFavorite(copy.id)}
-                      aria-label={isFav ? 'Hapus dari favorit' : 'Tambah ke favorit'}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: '4px',
-                        cursor: 'pointer',
-                        color: isFav ? 'var(--tw-rating-star)' : 'var(--tw-text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
-                    </button>
-                  </div>
-
-                  {/* Title & Tags */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <h3
-                      style={{
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        color: 'var(--tw-text-primary)',
-                        margin: 0,
-                        fontFamily: 'var(--tw-font-heading)',
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      {copy.title}
-                    </h3>
-
-                    {copy.tags && copy.tags.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                        {copy.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            style={{
-                              fontSize: '10px',
-                              color: 'var(--tw-text-muted)',
-                              backgroundColor: 'var(--tw-hairline-soft)',
-                              padding: '1px 5px',
-                              borderRadius: '3px',
-                            }}
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Hook Box */}
-                  <div
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-background))',
-                      borderRadius: '8px',
-                      borderLeft: '3px solid var(--tw-brand-primary)',
-                      padding: '8px 10px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
-                    }}
-                  >
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-brand-primary)', textTransform: 'uppercase' }}>
-                      Hook / Pembuka
-                    </span>
-                    <p
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: 'var(--tw-text-primary)',
-                        margin: 0,
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      &ldquo;{replaceCopyPlaceholders(copy.hook, replacements)}&rdquo;
-                    </p>
-                  </div>
-
-                  {/* Body Text */}
-                  <div style={{ fontSize: '13px', color: 'var(--tw-text-secondary)', lineHeight: 1.5 }}>
-                    {replaceCopyPlaceholders(copy.body, replacements)}
-                  </div>
-
-                  {/* CTA Text */}
-                  <div
-                    style={{
-                      backgroundColor: 'var(--tw-hairline-faint)',
-                      borderRadius: '6px',
-                      padding: '7px 9px',
-                      fontSize: '12px',
-                      color: 'var(--tw-text-primary)',
-                      fontWeight: 500,
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: '6px',
-                    }}
-                  >
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tw-text-muted)', textTransform: 'uppercase', flexShrink: 0 }}>
-                      CTA:
-                    </span>
-                    <span>{replaceCopyPlaceholders(copy.cta, replacements)}</span>
-                  </div>
-
-                  {/* Expandable Partial Copy Section */}
-                  {isPartsExpanded && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px',
-                        padding: '10px',
-                        backgroundColor: 'var(--tw-hairline-faint)',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--tw-text-muted)' }}>Salin Bagian Tertentu:</span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPart(copy.hook, copy.id, 'hook')}
-                          style={{
-                            padding: '6px 8px',
-                            borderRadius: '5px',
-                            border: '1px solid var(--tw-border)',
-                            backgroundColor: 'var(--tw-background)',
-                            color: 'var(--tw-text-primary)',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          {copiedId === copy.id && copiedPart === 'hook' ? <Check size={12} color="var(--tw-income)" /> : <Copy size={12} />}
-                          <span>Hook Saja</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPart(copy.cta, copy.id, 'cta')}
-                          style={{
-                            padding: '6px 8px',
-                            borderRadius: '5px',
-                            border: '1px solid var(--tw-border)',
-                            backgroundColor: 'var(--tw-background)',
-                            color: 'var(--tw-text-primary)',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          {copiedId === copy.id && copiedPart === 'cta' ? <Check size={12} color="var(--tw-income)" /> : <Copy size={12} />}
-                          <span>CTA Saja</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Card Bottom Actions */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      paddingTop: '8px',
-                      borderTop: '1px solid var(--tw-surface-tint)',
-                    }}
-                  >
-                    {/* Salin Lengkap Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyFull(copy)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        backgroundColor: isJustCopied
-                          ? 'var(--tw-badge-success-bg)'
-                          : 'var(--tw-brand-primary)',
-                        color: isJustCopied ? 'var(--tw-income)' : 'var(--tw-background)',
-                        border: isJustCopied
-                          ? '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)'
-                          : 'none',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      {isJustCopied ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{isJustCopied ? 'Tersalin!' : 'Salin Lengkap'}</span>
-                    </button>
-
-                    {/* Share to WA */}
-                    <button
-                      type="button"
-                      onClick={() => handleShareWA(copy)}
-                      aria-label="Bagikan ke WhatsApp"
-                      title="Bagikan ke WhatsApp"
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        backgroundColor: 'var(--tw-background)',
-                        border: '1px solid var(--tw-border)',
-                        color: 'var(--tw-text-primary)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '5px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Share2 size={14} color="var(--tw-brand-primary)" />
-                      <span>Share WA</span>
-                    </button>
-
-                    {/* Toggle Partial Copy Accordion */}
-                    <button
-                      type="button"
-                      onClick={() => toggleExpandParts(copy.id)}
-                      aria-label="Opsi salin parsial"
-                      title="Salin bagian"
-                      style={{
-                        padding: '8px',
-                        borderRadius: '6px',
-                        backgroundColor: 'var(--tw-background)',
-                        border: '1px solid var(--tw-border)',
-                        color: 'var(--tw-text-muted)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {isPartsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+            ) : totalActiveItemsCount > PAGE_SIZE ? (
+              <p className="bc-muted">Semua {totalActiveItemsCount} caption sudah tampil</p>
+            ) : null}
           </div>
         )}
 
-        {/* Infinite Scroll Sentinel & Load Indicator */}
-        {totalActiveItemsCount > 0 && (
-          <div
-            ref={sentinelRef}
-            style={{
-              marginTop: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              paddingBottom: '16px',
-            }}
-          >
-            {hasMore ? (
-              <button
-                type="button"
-                onClick={loadMore}
-                style={{
-                  padding: '10px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  color: 'var(--tw-brand-primary)',
-                  backgroundColor: 'var(--tw-background)',
-                  border: '1px solid var(--tw-border)',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px var(--tw-surface-tint)',
-                }}
-              >
-                <Loader2 size={15} color="var(--tw-brand-primary)" style={{ animation: 'spin 1s linear infinite' }} />
-                <span>Memuat caption berikutnya ({currentlyDisplayedCount} dari {totalActiveItemsCount})...</span>
+        {/* Empty */}
+        {totalActiveItemsCount === 0 && (
+          <div className="bc-empty">
+            <Star size={28} aria-hidden="true" />
+            <h2 className="bc-card__title">{activeGoal === 'favorites' && !searchQuery ? 'Belum ada caption tersimpan' : 'Tidak ada caption'}</h2>
+            <p className="bc-muted">
+              {activeGoal === 'favorites' && !searchQuery
+                ? 'Ketuk ikon bintang di kartu caption untuk menyimpannya di sini.'
+                : `Tidak ada caption yang cocok dengan "${searchQuery}".`}
+            </p>
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} className="bc-btn">
+                Hapus pencarian
               </button>
-            ) : totalActiveItemsCount > PAGE_SIZE ? (
-              <div
-                style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '11px',
-                  color: 'var(--tw-text-muted)',
-                }}
-              >
-                Menampilkan seluruh {totalActiveItemsCount} materi caption
-              </div>
-            ) : null}
+            )}
           </div>
         )}
       </div>
 
-      <AgentBottomNavbar />
+      {/* Package and link sheet */}
+      {sheetOpen && (
+        <div className="bc-sheet" role="presentation" onClick={() => setSheetOpen(false)}>
+          <div className="bc-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="bc-sheet-title" onClick={(e) => e.stopPropagation()}>
+            <span className="bc-sheet__grip" aria-hidden="true" />
+            <div className="bc-sheet__head">
+              <h2 id="bc-sheet-title" className="bc-card__title">
+                Paket di caption
+              </h2>
+              <button type="button" className="bc-icon-btn" onClick={() => setSheetOpen(false)} aria-label="Tutup">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="bc-muted">Nama paket, harga, hotel, dan maskapai di caption diambil dari paket ini.</p>
+            {packages.length === 0 ? (
+              <p className="bc-muted">Belum ada paket yang tayang.</p>
+            ) : (
+              <ul className="bc-picks">
+                {packages.map((pkg) => (
+                  <li key={pkg.id}>
+                    <button
+                      type="button"
+                      className={`bc-pick${String(pkg.id) === selectedPackageId ? ' bc-pick--on' : ''}`}
+                      onClick={() => setSelectedPackageId(String(pkg.id))}
+                    >
+                      {/* Check on the left of the name; every row keeps the slot so names stay aligned. */}
+                      <span className="bc-pick__check" aria-hidden="true">
+                        {String(pkg.id) === selectedPackageId && <Check size={18} />}
+                      </span>
+                      <span className="bc-pick__name">{pkg.name}</span>
+                      {pkg.price ? <span className="bc-muted">{formatPrice(pkg.price)}</span> : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <label className="bc-switch">
+              <input type="checkbox" checked={includeReferralLink} onChange={(e) => setIncludeReferralLink(e.target.checked)} />
+              <span>Sertakan link pendaftaran saya di akhir caption</span>
+            </label>
+            <button type="button" className="bc-btn bc-btn--primary" onClick={() => setSheetOpen(false)}>
+              Selesai
+            </button>
+          </div>
+        </div>
+      )}
     </MobileContainer>
   );
 }

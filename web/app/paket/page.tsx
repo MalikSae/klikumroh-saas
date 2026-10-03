@@ -35,7 +35,8 @@ async function getPublishedPackages(host: string): Promise<PublicPackage[]> {
   }
 }
 
-async function getTenantInfo(host: string): Promise<PublicTenantInfo | null> {
+// null: no active travel for this host. 'down': the API could not be reached or failed (5xx).
+async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'down'> {
   const backendUrl = getBackendBaseUrl();
   try {
     const res = await fetch(`${backendUrl}/api/public/tenant-info`, {
@@ -47,14 +48,15 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null> {
     });
 
     if (!res.ok) {
-      return null;
+      const fromApi = (res.headers.get('content-type') || '').includes('application/json');
+      return res.status < 500 && fromApi ? null : 'down';
     }
 
     const data = await res.json();
     return data || null;
   } catch (err) {
     console.error('Failed to fetch tenant info:', err);
-    return null;
+    return 'down';
   }
 }
 
@@ -69,6 +71,10 @@ export default async function PaketPage() {
     getPublishedPackages(host),
     getTenantInfo(host),
   ]);
+
+  if (tenantInfo === 'down') {
+    return <SiteUnavailableView reason="down" />;
+  }
 
   if (!tenantInfo) {
     return <SiteUnavailableView />;

@@ -18,5 +18,5 @@
   position: relative;
   overflow-x: clip;
   /* Container-scoped token: soft brand-tinted background so internal elements harmonize with brand */
-  --tw-canvas-backdrop: color-mix(in srgb, var(--tw-brand-primary) 6%, #F8F9FA);
+  --tw-canvas-backdrop: color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-gray-50));
 }

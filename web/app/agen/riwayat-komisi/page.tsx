@@ -1,21 +1,13 @@
 'use client';
 
+// Agent commission history, bank-statement style: one summary card (released / held / withdrawn), segmented
+// filter, then transactions grouped by day as compact rows (in/out icon, title, status, amount).
+// A one-task page reached from Beranda or Tarik saldo: back button, no bottom tab bar.
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  ArrowDownLeft,
-  ArrowUpRight,
-  ReceiptText,
-  Calendar,
-  Search,
-  X,
-  AlertCircle,
-  RefreshCw,
-  Wallet,
-} from 'lucide-react';
+import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import './RiwayatKomisi.css';
 
 interface CommissionHistoryItem {
   id: number;
@@ -31,35 +23,73 @@ interface CommissionHistoryItem {
 
 const FILTER_TABS = [
   { key: '', label: 'Semua' },
-  { key: 'masuk', label: 'Komisi Masuk' },
-  { key: 'keluar', label: 'Pencairan' },
+  { key: 'masuk', label: 'Masuk' },
+  { key: 'keluar', label: 'Penarikan' },
 ];
 
-const formatRupiah = (val: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(Math.abs(val));
+// The search box appears once the list is long enough to need it.
+const SEARCH_FROM = 10;
+
+const formatRupiah = (val: number): string =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Math.abs(val));
+
+const dayKey = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA');
 };
 
-const formatDateTime = (dateStr: string): string => {
-  if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    const datePart = d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    const timePart = d.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    return `${datePart} • ${timePart} WIB`;
-  } catch {
-    return dateStr;
+const dayLabel = (key: string) => {
+  if (!key) return 'Tanpa tanggal';
+  const today = new Date().toLocaleDateString('en-CA');
+  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+  if (key === today) return 'Hari ini';
+  if (key === yesterday) return 'Kemarin';
+  return new Date(key + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const timeLabel = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+};
+
+// Status shown under the title: what the agent needs to know about this entry, in words.
+const statusOf = (item: CommissionHistoryItem): { text: string; tone: 'ok' | 'wait' | 'muted' | 'info' } => {
+  if (item.source === 'payout') {
+    switch (item.status) {
+      case 'pending':
+        return { text: 'Diproses admin', tone: 'info' };
+      case 'approved':
+        return { text: 'Menunggu transfer', tone: 'info' };
+      case 'paid':
+        return { text: 'Sudah ditransfer', tone: 'ok' };
+      case 'rejected':
+        return { text: 'Ditolak', tone: 'muted' };
+      default:
+        return { text: '', tone: 'muted' };
+    }
   }
+  if (item.held) return { text: 'Tertahan', tone: 'wait' };
+  if (item.type === 'override') return { text: 'Komisi tim · masuk saldo', tone: 'ok' };
+  if (item.type === 'correction') return { text: 'Koreksi admin', tone: 'muted' };
+  return { text: 'Masuk saldo', tone: 'ok' };
+};
+
+const typeLabel = (item: CommissionHistoryItem) => {
+  if (item.type === 'payout') return 'Penarikan ke rekening';
+  if (item.type === 'override') return 'Komisi tim (dari agen rekrutan)';
+  if (item.type === 'correction') return 'Koreksi oleh admin';
+  return 'Komisi jamaah';
+};
+
+const fullDateTime = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '-';
+  return `${d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${timeLabel(iso)}`;
+};
+
+const splitDescription = (text: string): { title: string; extra: string } => {
+  const m = /^Komisi (?:override )?dari (.+?)\s*\((\d+) jamaah\)\s*$/i.exec(text || '');
+  return m ? { title: m[1], extra: `${m[2]} jamaah` } : { title: text, extra: '' };
 };
 
 export default function RiwayatKomisiPage() {
@@ -69,765 +99,286 @@ export default function RiwayatKomisiPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [detail, setDetail] = useState<CommissionHistoryItem | null>(null);
+  // Card deck order: the first key is the card in front.
+  const [deck, setDeck] = useState<Array<'main' | 'wait' | 'done'>>(['main', 'wait', 'done']);
+  const bringToFront = (key: 'main' | 'wait' | 'done') => setDeck((d) => [key, ...d.filter((k) => k !== key)]);
 
-  const fetchHistory = async () => {
+  // Card face: travel name as the issuer (current profile).
+  const [travelName, setTravelName] = useState('');
+  useEffect(() => {
+    fetch('/api/public/tenant-info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.name) setTravelName(json.name);
+      })
+      .catch(() => {});
+  }, []);
+
+  const loadHistory = async () => {
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
       return;
     }
-
     try {
-      setLoading(true);
-      setError(null);
-
       const res = await fetch('/api/agent/commission-history', {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.status === 401) {
         localStorage.removeItem('agent_token');
         router.push('/agen/login');
         return;
       }
-
       if (res.status === 403) {
         router.push('/agen/status');
         return;
       }
-
-      if (!res.ok) {
-        throw new Error('Gagal memuat riwayat transaksi komisi');
-      }
-
+      if (!res.ok) throw new Error('Gagal memuat riwayat komisi');
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem');
     } finally {
       setLoading(false);
     }
   };
 
+  const retry = () => {
+    setLoading(true);
+    setError(null);
+    return loadHistory();
+  };
+
   useEffect(() => {
-    fetchHistory();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
+    loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Calculate totals
+  // Released vs held commission, and what was withdrawn (rejected requests excluded).
   const summary = useMemo(() => {
-    let totalMasuk = 0;
-    let totalKeluar = 0;
+    let cair = 0;
+    let tertahan = 0;
+    let sudahCair = 0; // withdrawals the travel has verified (approved or paid)
     items.forEach((item) => {
       if (item.direction === 'masuk') {
-        totalMasuk += Math.abs(item.amount);
-      } else if (item.direction === 'keluar' && item.status !== 'rejected') {
-        totalKeluar += Math.abs(item.amount);
+        if (item.held) tertahan += Math.abs(item.amount);
+        else cair += Math.abs(item.amount);
+      } else if (item.direction === 'keluar' && (item.status === 'approved' || item.status === 'paid')) {
+        sudahCair += Math.abs(item.amount);
       }
     });
-    return { totalMasuk, totalKeluar };
+    // Saldo bisa dicairkan: released commission not paid out yet, including requests still being processed.
+    return { tertahan, sudahCair, bisaDicairkan: Math.max(0, cair - sudahCair) };
   }, [items]);
 
-  // Tab counts
-  const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = {
-      '': items.length,
-      masuk: 0,
-      keluar: 0,
-    };
-    items.forEach((item) => {
-      if (item.direction === 'masuk') {
-        counts.masuk += 1;
-      } else if (item.direction === 'keluar') {
-        counts.keluar += 1;
-      }
+  const filtered = useMemo(
+    () =>
+      items.filter((item) => {
+        if (activeTab && item.direction !== activeTab) return false;
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        return item.description?.toLowerCase().includes(q) || String(item.amount).includes(q);
+      }),
+    [items, activeTab, searchQuery]
+  );
+
+  // Newest first, grouped by day.
+  const groups = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    const map = new Map<string, CommissionHistoryItem[]>();
+    sorted.forEach((item) => {
+      const k = dayKey(item.created_at);
+      map.set(k, [...(map.get(k) || []), item]);
     });
-    return counts;
-  }, [items]);
-
-  // Filtered items
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      // Tab filter
-      if (activeTab && item.direction !== activeTab) {
-        return false;
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const descMatch = item.description?.toLowerCase().includes(q);
-        const amountMatch = String(item.amount).includes(q);
-        const typeMatch = item.type?.toLowerCase().includes(q);
-        return descMatch || amountMatch || typeMatch;
-      }
-
-      return true;
-    });
-  }, [items, activeTab, searchQuery]);
-
-  const getTypeBadge = (item: CommissionHistoryItem) => {
-    if (item.type === 'payout') {
-      return {
-        label: 'Pencairan',
-        bg: 'color-mix(in srgb, var(--tw-rating-star) 12%, var(--tw-background))',
-        color: 'var(--tw-rating-star)',
-        border: '1px solid color-mix(in srgb, var(--tw-rating-star) 25%, transparent)',
-      };
-    }
-    if (item.type === 'override') {
-      return {
-        label: 'Komisi Tim',
-        bg: 'color-mix(in srgb, var(--tw-accent-indigo) 12%, var(--tw-background))',
-        color: 'var(--tw-accent-indigo-strong)',
-        border: '1px solid color-mix(in srgb, var(--tw-accent-indigo) 25%, transparent)',
-      };
-    }
-    if (item.type === 'correction') {
-      return {
-        label: 'Koreksi',
-        bg: 'var(--tw-badge-neutral-bg)',
-        color: 'var(--tw-text-secondary)',
-        border: '1px solid var(--tw-border)',
-      };
-    }
-    return {
-      label: 'Komisi Referral',
-      bg: 'color-mix(in srgb, var(--tw-brand-primary) 12%, var(--tw-background))',
-      color: 'var(--tw-brand-primary)',
-      border: '1px solid color-mix(in srgb, var(--tw-brand-primary) 28%, transparent)',
-    };
-  };
-
-  const getStatusBadge = (item: CommissionHistoryItem) => {
-    if (item.source === 'payout') {
-      switch (item.status) {
-        case 'pending':
-          return {
-            label: 'Diproses',
-            bg: 'color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background))',
-            color: 'var(--tw-rating-star)',
-            border: '1px solid color-mix(in srgb, var(--tw-rating-star) 30%, transparent)',
-          };
-        case 'approved':
-          return {
-            label: 'Disetujui',
-            bg: 'color-mix(in srgb, var(--tw-status-new) 14%, var(--tw-background))',
-            color: 'var(--tw-status-new-text)',
-            border: '1px solid color-mix(in srgb, var(--tw-status-new) 30%, transparent)',
-          };
-        case 'paid':
-          return {
-            label: 'Selesai',
-            bg: 'var(--tw-badge-success-bg)',
-            color: 'var(--tw-income)',
-            border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
-          };
-        case 'rejected':
-          return {
-            label: 'Ditolak',
-            bg: 'var(--tw-badge-neutral-bg)',
-            color: 'var(--tw-text-muted)',
-            border: '1px solid var(--tw-border)',
-          };
-        default:
-          return null;
-      }
-    }
-    if (item.held) {
-      return {
-        label: 'Tertahan',
-        bg: 'color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background))',
-        color: 'var(--tw-status-contacted-text)',
-        border: '1px solid color-mix(in srgb, var(--tw-rating-star) 30%, transparent)',
-      };
-    }
-    return {
-      label: 'Berhasil',
-      bg: 'var(--tw-badge-success-bg)',
-      color: 'var(--tw-income)',
-      border: '1px solid color-mix(in srgb, var(--tw-status-closing) 30%, transparent)',
-    };
-  };
+    return [...map.entries()];
+  }, [filtered]);
 
   return (
     <MobileContainer>
-      {/* Sticky Header — Consistent with /agen/jamaah */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => router.push('/agen/dashboard')}
-          aria-label="Kembali ke Dashboard"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '6px',
-            cursor: 'pointer',
-            color: 'var(--tw-text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '8px',
-            flexShrink: 0,
-          }}
-        >
+      <header className="rk-header">
+        <button type="button" className="rk-icon-btn" onClick={() => router.push('/agen/dashboard')} aria-label="Kembali ke beranda">
           <ArrowLeft size={20} />
         </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-              lineHeight: 1.2,
-            }}
-          >
-            Riwayat Komisi
-          </h1>
-          <span style={{ fontSize: '11px', color: 'var(--tw-text-muted)', lineHeight: 1.3 }}>
-            Catatan komisi &amp; mutasi saldo Anda
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => router.push('/agen/tarik-saldo')}
-          style={{
-            padding: '7px 12px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--tw-brand-primary)',
-            color: 'var(--tw-on-brand)',
-            fontSize: '12px',
-            fontWeight: 700,
-            border: 'none',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            flexShrink: 0,
-          }}
-        >
-          <Wallet size={14} />
-          <span>Tarik Saldo</span>
+        <h1 className="rk-header__title">Riwayat komisi</h1>
+        <button type="button" className="rk-icon-btn" onClick={() => router.push('/agen/tarik-saldo')} aria-label="Tarik saldo">
+          <ArrowDownToLine size={20} />
         </button>
       </header>
 
-      {/* Main Canvas */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '14px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        {/* Top Summary Widgets */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '10px',
-          }}
-        >
-          {/* Card Total Masuk */}
-          <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              boxShadow: 'var(--tw-card-shadow)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '6px',
-                  backgroundColor: 'color-mix(in srgb, var(--tw-income) 12%, var(--tw-background))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <ArrowDownLeft size={14} color="var(--tw-income)" />
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tw-text-muted)' }}>
-                Total Masuk
-              </span>
-            </div>
-            <span
-              style={{
-                fontSize: '15px',
-                fontWeight: 800,
-                color: 'var(--tw-income)',
-                fontFamily: 'var(--tw-font-heading)',
-                fontVariantNumeric: 'tabular-nums',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {formatRupiah(summary.totalMasuk)}
-            </span>
-          </div>
-
-          {/* Card Total Keluar */}
-          <div
-            style={{
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              boxShadow: 'var(--tw-card-shadow)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '6px',
-                  backgroundColor: 'color-mix(in srgb, var(--tw-expense) 10%, var(--tw-background))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <ArrowUpRight size={14} color="var(--tw-expense)" />
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--tw-text-muted)' }}>
-                Total Dicairkan
-              </span>
-            </div>
-            <span
-              style={{
-                fontSize: '15px',
-                fontWeight: 800,
-                color: 'var(--tw-text-primary)',
-                fontFamily: 'var(--tw-font-heading)',
-                fontVariantNumeric: 'tabular-nums',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {formatRupiah(summary.totalKeluar)}
-            </span>
-          </div>
-        </div>
-
-        {/* Search Bar — Consistent with /agen/jamaah */}
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              left: '12px',
-              color: 'var(--tw-text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <Search size={15} />
-          </div>
-          <input
-            type="text"
-            placeholder="Cari transaksi atau nama jamaah..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px 36px 10px 36px',
-              fontSize: '13px',
-              backgroundColor: 'var(--tw-background)',
-              border: '1px solid var(--tw-border)',
-              borderRadius: '8px',
-              color: 'var(--tw-text-primary)',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: 'var(--tw-text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title="Hapus pencarian"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        {/* Filter Tabs — Consistent with /agen/jamaah */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {FILTER_TABS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveTab(tab.key)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  border: isActive
-                    ? '1px solid var(--tw-brand-primary)'
-                    : '1px solid var(--tw-border)',
-                  backgroundColor: isActive ? 'var(--tw-brand-primary)' : 'var(--tw-background)',
-                  color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-secondary)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{tab.label}</span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    backgroundColor: isActive ? 'var(--tw-on-brand-subtle)' : 'var(--tw-hairline)',
-                    color: isActive ? 'var(--tw-on-brand)' : 'var(--tw-text-muted)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {tabCounts[tab.key] || 0}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content Body */}
+      <div className="rk-page">
         {loading ? (
-          <div
-            style={{
-              padding: '60px 20px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                border: '3px solid var(--tw-border)',
-                borderTopColor: 'var(--tw-brand-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-            <span style={{ fontSize: '13px', color: 'var(--tw-text-muted)' }}>
-              Memuat riwayat transaksi komisi...
-            </span>
-            <style jsx>{`
-              @keyframes spin {
-                to {
-                  transform: rotate(360deg);
-                }
-              }
-            `}</style>
+          <div className="rk-center" role="status">
+            <span className="rk-spinner" aria-hidden="true" />
+            <span>Memuat riwayat...</span>
           </div>
         ) : error ? (
-          <div
-            style={{
-              padding: '36px 16px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div style={{ color: 'var(--tw-brand-primary)' }}>
-              <AlertCircle size={32} />
-            </div>
-            <p style={{ fontSize: '14px', color: 'var(--tw-text-primary)', margin: 0, fontWeight: 600 }}>
-              {error}
-            </p>
-            <button
-              type="button"
-              onClick={() => fetchHistory()}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <RefreshCw size={13} />
-              <span>Coba Lagi</span>
-            </button>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div
-            style={{
-              padding: '48px 20px',
-              backgroundColor: 'var(--tw-background)',
-              borderRadius: '12px',
-              border: '1px solid var(--tw-hairline)',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '12px',
-            }}
-          >
-            <div style={{ color: 'var(--tw-text-muted)' }}>
-              <ReceiptText size={36} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <h2
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  margin: 0,
-                  color: 'var(--tw-text-primary)',
-                  fontFamily: 'var(--tw-font-heading)',
-                }}
-              >
-                Belum Ada Riwayat Transaksi
-              </h2>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: 'var(--tw-text-secondary)',
-                  margin: 0,
-                  lineHeight: 1.5,
-                  maxWidth: '280px',
-                }}
-              >
-                {searchQuery
-                  ? `Tidak ada transaksi yang sesuai dengan "${searchQuery}".`
-                  : activeTab === 'masuk'
-                  ? 'Belum ada catatan komisi masuk dari jamaah.'
-                  : activeTab === 'keluar'
-                  ? 'Belum ada catatan pengajuan pencairan saldo.'
-                  : 'Setiap komisi dari jamaah closing dan riwayat pengajuan pencairan dana akan tercatat di sini.'}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => router.push('/agen/jamaah')}
-              style={{
-                marginTop: '4px',
-                padding: '9px 16px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--tw-brand-primary)',
-                color: 'var(--tw-on-brand)',
-                fontSize: '13px',
-                fontWeight: 700,
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <span>Lihat Prospek Jamaah</span>
+          <div className="rk-center">
+            <AlertCircle size={28} className="rk-center__icon" aria-hidden="true" />
+            <p className="rk-title">Riwayat belum bisa dimuat</p>
+            <p className="rk-muted">{error}</p>
+            <button type="button" className="rk-btn" onClick={() => retry()}>
+              <RefreshCw size={18} aria-hidden="true" />
+              Coba lagi
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredItems.map((tx) => {
-              const isPayout = tx.type === 'payout';
-              const isRejected = isPayout && tx.status === 'rejected';
-              const isIncoming = tx.direction === 'masuk';
-              const typeBadge = getTypeBadge(tx);
-              const statusBadge = getStatusBadge(tx);
+          <>
+            <section className="rk-summary" role="tablist" aria-label="Ringkasan komisi">
+              {[
+                { key: 'main' as const, label: 'Siap ditarik', value: summary.bisaDicairkan },
+                { key: 'wait' as const, label: 'Tertahan', value: summary.tertahan },
+                { key: 'done' as const, label: 'Sudah ditarik', value: summary.sudahCair },
+              ].map((card) => {
+                const pos = deck.indexOf(card.key);
+                const front = pos === 0;
+                return (
+                  <button
+                    key={card.key}
+                    type="button"
+                    className={`rk-stat rk-stat--${card.key} rk-stat--pos${pos}`}
+                    role="tab"
+                    aria-selected={front}
+                    aria-label={`${card.label}: ${formatRupiah(card.value)}`}
+                    onClick={() => bringToFront(card.key)}
+                  >
+                    {/* Title on the visible edge while the card is behind */}
+                    <span className="rk-stat__edge" aria-hidden="true">
+                      {card.label}
+                    </span>
+                    {/* Credit-card layout: issuer (travel) and icon on top, amount in the middle, holder below */}
+                    <span className="rk-stat__issuer">{travelName || 'Komisi agen'}</span>
+                    <span className="rk-stat__label">{card.label}</span>
+                    <strong className={`rk-stat__value${formatRupiah(card.value).length > 14 ? ' rk-stat__value--long' : ''}`}>
+                      {formatRupiah(card.value)}
+                    </strong>
+                  </button>
+                );
+              })}
+            </section>
 
-              return (
-                <div
-                  key={`${tx.source}-${tx.id}`}
-                  style={{
-                    backgroundColor: 'var(--tw-background)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--tw-hairline)',
-                    padding: '14px 15px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: 'var(--tw-card-shadow)',
-                    opacity: isRejected ? 0.6 : 1,
-                  }}
+            <div className="rk-tabs" role="tablist" aria-label="Jenis transaksi">
+              {FILTER_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.key}
+                  className={`rk-tab${activeTab === tab.key ? ' rk-tab--on' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
                 >
-                  {/* Row 1: Type Badge & Nominal */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        backgroundColor: typeBadge.bg,
-                        color: typeBadge.color,
-                        border: typeBadge.border,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {typeBadge.label}
-                    </span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-                    <span
-                      style={{
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        fontVariantNumeric: 'tabular-nums',
-                        fontFamily: 'var(--tw-font-heading)',
-                        color: isRejected
-                          ? 'var(--tw-text-muted)'
-                          : isIncoming
-                          ? 'var(--tw-income)'
-                          : 'var(--tw-text-primary)',
-                      }}
-                    >
-                      {isRejected
-                        ? formatRupiah(Math.abs(tx.amount))
-                        : isIncoming
-                        ? `+ ${formatRupiah(Math.abs(tx.amount))}`
-                        : `- ${formatRupiah(Math.abs(tx.amount))}`}
-                    </span>
-                  </div>
+            {items.length >= SEARCH_FROM && (
+              <div className="rk-search">
+                <Search size={18} className="rk-search__icon" aria-hidden="true" />
+                <input
+                  type="text"
+                  className="tw-field rk-search__input"
+                  placeholder="Cari nama jamaah atau nominal"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Cari transaksi"
+                />
+                {searchQuery && (
+                  <button type="button" className="rk-search__clear" onClick={() => setSearchQuery('')} aria-label="Hapus pencarian">
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            )}
 
-                  {/* Row 2: Description */}
-                  <div>
-                    <span
-                      style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: isRejected
-                          ? 'var(--tw-text-muted)'
-                          : 'var(--tw-text-primary)',
-                        lineHeight: 1.35,
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {tx.description}
-                    </span>
-                  </div>
-
-                  {/* Row 3: Tanggal/Waktu & Status Badge */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '11px',
-                      color: 'var(--tw-text-muted)',
-                      paddingTop: '6px',
-                      borderTop: '1px solid var(--tw-surface-tint)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <Calendar size={13} color="var(--tw-text-muted)" />
-                      <span>{formatDateTime(tx.created_at)}</span>
-                    </div>
-
-                    {statusBadge && (
-                      <span
-                        style={{
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          fontSize: '10px',
-                          fontWeight: 600,
-                          backgroundColor: statusBadge.bg,
-                          color: statusBadge.color,
-                          border: statusBadge.border,
-                        }}
-                      >
-                        {statusBadge.label}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            {groups.length === 0 ? (
+              <div className="rk-center rk-center--empty">
+                <ReceiptText size={32} className="rk-muted-icon" aria-hidden="true" />
+                <p className="rk-title">
+                  {searchQuery ? 'Tidak ada yang cocok' : activeTab === 'keluar' ? 'Belum ada penarikan' : 'Belum ada komisi'}
+                </p>
+                <p className="rk-muted">
+                  {searchQuery
+                    ? `Tidak ada transaksi yang cocok dengan "${searchQuery}".`
+                    : 'Komisi tercatat di sini setelah calon jamaah dari link Anda closing.'}
+                </p>
+              </div>
+            ) : (
+              groups.map(([key, list]) => (
+                <section key={key || 'none'} className="rk-day" aria-label={dayLabel(key)}>
+                  <h2 className="rk-day__label">{dayLabel(key)}</h2>
+                  <ul className="rk-list">
+                    {list.map((tx) => {
+                      const keluar = tx.direction === 'keluar';
+                      const rejected = keluar && tx.status === 'rejected';
+                      const st = statusOf(tx);
+                      return (
+                        <li key={`${tx.source}-${tx.id}`}>
+                          <button type="button" className="rk-row" onClick={() => setDetail(tx)}>
+                          <span className={`rk-row__icon${keluar ? ' rk-row__icon--out' : ''}`} aria-hidden="true">
+                            {keluar ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
+                          </span>
+                          <span className="rk-row__text">
+                            <span className="rk-row__title">{keluar ? 'Penarikan ke rekening' : splitDescription(tx.description).title}</span>
+                            <span className="rk-row__meta">
+                              {/* Second line: jamaah count (or time) then the status; a withdrawal shows its status only. Full time is in the detail. */}
+                              {!keluar && <span>{splitDescription(tx.description).extra || timeLabel(tx.created_at)}</span>}
+                              {st.text && <span className={`rk-status rk-status--${st.tone}`}>{st.text}</span>}
+                            </span>
+                          </span>
+                          <span
+                            className={`rk-row__amount${keluar ? '' : ' rk-row__amount--in'}${rejected ? ' rk-row__amount--void' : ''}`}
+                          >
+                            {keluar ? '−' : '+'}
+                            {formatRupiah(tx.amount)}
+                          </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))
+            )}
+          </>
         )}
       </div>
 
-      <AgentBottomNavbar />
+      {detail && (
+        <div className="rk-sheet" role="presentation" onClick={() => setDetail(null)}>
+          <div className="rk-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="rk-sheet-title" onClick={(e) => e.stopPropagation()}>
+            <span className="rk-sheet__grip" aria-hidden="true" />
+            <p className="rk-muted">{typeLabel(detail)}</p>
+            <p
+              id="rk-sheet-title"
+              className={`rk-sheet__amount${detail.direction === 'keluar' ? '' : ' rk-row__amount--in'}${
+                detail.direction === 'keluar' && detail.status === 'rejected' ? ' rk-row__amount--void' : ''
+              }`}
+            >
+              {detail.direction === 'keluar' ? '−' : '+'}
+              {formatRupiah(detail.amount)}
+            </p>
+            <dl className="rk-sheet__list">
+              <div>
+                <dt>Keterangan</dt>
+                <dd>{detail.direction === 'keluar' ? 'Penarikan saldo ke rekening Anda' : detail.description}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd className={`rk-status rk-status--${statusOf(detail).tone}`}>{statusOf(detail).text || '-'}</dd>
+              </div>
+              <div>
+                <dt>Waktu</dt>
+                <dd>{fullDateTime(detail.created_at)}</dd>
+              </div>
+            </dl>
+            <button type="button" className="rk-btn rk-sheet__close" onClick={() => setDetail(null)}>
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
     </MobileContainer>
   );
 }

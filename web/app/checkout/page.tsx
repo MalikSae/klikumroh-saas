@@ -28,7 +28,7 @@ export default async function CheckoutPage() {
         >
           <Loader2
             size={32}
-            style={{ color: '#09090B', animation: 'spin 1s linear infinite' }}
+            style={{ color: 'var(--km-ink)', animation: 'spin 1s linear infinite' }}
           />
         </div>
       }

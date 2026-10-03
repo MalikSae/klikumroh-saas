@@ -1,0 +1,558 @@
+/* Agent caption bank (app/agen/bank-caption/page.tsx). Same patterns as the Script chat page (sw-*): drill-down
+   page, no tab bar, brand colors as approved (active category chip, "Kirim ke WA").
+   Content text 14px+, labels 13px, inputs 16px, action buttons 40px. */
+
+.bc-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 16px 0 4px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.bc-header__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.bc-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 12px 16px 32px;
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.bc-loading {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--tw-neutral-500);
+}
+
+.bc-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.bc-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tw-brand-primary);
+  font: 600 13px var(--tw-font-body);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Icon buttons (back, star, copy, expand): 36px, 44px in the header. */
+.bc-icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+.bc-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.bc-icon-btn--lg {
+  width: 44px;
+  height: 44px;
+  color: var(--tw-neutral-900);
+}
+
+.bc-icon-btn--fav {
+  color: var(--tw-rating-star);
+}
+
+.bc-icon-btn--done {
+  color: var(--tw-brand-primary);
+}
+
+/* Buttons */
+.bc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 600 14px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.bc-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.bc-btn--done {
+  color: var(--tw-brand-primary);
+}
+
+.bc-btn--primary {
+  border-color: transparent;
+  background-color: var(--tw-brand-primary);
+  color: var(--tw-on-brand);
+}
+
+.bc-btn--primary:hover {
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900));
+}
+
+/* Package row (opens the settings sheet) */
+.bc-target {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 12px;
+  background-color: var(--tw-background);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bc-target:hover {
+  border-color: var(--tw-neutral-300);
+}
+
+.bc-target__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bc-target__label {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.bc-target__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bc-target__meta {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bc-target__chev {
+  flex-shrink: 0;
+  color: var(--tw-neutral-500);
+}
+
+/* Search */
+.bc-search {
+  position: relative;
+}
+
+.bc-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--tw-neutral-400);
+  pointer-events: none;
+}
+
+.bc-search__input {
+  padding-left: 40px;
+  padding-right: 44px;
+}
+
+.bc-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.bc-search__clear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+/* Category chips: scroll sideways; the active one keeps the brand fill. */
+.bc-chips {
+  display: flex;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 0 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, var(--tw-neutral-900) calc(100% - 32px), transparent);
+}
+
+.bc-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.bc-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-700);
+  font: 500 14px var(--tw-font-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bc-chip:last-child {
+  margin-right: 24px;
+}
+
+.bc-chip--active {
+  background-color: var(--tw-brand-primary);
+  color: var(--tw-on-brand);
+}
+
+.bc-chip__count {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.bc-chip--active .bc-chip__count {
+  color: color-mix(in srgb, var(--tw-on-brand) 80%, transparent);
+}
+
+/* Caption cards */
+.bc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+}
+
+.bc-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.bc-card__titles,
+.bc-card__toggle {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+
+.bc-card__toggle {
+  cursor: pointer;
+}
+
+.bc-card__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--tw-neutral-900);
+}
+
+.bc-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Load more, empty */
+.bc-more {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+
+.bc-spin {
+  animation: bc-spin 0.9s linear infinite;
+}
+
+@keyframes bc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  border-radius: 16px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-400);
+  text-align: center;
+}
+
+/* Package and link sheet */
+.bc-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: var(--tw-modal-overlay);
+}
+
+.bc-sheet__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 428px;
+  max-height: 85vh;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background-color: var(--tw-background);
+  animation: bc-sheet-in 0.2s ease-out;
+}
+
+@keyframes bc-sheet-in {
+  from {
+    transform: translateY(24px);
+  }
+}
+
+.bc-sheet__grip {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--tw-neutral-200);
+}
+
+.bc-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bc-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background-color: var(--tw-neutral-100);
+}
+
+.bc-seg__btn {
+  min-height: 36px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  font: 500 14px var(--tw-font-body);
+  color: var(--tw-neutral-600);
+  cursor: pointer;
+}
+
+.bc-seg__btn--on {
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-card-shadow);
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.bc-picks {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.bc-picks li + li .bc-pick {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.bc-pick {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 10px 4px;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bc-pick:hover {
+  background-color: var(--tw-page-bg);
+}
+
+.bc-pick--on .bc-pick__name {
+  color: var(--tw-brand-primary);
+}
+
+.bc-pick__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tw-neutral-900);
+}
+
+.bc-pick__meta {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+.bc-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bc-manual .bc-btn {
+  margin-top: 8px;
+}
+
+/* "Salin sebagian" toggle state */
+.bc-icon-btn--on {
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-900);
+}
+
+.bc-parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bc-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 999px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 500 13px var(--tw-font-body);
+  cursor: pointer;
+}
+
+/* The caption as copied: light brand tint, opener in bold. */
+.bc-text {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 3%, var(--tw-background));
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-800);
+  white-space: pre-wrap;
+}
+
+.bc-text strong {
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.bc-text__link {
+  color: var(--tw-neutral-500);
+}
+
+.bc-pick {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.bc-pick__name {
+  flex: 1;
+}
+
+.bc-pick__check {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 18px;
+  color: var(--tw-brand-primary);
+}
+
+.bc-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--tw-neutral-800);
+  cursor: pointer;
+}
+
+.bc-switch input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--tw-brand-primary);
+}

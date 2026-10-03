@@ -3,19 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  LogIn,
-  Lock,
-  Mail,
-  AlertCircle,
-  UserPlus,
-  Eye,
-  EyeOff,
-  MessageCircle,
-} from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
-import { BottomNavbar } from '../../../components/BottomNavbar';
+import { PublicFooter } from '../../../components/PublicFooter';
+import { BrandMark } from '../../../components/BrandMark';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import designTokens from '../../../../design-tokens.json';
@@ -25,8 +17,12 @@ interface TenantInfo {
   name?: string;
   brand_primary_color?: string;
   brand_logo_url?: string;
+  brand_icon_url?: string;
   whatsapp_number?: string;
   ppiu_number?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
 }
 
 export default function AgenLoginPage() {
@@ -103,8 +99,8 @@ export default function AgenLoginPage() {
       } else {
         setErrorMessage('Gagal menerima sesi autentikasi agen');
       }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Terjadi kesalahan koneksi. Silakan coba lagi.');
+    } catch (err: unknown) {
+      setErrorMessage((err instanceof Error && err.message) || 'Terjadi kesalahan koneksi. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
@@ -117,108 +113,64 @@ export default function AgenLoginPage() {
     ? { '--tw-brand-primary': tenantInfo.brand_primary_color }
     : {};
 
-  // No travel WhatsApp number -> hide the help links instead of pointing to a placeholder number.
+  // No travel WhatsApp number -> hide the help link instead of pointing to a placeholder number.
   const travelLabel = tenantInfo?.name || 'travel';
   const helpWaUrl = whatsappLink(
     tenantInfo?.whatsapp_number,
-    `Halo Admin, saya mitra agen ${travelLabel} butuh bantuan login akun`
-  );
-  const forgotPasswordWaUrl = whatsappLink(
-    tenantInfo?.whatsapp_number,
-    `Halo Admin, saya mitra agen ${travelLabel} lupa password akun saya (Email: ${email || '-'})`
+    email.trim()
+      ? `Halo Admin, saya mitra agen ${travelLabel} lupa password / tidak bisa masuk (email: ${email.trim()})`
+      : `Halo Admin, saya mitra agen ${travelLabel} lupa password / tidak bisa masuk`
   );
 
   return (
-    <div
-      className="tw-agen-login-wrap"
-      style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}
-    >
+    <div className="tw-agen-login-wrap" style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}>
       <MobileContainer>
-        {/* 1. App Bar Header (Back button + Title, Logo is strictly Home only) */}
-        <PublicHeader
-          title="Akun Saya"
-          showBack={true}
-          onBackClick={handleBack}
-          backHref="/"
-          hideNotification={true}
-        />
+        <PublicHeader title="Masuk Agen" showBack={true} onBackClick={handleBack} backHref="/" hideNotification={true} />
 
         <div className="tw-agen-login-body">
-          {/* 2. Page Header Banner */}
           <div className="tw-agen-login-header">
-            <span className="tw-agen-login-tag">
-              {tenantInfo?.name || 'Portal Mitra Agen'}
-            </span>
-            <h1 className="tw-agen-login-title">
-              Masuk ke Akun Agen
-            </h1>
-            <p className="tw-agen-login-subtitle">
-              Akses dashboard kemitraan, pantau komisi, dan kelola calon jamaah Anda.
-            </p>
+            <BrandMark name={tenantInfo?.name} logoUrl={tenantInfo?.brand_logo_url} iconUrl={tenantInfo?.brand_icon_url} fallback="Portal Mitra Agen" />
+            <h1 className="tw-agen-login-title">Masuk ke akun agen</h1>
+            <p className="tw-agen-login-subtitle">Pantau komisi dan calon jamaah Anda.</p>
           </div>
 
-          {/* 3. Error Alert Banner */}
           {errorMessage && (
-            <div className="tw-agen-login-alert" role="alert">
-              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+            <p className="tw-agen-login-alert" role="alert">
+              <AlertCircle size={18} aria-hidden="true" />
               <span>{errorMessage}</span>
-            </div>
+            </p>
           )}
 
-          {/* 4. Login Form Card */}
-          <form onSubmit={handleSubmit} className="tw-agen-login-card">
-            {/* Email Field */}
+          <form onSubmit={handleSubmit} className="tw-agen-login-form">
             <div className="tw-agen-login-field">
-              <label className="tw-agen-login-label" htmlFor="login-email">
-                Alamat Email
+              <label className="tw-field-label" htmlFor="login-email">
+                Email
               </label>
-              <div className="tw-agen-login-input-wrap">
-                <Mail size={16} className="tw-agen-login-icon-left" />
-                <input
-                  id="login-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nama@email.com"
-                  className="tw-agen-login-input"
-                  disabled={isSubmitting}
-                  autoComplete="email"
-                  required
-                />
-              </div>
+              <input
+                id="login-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@email.com"
+                className="tw-field"
+                disabled={isSubmitting}
+                autoComplete="email"
+                required
+              />
             </div>
 
-            {/* Password Field */}
             <div className="tw-agen-login-field">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label className="tw-agen-login-label" htmlFor="login-password" style={{ margin: 0 }}>
-                  Password
-                </label>
-                {forgotPasswordWaUrl && (
-                  <a
-                    href={forgotPasswordWaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      fontSize: '12px',
-                      color: 'var(--tw-brand-primary, var(--tw-accent-teal))',
-                      textDecoration: 'none',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Lupa password?
-                  </a>
-                )}
-              </div>
-              <div className="tw-agen-login-input-wrap">
-                <Lock size={16} className="tw-agen-login-icon-left" />
+              <label className="tw-field-label" htmlFor="login-password">
+                Password
+              </label>
+              <div className="tw-agen-login-pw">
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password Anda"
-                  className="tw-agen-login-input"
+                  placeholder="Password Anda"
+                  className="tw-field tw-field--pw"
                   disabled={isSubmitting}
                   autoComplete="current-password"
                   required
@@ -229,72 +181,39 @@ export default function AgenLoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div style={{ marginTop: '4px' }}>
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                disabled={isSubmitting}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                }}
-              >
-                <LogIn size={18} />
-                <span>{isSubmitting ? 'Memproses Masuk...' : 'Masuk ke Dashboard'}</span>
-              </Button>
-            </div>
+            <Button type="submit" variant="primary" size="lg" disabled={isSubmitting} className="tw-agen-login-submit">
+              {isSubmitting ? 'Memproses...' : 'Masuk'}
+            </Button>
 
-            {/* Help Link */}
             {helpWaUrl && (
-              <a
-                href={helpWaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tw-agen-login-help"
-              >
-                <MessageCircle size={14} />
-                <span>Kendala login? Hubungi Admin</span>
+              <a href={helpWaUrl} target="_blank" rel="noopener noreferrer" className="tw-agen-login-link">
+                Lupa password? Hubungi admin
               </a>
             )}
           </form>
 
-          {/* 5. Registration CTA Card */}
-          <div className="tw-agen-login-register-card">
-            <h2 className="tw-agen-login-register-title">
-              Belum Menjadi Mitra Agen {tenantInfo?.name || 'Kami'}?
-            </h2>
-            <p className="tw-agen-login-register-desc">
-              Daftar sekarang untuk mendapatkan link referral resmi dan potensi komisi per jamaah.
-            </p>
-            <Link
-              href="/agen/daftar"
-              className="tw-button tw-button--secondary tw-button--sm"
-              style={{
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginTop: '4px',
-              }}
-            >
-              <UserPlus size={16} />
-              <span>Daftar Jadi Mitra Agen</span>
+          <p className="tw-agen-login-register">
+            Belum jadi mitra {tenantInfo?.name || 'kami'}?{' '}
+            <Link href="/agen/daftar" className="tw-agen-login-link">
+              Daftar sekarang
             </Link>
-          </div>
+          </p>
         </div>
-      </MobileContainer>
 
-      {/* 6. Persistent Bottom Navigation */}
-      <BottomNavbar waNumber={tenantInfo?.whatsapp_number || undefined} />
+        <PublicFooter
+          tenantName={tenantInfo?.name}
+          address={tenantInfo?.address}
+          phone={tenantInfo?.phone}
+          whatsappNumber={tenantInfo?.whatsapp_number}
+          email={tenantInfo?.email}
+          ppiuNumber={tenantInfo?.ppiu_number}
+        />
+      </MobileContainer>
     </div>
   );
 }

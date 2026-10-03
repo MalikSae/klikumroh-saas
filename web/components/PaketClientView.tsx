@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { MobileContainer } from './MobileContainer';
 import { PublicHeader } from './PublicHeader';
-import { PackageCard } from './PackageCard';
+import { PackageTile } from './PackageTile';
+import { ConsultantCard } from './ConsultantCard';
+import { useConsultant } from '../lib/consultant';
 import { PublicFooter } from './PublicFooter';
-import { BottomNavbar } from './BottomNavbar';
-import { MenuBottomSheet } from './MenuBottomSheet';
+import { PublicTabBar } from './PublicTabBar';
 import { ProspectModal } from './ProspectModal';
 import { Button } from './Button';
-import { seatsLabel, type PublicPackage } from './publicPackage';
+import { CustomDropdown } from './CustomDropdown';
+import type { PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { selectHomePackages, type PackageOrder } from './home-package-selection';
 import designTokens from '../../design-tokens.json';
@@ -19,6 +21,18 @@ import './HomeClientView.css';
 import './PaketClientView.css';
 
 const PAGE_SIZE = 4;
+
+// Month filter options: only months that have a departure, in date order.
+function departureMonths(packages: PublicPackage[]) {
+  const months = [...new Set(packages.map((p) => (p.departure_date || '').slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort();
+  return [
+    { value: '', label: 'Semua bulan' },
+    ...months.map((m) => ({
+      value: m,
+      label: new Date(m + '-01T00:00:00').toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
+    })),
+  ];
+}
 
 const WhatsAppIcon: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = '' }) => (
   <svg
@@ -43,12 +57,16 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
   tenantInfo,
 }) => {
   const router = useRouter();
+  const consultant = useConsultant();
   const [order, setOrder] = useState<PackageOrder>('default');
   const [searchQuery, setSearchQuery] = useState('');
+  const [month, setMonth] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<PublicPackage | null>(null);
   const [isProspectModalOpen, setIsProspectModalOpen] = useState(false);
-  const [isMenuSheetOpen, setIsMenuSheetOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Pagination resets on search or sort change: the count belongs to the filter it was loaded for.
+  const pageKey = `${searchQuery}|${order}|${month}`;
+  const [paging, setPaging] = useState({ key: pageKey, count: PAGE_SIZE });
+  const visibleCount = paging.key === pageKey ? paging.count : PAGE_SIZE;
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -60,11 +78,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
     }
   };
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, order]);
-
-  const displayedPackages = selectHomePackages(packages, searchQuery, '', order);
+  const displayedPackages = selectHomePackages(packages, searchQuery, month, order);
   const paginatedPackages = displayedPackages.slice(0, visibleCount);
   const hasMore = visibleCount < displayedPackages.length;
 
@@ -77,7 +91,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
         if (first && first.isIntersecting) {
           setIsLoadingMore(true);
           setTimeout(() => {
-            setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, displayedPackages.length));
+            setPaging((p) => ({ key: pageKey, count: Math.min((p.key === pageKey ? p.count : PAGE_SIZE) + PAGE_SIZE, displayedPackages.length) }));
             setIsLoadingMore(false);
           }, 300);
         }
@@ -98,7 +112,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
         observer.unobserve(currentSentinel);
       }
     };
-  }, [hasMore, isLoadingMore, displayedPackages.length]);
+  }, [hasMore, isLoadingMore, displayedPackages.length, pageKey]);
 
   const layoutStyle = Object.fromEntries(
     Object.entries(designTokens.publicConversionLayout).map(([key, value]) => ['--cro-' + key, value])
@@ -119,11 +133,8 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
 
         {/* 1. Header Section */}
         <div className="tw-pkg-catalog-header">
-          <span className="tw-pkg-catalog-tag">Pilihan Paket</span>
-          <h1 className="tw-pkg-catalog-title">Semua Paket Umroh</h1>
-          <p className="tw-pkg-catalog-subtitle">
-            Pilihan jadwal keberangkatan resmi dan fasilitas terbaik dari {tenantInfo?.name || 'kami'}.
-          </p>
+          <h1 className="tw-pkg-catalog-title">Pilih jadwal umroh Anda</h1>
+          <p className="tw-pkg-catalog-subtitle">Klik paket untuk melihat detail dan konsultasi gratis.</p>
         </div>
 
         {/* 2. Search Input */}
@@ -149,6 +160,13 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
               </button>
             )}
           </div>
+          <CustomDropdown
+            name="month"
+            className="tw-pkg-month"
+            value={month}
+            options={departureMonths(packages)}
+            onChange={(e) => setMonth(String(e.target.value))}
+          />
         </div>
 
         {/* 3. Underline Tabs (Sort: Identical to Home Rekomendasi B) */}
@@ -164,7 +182,6 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
               role="tab"
               className="tw-home-sort__option"
               aria-selected={order === value}
-              aria-pressed={order === value}
               onClick={() => setOrder(value)}
             >
               {label}
@@ -180,11 +197,13 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
             <p>
               {searchQuery
                 ? `Tidak ada paket umroh yang cocok dengan "${searchQuery}".`
-                : 'Saat ini belum ada paket umroh yang dipublikasikan.'}
+                : month
+                  ? 'Belum ada keberangkatan di bulan ini.'
+                  : 'Saat ini belum ada paket umroh yang dipublikasikan.'}
             </p>
-            {searchQuery && (
+            {(searchQuery || month) && (
               <div style={{ marginTop: '12px' }}>
-                <Button variant="secondary" size="sm" fullWidth={false} onClick={() => setSearchQuery('')}>
+                <Button variant="secondary" size="sm" fullWidth={false} onClick={() => { setSearchQuery(''); setMonth(''); }}>
                   Reset Pencarian
                 </Button>
               </div>
@@ -192,19 +211,10 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
           </div>
         ) : (
           <>
-            <div className="tw-pkg-tabs-section__list">
+            {/* Same card and grid as the home page (PackageTile). */}
+            <div className="th-packages tw-pkg-tiles">
               {paginatedPackages.map((pkg) => (
-                <PackageCard
-                  key={pkg.id}
-                  id={pkg.id}
-                  name={pkg.name}
-                  price={pkg.price || undefined}
-                  departureDateRaw={pkg.departure_date}
-                  badge={seatsLabel(pkg) ?? undefined}
-                  imageUrl={pkg.photos?.[0]?.file_path}
-                  onSelect={() => router.push(`/paket/${pkg.id}`)}
-                  className="tw-package-card--ota"
-                />
+                <PackageTile key={pkg.id} pkg={pkg} />
               ))}
             </div>
 
@@ -235,6 +245,20 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
             <p className="tw-cta__text">
               Konsultasikan kebutuhan umroh Anda dan keluarga bersama tim konsultan kami.
             </p>
+            {/* With a consultant (referral visit) their row sits inside this card with the button on its
+                right: one card, one button. Without one, the usual full-width button. */}
+            {consultant ? (
+              <ConsultantCard
+                consultant={consultant}
+                travelName={tenantInfo?.name || 'travel ini'}
+                className="tw-consultant--inline"
+                askTone="brand"
+                onAsk={() => {
+                  setSelectedPackage(null);
+                  setIsProspectModalOpen(true);
+                }}
+              />
+            ) : (
             <div className="tw-cta__action">
               <Button
                 variant="primary"
@@ -253,6 +277,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
                 <span>Konsultasi Gratis</span>
               </Button>
             </div>
+            )}
           </div>
         </section>
 
@@ -265,19 +290,15 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
           email={tenantInfo?.email}
           ppiuNumber={tenantInfo?.ppiu_number}
         />
+        {/* 6. Bottom tab bar (same as the home) */}
+        <PublicTabBar
+          tenantName={tenantInfo?.name}
+          onChat={() => {
+            setSelectedPackage(null);
+            setIsProspectModalOpen(true);
+          }}
+        />
       </MobileContainer>
-
-      {/* 6. Bottom Navbar */}
-      <BottomNavbar
-        onOpenMenu={() => setIsMenuSheetOpen(true)}
-        waNumber={tenantInfo?.whatsapp_number || undefined}
-      />
-
-      {/* 7. Menu Bottom Sheet */}
-      <MenuBottomSheet
-        isOpen={isMenuSheetOpen}
-        onClose={() => setIsMenuSheetOpen(false)}
-      />
 
       {/* 8. Prospect / Consultation Modal */}
       <ProspectModal
