@@ -1,0 +1,114 @@
+/* "Dibantu oleh" card: quiet and neutral (white, hairline border), so it never competes with the page's
+   main brand-colored call to action. The person is the focus: photo and name. */
+.tw-consultant {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--tw-border);
+  border-radius: 10px;
+  background: var(--tw-background);
+  font-family: var(--tw-font-body);
+}
+
+.tw-consultant__photo {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--tw-neutral-100);
+}
+
+.tw-consultant__photo--initials {
+  display: grid;
+  place-items: center;
+  color: var(--tw-text-primary);
+  font: 600 16px var(--tw-font-heading);
+}
+
+.tw-consultant__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.tw-consultant__label {
+  overflow: hidden;
+  color: var(--tw-text-secondary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tw-consultant__name {
+  overflow: hidden;
+  color: var(--tw-text-primary);
+  font: 600 15px var(--tw-font-heading);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Name with the blue verified check right after it (a filled badge with a white check). */
+.tw-consultant__name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tw-consultant__verified {
+  flex-shrink: 0;
+  color: var(--tw-on-brand);
+  fill: var(--tw-verified);
+}
+
+/* Solid green "Konsultasi Gratis" (founder's choice, 3 Oct 2026). */
+.tw-consultant__ask {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tw-success-strong);
+  color: var(--tw-on-brand);
+  font: 600 14px var(--tw-font-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Spacing where the card sits inside an existing section: above other content, or below it. */
+.tw-consultant--spaced {
+  margin-bottom: 16px;
+}
+
+.tw-consultant--below {
+  margin-top: 16px;
+}
+
+.tw-consultant__ask--brand {
+  background: var(--tw-brand-primary);
+}
+
+/* Inside another card (catalog call to action): a plain row under the text, no box of its own (the card
+   is already the box), so a phone-width row still fits the photo, two lines of text and the button. Long
+   travel or agent names wrap instead of being cut. */
+.tw-consultant--inline {
+  align-self: stretch;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tw-consultant--inline .tw-consultant__photo {
+  width: 44px;
+  height: 44px;
+}
+
+.tw-consultant--inline .tw-consultant__label,
+.tw-consultant--inline .tw-consultant__name {
+  white-space: normal;
+}
