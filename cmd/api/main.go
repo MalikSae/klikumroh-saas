@@ -97,6 +97,8 @@ func main() {
 	}); ok {
 		guard.SetPayoffGuard(repository.NewTargetPayoffRepository(db), repository.NewCommissionPolicyRepository(db))
 	}
+	// Habit tracker store: also read by the leaderboard for each agent's streak badge.
+	agentHabitRepo := repository.NewAgentHabitRepository(db)
 	agentService := service.NewAgentService(
 		agentRepo,
 		agentSessionRepo,
@@ -107,6 +109,7 @@ func main() {
 		adminUserRepo,
 		notifService,
 		agentTargetService,
+		service.WithHabitBadges(agentHabitRepo),
 	)
 	prospectService := service.NewProspectService(
 		prospectRepo,
@@ -194,6 +197,10 @@ func main() {
 	agentHandler := handler.NewAgentHandler(agentService)
 	agentTargetHandler := handler.NewAgentTargetHandler(agentTargetService)
 	agentJamaahHandler := handler.NewAgentJamaahHandler(prospectService)
+	// Agent habit tracker and "99 sumber jamaah" progress.
+	agentHabitHandler := handler.NewAgentHabitHandler(service.NewAgentHabitService(agentRepo, agentHabitRepo, notifService))
+	// Agent summary on the dashboard home (registered, active, productive, top agents).
+	agentInsightHandler := handler.NewAgentInsightHandler(service.NewAgentInsightService(agentRepo, prospectRepo, agentHabitRepo))
 	domainHandler := handler.NewDomainHandler(domainService, domainRepo)
 	teamHandler := handler.NewTeamHandler(teamService)
 	dashboardOverviewHandler := handler.NewDashboardOverviewHandler(dashboardOverviewService)
@@ -288,9 +295,15 @@ func main() {
 	})
 
 	// Protected Admin Dashboard API Routes
+	// The demo travel (demo.klikumroh.id) closes account, domain and Meta changes (middleware.DemoGuard).
+	isDemoTenant := func(ctx context.Context, tenantID uint64) bool {
+		t, err := tenantRepo.GetByID(ctx, tenantID)
+		return err == nil && t != nil && t.IsDemo
+	}
 	r.Group(func(protected chi.Router) {
 		protected.Use(appMiddleware.AuthMiddleware(sessionRepo, accessLogRepo))
 		protected.Use(appMiddleware.SubscriptionEnforcementMiddleware(tenantRepo))
+		protected.Use(appMiddleware.DemoGuard(isDemoTenant))
 
 		// Subscription & Renewal Routes
 		protected.Get("/api/dashboard/subscription", subscriptionHandler.GetSubscription)
@@ -311,6 +324,8 @@ func main() {
 		metaIntegrationHandler.RegisterDashboardRoutes(protected)
 		contentHandler.RegisterDashboardRoutes(protected)
 		agentHandler.RegisterDashboardRoutes(protected)
+		agentHabitHandler.RegisterDashboardRoutes(protected)
+		agentInsightHandler.RegisterDashboardRoutes(protected)
 		protected.Get("/api/dashboard/agent-performance", handler.AgentPerformanceHandler(repository.NewAgentPerformanceRepository(db)))
 		protected.Get("/api/dashboard/channel-report", handler.ChannelReportHandler(repository.NewChannelReportRepository(db)))
 		agentTargetHandler.RegisterDashboardRoutes(protected)
@@ -324,9 +339,11 @@ func main() {
 		agentProtected.Use(appMiddleware.AgentAuthMiddleware(agentSessionRepo))
 		// Read-only while the travel is suspended (same policy as the travel dashboard).
 		agentProtected.Use(appMiddleware.AgentSuspensionMiddleware(tenantRepo))
+		agentProtected.Use(appMiddleware.DemoGuard(isDemoTenant))
 		agentHandler.RegisterAgentProtectedRoutes(agentProtected)
 		agentProtected.Get("/api/agent/files", handler.ServeAgentPrivateFile)
 		agentJamaahHandler.RegisterRoutes(agentProtected)
+		agentHabitHandler.RegisterRoutes(agentProtected)
 		notifHandler.RegisterAgentRoutes(agentProtected)
 	})
 

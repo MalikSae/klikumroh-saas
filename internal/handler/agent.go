@@ -41,6 +41,7 @@ func NewAgentHandler(agentService service.AgentService) *AgentHandler {
 // RegisterPublicRoutes mounts public routes for agent onboarding on subdomains.
 func (h *AgentHandler) RegisterPublicRoutes(r chi.Router) {
 	r.Get("/api/public/agent-registration-info", h.GetRegistrationInfo)
+	r.Get("/api/public/consultant", h.GetPublicConsultant)
 	r.With(h.signupLimiter).Post("/api/public/agents/register", h.Register)
 	r.With(h.loginLimiter).Post("/api/agent/login", h.Login)
 }
@@ -81,6 +82,27 @@ func (h *AgentHandler) RegisterDashboardRoutes(r chi.Router) {
 	r.Patch("/api/dashboard/payout-requests/{id}/approve", h.ApprovePayoutRequest)
 	r.Patch("/api/dashboard/payout-requests/{id}/paid", h.MarkPayoutRequestPaid)
 	r.Patch("/api/dashboard/payout-requests/{id}/reject", h.RejectPayoutRequest)
+}
+
+// GET /api/public/consultant?ref=CODE
+// The agent behind a referral link, shown to the visitor as their consultant. 404 when the code is not an
+// active agent of this travel.
+func (h *AgentHandler) GetPublicConsultant(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant not found"})
+		return
+	}
+	c, err := h.agentService.GetPublicConsultant(r.Context(), tenantID, r.URL.Query().Get("ref"))
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "konsultan tidak ditemukan"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
+	respondJSON(w, http.StatusOK, c)
 }
 
 // GET /api/public/agent-registration-info
@@ -311,7 +333,13 @@ func (h *AgentHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := h.agentService.GetLeaderboard(r.Context(), tenantID, agentID)
+	period := r.URL.Query().Get("period")
+	if !service.ValidLeaderboardPeriod(period) {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "periode tidak dikenal"})
+		return
+	}
+
+	entries, err := h.agentService.GetLeaderboard(r.Context(), tenantID, agentID, period)
 	if err != nil {
 		if errors.Is(err, service.ErrAgentNotActive) {
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": "Akun belum aktif"})

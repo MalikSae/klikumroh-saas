@@ -134,7 +134,23 @@ func (s *packageService) List(ctx context.Context, tenantID uint64, statusFilter
 			return nil, ErrInvalidPackageStatus
 		}
 	}
-	return s.packageRepo.List(ctx, tenantID, statusFilter)
+	packages, err := s.packageRepo.List(ctx, tenantID, statusFilter)
+	if err != nil {
+		return nil, err
+	}
+	s.attachCover(ctx, tenantID, packages)
+	return packages, nil
+}
+
+// attachCover sets Photos to the package's first photo (sort order), for list thumbnails. Photos are read
+// with the same tenant_id, so a list never shows another tenant's image.
+func (s *packageService) attachCover(ctx context.Context, tenantID uint64, packages []repository.Package) {
+	for i := range packages {
+		photos, err := s.packagePhotoRepo.ListByPackage(ctx, tenantID, packages[i].ID)
+		if err == nil && len(photos) > 0 {
+			packages[i].Photos = []repository.PackagePhoto{photos[0]}
+		}
+	}
 }
 
 // ListPublished returns what visitors may book: published packages that have not departed yet, nearest
@@ -161,12 +177,7 @@ func (s *packageService) ListPublished(ctx context.Context, tenantID uint64) ([]
 		return a.Before(*b)
 	})
 
-	for i := range packages {
-		photos, err := s.packagePhotoRepo.ListByPackage(ctx, tenantID, packages[i].ID)
-		if err == nil && len(photos) > 0 {
-			packages[i].Photos = []repository.PackagePhoto{photos[0]}
-		}
-	}
+	s.attachCover(ctx, tenantID, packages)
 	return packages, nil
 }
 

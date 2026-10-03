@@ -33,6 +33,15 @@ var (
 	ErrAgentRejectState  = errors.New("hanya pendaftaran agen yang menunggu persetujuan yang dapat ditolak; agen aktif dinonaktifkan lewat tombol Nonaktifkan")
 )
 
+// PublicConsultant is what a visitor who arrived through an agent's referral link sees of that agent
+// (called "konsultan" on public pages). Only public-facing fields: no phone, email, bank or status. The
+// visitor reaches the agent through the interest form, which then opens WhatsApp with them.
+type PublicConsultant struct {
+	Name         string  `json:"name"`
+	PhotoURL     *string `json:"photo_url"`
+	ReferralCode string  `json:"referral_code"`
+}
+
 type AgentRegistrationInfo struct {
 	TenantName             string   `json:"tenant_name"`
 	BrandPrimaryColor      *string  `json:"brand_primary_color"`
@@ -48,7 +57,6 @@ type AgentRegistrationInfo struct {
 	AgentBankAccountNumber *string  `json:"agent_bank_account_number"`
 	AgentBankAccountHolder *string  `json:"agent_bank_account_holder"`
 	AgentPosterURL         *string  `json:"agent_poster_url"`
-	TargetRules            []string `json:"target_rules"`
 }
 
 type RegisterAgentRequest struct {
@@ -113,7 +121,9 @@ type AgentDashboardSummary struct {
 	SaldoSiapCair float64 `json:"saldo_siap_cair"`
 	SaldoTertunda float64 `json:"saldo_tertunda"`
 	// SaldoTertahan: komisi dari jamaah yang sudah closing (DP) tapi belum ditandai lunas.
-	SaldoTertahan       float64                       `json:"saldo_tertahan"`
+	SaldoTertahan float64 `json:"saldo_tertahan"`
+	// TotalKomisi: commission from paid-off jamaah (released), before withdrawals. Held commission is not counted.
+	TotalKomisi         float64                       `json:"total_komisi"`
 	JamaahTertundaCount int                           `json:"jamaah_tertunda_count"`
 	TargetBulanan       *TargetBulanan                `json:"target_bulanan"`
 	Targets             []AgentTargetView             `json:"targets"`
@@ -133,6 +143,10 @@ type LeaderboardEntry struct {
 	Name               string `json:"name"`
 	TotalJamaahClosing int    `json:"total_jamaah_closing"`
 	IsMe               bool   `json:"is_me"`
+	// PhotoURL is the agent's profile photo (shown on the podium); nil when the agent has none.
+	PhotoURL *string `json:"photo_url"`
+	// HabitBadge is the agent's highest habit streak badge in days (7, 30, 100); 0 when none.
+	HabitBadge int `json:"habit_badge"`
 }
 
 type AgentPayoutInfoResponse struct {
@@ -228,6 +242,7 @@ type UpdateDashboardAgentRequest struct {
 
 type AgentService interface {
 	GetRegistrationInfo(ctx context.Context, tenantID uint64) (*AgentRegistrationInfo, error)
+	GetPublicConsultant(ctx context.Context, tenantID uint64, referralCode string) (*PublicConsultant, error)
 	Register(ctx context.Context, tenantID uint64, req *RegisterAgentRequest) (*AgentAuthResult, error)
 	Login(ctx context.Context, tenantID uint64, email, password string) (*AgentAuthResult, error)
 	Logout(ctx context.Context, token string) error
@@ -249,7 +264,9 @@ type AgentService interface {
 	ApprovePayoutRequest(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
 	MarkPayoutRequestPaid(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
 	RejectPayoutRequest(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, reason string) error
-	GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64) ([]LeaderboardEntry, error)
+	// GetLeaderboard ranks active agents by closed jamaah. period: LeaderboardPeriodMonth, LeaderboardPeriodYear
+	// or "" / LeaderboardPeriodAll (since joining).
+	GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64, period string) ([]LeaderboardEntry, error)
 	ListAgents(ctx context.Context, tenantID uint64, statusFilter string) ([]repository.Agent, error)
 	ApproveAgent(ctx context.Context, tenantID uint64, agentID uint64) error
 	RejectAgent(ctx context.Context, tenantID uint64, agentID uint64, reason string) error
@@ -271,6 +288,7 @@ type agentService struct {
 	adminUserRepo        repository.AdminUserRepository
 	notifService         NotificationService
 	targetService        AgentTargetService
+	habitRepo            repository.AgentHabitRepository // optional (WithHabitBadges)
 }
 
 func NewAgentService(
@@ -283,8 +301,9 @@ func NewAgentService(
 	adminUserRepo repository.AdminUserRepository,
 	notifService NotificationService,
 	targetService AgentTargetService,
+	opts ...AgentServiceOption,
 ) AgentService {
-	return &agentService{
+	s := &agentService{
 		agentRepo:            agentRepo,
 		agentSessionRepo:     agentSessionRepo,
 		tenantRepo:           tenantRepo,
@@ -295,6 +314,39 @@ func NewAgentService(
 		notifService:         notifService,
 		targetService:        targetService,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// AgentServiceOption adds an optional dependency to the agent service.
+type AgentServiceOption func(*agentService)
+
+// WithHabitBadges lets the leaderboard show each agent's highest habit streak badge.
+func WithHabitBadges(habitRepo repository.AgentHabitRepository) AgentServiceOption {
+	return func(s *agentService) { s.habitRepo = habitRepo }
+}
+
+// GetPublicConsultant resolves a referral code to the active agent of this travel. Unknown codes, codes of
+// another travel and inactive agents are all ErrNotFound (the page then falls back to the travel's contact).
+func (s *agentService) GetPublicConsultant(ctx context.Context, tenantID uint64, referralCode string) (*PublicConsultant, error) {
+	code := strings.TrimSpace(referralCode)
+	if code == "" {
+		return nil, repository.ErrNotFound
+	}
+	agent, err := s.agentRepo.GetActiveByReferralCode(ctx, tenantID, code)
+	if err != nil {
+		return nil, err
+	}
+	if agent == nil || agent.TenantID != tenantID {
+		return nil, repository.ErrNotFound
+	}
+	return &PublicConsultant{
+		Name:         agent.Name,
+		PhotoURL:     agent.PhotoURL,
+		ReferralCode: agent.ReferralCode,
+	}, nil
 }
 
 func (s *agentService) GetRegistrationInfo(ctx context.Context, tenantID uint64) (*AgentRegistrationInfo, error) {
@@ -325,12 +377,6 @@ func (s *agentService) GetRegistrationInfo(ctx context.Context, tenantID uint64)
 		AgentBankAccountNumber: tenant.AgentBankAccountNumber,
 		AgentBankAccountHolder: tenant.AgentBankAccountHolder,
 		AgentPosterURL:         tenant.AgentPosterURL,
-		TargetRules: []string{
-			"Pencapaian target closing dihitung berdasarkan jumlah jamaah yang berhasil didaftarkan dan berstatus closing dalam periode aktif.",
-			"Mitra Baru terhitung setelah mencatat minimal 1 jamaah closing di periode yang sama.",
-			"Kemitraan bersifat satu tingkat (single-tier referral) murni untuk pembinaan, bukan sistem berjenjang atau piramida.",
-			"Reward atau hadiah diberikan langsung oleh pihak travel setelah verifikasi penutupan periode target.",
-		},
 	}, nil
 }
 
@@ -595,6 +641,7 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 		SaldoSiapCair:       saldoSiapCair,
 		SaldoTertunda:       saldoTertunda,
 		SaldoTertahan:       s.heldCommission(ctx, tenantID, agentID),
+		TotalKomisi:         s.totalCommission(ctx, tenantID, agentID),
 		JamaahTertundaCount: countTertunda,
 		TargetBulanan:       targetBulanan,
 		Targets:             targets,
@@ -872,7 +919,33 @@ func (s *agentService) UpdateTargetSettings(ctx context.Context, tenantID uint64
 	return s.tenantRepo.UpdateTargetSettings(ctx, tenantID, settings)
 }
 
-func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64) ([]LeaderboardEntry, error) {
+// Leaderboard periods (query parameter "period" of GET /api/agent/leaderboard).
+const (
+	LeaderboardPeriodAll   = "semua"
+	LeaderboardPeriodMonth = "bulan"
+	LeaderboardPeriodYear  = "tahun"
+)
+
+// ValidLeaderboardPeriod reports whether p is a known period ("" means all time).
+func ValidLeaderboardPeriod(p string) bool {
+	return p == "" || p == LeaderboardPeriodAll || p == LeaderboardPeriodMonth || p == LeaderboardPeriodYear
+}
+
+// leaderboardSince is the start of the period in the business time zone (WIB), formatted for MySQL.
+func leaderboardSince(period string, now time.Time) string {
+	loc, err := time.LoadLocation(repository.BusinessTimeZone)
+	if err != nil {
+		loc = time.FixedZone("WIB", 7*60*60)
+	}
+	n := now.In(loc)
+	start := time.Date(n.Year(), n.Month(), 1, 0, 0, 0, 0, loc)
+	if period == LeaderboardPeriodYear {
+		start = time.Date(n.Year(), time.January, 1, 0, 0, 0, 0, loc)
+	}
+	return start.Format("2006-01-02 15:04:05")
+}
+
+func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64, period string) ([]LeaderboardEntry, error) {
 	// Sign-up is public: only approved, active partners may see other agents' names and closings.
 	me, err := s.agentRepo.GetByID(ctx, tenantID, currentAgentID)
 	if err != nil {
@@ -882,8 +955,13 @@ func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, curr
 		return nil, ErrAgentNotActive
 	}
 
-	// REUSE GetActiveAgentsClosingStats yang sudah ada dan sudah teruji
-	stats, err := s.prospectRepo.GetActiveAgentsClosingStats(ctx, tenantID)
+	// All time reuses GetActiveAgentsClosingStats; a month or year counts closings from the period start.
+	var stats []repository.AgentClosingStat
+	if period == LeaderboardPeriodMonth || period == LeaderboardPeriodYear {
+		stats, err = s.prospectRepo.GetActiveAgentsClosingStatsSince(ctx, tenantID, leaderboardSince(period, time.Now()))
+	} else {
+		stats, err = s.prospectRepo.GetActiveAgentsClosingStats(ctx, tenantID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -894,8 +972,20 @@ func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, curr
 	}
 
 	agentNameMap := make(map[uint64]string, len(agents))
+	agentPhotoMap := make(map[uint64]*string, len(agents))
 	for _, a := range agents {
 		agentNameMap[a.ID] = a.Name
+		agentPhotoMap[a.ID] = a.PhotoURL
+	}
+
+	// Streak badges are a decoration: without the store, or if it fails, the leaderboard still shows.
+	badges := map[uint64]int{}
+	if s.habitRepo != nil {
+		if top, err := s.habitRepo.TopBadgeByAgent(ctx, tenantID); err == nil {
+			badges = top
+		} else {
+			log.Printf("[Leaderboard] read habit badges of tenant %d: %v", tenantID, err)
+		}
 	}
 
 	entries := make([]LeaderboardEntry, 0, len(stats))
@@ -910,6 +1000,8 @@ func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, curr
 			Name:               name,
 			TotalJamaahClosing: stat.TotalJamaah,
 			IsMe:               stat.AgentID == currentAgentID,
+			PhotoURL:           agentPhotoMap[stat.AgentID],
+			HabitBadge:         badges[stat.AgentID],
 		})
 	}
 
@@ -1446,6 +1538,16 @@ func (s *agentService) heldCommission(ctx context.Context, tenantID, agentID uin
 		return 0
 	}
 	return held
+}
+
+// totalCommission is the commission from paid-off jamaah (released). Withdrawals do not lower it;
+// held commission (jamaah not yet paid off) is not counted.
+func (s *agentService) totalCommission(ctx context.Context, tenantID, agentID uint64) float64 {
+	released, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
+	if err != nil || released < 0 {
+		return 0
+	}
+	return released
 }
 
 func (s *agentService) calculateAgentBalances(ctx context.Context, tenantID, agentID uint64) (float64, float64, int, error) {

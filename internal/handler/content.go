@@ -43,6 +43,7 @@ func (h *ContentHandler) RegisterDashboardRoutes(r chi.Router) {
 	// Testimonials
 	r.Get("/api/dashboard/testimonials", h.ListTestimonials)
 	r.Post("/api/dashboard/testimonials", h.CreateTestimonial)
+	r.Post("/api/dashboard/testimonials/upload-photo", h.UploadTestimonialPhoto)
 	r.Get("/api/dashboard/testimonials/{id}", h.GetTestimonial)
 	r.Put("/api/dashboard/testimonials/{id}", h.UpdateTestimonial)
 	r.Delete("/api/dashboard/testimonials/{id}", h.DeleteTestimonial)
@@ -348,6 +349,11 @@ func (h *ContentHandler) CreateTestimonial(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if !ownTestimonialPhoto(tenantID, payload.AvatarURL) {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "foto testimoni tidak valid"})
+		return
+	}
+
 	t := &repository.Testimonial{
 		Name:         payload.Name,
 		PackageName:  payload.PackageName,
@@ -413,6 +419,11 @@ func (h *ContentHandler) UpdateTestimonial(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if !ownTestimonialPhoto(tenantID, payload.AvatarURL) {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "foto testimoni tidak valid"})
+		return
+	}
+
 	t := &repository.Testimonial{
 		ID:           id,
 		TenantID:     tenantID,
@@ -425,6 +436,9 @@ func (h *ContentHandler) UpdateTestimonial(w http.ResponseWriter, r *http.Reques
 		IsActive:     payload.IsActive,
 	}
 
+	// The photo in use before this edit: removed from disk once the testimonial points elsewhere.
+	previous, _ := h.contentService.GetTestimonial(r.Context(), tenantID, id)
+
 	if err := h.contentService.UpdateTestimonial(r.Context(), tenantID, t); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "testimoni tidak ditemukan"})
@@ -432,6 +446,10 @@ func (h *ContentHandler) UpdateTestimonial(w http.ResponseWriter, r *http.Reques
 		}
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
+	}
+
+	if previous != nil && previous.AvatarURL != nil && (t.AvatarURL == nil || *previous.AvatarURL != *t.AvatarURL) {
+		removeTenantUpload(tenantID, "testimonials", *previous.AvatarURL)
 	}
 
 	respondJSON(w, http.StatusOK, t)
@@ -451,6 +469,8 @@ func (h *ContentHandler) DeleteTestimonial(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	existing, _ := h.contentService.GetTestimonial(r.Context(), tenantID, id)
+
 	if err := h.contentService.DeleteTestimonial(r.Context(), tenantID, id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "testimoni tidak ditemukan"})
@@ -458,6 +478,10 @@ func (h *ContentHandler) DeleteTestimonial(w http.ResponseWriter, r *http.Reques
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
+	}
+
+	if existing != nil && existing.AvatarURL != nil {
+		removeTenantUpload(tenantID, "testimonials", *existing.AvatarURL)
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "testimoni berhasil dihapus"})
@@ -653,13 +677,79 @@ func (h *ContentHandler) PublicListFAQs(w http.ResponseWriter, r *http.Request) 
 // removeBannerFile deletes a banner image that is no longer used. Only files in this tenant's own banners
 // folder are touched; other tenants' paths, "..", and external URLs are ignored.
 func removeBannerFile(tenantID uint64, url string) {
-	prefix := fmt.Sprintf("/uploads/%d/banners/", tenantID)
+	removeTenantUpload(tenantID, "banners", url)
+}
+
+// tenantUploadName returns the file name when url is a file directly in this tenant's /uploads/<id>/<folder>/,
+// or "" for anything else (another tenant, a sub-folder, "..", an external URL).
+func tenantUploadName(tenantID uint64, folder, url string) string {
+	prefix := fmt.Sprintf("/uploads/%d/%s/", tenantID, folder)
 	if !strings.HasPrefix(url, prefix) {
-		return
+		return ""
 	}
 	name := strings.TrimPrefix(url, prefix)
 	if name == "" || name != filepath.Base(name) || strings.Contains(name, "..") {
+		return ""
+	}
+	return name
+}
+
+// removeTenantUpload deletes a file the tenant uploaded into <folder> that is no longer used.
+func removeTenantUpload(tenantID uint64, folder, url string) {
+	if name := tenantUploadName(tenantID, folder, url); name != "" {
+		_ = os.Remove(filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), folder, name))
+	}
+}
+
+// ownTestimonialPhoto: a testimonial photo is empty or a file this tenant uploaded through
+// /api/dashboard/testimonials/upload-photo, never another tenant's file or an outside URL.
+func ownTestimonialPhoto(tenantID uint64, url *string) bool {
+	if url == nil || *url == "" {
+		return true
+	}
+	return tenantUploadName(tenantID, "testimonials", *url) != ""
+}
+
+// UploadTestimonialPhoto handles POST /api/dashboard/testimonials/upload-photo: the jamaah's photo,
+// saved square (400x400 WebP) in the tenant's testimonials folder. The testimonial form saves the
+// returned avatar_url; unused uploads are removed by the orphan sweep.
+func (h *ContentHandler) UploadTestimonialPhoto(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
-	_ = os.Remove(filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "banners", name))
+
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ukuran file maksimal 5MB atau format invalid"})
+		return
+	}
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "file foto wajib diunggah ('image')"})
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal membaca file"})
+		return
+	}
+
+	fileName := uuid.New().String() + ".webp"
+	relPath := fmt.Sprintf("/uploads/%d/testimonials/%s", tenantID, fileName)
+	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "testimonials", fileName)
+
+	if err := util.ConvertAndSaveSquareWebP(fileBytes, absPath, 400, 82); err != nil {
+		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan foto"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"avatar_url": relPath})
 }

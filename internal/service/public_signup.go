@@ -42,6 +42,7 @@ var reservedSlugs = map[string]bool{
 	"staff":     true,
 	"web":       true,
 	"marketing": true,
+	"demo":      true,
 	"www":       true,
 	"mail":      true,
 	"app":       true,

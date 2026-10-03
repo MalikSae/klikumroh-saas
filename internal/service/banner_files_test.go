@@ -87,3 +87,54 @@ func TestSweepOrphanBannerFiles(t *testing.T) {
 		t.Errorf("expected 2 files removed, got %d", n)
 	}
 }
+
+// fakeTestimonialContent returns fixed testimonials per tenant.
+type fakeTestimonialContent struct {
+	ContentService
+	items map[uint64][]*repository.Testimonial
+}
+
+func (f *fakeTestimonialContent) ListTestimonials(_ context.Context, tenantID uint64, _ bool) ([]*repository.Testimonial, error) {
+	return f.items[tenantID], nil
+}
+
+// Testimonial photos follow the banner rules: used and fresh files stay, old unused ones go, and a
+// testimonial cannot keep another tenant's file alive.
+func TestSweepOrphanTestimonialPhotos(t *testing.T) {
+	root := t.TempDir()
+	now := time.Now()
+	old := now.Add(-48 * time.Hour)
+	write := func(tenant, name string, mod time.Time) string {
+		t.Helper()
+		dir := filepath.Join(root, tenant, "testimonials")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(p, mod, mod); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	used := write("201", "used.webp", old)
+	orphan := write("201", "orphan.webp", old)
+	fresh := write("201", "fresh.webp", now.Add(-time.Hour))
+	str := func(s string) *string { return &s }
+	content := &fakeTestimonialContent{items: map[uint64][]*repository.Testimonial{
+		201: {{AvatarURL: str("/uploads/201/testimonials/used.webp")}, {AvatarURL: nil}},
+		// Another tenant naming tenant 201's orphan must not keep it alive.
+		202: {{AvatarURL: str("/uploads/201/testimonials/orphan.webp")}},
+	}}
+
+	n, err := SweepOrphanTestimonialPhotos(context.Background(), content, root, BannerOrphanMinAge, now)
+	if err != nil {
+		t.Fatalf("sweep: %v", err)
+	}
+	exists := func(p string) bool { _, err := os.Stat(p); return err == nil }
+	if !exists(used) || exists(orphan) || !exists(fresh) || n != 1 {
+		t.Fatalf("used=%v orphan=%v fresh=%v removed=%d (want true, false, true, 1)", exists(used), exists(orphan), exists(fresh), n)
+	}
+}

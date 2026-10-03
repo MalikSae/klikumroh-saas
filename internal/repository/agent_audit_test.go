@@ -151,17 +151,17 @@ func TestAgentAudit_SessionsStatusGuardsLeaderboard(t *testing.T) {
 	})
 
 	t.Run("A6 leaderboard is for active agents only", func(t *testing.T) {
-		if _, err := agentSvc.GetLeaderboard(e.ctx, e.tenantA.ID, e.agentA.ID); err != nil {
+		if _, err := agentSvc.GetLeaderboard(e.ctx, e.tenantA.ID, e.agentA.ID, ""); err != nil {
 			t.Fatalf("active agent leaderboard: %v", err)
 		}
 		if err := agentRepo.UpdateStatus(e.ctx, e.tenantA.ID, e.agentA.ID, "pending"); err != nil {
 			t.Fatalf("set pending: %v", err)
 		}
-		if _, err := agentSvc.GetLeaderboard(e.ctx, e.tenantA.ID, e.agentA.ID); !errors.Is(err, service.ErrAgentNotActive) {
+		if _, err := agentSvc.GetLeaderboard(e.ctx, e.tenantA.ID, e.agentA.ID, ""); !errors.Is(err, service.ErrAgentNotActive) {
 			t.Fatalf("pending agent leaderboard: expected ErrAgentNotActive, got %v", err)
 		}
 		// Tenant isolation: an agent id from tenant A is unknown in tenant B.
-		if _, err := agentSvc.GetLeaderboard(e.ctx, e.tenantB.ID, e.agentA.ID); !errors.Is(err, repository.ErrNotFound) {
+		if _, err := agentSvc.GetLeaderboard(e.ctx, e.tenantB.ID, e.agentA.ID, ""); !errors.Is(err, repository.ErrNotFound) {
 			t.Fatalf("cross-tenant leaderboard: expected ErrNotFound, got %v", err)
 		}
 		_ = agentRepo.UpdateStatus(e.ctx, e.tenantA.ID, e.agentA.ID, "active")

@@ -374,6 +374,12 @@ func (s *prospectService) flagEarlierClosing(ctx context.Context, tenantID uint6
 
 // whatsAppTarget picks who the visitor chats with: the owning agent, otherwise the travel's number.
 func (s *prospectService) whatsAppTarget(ctx context.Context, tenantID uint64, agent *repository.Agent) string {
+	// The demo travel never opens WhatsApp: its numbers are made up and could belong to a real person.
+	if s.tenantRepo != nil {
+		if t, err := s.tenantRepo.GetByID(ctx, tenantID); err == nil && t != nil && t.IsDemo {
+			return ""
+		}
+	}
 	if agent != nil && agent.Phone != nil && strings.TrimSpace(*agent.Phone) != "" {
 		if p := NormalizePhoneToWhatsApp(*agent.Phone); p != "" {
 			return p

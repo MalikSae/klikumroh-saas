@@ -138,6 +138,15 @@ func (m *mockAgentRepo) GetByEmail(ctx context.Context, tenantID uint64, email s
 	return nil, repository.ErrNotFound
 }
 
+func (m *mockAgentRepo) GetActiveByReferralCode(ctx context.Context, tenantID uint64, referralCode string) (*repository.Agent, error) {
+	for _, a := range m.agents {
+		if a.TenantID == tenantID && a.ReferralCode == referralCode && a.Status == "active" {
+			return a, nil
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+
 func (m *mockAgentRepo) GetByReferralCode(ctx context.Context, referralCode string) (*repository.Agent, error) {
 	for _, a := range m.agents {
 		if a.ReferralCode == referralCode {

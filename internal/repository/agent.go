@@ -60,6 +60,7 @@ type AgentRepository interface {
 	GetByID(ctx context.Context, tenantID uint64, id uint64) (*Agent, error)
 	GetByEmail(ctx context.Context, tenantID uint64, email string) (*Agent, error)
 	GetByReferralCode(ctx context.Context, referralCode string) (*Agent, error)
+	GetActiveByReferralCode(ctx context.Context, tenantID uint64, referralCode string) (*Agent, error)
 	List(ctx context.Context, tenantID uint64, statusFilter ...string) ([]Agent, error)
 	Update(ctx context.Context, tenantID uint64, agent *Agent) error
 	UpdateProfile(ctx context.Context, tenantID uint64, id uint64, params UpdateAgentProfileParams) (*Agent, error)
@@ -221,6 +222,22 @@ func (r *mysqlAgentRepository) GetByReferralCode(ctx context.Context, referralCo
 		WHERE referral_code = ?
 	`
 	row := r.db.QueryRowContext(ctx, query, referralCode)
+	return r.scanAgent(row)
+}
+
+// GetActiveByReferralCode returns the active agent of this travel that owns the referral code. A code of
+// another travel, or of an agent that is not active, is ErrNotFound. Used by public pages, so the tenant
+// is part of the query itself.
+func (r *mysqlAgentRepository) GetActiveByReferralCode(ctx context.Context, tenantID uint64, referralCode string) (*Agent, error) {
+	query := `
+		SELECT id, tenant_id, name, phone, email, password_hash, domisili, photo_url,
+		       payment_proof_url, payment_status, rejection_reason, terms_accepted_at,
+		       bank_name, bank_account_number, bank_account_holder,
+		       referral_code, status, parent_agent_id, created_at, updated_at
+		FROM agents
+		WHERE tenant_id = ? AND referral_code = ? AND status = 'active'
+	`
+	row := r.db.QueryRowContext(ctx, query, tenantID, referralCode)
 	return r.scanAgent(row)
 }
 

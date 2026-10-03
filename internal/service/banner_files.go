@@ -70,7 +70,60 @@ func SweepOrphanBannerFiles(ctx context.Context, content ContentService, uploads
 	return removed, nil
 }
 
-// StartBannerFileSweep runs SweepOrphanBannerFiles shortly after start and then every interval.
+// SweepOrphanTestimonialPhotos does the same for testimonial photos (<uploadsRoot>/<tenantID>/testimonials):
+// a photo is uploaded when the admin picks it, before the testimonial is saved.
+func SweepOrphanTestimonialPhotos(ctx context.Context, content ContentService, uploadsRoot string, minAge time.Duration, now time.Time) (int, error) {
+	tenantDirs, err := os.ReadDir(uploadsRoot)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	removed := 0
+	for _, td := range tenantDirs {
+		if !td.IsDir() {
+			continue
+		}
+		tenantID, err := strconv.ParseUint(td.Name(), 10, 64)
+		if err != nil {
+			continue
+		}
+		dir := filepath.Join(uploadsRoot, td.Name(), "testimonials")
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		items, err := content.ListTestimonials(ctx, tenantID, false)
+		if err != nil {
+			log.Printf("[Testimonial] sweep: skip tenant %d, cannot read testimonials: %v", tenantID, err)
+			continue
+		}
+		prefix := fmt.Sprintf("/uploads/%d/testimonials/", tenantID)
+		used := make(map[string]bool, len(items))
+		for _, t := range items {
+			if t.AvatarURL != nil && strings.HasPrefix(*t.AvatarURL, prefix) {
+				used[strings.TrimPrefix(*t.AvatarURL, prefix)] = true
+			}
+		}
+		for _, f := range files {
+			if f.IsDir() || used[f.Name()] {
+				continue
+			}
+			info, err := f.Info()
+			if err != nil || now.Sub(info.ModTime()) < minAge {
+				continue
+			}
+			if err := os.Remove(filepath.Join(dir, f.Name())); err == nil {
+				removed++
+			}
+		}
+	}
+	return removed, nil
+}
+
+// StartBannerFileSweep runs SweepOrphanBannerFiles (and the testimonial photo sweep) shortly after start
+// and then every interval.
 func StartBannerFileSweep(ctx context.Context, content ContentService, uploadsRoot string, interval time.Duration) {
 	go func() {
 		run := func() {
@@ -81,6 +134,11 @@ func StartBannerFileSweep(ctx context.Context, content ContentService, uploadsRo
 			}
 			if n > 0 {
 				log.Printf("[Banner] sweep: removed %d unused banner images", n)
+			}
+			if t, err := SweepOrphanTestimonialPhotos(ctx, content, uploadsRoot, BannerOrphanMinAge, time.Now()); err != nil {
+				log.Printf("[Testimonial] sweep failed: %v", err)
+			} else if t > 0 {
+				log.Printf("[Testimonial] sweep: removed %d unused photos", t)
 			}
 		}
 		select {

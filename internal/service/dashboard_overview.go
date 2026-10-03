@@ -74,12 +74,14 @@ type KPIDayDTO struct {
 	Prospects     int    `json:"prospects"`
 	Closings      int    `json:"closings"`
 	ClosingJamaah int    `json:"closing_jamaah"`
+	// ClosingValue: estimated revenue of the day's closings (package price x jamaah).
+	ClosingValue float64 `json:"closing_value"`
 }
 
 // DailyTrendItemDTO represents a single day's leads across 3 channels.
 type DailyTrendItemDTO struct {
-	Date    string `json:"date"`     // "2026-09-08"
-	Label   string `json:"label"`    // "08 Sep"
+	Date    string `json:"date"`  // "2026-09-08"
+	Label   string `json:"label"` // "08 Sep"
 	Organik int    `json:"organik"`
 	MetaAds int    `json:"meta_ads"`
 	Agent   int    `json:"agent"`
@@ -106,17 +108,17 @@ type PendingPipelineDTO struct {
 
 // DashboardOverviewResponse is the complete response for the overview endpoint.
 type DashboardOverviewResponse struct {
-	UrgentAlerts       repository.UrgentAlertsData  `json:"urgent_alerts"`
-	KPIs               OverviewKPIsDTO              `json:"kpis"`
-	ChannelAttribution []ChannelAttributionDTO      `json:"channel_attribution"`
-	PipelineFunnel     FunnelDTO                    `json:"pipeline_funnel"`
-	RecentProspects    []RecentProspectDTO          `json:"recent_prospects"`
-	TopAgents          []repository.TopAgentItem    `json:"top_agents"`
-	UpcomingPackages   []UpcomingPackageDTO         `json:"upcoming_packages"`
-	ProspectTrends     []DailyTrendItemDTO          `json:"prospect_trends"`
+	UrgentAlerts       repository.UrgentAlertsData `json:"urgent_alerts"`
+	KPIs               OverviewKPIsDTO             `json:"kpis"`
+	ChannelAttribution []ChannelAttributionDTO     `json:"channel_attribution"`
+	PipelineFunnel     FunnelDTO                   `json:"pipeline_funnel"`
+	RecentProspects    []RecentProspectDTO         `json:"recent_prospects"`
+	TopAgents          []repository.TopAgentItem   `json:"top_agents"`
+	UpcomingPackages   []UpcomingPackageDTO        `json:"upcoming_packages"`
+	ProspectTrends     []DailyTrendItemDTO         `json:"prospect_trends"`
 	// KPIDaily: 60 consecutive days, oldest first (current 30 days vs the 30 before, and sparklines).
-	KPIDaily []KPIDayDTO `json:"kpi_daily"`
-	PendingPipeline    PendingPipelineDTO           `json:"pending_pipeline"`
+	KPIDaily        []KPIDayDTO        `json:"kpi_daily"`
+	PendingPipeline PendingPipelineDTO `json:"pending_pipeline"`
 }
 
 // DashboardOverviewService provides business logic for the admin overview.
@@ -334,7 +336,7 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 	for i := 59; i >= 0; i-- {
 		dateStr := now.AddDate(0, 0, -i).Format("2006-01-02")
 		d := kpiByDate[dateStr]
-		kpiDaily = append(kpiDaily, KPIDayDTO{Date: dateStr, Prospects: d.Prospects, Closings: d.Closings, ClosingJamaah: d.ClosingPax})
+		kpiDaily = append(kpiDaily, KPIDayDTO{Date: dateStr, Prospects: d.Prospects, Closings: d.Closings, ClosingJamaah: d.ClosingPax, ClosingValue: d.ClosingValue})
 	}
 
 	return &DashboardOverviewResponse{

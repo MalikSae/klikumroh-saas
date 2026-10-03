@@ -95,6 +95,15 @@ func (m *mockDetailProspectRepo) Delete(ctx context.Context, tenantID uint64, id
 func (m *mockDetailProspectRepo) GetAgentFunnelSummary(ctx context.Context, tenantID uint64, agentID uint64) (*repository.AgentFunnelSummary, error) {
 	return nil, nil
 }
+
+// The period filter is covered against real MySQL in internal/repository; the mock returns all-time stats.
+func (m *mockDetailProspectRepo) GetAgentProspectCountsSince(ctx context.Context, tenantID uint64, since string) ([]repository.AgentProspectCount, error) {
+	return nil, nil
+}
+func (m *mockDetailProspectRepo) GetActiveAgentsClosingStatsSince(ctx context.Context, tenantID uint64, since string) ([]repository.AgentClosingStat, error) {
+	return m.GetActiveAgentsClosingStats(ctx, tenantID)
+}
+
 func (m *mockDetailProspectRepo) GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]repository.AgentClosingStat, error) {
 	return nil, nil
 }
@@ -138,6 +147,9 @@ func (m *mockDetailAgentRepo) GetByEmail(ctx context.Context, tenantID uint64, e
 }
 func (m *mockDetailAgentRepo) GetByReferralCode(ctx context.Context, referralCode string) (*repository.Agent, error) {
 	return nil, nil
+}
+func (m *mockDetailAgentRepo) GetActiveByReferralCode(ctx context.Context, tenantID uint64, referralCode string) (*repository.Agent, error) {
+	return nil, repository.ErrNotFound
 }
 func (m *mockDetailAgentRepo) List(ctx context.Context, tenantID uint64, statusFilter ...string) ([]repository.Agent, error) {
 	return nil, nil

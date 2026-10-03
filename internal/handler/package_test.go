@@ -93,13 +93,23 @@ func (m *mockPackageRepo) CountByTenant(ctx context.Context, tenantID uint64) (i
 	return count, nil
 }
 
-type mockPackagePhotoRepo struct{}
+type mockPackagePhotoRepo struct {
+	photos []repository.PackagePhoto
+}
 
 func (m *mockPackagePhotoRepo) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error {
 	return nil
 }
+
+// ListByPackage filters by tenant and package like the MySQL repository.
 func (m *mockPackagePhotoRepo) ListByPackage(ctx context.Context, tenantID, packageID uint64) ([]repository.PackagePhoto, error) {
-	return nil, nil
+	var out []repository.PackagePhoto
+	for _, p := range m.photos {
+		if p.TenantID == tenantID && p.PackageID == packageID {
+			out = append(out, p)
+		}
+	}
+	return out, nil
 }
 func (m *mockPackagePhotoRepo) Delete(ctx context.Context, tenantID, id uint64) error { return nil }
 func (m *mockPackagePhotoRepo) GetByID(ctx context.Context, tenantID, id uint64) (*repository.PackagePhoto, error) {
@@ -125,6 +135,11 @@ func (m *mockPackagePhotoService) Move(ctx context.Context, tenantID, photoID ui
 }
 
 func setupPackageRouter() (*chi.Mux, *mockPackageRepo, *mockSessionRepo, *mockDomainRepo) {
+	r, pkgRepo, sessionRepo, domainRepo, _ := setupPackageRouterWithPhotos()
+	return r, pkgRepo, sessionRepo, domainRepo
+}
+
+func setupPackageRouterWithPhotos() (*chi.Mux, *mockPackageRepo, *mockSessionRepo, *mockDomainRepo, *mockPackagePhotoRepo) {
 	pkgRepo := newMockPackageRepo()
 	photoRepo := &mockPackagePhotoRepo{}
 	pkgService := service.NewPackageService(pkgRepo, photoRepo)
@@ -181,7 +196,47 @@ func setupPackageRouter() (*chi.Mux, *mockPackageRepo, *mockSessionRepo, *mockDo
 		pkgHandler.RegisterPublicRoutes(public)
 	})
 
-	return r, pkgRepo, sessionRepo, domainRepo
+	return r, pkgRepo, sessionRepo, domainRepo, photoRepo
+}
+
+// The dashboard list carries each package's cover photo (thumbnail), only from the caller's own tenant.
+func TestPackageHandler_DashboardList_CoverPhoto_TenantScoped(t *testing.T) {
+	r, pkgRepo, _, _, photoRepo := setupPackageRouterWithPhotos()
+	ctx := context.Background()
+
+	pkgA := &repository.Package{Name: "Paket A", Status: "draft"}
+	_ = pkgRepo.Create(ctx, 10, pkgA)
+	pkgB := &repository.Package{Name: "Paket B", Status: "draft"}
+	_ = pkgRepo.Create(ctx, 20, pkgB)
+
+	photoRepo.photos = []repository.PackagePhoto{
+		{ID: 1, TenantID: 10, PackageID: pkgA.ID, FilePath: "/uploads/10/packages/a-cover.webp", SortOrder: 0},
+		{ID: 2, TenantID: 10, PackageID: pkgA.ID, FilePath: "/uploads/10/packages/a-second.webp", SortOrder: 1},
+		// A photo row of tenant 20 pointing at tenant 10's package id must never be attached.
+		{ID: 3, TenantID: 20, PackageID: pkgA.ID, FilePath: "/uploads/20/packages/leak.webp", SortOrder: 0},
+	}
+
+	list := func(token string) []repository.Package {
+		req := httptest.NewRequest(http.MethodGet, "/api/dashboard/packages", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+		}
+		var out []repository.Package
+		_ = json.Unmarshal(rr.Body.Bytes(), &out)
+		return out
+	}
+
+	a := list("token_tenant_a")
+	if len(a) != 1 || len(a[0].Photos) != 1 || a[0].Photos[0].FilePath != "/uploads/10/packages/a-cover.webp" {
+		t.Fatalf("tenant A: expected one package with its own cover photo only, got %+v", a)
+	}
+	b := list("token_tenant_b")
+	if len(b) != 1 || b[0].ID != pkgB.ID || len(b[0].Photos) != 0 {
+		t.Fatalf("tenant B: expected its own package without photos, got %+v", b)
+	}
 }
 
 func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {

@@ -87,6 +87,9 @@ type KPIDayRaw struct {
 	Prospects  int
 	Closings   int
 	ClosingPax int
+	// ClosingValue is the estimated revenue of that day's closings: package price x jamaah (0 for a
+	// closing without a package).
+	ClosingValue float64
 }
 
 type ProspectTrendRaw struct {
@@ -192,7 +195,7 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		return nil, err
 	}
 
-	// 3. Channel Attribution Breakdown
+	// 3. Channel Attribution Breakdown, last 30 days (same window as the KPIs and the channel chart)
 	attrQuery := `
 		SELECT 
 			CASE 
@@ -204,7 +207,7 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 			COALESCE(SUM(CASE WHEN status = 'closing' THEN 1 ELSE 0 END), 0) as closing_count,
 			COALESCE(SUM(CASE WHEN status = 'closing' THEN COALESCE(jumlah_jamaah, 1) ELSE 0 END), 0) as total_closing_pax
 		FROM prospects
-		WHERE tenant_id = ?
+		WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
 		GROUP BY ch
 	`
 	rows, err := r.db.QueryContext(ctx, attrQuery, tenantID)
@@ -344,14 +347,14 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		return nil, err
 	}
 
-	// 8. Upcoming Published Packages
+	// 8. Upcoming Published Packages (departure today or later; already departed ones are not "upcoming")
 	packageQuery := `
 		SELECT 
 			pkg.id, pkg.name, pkg.departure_date, COALESCE(pkg.price, 0), COALESCE(pkg.quota, 0),
 			COALESCE(SUM(CASE WHEN p.status = 'closing' THEN COALESCE(p.jumlah_jamaah, 1) ELSE 0 END), 0) as booked_seats
 		FROM packages pkg
 		LEFT JOIN prospects p ON p.package_id = pkg.id AND p.tenant_id = ?
-		WHERE pkg.tenant_id = ? AND pkg.status = 'published' AND pkg.departure_date IS NOT NULL
+		WHERE pkg.tenant_id = ? AND pkg.status = 'published' AND pkg.departure_date >= CURDATE()
 		GROUP BY pkg.id, pkg.name, pkg.departure_date, pkg.price, pkg.quota
 		ORDER BY pkg.departure_date ASC
 		LIMIT 5
@@ -491,11 +494,13 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		return nil, err
 	}
 	closeRows, err := r.db.QueryContext(ctx, `
-		SELECT DATE_FORMAT(first_close, '%Y-%m-%d') AS d, COUNT(*), COALESCE(SUM(pax), 0)
+		SELECT DATE_FORMAT(first_close, '%Y-%m-%d') AS d, COUNT(*), COALESCE(SUM(pax), 0), COALESCE(SUM(pax * price), 0)
 		FROM (
-			SELECT h.prospect_id, MIN(h.changed_at) AS first_close, COALESCE(MAX(p.jumlah_jamaah), 1) AS pax
+			SELECT h.prospect_id, MIN(h.changed_at) AS first_close, COALESCE(MAX(p.jumlah_jamaah), 1) AS pax,
+			       COALESCE(MAX(pkg.price), 0) AS price
 			FROM prospect_status_history h
 			JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
+			LEFT JOIN packages pkg ON pkg.id = p.package_id AND pkg.tenant_id = p.tenant_id
 			WHERE h.tenant_id = ? AND h.new_status = 'closing' AND p.status = 'closing'
 			GROUP BY h.prospect_id
 		) c
@@ -508,11 +513,13 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 	for closeRows.Next() {
 		var d string
 		var n, pax int
-		if err := closeRows.Scan(&d, &n, &pax); err != nil {
+		var value float64
+		if err := closeRows.Scan(&d, &n, &pax, &value); err != nil {
 			return nil, err
 		}
 		day(d).Closings = n
 		day(d).ClosingPax = pax
+		day(d).ClosingValue = value
 	}
 	if err := closeRows.Err(); err != nil {
 		return nil, err

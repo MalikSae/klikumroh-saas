@@ -43,6 +43,8 @@ type TenantSubscriptionInfo struct {
 	IsSuspended              bool                             `json:"is_suspended"`
 	PendingVerification      *repository.PaymentVerification  `json:"pending_verification,omitempty"`
 	PaymentVerifications     []repository.PaymentVerification `json:"payment_verifications"`
+	// IsDemo: the showcase travel (demo.klikumroh.id); the dashboard shows a demo ribbon.
+	IsDemo bool `json:"is_demo"`
 }
 
 // SubscriptionService defines business logic for tenant subscriptions and payment verifications.
@@ -113,6 +115,7 @@ func (s *subscriptionService) GetSubscriptionInfo(ctx context.Context, tenantID 
 		TenantID:              tenant.ID,
 		TenantName:            tenant.Name,
 		TenantSlug:            tenant.Slug,
+		IsDemo:                tenant.IsDemo,
 		Status:                tenant.Status,
 		CurrentPlanID:         tenant.CurrentPlanID,
 		SubscriptionExpiresAt: tenant.SubscriptionExpiresAt,

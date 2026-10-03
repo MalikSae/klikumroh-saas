@@ -118,6 +118,12 @@ type AgentFunnelSummary struct {
 }
 
 // AgentClosingStat represents total closing jamaah for an agent.
+// AgentProspectCount is how many prospects an agent brought in.
+type AgentProspectCount struct {
+	AgentID uint64
+	Count   int
+}
+
 type AgentClosingStat struct {
 	AgentID     uint64 `json:"agent_id"`
 	TotalJamaah int    `json:"total_jamaah"`
@@ -148,6 +154,12 @@ type ProspectRepository interface {
 	Delete(ctx context.Context, tenantID uint64, id uint64) error
 	GetAgentFunnelSummary(ctx context.Context, tenantID uint64, agentID uint64) (*AgentFunnelSummary, error)
 	GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]AgentClosingStat, error)
+	// GetActiveAgentsClosingStatsSince counts only closings whose latest move into 'closing' is at or after
+	// since (a "YYYY-MM-DD HH:MM:SS" time in the business time zone). Used by the agent leaderboard periods.
+	GetActiveAgentsClosingStatsSince(ctx context.Context, tenantID uint64, since string) ([]AgentClosingStat, error)
+	// GetAgentProspectCountsSince counts the prospects each agent of the tenant brought in since the given
+	// time ("YYYY-MM-DD HH:MM:SS", WIB); agents without any are absent.
+	GetAgentProspectCountsSince(ctx context.Context, tenantID uint64, since string) ([]AgentProspectCount, error)
 	GetAgentPendingCommissionAndCount(ctx context.Context, tenantID uint64, agentID uint64) (saldoTertunda float64, count int, err error)
 	GetAgentTargetProgress(ctx context.Context, tenantID uint64, agentID uint64, startDate string, endDate string) (int, error)
 	GetAgentReferralClicksCount(ctx context.Context, tenantID uint64, agentID uint64) (int, error)
@@ -945,7 +957,52 @@ func (r *mysqlProspectRepository) GetActiveAgentsClosingStats(ctx context.Contex
 		GROUP BY a.id
 		ORDER BY total_jamaah DESC, a.id ASC
 	`
-	rows, err := r.db.QueryContext(ctx, query, tenantID)
+	return r.queryClosingStats(ctx, query, tenantID)
+}
+
+func (r *mysqlProspectRepository) GetActiveAgentsClosingStatsSince(ctx context.Context, tenantID uint64, since string) ([]AgentClosingStat, error) {
+	query := `
+		SELECT
+			a.id,
+			COALESCE(SUM(CASE WHEN p.id IS NOT NULL THEN COALESCE(p.jumlah_jamaah, 1) ELSE 0 END), 0) AS total_jamaah
+		FROM agents a
+		LEFT JOIN prospects p ON p.tenant_id = a.tenant_id AND p.agent_id = a.id AND p.status = 'closing'
+			AND (
+				SELECT MAX(h.changed_at) FROM prospect_status_history h
+				WHERE h.tenant_id = p.tenant_id AND h.prospect_id = p.id AND h.new_status = 'closing'
+			) >= ?
+		WHERE a.tenant_id = ? AND a.status = 'active'
+		GROUP BY a.id
+		ORDER BY total_jamaah DESC, a.id ASC
+	`
+	return r.queryClosingStats(ctx, query, since, tenantID)
+}
+
+func (r *mysqlProspectRepository) GetAgentProspectCountsSince(ctx context.Context, tenantID uint64, since string) ([]AgentProspectCount, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT p.agent_id, COUNT(*)
+		FROM prospects p
+		JOIN agents a ON a.id = p.agent_id AND a.tenant_id = p.tenant_id
+		WHERE p.tenant_id = ? AND p.agent_id IS NOT NULL AND p.created_at >= ?
+		GROUP BY p.agent_id`, tenantID, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []AgentProspectCount
+	for rows.Next() {
+		var c AgentProspectCount
+		if err := rows.Scan(&c.AgentID, &c.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *mysqlProspectRepository) queryClosingStats(ctx context.Context, query string, args ...interface{}) ([]AgentClosingStat, error) {
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

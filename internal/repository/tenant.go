@@ -53,6 +53,8 @@ type Tenant struct {
 	TargetJamaah                 *int       `json:"target_jamaah"`
 	CreatedAt                    time.Time  `json:"created_at"`
 	UpdatedAt                    time.Time  `json:"updated_at"`
+	// IsDemo marks the showcase travel (demo.klikumroh.id): set only by cmd/seed-demo.
+	IsDemo bool `json:"is_demo"`
 }
 
 // TenantAgentSettings represents the settings for agent onboarding and payouts.
@@ -183,7 +185,7 @@ func (r *mysqlTenantRepository) GetByID(ctx context.Context, id uint64) (*Tenant
 			commission_override_enabled, commission_override_percentage,
 			agent_registration_fee, agent_registration_benefits, agent_bank_name,
 			agent_bank_account_number, agent_bank_account_holder, agent_terms_conditions,
-			agent_poster_url, minimum_payout_amount, created_at, updated_at
+			agent_poster_url, minimum_payout_amount, created_at, updated_at, is_demo
 		FROM tenants
 		WHERE id = ?
 	`
@@ -201,7 +203,7 @@ func (r *mysqlTenantRepository) GetBySlug(ctx context.Context, slug string) (*Te
 			commission_override_enabled, commission_override_percentage,
 			agent_registration_fee, agent_registration_benefits, agent_bank_name,
 			agent_bank_account_number, agent_bank_account_holder, agent_terms_conditions,
-			agent_poster_url, minimum_payout_amount, created_at, updated_at
+			agent_poster_url, minimum_payout_amount, created_at, updated_at, is_demo
 		FROM tenants
 		WHERE slug = ?
 	`
@@ -219,7 +221,7 @@ func (r *mysqlTenantRepository) GetByWhatsAppNumber(ctx context.Context, whatsap
 			commission_override_enabled, commission_override_percentage,
 			agent_registration_fee, agent_registration_benefits, agent_bank_name,
 			agent_bank_account_number, agent_bank_account_holder, agent_terms_conditions,
-			agent_poster_url, minimum_payout_amount, created_at, updated_at
+			agent_poster_url, minimum_payout_amount, created_at, updated_at, is_demo
 		FROM tenants
 		WHERE whatsapp_number = ?
 		LIMIT 1
@@ -748,6 +750,7 @@ func (r *mysqlTenantRepository) scanTenant(row *sql.Row) (*Tenant, error) {
 		&minimumPayoutAmount,
 		&t.CreatedAt,
 		&t.UpdatedAt,
+		&t.IsDemo,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

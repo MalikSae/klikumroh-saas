@@ -47,6 +47,8 @@ type PublicTenantInfo struct {
 	OGImageURL        *string `json:"og_image_url"`
 	IsSuspended       bool    `json:"is_suspended"`
 	SuspendedReason   *string `json:"suspended_reason,omitempty"`
+	// IsDemo: the showcase travel; the site shows a demo ribbon and is not indexed.
+	IsDemo bool `json:"is_demo"`
 }
 
 // PublicAgentRegistrationInfo represents public registration settings for potential agents.
@@ -415,6 +417,7 @@ func (s *tenantService) GetPublicInfo(ctx context.Context, tenantID uint64) (*Pu
 		OGImageURL:        tenant.OGImageURL,
 		IsSuspended:       isSuspended,
 		SuspendedReason:   suspendedReason,
+		IsDemo:            tenant.IsDemo,
 	}, nil
 }
 

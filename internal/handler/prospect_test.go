@@ -259,6 +259,15 @@ func (m *mockProspectRepo) GetAgentFunnelSummary(ctx context.Context, tenantID u
 	return summary, nil
 }
 
+// The period filter is covered against real MySQL in internal/repository; the mock returns all-time stats.
+func (m *mockProspectRepo) GetAgentProspectCountsSince(ctx context.Context, tenantID uint64, since string) ([]repository.AgentProspectCount, error) {
+	return nil, nil
+}
+
+func (m *mockProspectRepo) GetActiveAgentsClosingStatsSince(ctx context.Context, tenantID uint64, since string) ([]repository.AgentClosingStat, error) {
+	return m.GetActiveAgentsClosingStats(ctx, tenantID)
+}
+
 func (m *mockProspectRepo) GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]repository.AgentClosingStat, error) {
 	agentMap := make(map[uint64]int)
 	if m.agentRepo != nil {
@@ -774,7 +783,7 @@ func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
 }
 
 func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *testing.T) {
-	r, prospectRepo, pkgRepo, _, _, agentRepo, tenantRepo := setupProspectRouter()
+	r, prospectRepo, pkgRepo, _, domainRepo, agentRepo, tenantRepo := setupProspectRouter()
 	ctx := context.Background()
 
 	// Tenant A (ID=10) has whatsapp_number
@@ -960,6 +969,37 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 
 		if resp["whatsapp_redirect_url"] != nil {
 			t.Errorf("Expected whatsapp_redirect_url to be null, got: %v", resp["whatsapp_redirect_url"])
+		}
+	})
+
+	// Demo travel: the prospect is saved, but WhatsApp never opens (its numbers are made up).
+	t.Run("Demo travel saves the prospect without a WhatsApp redirect", func(t *testing.T) {
+		waDemo := "6281200000000"
+		demo := &repository.Tenant{ID: 30, Name: "Baitullah Demo Tour", Slug: "demotravel", Status: "active", WhatsAppNumber: &waDemo, IsDemo: true}
+		_ = tenantRepo.Create(ctx, demo)
+		domainRepo.domains["demotravel.klikumroh.local"] = &repository.Domain{ID: 30, TenantID: 30, Hostname: "demotravel.klikumroh.local", Status: "active"}
+		pkgDemo := &repository.Package{Name: "Paket Demo", Status: "published"}
+		_ = pkgRepo.Create(ctx, 30, pkgDemo)
+
+		body, _ := json.Marshal(map[string]interface{}{
+			"consent":       true,
+			"name":          "Pengunjung Demo",
+			"phone":         "08121112222",
+			"package_id":    pkgDemo.ID,
+			"jumlah_jamaah": 1,
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/public/prospects", bytes.NewBuffer(body))
+		req.Host = "demotravel.klikumroh.local"
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("Expected 201 Created, got %d (%s)", rr.Code, rr.Body.String())
+		}
+		var resp map[string]interface{}
+		_ = json.Unmarshal(rr.Body.Bytes(), &resp)
+		if resp["whatsapp_redirect_url"] != nil {
+			t.Errorf("Demo travel must not redirect to WhatsApp, got: %v", resp["whatsapp_redirect_url"])
 		}
 	})
 }

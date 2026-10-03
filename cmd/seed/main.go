@@ -53,31 +53,34 @@ func main() {
 	demoAdminPass := seedPassword("SEED_DEMO_ADMIN_PASSWORD")
 
 	// Seed Master Admin / Staff User
-	staffEmail := "staff@klikumroh.id"
-	existingStaff, err := staffRepo.FindByEmail(ctx, staffEmail)
-	switch {
-	case err != nil && staffPass == "":
-		fmt.Println("SKIP staff user: set SEED_STAFF_PASSWORD (min 12 characters) to create it")
-	case err != nil:
-		staff := &repository.StaffUser{
-			Name:         "Master Admin KlikUmroh",
-			Email:        staffEmail,
-			PasswordHash: mustHash(staffPass),
-			Status:       "active",
+	staffEmails := []string{"staff@klikumroh.id", "maliksae147@gmail.com"}
+	
+	for _, staffEmail := range staffEmails {
+		existingStaff, err := staffRepo.FindByEmail(ctx, staffEmail)
+		switch {
+		case err != nil && staffPass == "":
+			fmt.Printf("SKIP staff user %s: set SEED_STAFF_PASSWORD (min 12 characters) to create it\n", staffEmail)
+		case err != nil:
+			staff := &repository.StaffUser{
+				Name:         "Master Admin " + staffEmail,
+				Email:        staffEmail,
+				PasswordHash: mustHash(staffPass),
+				Status:       "active",
+			}
+			if err := staffRepo.Create(ctx, staff); err != nil {
+				log.Fatalf("Failed to seed staff user %s: %v", staffEmail, err)
+			}
+			fmt.Printf("Created Staff User: %s (ID: %d)\n", staff.Email, staff.ID)
+		case resetPasswords && staffPass != "":
+			existingStaff.PasswordHash = mustHash(staffPass)
+			existingStaff.Status = "active"
+			if err := staffRepo.Update(ctx, existingStaff); err != nil {
+				log.Fatalf("Failed to reset staff password %s: %v", staffEmail, err)
+			}
+			fmt.Printf("Staff User password reset: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
+		default:
+			fmt.Printf("Staff User exists, password unchanged: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
 		}
-		if err := staffRepo.Create(ctx, staff); err != nil {
-			log.Fatalf("Failed to seed staff user: %v", err)
-		}
-		fmt.Printf("Created Staff User: %s (ID: %d)\n", staff.Email, staff.ID)
-	case resetPasswords && staffPass != "":
-		existingStaff.PasswordHash = mustHash(staffPass)
-		existingStaff.Status = "active"
-		if err := staffRepo.Update(ctx, existingStaff); err != nil {
-			log.Fatalf("Failed to reset staff password: %v", err)
-		}
-		fmt.Printf("Staff User password reset: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
-	default:
-		fmt.Printf("Staff User exists, password unchanged: %s (ID: %d)\n", existingStaff.Email, existingStaff.ID)
 	}
 
 	// Seed Sample Pricing Plans if empty
