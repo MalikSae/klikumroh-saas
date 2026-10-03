@@ -192,6 +192,22 @@
         "tabbar": "64px",
         "sheet-grip": "36px"
       }
+    },
+    "terminal": {
+      "_note": "Halaman login internal (/internal/login) bergaya terminal, disetujui pendiri 2 Okt 2026. Dipetakan ke --db-term-* di dashboard/src/modules/superadmin/shared/base.css. Font monospace JetBrains Mono khusus halaman ini.",
+      "bg": "#050805",
+      "panel": "#0A100B",
+      "bar": "#0F1811",
+      "line": "#1C3A24",
+      "text": "#C8F5D6",
+      "muted": "#6E9F7B",
+      "accent": "#22C55E",
+      "accentHover": "#4ADE80",
+      "onAccent": "#03140A",
+      "error": "#F87171",
+      "glow": "rgba(34, 197, 94, 0.28)",
+      "scanline": "rgba(200, 245, 214, 0.03)",
+      "grid": "rgba(34, 197, 94, 0.06)"
     }
   },
   "tenantWhitelabel": {
@@ -218,6 +234,7 @@
       "statusContactedText": "#B45309",
       "statusClosing": "#22C55E",
       "statusClosingText": "#16A34A",
+      "verified": "#1D9BF0",
       "danger": "#EF4444",
       "dangerStrong": "#DC2626",
       "dangerText": "#991B1B",
@@ -254,7 +271,11 @@
       "accentRoseText": "#BE123C",
       "accentTeal": "#0D9488",
       "hairlineSoft": "rgba(0, 0, 0, 0.03)",
-      "shadowStrong": "rgba(0, 0, 0, 0.2)"
+      "shadowStrong": "rgba(0, 0, 0, 0.2)",
+      "shadowColor": "#000000",
+      "gray100": "#F3F4F6",
+      "gray50": "#F8F9FA",
+      "zinc50": "#FAFAFA"
     }
   },
   "publicConversionLayout": {
@@ -288,30 +309,38 @@
     "full-row": "1 / -1"
   },
   "marketing": {
-    "_note": "Token TETAP untuk situs pemasaran KlikUmroh.id (landing page & checkout). Sumber: KlikUmroh.pen ($km-* design tokens).",
+    "_note": "Token TETAP untuk situs pemasaran KlikUmroh.id (landing page, checkout, login travel, halaman travel ditangguhkan). Palet monokrom zinc, sama dengan --km-* di web/app/globals.css (disamakan 1 Okt 2026; palet teal lama dari KlikUmroh.pen tidak dipakai lagi).",
     "colors": {
-      "bg": "#F3F8F7",
+      "bg": "#FAFAFA",
       "paper": "#FFFFFF",
-      "ink": "#073B38",
-      "muted": "#5D7471",
-      "green": "#006E67",
-      "green2": "#007C74",
-      "deep": "#052F2C",
-      "gold": "#007C74",
-      "goldSoft": "#D9F3F0",
-      "mint": "#E4F2F0",
-      "line": "#CFE0DD",
-      "danger": "#B84B3E",
-      "orange": "#E8B85B",
-      "orangeDark": "#8A641F",
-      "orangeSoft": "#F6E9C9"
+      "ink": "#09090B",
+      "muted": "#71717A",
+      "line": "#E4E4E7",
+      "deep": "#09090B",
+      "surfaceSubtle": "#F4F4F5",
+      "danger": "#EF4444",
+      "neutral900": "#18181B",
+      "neutral800": "#27272A",
+      "neutral700": "#3F3F46",
+      "neutral600": "#52525B",
+      "neutral400": "#A1A1AA",
+      "neutral300": "#D4D4D8",
+      "dangerText": "#991B1B",
+      "dangerStrong": "#B91C1C",
+      "dangerSoft": "#FCA5A5",
+      "dangerLine": "#FECACA",
+      "dangerBg": "#FEF2F2",
+      "dangerBorder": "#FEE2E2",
+      "alertText": "#B84B3E"
     },
     "compound": {
-      "workflowCardBg": "rgba(255, 255, 255, 0.05)",
-      "workflowCardBorder": "rgba(255, 255, 255, 0.12)",
-      "haloGlow": "rgba(0, 124, 116, 0.08)",
-      "cardShadow": "0 4px 20px -2px rgba(7, 59, 56, 0.06)",
-      "navShadow": "0 4px 20px -2px rgba(7, 59, 56, 0.05)"
+      "workflowCardBg": "rgba(255, 255, 255, 0.04)",
+      "workflowCardBorder": "rgba(255, 255, 255, 0.10)",
+      "haloGlow": "rgba(0, 0, 0, 0.04)",
+      "cardShadow": "0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 24px -6px rgba(0, 0, 0, 0.04)",
+      "navShadow": "0 2px 10px -2px rgba(0, 0, 0, 0.04)",
+      "shadowColor": "#000000",
+      "suspendedCardShadow": "rgba(5, 47, 44, 0.06)"
     }
   }
 }

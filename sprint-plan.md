@@ -287,3 +287,40 @@ Keputusan pendiri: dashboard travel dibangun ulang dari nol mengikuti referensi 
 - [x] Website (`src/screens/website`): tab Identitas (logo, ikon, warna utama, tagline, ringkasan, lencana kepercayaan), Banner, Testimoni, FAQ (daftar berurutan: naik/turun, tampil/sembunyikan, ubah lewat modal, hapus), SEO (pratinjau Google, judul/deskripsi dengan penghitung, kata kunci, kota/provinsi, gambar share), Domain (alamat bawaan, domain sendiri: tabel record DNS CNAME/A + TXT dengan tombol salin, periksa sekarang, alasan gagal, hapus). Layar sementara "sedang dibangun ulang" dihapus.
 - [x] Custom domain www + alias (1 Okt 2026, keputusan pendiri: non-www dialihkan 307 ke www): migrasi `000055` (`domains.redirect_to_domain_id`, cascade), daftar pasangan www.X + X (`include_alias`), satu TXT (milik www) membuktikan pasangan, alias aktif hanya setelah www aktif + A record ke server, pengalihan alias dan alamat bawaan selalu ke domain utama (deterministik), `web/proxy.ts` memeriksa host domain sendiri, tab Website > Domain menampilkan pasangan + tabel DNS gabungan. Test: `TestDomainAlias_*` (handler + MySQL), `test:redirect` 4/4. Perlu dicek manual di VPS: routing SNI Nginx untuk domain A record dan env `PLATFORM_IPS`.
 - [ ] Pendiri memeriksa visual Dashboard & kerangka baru.
+
+## Habit Tracker Agen (2 Oktober 2026)
+
+Keputusan (rekomendasi disetujui pendiri untuk tahap awal, direview setelah jadi): 5 kebiasaan harian tetap dari platform (sama untuk semua travel), hari aktif = minimal 3 dari 5, streak hanya ditampilkan (belum jadi syarat hadiah), tanpa pengingat/notifikasi otomatis (non-goal CRM, AGENTS.md 3.7).
+
+- [x] Migrasi `000056_agent_habits`: `agent_habit_logs` (satu baris per agen, kebiasaan, hari WIB) dan `agent_sumber_progress` (progres "99 sumber jamaah" pindah dari browser ke server)
+- [x] Repository `AgentHabitRepository` (wajib `tenant_id`): kebiasaan "contact" dari perubahan status oleh agen dan "note" dari catatan agen dibaca langsung dari data jamaah
+- [x] Service: checklist hari ini, streak (hari ini yang belum selesai tidak memutus streak), streak terbaik, kalender 30 hari
+- [x] API agen: `GET /api/agent/habits`, `POST /api/agent/habits/log` (share/contact/caption), `GET /api/agent/sumber-progress`, `PUT /api/agent/sumber-progress/{id}`
+- [x] Pencatatan di portal: bagikan link/paket (Beranda), chat WA & salin/kirim script (Jamaah, Detail, Script chat), salin/kirim caption (Bank caption), tandai sumber (99 sumber; data lama di browser dipindah sekali ke server)
+- [x] UI: kartu "Kebiasaan hari ini" di Beranda agen + halaman `/agen/kebiasaan` (checklist, streak, kalender 30 hari)
+- [x] Test: isolasi tenant + kebiasaan turunan (MySQL asli), aturan streak (unit)
+- [x] Lencana istiqamah (3 Oktober 2026, disetujui pendiri): penghargaan non-materi saat streak terbaik mencapai 7, 30, 100 hari. Migrasi `000057_agent_habit_badges` (diraih sekali, tidak hilang saat streak putus), notifikasi agen "Masya Allah, N hari istiqamah" sekali per lencana, tampil di `/agen/kebiasaan` (3 lencana: diraih/terkunci + sisa hari), ID card Profil (lencana tertinggi), dan baris Leaderboard (ikon). Tanpa hadiah uang/barang (mudah dicurangi; hadiah tetap lewat Target dan reward). Test: isolasi tenant (MySQL asli), milestone + notifikasi sekali (unit)
+- [x] Tahap 2 (3 Oktober 2026): dashboard travel. Daftar agen: kolom "Syiar 7 hari" (hari aktif 7 hari terakhir + ikon lencana tertinggi) dan urutan "Paling istiqamah syiar". Detail agen: panel "Syiar harian" (streak sekarang/terbaik, hari aktif 30 hari, lencana, kalender 30 hari, jumlah hari per langkah 30 hari). API `GET /api/dashboard/agent-habits`, `GET /api/dashboard/agents/{id}/habits` (tanpa migrasi). Hanya tampilan, tanpa pengingat otomatis (non-goal CRM). Test: isolasi tenant overview + laporan agen (MySQL asli)
+- [x] Kartu "Agen" di Beranda dashboard travel (3 Oktober 2026, definisi dari pendiri): Terdaftar (agen disetujui dan aktif), Aktif (syiar minimal 3 hari aktif dalam 7 hari terakhir), Produktif (ada prospek atau closing 30 hari terakhir), plus 5 agen paling produktif 30 hari (closing jamaah lalu prospek). API `GET /api/dashboard/agent-summary`, repo `GetAgentProspectCountsSince` (wajib `tenant_id`). Test: isolasi tenant hitungan prospek + ringkasan (MySQL asli)
+
+## Audit Beranda Dashboard Travel dari Sisi Bisnis (3 Oktober 2026)
+
+- [x] Urutan di HP: KPI, Perlu tindakan, Prospek terbaru, grafik kanal, Keberangkatan terdekat, Alasan tidak lanjut, Agen (kartu Agen sempat muncul paling atas)
+- [x] KPI "Closing" jadi "Jamaah closing"; Konversi diberi keterangan "X dari Y prospek closing" (satuan konversi = prospek, bukan jamaah)
+- [x] KPI baru "Estimasi omzet" 30 hari (harga paket x jamaah closing, dibanding 30 hari sebelumnya): `kpi_daily.closing_value` di API overview. Test nilai + isolasi tenant (MySQL asli)
+- [x] Closing per kanal (prospek, closing, %) di bawah grafik; `channel_attribution` kini 30 hari terakhir (sebelumnya sepanjang masa)
+- [x] Perlu tindakan: "X prospek Tertarik belum closing" + potensi rupiah dan jamaah
+- [x] Kartu "Keberangkatan terdekat" (sisa kursi per paket); query paket hanya yang belum berangkat (sebelumnya ikut paket lampau)
+- [x] Kartu "Alasan tidak lanjut" (4 alasan teratas, persen dari prospek tidak lanjut)
+- [x] Kartu Agen: label singkat + definisi di tooltip, satu pesan kunci saat angka timpang
+- [x] Grafik kanal default 30 hari; Prospek terbaru 5 baris
+
+## Travel Demo `demo.klikumroh.id` (3 Oktober 2026)
+
+- [x] Migrasi `000058_tenant_is_demo` (`tenants.is_demo`); slug `demo` dicadangkan di pendaftaran travel
+- [x] Pengaman mode demo: `middleware.DemoGuard` (403 untuk ganti password/profil admin, tim, reset password agen, custom domain, Meta, password agen), form minat tanpa redirect WhatsApp, `tenant-info`/`subscription` mengirim `is_demo`
+- [x] Pita demo di web publik + portal agen (`noindex`, tanpa JSON-LD) dan di dashboard
+- [x] Fixture `demo/fixtures.json` + `demo/assets/` (diekspor dari travel contoh lokal, `scripts/export-demo-fixtures.mjs`) dan perintah `go run ./cmd/seed-demo [--reset]` (40 agen, ±330 prospek, komisi, pencairan, syiar harian; tanggal relatif; hanya menghapus travel `is_demo = 1`)
+- [x] Test: `DemoGuard` (diblokir hanya untuk travel demo), form minat travel demo tanpa WhatsApp
+- [ ] Di VPS (pemilik produk): migrasi, isi `DEMO_*` di `.env`, `seed-demo` sekali, cron `--reset` tiap malam (DEPLOY.md Bagian 5)
+- [ ] Kecualikan travel demo dari statistik super admin

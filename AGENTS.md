@@ -63,7 +63,9 @@ Aturan umum:
 
 - **Dilarang keras** memakai emoji atau simbol Unicode (▲ ▼ ✓ ✗ 🕋 📅 👥 dll) di mana pun sebagai pengganti ikon fungsional atau dekoratif — baik di dashboard maupun web publik. Ini termasuk pemakaian sebagai placeholder "sementara".
 - **Wajib** pakai `lucide-react` untuk semua kebutuhan ikon (panah indikator, kalender, jumlah orang, plus/tambah, placeholder gambar, dll). Warna ikon ikut `currentColor` atau CSS var yang relevan (`--db-positive`, `--db-negative`, dst) — bukan warna hardcoded terpisah dari ikon.
+  - **Pengecualian yang disetujui pendiri (1 Okt 2026):** ikon Ka'bah (`web/components/icons/KaabaIcon.tsx`), karena lucide tidak punya. Digambar dengan gaya lucide (24×24, garis 2px, `currentColor`). Ikon lain di luar lucide tetap butuh persetujuan pendiri dulu.
 - **Font wajib**: `Plus Jakarta Sans` untuk heading/display text, `Roboto` untuk body text — di kedua project (dashboard dan web publik). Dimuat via `next/font/google` di `/web` dan `@fontsource` di `/dashboard` (bukan link CDN eksternal saat runtime).
+  - **Pengecualian yang disetujui pendiri (2 Okt 2026):** halaman login internal (`/internal/login`, `dashboard/src/modules/superadmin/views/AdminLoginView.tsx`) bergaya terminal memakai `JetBrains Mono` (`@fontsource/jetbrains-mono`) dan token `dashboard.terminal` (`--db-term-*`). Hanya halaman ini — jangan dipakai di halaman lain tanpa persetujuan.
 - **Aturan Penggunaan Font Dashboard**:
   - `Plus Jakarta Sans`: Khusus elemen struktural & display (Judul Halaman `h1`/22px, Judul Kartu/Panel `h2`/16px, Judul Modal/18px, Angka Metrik Utama/KPI 28px bold, Wordmark Brand, dan Tombol CTA Utama).
   - `Roboto`: Khusus teks fungsional UI & data density (seluruh cell tabel `td`, header kolom `th`, input formulir & labels, teks body/paragraf, menu navigasi sidebar, badges, tooltips, dan timestamp).
@@ -87,6 +89,10 @@ Gunakan hanya status berikut, jangan buat status baru tanpa didiskusikan dulu:
 Baru → Dihubungi → Tertarik → Closing / Tidak Lanjut
 ```
 Funnel analitik per agen **wajib** menarik dari status pipeline yang sama ini (satu sumber data), bukan pencatatan status terpisah.
+
+"Lunas / Belum lunas" **bukan status pipeline** — itu penanda terpisah (`prospects.paid_off_at`) pada prospek berstatus Closing, dipakai untuk melepas komisi yang tertahan. Jangan tambahkan "Lunas" sebagai status baru di pipeline.
+
+Di web publik/portal agen, warna status prospek **wajib** pakai token status (`--tw-status-*`, dll), **bukan** `--tw-brand-primary` — warna brand berbeda per travel dan bisa bentrok dengan arti status (mis. brand merah terbaca sebagai error).
 
 ### 3.7 Non-Goals — Jangan Dikerjakan Tanpa Diminta Eksplisit
 
@@ -129,7 +135,7 @@ Disarikan dari riset publik soal ciri-ciri desain yang gampang ketauan "asal dib
 - Hindari ikon dibungkus lingkaran/kotak warna di mana-mana ("badge chrome") — itu template yang gampang ketauan generik, biarkan ikon berdiri sendiri kecuali memang perlu ditonjolkan.
 
 **Tipografi:**
-- Body text minimal 16px, line-height 1.5-1.8.
+- Body text minimal 14px (standar aplikasi HP), line-height 1.5-1.8. Diturunkan dari 16px atas keputusan pendiri (1 Okt 2026). Pengecualian: kolom input form tetap minimal 16px agar Safari iOS tidak otomatis zoom saat diketik. Teks sekunder (label, tanggal/waktu, baris kedua item daftar, keterangan kecil) boleh 13px — disetujui pendiri (2 Okt 2026); di bawah 13px tetap dilarang.
 - Teks panjang (deskripsi, FAQ) rata kiri, bukan center-align.
 
 **Warna:**

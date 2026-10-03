@@ -189,3 +189,44 @@ Backend memverifikasi A record domain travel dengan membandingkan IP-nya ke IP s
 - Jika server melayani IPv6, masukkan IPv6-nya juga: domain travel yang punya record AAAA akan ditolak jika IPv6 server tidak termasuk.
 
 Diisi manual oleh pemilik produk di environment backend (aaPanel Go Project), bukan oleh AI agent.
+
+## 5. Travel Demo di `demo.klikumroh.id`
+
+Travel demo adalah travel biasa di database produksi dengan slug `demo` dan kolom `tenants.is_demo = 1`. Subdomain `*.klikumroh.id` sudah diarahkan ke Caddy, jadi **tidak perlu DNS, server, atau sertifikat baru**. Isinya (profil, paket, banner, testimoni, FAQ, gambar) ada di repo: `demo/fixtures.json` dan `demo/assets/`. Agen, prospek, komisi, pencairan, dan syiar harian dibuat otomatis oleh `cmd/seed-demo` dengan tanggal relatif terhadap saat dijalankan.
+
+**Selama `is_demo = 1`, aplikasi otomatis:**
+- menampilkan pita "Website demo KlikUmroh, bukan travel sungguhan" di web publik dan portal agen, dan pita "Akun demo" di dashboard;
+- memberi `noindex, nofollow` dan tidak memasang data terstruktur travel (tidak masuk Google);
+- tidak pernah membuka WhatsApp setelah form minat (nomor demo memakai rentang `0800…`, bukan nomor HP);
+- menolak (403) ganti password/profil admin, tambah/nonaktifkan anggota tim, reset password agen, custom domain, pengaturan Meta Pixel/CAPI, dan ganti password agen. Selain itu semua fitur boleh dicoba pengunjung.
+
+**Langkah di VPS (dikerjakan pemilik produk, bukan AI agent):**
+
+1. Deploy kode terbaru seperti biasa, lalu **matikan API** dan jalankan migrasi (menambah kolom `is_demo`):
+   ```bash
+   go run ./cmd/migrate
+   ```
+2. Isi kredensial demo di `.env` server (dibagikan ke pengunjung lewat tombol "Coba demo", jadi jangan dipakai di tempat lain; password minimal 8 karakter). Email admin demo harus belum dipakai travel lain:
+   ```
+   DEMO_SLUG=demo
+   DEMO_ROOT_DOMAIN=klikumroh.id
+   DEMO_ADMIN_EMAIL=...
+   DEMO_ADMIN_PASSWORD=...
+   DEMO_AGENT_EMAIL=...
+   DEMO_AGENT_PASSWORD=...
+   ```
+3. Buat travel demo sekali (dari folder aplikasi, folder `uploads/` yang sama dengan API):
+   ```bash
+   go run ./cmd/seed-demo
+   ```
+   Perintah ini menolak berjalan kalau slug `demo` sudah dipakai travel sungguhan (`is_demo = 0`), dan tidak menghapus apa pun dalam kasus itu.
+4. Pasang cron reset tiap malam, misalnya pukul 02.00 WIB (sesuaikan path dan user):
+   ```
+   0 2 * * * cd /www/wwwroot/klikumroh && /usr/local/go/bin/go run ./cmd/seed-demo --reset >> /var/log/klikumroh-demo.log 2>&1
+   ```
+   `--reset` menghapus travel demo lama beserta seluruh datanya dan foldernya di `uploads/`, lalu membangunnya ulang. Hanya travel dengan `is_demo = 1` yang bisa dihapus perintah ini. Sesi login demo ikut terhapus; pengunjung cukup login lagi.
+5. Cek: buka `https://demo.klikumroh.id` (pita demo tampil), login dashboard di `https://klikumroh.id` dengan akun admin demo, dan login portal agen di `https://demo.klikumroh.id/agen/login` dengan akun agen demo.
+
+**Mengubah isi demo:** atur ulang data travel contoh di lingkungan lokal, jalankan `node scripts/export-demo-fixtures.mjs <tenant_id>` dari root repo (menulis ulang `demo/fixtures.json` dan `demo/assets/`), commit, deploy. Malam berikutnya cron memakai isi baru.
+
+**Catatan:** travel demo belum dikecualikan dari statistik super admin (jumlah travel, dsb.). Langganannya diisi aktif 10 tahun sehingga tidak pernah ditagih atau ditangguhkan.

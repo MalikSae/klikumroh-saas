@@ -21,7 +21,7 @@ Akar masalahnya bukan sekadar "tidak punya website", melainkan **travel tidak pu
 **Bukti pendukung (dari pengalaman lapangan sebagai konsultan):**
 Sebuah travel menghabiskan puluhan juta rupiah/bulan untuk iklan (Meta/Google) dengan closing rate rendah, sementara jaringan agennya — yang sama sekali tidak dibina, tidak ada program aktivasi — ternyata menghasilkan jamaah lebih banyak. Setelah direkomendasikan mengalihkan sebagian budget ke pembinaan agen (reward, event, pelatihan), alokasi sumber daya travel menjadi lebih percaya diri dan terarah.
 
-**Insight psikologis kunci:** Owner travel cenderung lebih nyaman dengan pengeluaran yang **risikonya rendah meski totalnya besar** (komisi agen hanya cair saat closing) dibanding pengeluaran **fixed cost dengan hasil tidak pasti** (budget iklan di muka). Insight ini turut memengaruhi keputusan model harga produk (lihat Bagian 10).
+**Insight psikologis kunci:** Owner travel cenderung lebih nyaman dengan pengeluaran yang **risikonya rendah meski totalnya besar** (komisi agen hanya cair setelah jamaah closing dan lunas) dibanding pengeluaran **fixed cost dengan hasil tidak pasti** (budget iklan di muka). Insight ini turut memengaruhi keputusan model harga produk (lihat Bagian 10).
 
 ---
 
@@ -85,6 +85,9 @@ Pasar software untuk travel umroh di Indonesia sudah cukup ramai, namun mayorita
 ### 7.2 Growth Loop — Sistem Agen
 - Referral link unik per agen.
 - Dashboard analitik funnel per agen: klik referral link → isi form → mengikuti tahapan status yang sama dengan Core Loop (Baru → Dihubungi → Tertarik → Closing / Tidak Lanjut). Funnel ini **terintegrasi langsung dengan status pipeline prospek** (bukan pencatatan status terpisah), sehingga data konsisten dan admin tidak perlu mengupdate status dua kali di tempat berbeda. Integrasi ini juga memungkinkan analisis drop-off per agen (mis. prospek dari agen tertentu banyak yang mentok di tahap "Dihubungi", mengindikasikan masalah serah terima follow-up).
+- Komisi & pencairan agen: komisi tercatat saat prospek Closing (DP), tetapi **tertahan** sampai admin menandai jamaah lunas; setelah itu masuk saldo yang bisa ditarik. Agen mengajukan penarikan ke rekening (status: diproses → disetujui → dibayar, atau ditolak), dengan minimal penarikan per travel. Agen bisa melihat riwayat komisi & penarikan; beranda portal agen menampilkan total komisi diraih (komisi dari jamaah lunas, tidak berkurang oleh penarikan).
+- Agen dapat menambahkan prospek sendiri (input manual) dengan persetujuan calon jamaah, dan menghubungi prospek lewat pintasan WhatsApp di daftar jamaah. Pintasan ini hanya membuka chat — bukan fitur CRM (tidak ada reminder, penugasan, atau otomasi).
+- Habit tracker agen: 5 kebiasaan harian tetap (bagikan link/paket, hubungi calon jamaah, posting caption/status WA, catat perkembangan jamaah, coba sumber jamaah baru) yang tercentang otomatis dari aktivitas agen di portal; hari aktif = minimal 3 dari 5, dengan streak dan kalender 30 hari. Tanpa pengingat/notifikasi otomatis (bukan fitur CRM).
 - Leaderboard performa agen (ranking, kompetisi antar-agen).
 - Jadwal event agen + fitur RSVP.
 - Tips/konten promosi jualan — model hybrid: KlikUmroh menyediakan konten master, travel bisa menggunakan langsung, mengedit, atau menambahkan kontennya sendiri.

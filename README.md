@@ -26,8 +26,10 @@ Setiap travel mitra (tenant) mendapatkan:
   - Pendaftaran agen (opsi gratis atau berbayar dengan verifikasi bukti transfer).
   - Referral link otomatis yang menempelkan jejak agen ke calon jamaah secara persisten.
   - Skema komisi langsung (*direct*) dan komisi pembina (*parent override*).
-  - Habit tracker & target bulanan (*closing pax* dan rekrutmen mitra baru).
-  - Sistem pengajuan & persetujuan payout komisi.
+  - Target & hadiah agen (*closing pax* dan rekrutmen mitra baru).
+  - Habit tracker agen: 5 kebiasaan harian yang tercentang otomatis dari aktivitas di portal (bagikan link, hubungi jamaah, posting caption, catat perkembangan, coba sumber jamaah), streak, dan kalender 30 hari.
+  - Portal agen: beranda dengan total komisi diraih, riwayat komisi, dan tarik saldo ke rekening.
+  - Komisi tertahan sampai jamaah ditandai lunas; sistem pengajuan & persetujuan payout komisi.
 - 🎯 **Manajemen Prospek & Pipeline Closing**:
   - Website publik ramah seluler (*mobile-locked*) yang dioptimalkan untuk rasio konversi (CRO).
   - Form konsultasi & minat jamaah langsung terhubung ke WhatsApp dan database prospek.
