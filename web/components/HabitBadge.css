@@ -1,0 +1,31 @@
+/* Badge tiers use the same medal colors as the leaderboard: bronze, silver, gold. All from tokens. */
+.tw-habit-badge {
+  --badge: color-mix(in srgb, var(--tw-warning-strong) 80%, var(--tw-neutral-900));
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tw-habit-badge--silver {
+  --badge: var(--tw-neutral-500);
+}
+
+.tw-habit-badge--gold {
+  --badge: var(--tw-rating-star);
+}
+
+.tw-habit-badge svg {
+  color: var(--badge);
+}
+
+.tw-habit-badge--chip {
+  padding: 2px 8px 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--badge) 35%, var(--tw-background));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--badge) 8%, var(--tw-background));
+  color: var(--tw-text-primary);
+  font: 600 13px var(--tw-font-body);
+  line-height: 1.5;
+  white-space: nowrap;
+}
