@@ -86,3 +86,36 @@
 @media (max-width: 768px) {
   .ag-copy__btn { width: 32px; height: 32px; }
 }
+
+/* Agent detail: "Syiar harian" (habit tracker, read only) */
+.ag-loading--sm { height: 120px; }
+.ag-habit { display: flex; flex-direction: column; gap: var(--ku-space-4); }
+.ag-habit__badge { display: inline-flex; align-items: center; gap: 4px; }
+.ag-habit__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ku-space-6); }
+.ag-habit__sub { margin: 0 0 var(--ku-space-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); color: var(--ku-ink-2); }
+.ag-habit__cal { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; max-width: 320px; }
+.ag-habit__day { aspect-ratio: 1; border-radius: 4px; background: var(--ku-gray-soft); }
+.ag-habit__day--some { background: var(--ku-green-soft); }
+.ag-habit__day--active { background: var(--ku-green); }
+.ag-habit__note { margin: var(--ku-space-2) 0 0; font-size: var(--ku-text-sm); }
+.ag-habit__counts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ku-space-2); }
+.ag-habit__counts li { display: grid; grid-template-columns: minmax(0, 1fr) 80px 56px; align-items: center; gap: var(--ku-space-3); font-size: var(--ku-text-sm); }
+.ag-habit__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ku-ink-2); }
+.ag-habit__bar { height: 6px; border-radius: 3px; background: var(--ku-gray-soft); overflow: hidden; }
+.ag-habit__bar span { display: block; height: 100%; border-radius: 3px; background: var(--ku-ink-3); }
+.ag-habit__n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ku-ink); }
+@media (max-width: 760px) {
+  .ag-habit__grid { grid-template-columns: minmax(0, 1fr); }
+}
+.ag-syiar { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+
+/* Agent detail sections as cards: the stat grid runs edge to edge under the card title (no box in a box). */
+.ag-section > .ag-stats { margin-top: var(--ku-space-4); border: 0; border-top: 1px solid var(--ku-line); border-radius: 0; }
+.ag-section > .ag-stats:last-child { border-radius: 0 0 var(--ku-radius-card) var(--ku-radius-card); }
+.ag-section > .ag-stats + .ku-card__body { border-top: 1px solid var(--ku-line); }
+.ag-section > .ag-stats > div { padding: var(--ku-space-3) var(--ku-space-5); }
+
+/* Agent list on a phone: five stats fill two full rows (Prospek, Jamaah closing, Komisi / Syiar 7 hari,
+   Prospek terakhir across two columns), no empty corner. */
+.ag .ku-mcard__stats > div:nth-child(5):last-child { grid-column: span 2; }
+

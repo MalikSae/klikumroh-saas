@@ -1,4 +1,5 @@
-// Banner: the homepage slider. Image, title, subtitle, optional link.
+// Banner: the homepage slider (image only on the website, 1600 x 700). Title names it here and is the
+// image's alt text; an optional link makes the whole banner clickable. No subtitle (removed 1 Oct 2026).
 import React, { useEffect, useRef, useState } from 'react';
 import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { createBanner, deleteBanner, fetchBanners, getFullImageUrl, updateBanner, uploadBannerImage, type BannerItem } from '../../services/api';
@@ -9,7 +10,6 @@ const toPayload = (b: BannerItem): Partial<BannerItem> => ({ title: b.title, ima
 
 const BannerModal: React.FC<{ banner: BannerItem | null; nextOrder: number; onClose: () => void; onSaved: () => void }> = ({ banner, nextOrder, onClose, onSaved }) => {
   const [title, setTitle] = useState(banner?.title || '');
-  const [subtitle, setSubtitle] = useState(banner?.subtitle || '');
   const [cta, setCta] = useState(banner?.cta_url || '');
   const [image, setImage] = useState(banner?.image_url || '');
   const [active, setActive] = useState(banner?.is_active ?? true);
@@ -45,7 +45,8 @@ const BannerModal: React.FC<{ banner: BannerItem | null; nextOrder: number; onCl
     setSaving(true);
     setError(null);
     try {
-      const body = { title: title.trim(), subtitle: subtitle.trim() || null, cta_url: cta.trim() || null, image_url: image, is_active: active, display_order: banner?.display_order ?? nextOrder };
+      // An older banner keeps the subtitle it already has (not shown anywhere any more).
+      const body = { title: title.trim(), subtitle: banner?.subtitle ?? null, cta_url: cta.trim() || null, image_url: image, is_active: active, display_order: banner?.display_order ?? nextOrder };
       if (banner) await updateBanner(banner.id, body);
       else await createBanner(body);
       onSaved();
@@ -95,15 +96,12 @@ const BannerModal: React.FC<{ banner: BannerItem | null; nextOrder: number; onCl
               <span>{uploading ? 'Mengunggah...' : 'Unggah gambar banner'}</span>
             </button>
           )}
-          <div className="ku-field__hint">Rasio lebar (mis. 1600 x 700 px), maks. 8 MB.</div>
+          <div className="ku-field__hint">Tampil di website dengan rasio 1600 x 700 px. Maks. 8 MB.</div>
           {errors.image && <div className="ku-field__error">{errors.image}</div>}
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="st-hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         </div>
-        <Field label="Judul" error={errors.title}>
+        <Field label="Judul" error={errors.title} hint="Tidak tampil di website; untuk mengenali banner di daftar dan sebagai teks alternatif gambar.">
           {(id) => <input id={id} className="ku-input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} aria-invalid={Boolean(errors.title)} />}
-        </Field>
-        <Field label="Subjudul" optional>
-          {(id) => <input id={id} className="ku-input" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={200} />}
         </Field>
         <Field label="Tautan saat banner diklik" optional error={errors.cta} hint="Contoh: /paket/12 untuk membuka satu paket.">
           {(id) => <input id={id} className="ku-input" value={cta} onChange={(e) => setCta(e.target.value)} aria-invalid={Boolean(errors.cta)} />}
@@ -139,7 +137,6 @@ export const Banners: React.FC = () => {
           <img className="ws-thumb" src={getFullImageUrl(b.image_url)} alt="" loading="lazy" />
           <span className="ag-name">
             {b.title}
-            {b.subtitle && <span className="ku-muted">{b.subtitle}</span>}
           </span>
         </span>
       ),
@@ -148,7 +145,6 @@ export const Banners: React.FC = () => {
       mobileCell: (b) => (
         <span className="ag-name">
           {b.title}
-          {b.subtitle && <span className="ku-muted">{b.subtitle}</span>}
         </span>
       ),
     },

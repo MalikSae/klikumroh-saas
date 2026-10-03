@@ -1,8 +1,9 @@
 // Sidebar navigation of the travel dashboard: flat menu grouped by business function
 // (decided 30 Sep 2026: Beranda · PENJUALAN · KEMITRAAN · PEMASARAN · Pengaturan). No nested sub-menus;
 // sections inside a page live on that page.
-import type { LucideIcon } from 'lucide-react';
-import { BarChart3, Globe, Handshake, Home, Megaphone, Package, Settings, Trophy, Users, Wallet } from 'lucide-react';
+import type React from 'react';
+import { KaabaIcon } from '../ui/icons/KaabaIcon';
+import { BarChart3, Globe, Handshake, Home, Megaphone, Settings, Trophy, Users, Wallet } from 'lucide-react';
 
 export type BadgeKey = 'prospects' | 'agents' | 'payouts';
 
@@ -10,7 +11,8 @@ export interface NavItem {
   id: string;
   label: string;
   to: string;
-  icon: LucideIcon;
+  /** A lucide icon, or KaabaIcon (same props). */
+  icon: React.ComponentType<{ className?: string }>;
   badge?: BadgeKey;
 }
 export interface NavGroup {
@@ -24,7 +26,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'PENJUALAN',
     items: [
       { id: 'prospects', label: 'Prospek', to: '/prospects', icon: Users, badge: 'prospects' },
-      { id: 'packages', label: 'Paket', to: '/packages', icon: Package },
+      { id: 'packages', label: 'Paket', to: '/packages', icon: KaabaIcon },
     ],
   },
   {

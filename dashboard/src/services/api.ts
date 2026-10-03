@@ -1094,6 +1094,24 @@ export const updateBanner = async (id: number, input: Partial<BannerItem>): Prom
   return await res.json();
 };
 
+/** Jamaah photo for a testimonial: stored square (400x400 WebP); saved on the testimonial with Simpan. */
+export const uploadTestimonialPhoto = async (file: File): Promise<{ avatar_url: string }> => {
+  const headers = await getAuthHeaders();
+  const { 'Content-Type': _, ...headersWithoutContentType } = headers as Record<string, string>;
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/testimonials/upload-photo`, {
+    method: 'POST',
+    headers: headersWithoutContentType,
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal mengunggah foto' }));
+    throw new Error(err.error || 'Gagal mengunggah foto');
+  }
+  return res.json();
+};
+
 export const uploadBannerImage = async (file: File): Promise<{ image_url: string }> => {
   const headers = await getAuthHeaders();
   const { 'Content-Type': _, ...headersWithoutContentType } = headers as Record<string, string>;
@@ -2076,6 +2094,8 @@ export interface KPIDay {
   prospects: number;
   closings: number;
   closing_jamaah: number;
+  /** Estimated revenue of the day's closings: package price x jamaah. */
+  closing_value: number;
 }
 
 export const fetchDashboardOverview = async (): Promise<DashboardOverviewData> => {
@@ -2135,6 +2155,8 @@ export interface TenantSubscriptionInfo {
   is_suspended?: boolean;
   pending_verification?: PaymentVerification | null;
   payment_verifications: PaymentVerification[];
+  /** The showcase travel (demo.klikumroh.id): a ribbon says so on every page. */
+  is_demo?: boolean;
 }
 
 let cachedSubscriptionInfo: TenantSubscriptionInfo | null = null;
@@ -2444,6 +2466,81 @@ export const fetchChannelReport = async (days: number): Promise<ChannelReport> =
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Gagal memuat laporan kanal' }));
     throw new Error(err.error || 'Gagal memuat laporan kanal');
+  }
+  return await res.json();
+};
+
+// ---- Agent daily syiar (habit tracker), travel admin view ----
+
+/** One agent's row in the agent list: active days in the last 7 days and the highest streak badge. */
+export interface AgentHabitOverview {
+  agent_id: number;
+  active_days_7: number;
+  top_badge: number;
+}
+
+export const fetchAgentHabitOverview = async (): Promise<AgentHabitOverview[]> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/agent-habits`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat syiar harian agen' }));
+    throw new Error(err.error || 'Gagal memuat syiar harian agen');
+  }
+  const data = (await res.json()) as { agents?: AgentHabitOverview[] };
+  return data.agents ?? [];
+};
+
+/** Habit report of one agent: streaks, badges, 30-day calendar and how often each habit was done. */
+export interface AgentHabitReport {
+  today: string;
+  done_today: string[];
+  total: number;
+  active_min: number;
+  today_active: boolean;
+  streak: number;
+  best_streak: number;
+  calendar: { date: string; done: number; active: boolean }[];
+  badges: { days: number; achieved_at: string }[];
+  next_badge: number;
+  active_days_30: number;
+  counts_30: Record<string, number>;
+}
+
+export const fetchAgentHabitReport = async (agentId: number): Promise<AgentHabitReport> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/agents/${agentId}/habits`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat syiar harian agen' }));
+    throw new Error(err.error || 'Gagal memuat syiar harian agen');
+  }
+  return await res.json();
+};
+
+/** Agent block of the dashboard home: registered, active (routine syiar 7 days), productive (30 days), top. */
+export interface AgentInsight {
+  registered: number;
+  active_7d: number;
+  productive_30d: number;
+  prospects_30d: number;
+  jamaah_30d: number;
+  routine_min_days: number;
+  top: {
+    agent_id: number;
+    name: string;
+    photo_url?: string | null;
+    prospects_30d: number;
+    jamaah_30d: number;
+    top_badge: number;
+    active_days_7: number;
+  }[];
+}
+
+export const fetchAgentInsight = async (): Promise<AgentInsight> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/agent-summary`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat ringkasan agen' }));
+    throw new Error(err.error || 'Gagal memuat ringkasan agen');
   }
   return await res.json();
 };

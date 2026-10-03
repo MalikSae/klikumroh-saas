@@ -82,6 +82,9 @@
 @media (max-width: 768px) {
   .st-savebar { bottom: calc(var(--ku-size-tabbar) + env(safe-area-inset-bottom)); padding: var(--ku-space-3) 0; }
   .st-savebar .ku-btn { height: 44px; }
+  /* "Perubahan tersimpan" gets its own line above the buttons instead of wrapping beside them. */
+  .st-savebar { flex-wrap: wrap; row-gap: var(--ku-space-2); }
+  .st-savebar__done { flex-basis: 100%; margin-right: 0; white-space: nowrap; }
   .st-savebar > .ku-btn:last-child { flex: 1; }
 }
 @media (max-width: 768px) {

@@ -1,9 +1,9 @@
 // Paket list: search, status filter, seats taken; row opens the editor.
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ImageOff, Plus } from 'lucide-react';
+import { Armchair, Banknote, CalendarDays, ImageOff, Package, Plus } from 'lucide-react';
 import { fetchPackages, getFullImageUrl, type PackageItem } from '../../services/api';
-import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, Pill, SearchField, Select, Toolbar, errorText, fmtDate, fmtRupiah, type Column } from '../../ui';
+import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, KpiCard, Pill, SearchField, Select, Toolbar, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
 import { PACKAGE_STATUS } from './packageUtil';
 
 type View = 'current' | 'published' | 'draft' | 'archived' | 'all';
@@ -53,6 +53,24 @@ export const PackageList: React.FC = () => {
       });
   }, [items, view, search]);
 
+  // KPIs over the packages on sale: published and not departed yet (seats only where a quota is set).
+  const kpi = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const live = items.filter((p) => p.status === 'published' && (!p.departure_date || p.departure_date.slice(0, 10) >= today));
+    let quota = 0;
+    let taken = 0;
+    let potential = 0;
+    for (const p of live) {
+      if (!p.quota) continue;
+      const t = Math.min(p.seats_taken ?? 0, p.quota);
+      quota += p.quota;
+      taken += t;
+      potential += (p.quota - t) * (p.price ?? 0);
+    }
+    const next = live.filter((p) => p.departure_date).sort((a, b) => (a.departure_date ?? '').localeCompare(b.departure_date ?? ''))[0];
+    return { live: live.length, drafts: items.filter((p) => p.status === 'draft').length, quota, taken, left: quota - taken, potential, next };
+  }, [items]);
+
   const columns: Column<PackageItem>[] = [
     {
       key: 'name',
@@ -84,6 +102,13 @@ export const PackageList: React.FC = () => {
 
   return (
     <section className="ku-list pk-list">
+      {/* Sales picture of the packages on sale: how full they are and what is still left to sell. */}
+      <div className="ku-kpi-row">
+        <KpiCard label="Paket tayang" icon={<Package className="ku-icon" />} value={loading ? '—' : fmtNumber(kpi.live)} note={`${fmtNumber(kpi.drafts)} draf belum tayang`} />
+        <KpiCard label="Kursi terisi" icon={<Armchair className="ku-icon" />} value={loading ? '—' : kpi.quota > 0 ? fmtPercent((kpi.taken / kpi.quota) * 100) : '—'} note={kpi.quota > 0 ? `${fmtNumber(kpi.taken)} dari ${fmtNumber(kpi.quota)} kursi` : 'Kuota belum diisi'} />
+        <KpiCard label="Sisa kursi" icon={<CalendarDays className="ku-icon" />} value={loading ? '—' : fmtNumber(kpi.left)} note={kpi.next ? `Terdekat: ${kpi.next.name}, ${fmtDate(kpi.next.departure_date)}` : 'Belum ada keberangkatan'} />
+        <KpiCard label="Potensi omzet" icon={<Banknote className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(kpi.potential)} note="Jika sisa kursi terjual" />
+      </div>
       {error && <Banner tone="danger">{error}</Banner>}
       <Toolbar
         right={

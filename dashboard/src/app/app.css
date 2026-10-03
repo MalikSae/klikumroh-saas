@@ -78,15 +78,24 @@
 .ap-menu button { display: flex; align-items: center; gap: var(--ku-space-2); width: 100%; height: var(--ku-size-control-sm); padding: 0 10px; border: 0; border-radius: var(--ku-radius-ctl); background: none; cursor: pointer; text-align: left; }
 .ap-menu button:hover { background: var(--ku-soft); }
 .ap-link { border: 0; background: none; padding: 0; color: var(--ku-accent); font-size: var(--ku-text-md); font-weight: var(--ku-weight-medium); cursor: pointer; }
-.ap-notif { width: 360px; max-height: 480px; display: flex; flex-direction: column; }
-.ap-notif__head { display: flex; align-items: center; justify-content: space-between; padding: var(--ku-space-3) var(--ku-space-4); border-bottom: 1px solid var(--ku-line-2); }
-.ap-notif__list { list-style: none; margin: 0; padding: var(--ku-space-1); overflow-y: auto; }
-.ap-notif__item { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--ku-space-2); width: 100%; padding: 10px var(--ku-space-3); border: 0; border-radius: var(--ku-radius-ctl); background: none; text-align: left; cursor: pointer; }
-.ap-notif__item:hover { background: var(--ku-soft); }
-.ap-notif__item--unread { background: var(--ku-accent-soft); }
-.ap-notif__title { font-weight: var(--ku-weight-medium); }
-.ap-notif__body { grid-column: 1 / -1; color: var(--ku-ink-2); font-size: var(--ku-text-md); }
-.ap-notif__when { grid-column: 2; grid-row: 1; font-size: var(--ku-text-xs); color: var(--ku-ink-3); white-space: nowrap; }
+.ap-notif { width: 380px; max-height: 480px; display: flex; flex-direction: column; overflow: hidden; }
+.ap-notif__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-4); border-bottom: 1px solid var(--ku-line-2); }
+.ap-notif__heading { display: inline-flex; align-items: center; gap: var(--ku-space-2); font: var(--ku-weight-semibold) var(--ku-text-base) var(--ku-font-head); }
+.ap-notif__count { padding: 1px var(--ku-space-2); border-radius: var(--ku-radius-pill); background: var(--ku-soft); color: var(--ku-ink-2); font: var(--ku-weight-medium) var(--ku-text-xs) var(--ku-font-body); }
+.ap-notif__list { list-style: none; margin: 0; padding: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--ku-line) transparent; }
+.ap-notif__list > li + li { border-top: 1px solid var(--ku-line-2); }
+/* One row per notification: type icon, title + time, body (two lines), unread dot. */
+.ap-notif__item { display: flex; align-items: flex-start; gap: var(--ku-space-3); width: 100%; padding: var(--ku-space-3) var(--ku-space-4); border: 0; background: none; text-align: left; cursor: pointer; }
+.ap-notif__item:hover { background: var(--ku-hover); }
+.ap-notif__icon { flex-shrink: 0; margin-top: 2px; color: var(--ku-ink-3); }
+.ap-notif__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ap-notif__top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ku-space-2); }
+.ap-notif__title { font-size: var(--ku-text-md); font-weight: var(--ku-weight-medium); color: var(--ku-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-notif__item--unread .ap-notif__title { font-weight: var(--ku-weight-semibold); color: var(--ku-ink); }
+.ap-notif__item--unread .ap-notif__icon { color: var(--ku-ink); }
+.ap-notif__body { font-size: var(--ku-text-md); color: var(--ku-ink-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ap-notif__when { flex-shrink: 0; font-size: var(--ku-text-xs); color: var(--ku-ink-3); white-space: nowrap; }
+.ap-notif__dot { flex-shrink: 0; width: 8px; height: 8px; margin-top: 6px; border-radius: var(--ku-radius-round); background: var(--ku-red); }
 .ap-notif__empty { display: flex; flex-direction: column; align-items: center; gap: var(--ku-space-2); padding: var(--ku-space-8) var(--ku-space-4); color: var(--ku-ink-3); }
 
 /* ---------- Main panel ---------- */
@@ -138,7 +147,8 @@
   .ap-tabbar__item--on { color: var(--ku-ink); font-weight: var(--ku-weight-semibold); }
   .ap-tabbar__icon { position: relative; display: grid; place-items: center; width: 52px; height: 28px; border-radius: var(--ku-radius-pill); }
   .ap-tabbar__item--on .ap-tabbar__icon { background: var(--ku-nav-active); }
-  .ap-tabbar__badge { position: absolute; top: -4px; left: 30px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--ku-radius-round); background: var(--ku-red); color: var(--ku-on-accent); font-size: var(--ku-text-xs); line-height: 18px; text-align: center; }
+  /* A dot only: the counts are on the home screen ("Perlu tindakan"), so the tab bar does not repeat them. */
+  .ap-tabbar__dot { position: absolute; top: 2px; left: 33px; width: 8px; height: 8px; border-radius: var(--ku-radius-round); background: var(--ku-red); box-shadow: 0 0 0 2px var(--ku-panel); }
 
   /* "Lainnya" sheet */
   .ap-sheet__overlay { display: block; z-index: 120; }
@@ -156,3 +166,6 @@
   .ap-sheet__item--on .ku-icon { color: var(--ku-ink); }
 }
 @keyframes ap-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+
+/* Demo travel (demo.klikumroh.id): one line above every page. */
+.ap-demo { margin: 0 0 var(--ku-space-3); padding: var(--ku-space-2) var(--ku-space-4); border-radius: var(--ku-radius-inner); background: var(--ku-ink); color: var(--ku-on-accent); font-size: var(--ku-text-sm); }

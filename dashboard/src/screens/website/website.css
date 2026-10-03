@@ -102,3 +102,4 @@
   .ws-alias > svg { margin-top: 3px; flex-shrink: 0; }
   .ws-alias > .ku-ibtn, .ws-alias > .ku-pill { flex-shrink: 0; }
 }
+.ws-avatar-img { object-fit: cover; padding: 0; }

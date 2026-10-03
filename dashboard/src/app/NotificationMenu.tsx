@@ -1,13 +1,14 @@
 // Notification bell of the header: unread dot, latest 20 notifications, mark read, open the linked page.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, Handshake, ReceiptText, UserPlus, Wallet, type LucideIcon } from 'lucide-react';
 import { API_BASE, getStoredToken } from '../services/api';
 import { playNotificationSound } from '../utils/notificationSound';
 import { IconButton, fmtAgo } from '../ui';
 
 interface Item {
   id: number;
+  type?: string;
   title: string;
   body: string;
   link_url?: string | null;
@@ -16,6 +17,10 @@ interface Item {
 }
 
 const PREFIX = '/api/dashboard/notifications';
+
+/** Icon per notification type, so the list can be scanned without reading every title. */
+const iconFor = (type = ''): LucideIcon =>
+  type.startsWith('prospect') ? UserPlus : type.startsWith('agent') ? Handshake : type.startsWith('payout') ? Wallet : type.startsWith('subscription') || type.startsWith('payment') ? ReceiptText : Bell;
 const LAST_SEEN_KEY = 'klikumroh_last_notification_id';
 
 export const NotificationMenu: React.FC = () => {
@@ -92,7 +97,10 @@ export const NotificationMenu: React.FC = () => {
       {open && (
         <div className="ap-pop__panel ap-notif" role="dialog" aria-label="Notifikasi">
           <div className="ap-notif__head">
-            <span className="ku-strong">Notifikasi</span>
+            <span className="ap-notif__heading">
+              Notifikasi
+              {unread > 0 && <span className="ap-notif__count">{unread} baru</span>}
+            </span>
             {unread > 0 && (
               <button type="button" className="ap-link" onClick={markAll}>Tandai semua dibaca</button>
             )}
@@ -104,15 +112,24 @@ export const NotificationMenu: React.FC = () => {
             </div>
           ) : (
             <ul className="ap-notif__list">
-              {items.map((it) => (
-                <li key={it.id}>
-                  <button type="button" className={`ap-notif__item${it.read_at ? '' : ' ap-notif__item--unread'}`} onClick={() => openItem(it)}>
-                    <span className="ap-notif__title">{it.title}</span>
-                    <span className="ap-notif__body">{it.body}</span>
-                    <span className="ap-notif__when">{fmtAgo(it.created_at)}</span>
-                  </button>
-                </li>
-              ))}
+              {items.map((it) => {
+                const Icon = iconFor(it.type);
+                return (
+                  <li key={it.id}>
+                    <button type="button" className={`ap-notif__item${it.read_at ? '' : ' ap-notif__item--unread'}`} onClick={() => openItem(it)}>
+                      <Icon className="ku-icon--sm ap-notif__icon" aria-hidden="true" />
+                      <span className="ap-notif__text">
+                        <span className="ap-notif__top">
+                          <span className="ap-notif__title">{it.title}</span>
+                          <span className="ap-notif__when">{fmtAgo(it.created_at)}</span>
+                        </span>
+                        <span className="ap-notif__body">{it.body}</span>
+                      </span>
+                      {!it.read_at && <span className="ap-notif__dot" aria-label="Belum dibaca" />}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

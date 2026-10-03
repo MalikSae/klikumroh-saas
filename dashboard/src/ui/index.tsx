@@ -468,7 +468,8 @@ export const Sparkline: React.FC<{ values: number[]; trend: 'up' | 'down' | 'fla
   );
 };
 
-export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; delta?: { text: string; trend: 'up' | 'down' | 'flat'; suffix: string }; spark?: number[]; to?: string }> = ({ label, value, icon, delta, spark, to }) => (
+/** note: a small line under the value that explains it (e.g. how a rate is made up). */
+export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; note?: React.ReactNode; delta?: { text: string; trend: 'up' | 'down' | 'flat'; suffix: string }; spark?: number[]; to?: string }> = ({ label, value, icon, note, delta, spark, to }) => (
   <div className="ku-card ku-kpi">
     <span className="ku-kpi__label">{label}</span>
     {to && (
@@ -477,9 +478,10 @@ export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: Re
       </Link>
     )}
     <div className="ku-kpi__value">{icon}{value}</div>
+    {note && <div className="ku-kpi__note">{note}</div>}
     {delta && (
       <div className="ku-kpi__delta">
-        <b className={delta.trend === 'up' ? 'ku-up' : delta.trend === 'down' ? 'ku-down' : undefined}>{delta.text}</b> {delta.suffix}
+        <b className={delta.trend === 'up' ? 'ku-up' : delta.trend === 'down' ? 'ku-down' : undefined}>{delta.text}</b> <span className="ku-kpi__suffix">{delta.suffix}</span>
       </div>
     )}
     {spark && <Sparkline values={spark} trend={delta?.trend ?? 'flat'} />}
@@ -767,11 +769,19 @@ export const RouteTabs: React.FC<{ label: string; items: Array<{ to: string; lab
 );
 
 /* ---------- Avatar (initials) ---------- */
-export const Avatar: React.FC<{ name: string }> = ({ name }) => (
-  <span className="ku-avatar" aria-hidden="true">
-    {name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?'}
-  </span>
-);
+/** Round avatar: the photo when there is one (full URL), otherwise (or if it fails to load) the initials. */
+export const Avatar: React.FC<{ name: string; src?: string | null; size?: 'md' | 'lg' }> = ({ name, src, size = 'md' }) => {
+  const [failed, setFailed] = React.useState(false);
+  const cls = cx('ku-avatar', size === 'lg' && 'ku-avatar--lg');
+  if (src && !failed) {
+    return <img className={cx(cls, 'ku-avatar--img')} src={src} alt="" loading="lazy" onError={() => setFailed(true)} />;
+  }
+  return (
+    <span className={cls} aria-hidden="true">
+      {name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?'}
+    </span>
+  );
+};
 
 /* ---------- Filter popover (all filters of a table behind one button) ---------- */
 export const FilterMenu: React.FC<{ active: number; onReset: () => void; children: React.ReactNode }> = ({ active, onReset, children }) => {

@@ -1,7 +1,8 @@
 // Pencairan komisi: agents' withdrawal requests. Approve, transfer outside the app, then mark as transferred.
 import React, { useEffect, useMemo, useState } from 'react';
 import { approvePayoutRequest, fetchPayoutRequests, markPayoutRequestPaid, rejectPayoutRequest, type PayoutRequestItem } from '../../services/api';
-import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, Modal, Pill, SearchField, Select, Toolbar, errorText, fmtAgo, fmtRupiah, type Column } from '../../ui';
+import { CheckCircle2, Clock, Send, Wallet } from 'lucide-react';
+import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, KpiCard, Modal, Pill, SearchField, Select, Toolbar, errorText, fmtAgo, fmtNumber, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
 import { CopyText, PAYOUT_STATUS } from './shared';
 
 type View = 'todo' | 'pending' | 'approved' | 'paid' | 'rejected' | 'all';
@@ -36,7 +37,23 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [items, view, search]);
 
-  const toTransfer = items.filter((p) => p.status === 'approved').reduce((s, p) => s + p.amount_requested, 0);
+  // Totals per step. "Bulan ini" uses the last update of a paid request (the moment it was marked transferred).
+  const sum = useMemo(() => {
+    const now = new Date();
+    const add = (acc: { amount: number; count: number }, p: PayoutRequestItem) => ({ amount: acc.amount + p.amount_requested, count: acc.count + 1 });
+    const zero = { amount: 0, count: 0 };
+    const of = (pred: (p: PayoutRequestItem) => boolean) => items.filter(pred).reduce(add, zero);
+    return {
+      pending: of((p) => p.status === 'pending'),
+      approved: of((p) => p.status === 'approved'),
+      paid: of((p) => p.status === 'paid'),
+      paidMonth: of((p) => {
+        if (p.status !== 'paid') return false;
+        const d = new Date(p.updated_at);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }),
+    };
+  }, [items]);
 
   const open = (kind: 'approve' | 'paid' | 'reject', item: PayoutRequestItem) => {
     setReason('');
@@ -144,12 +161,15 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
 
   return (
     <section className="ku-list">
+      {/* Money at each step, so the admin sees what to approve, what to transfer, and what went out. The
+          "Siap ditransfer" card replaces the old info banner with the same amount. */}
+      <div className="ku-kpi-row">
+        <KpiCard label="Menunggu persetujuan" icon={<Clock className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.pending.amount)} note={`${fmtNumber(sum.pending.count)} pengajuan`} />
+        <KpiCard label="Siap ditransfer" icon={<Send className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.approved.amount)} note={`${fmtNumber(sum.approved.count)} pengajuan · transfer ke rekening agen`} />
+        <KpiCard label="Ditransfer bulan ini" icon={<CheckCircle2 className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.paidMonth.amount)} note={`${fmtNumber(sum.paidMonth.count)} pencairan`} />
+        <KpiCard label="Total ditransfer" icon={<Wallet className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.paid.amount)} note={`${fmtNumber(sum.paid.count)} pencairan sejak awal`} />
+      </div>
       {error && <Banner tone="danger">{error}</Banner>}
-      {toTransfer > 0 && (
-        <Banner tone="info">
-          <b>{fmtRupiah(toTransfer)}</b> sudah disetujui dan menunggu Anda transfer ke rekening agen.
-        </Banner>
-      )}
       <Toolbar>
         <SearchField value={search} onChange={setSearch} placeholder="Cari nama agen atau pemilik rekening" />
         <FilterMenu active={view !== 'todo' ? 1 : 0} onReset={() => setView('todo')}>

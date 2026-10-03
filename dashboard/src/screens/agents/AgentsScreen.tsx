@@ -5,6 +5,7 @@ import { Route, Routes } from 'react-router-dom';
 import { fetchDashboardAgents } from '../../services/api';
 import { RouteTabs } from '../../ui';
 import { useFrame } from '../../app/AppFrame';
+import { AgentKpis } from './AgentKpis';
 import { AgentList } from './AgentList';
 import { AgentDetail } from './AgentDetail';
 import { Registrations } from './Registrations';
@@ -48,6 +49,7 @@ export const AgentsScreen: React.FC = () => {
           index
           element={
             <>
+              <AgentKpis />
               <AgentTabs key={key} />
               <AgentList />
             </>
@@ -57,6 +59,7 @@ export const AgentsScreen: React.FC = () => {
           path="pending"
           element={
             <>
+              <AgentKpis />
               <AgentTabs key={key} />
               <Registrations onChanged={changed} />
             </>

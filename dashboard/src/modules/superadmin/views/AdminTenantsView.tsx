@@ -10,6 +10,7 @@ import {
   Search,
 } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
+import { publicSiteUrl } from '../../../app/AppFrame';
 import {
   fetchStaffTenants,
   type StaffTenantItem,
@@ -302,7 +303,7 @@ export const AdminTenantsView: React.FC = () => {
                             {row.name}
                           </span>
                           <a
-                            href={`http://${row.slug}.klikumroh.id`}
+                            href={publicSiteUrl(row.slug) ?? undefined}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="sa-tenant-domain"

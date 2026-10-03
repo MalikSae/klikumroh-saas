@@ -1,8 +1,9 @@
-// Testimoni: what past jamaah said, shown on the homepage.
+// Testimoni: what past jamaah said (optionally with their photo), shown on the homepage.
 import React, { useEffect, useState } from 'react';
-import { createTestimonial, deleteTestimonial, fetchPackages, fetchTestimonials, updateTestimonial, type TestimonialItem } from '../../services/api';
+import { createTestimonial, deleteTestimonial, fetchPackages, fetchTestimonials, getFullImageUrl, updateTestimonial, uploadTestimonialPhoto, type TestimonialItem } from '../../services/api';
 import { Avatar, Banner, Button, Checkbox, Field, Modal, Select, errorText, type Column } from '../../ui';
 import { ContentList, sortOrdered } from './ContentList';
+import { ImageField } from './ImageField';
 
 const toPayload = (t: TestimonialItem): Partial<TestimonialItem> => ({ name: t.name, package_name: t.package_name, rating: t.rating, quote: t.quote, avatar_url: t.avatar_url ?? null, display_order: t.display_order, is_active: t.is_active });
 
@@ -14,6 +15,7 @@ const TestimonialModal: React.FC<{ item: TestimonialItem | null; nextOrder: numb
   const [rating, setRating] = useState(String(item?.rating ?? 5));
   const [quote, setQuote] = useState(item?.quote || '');
   const [active, setActive] = useState(item?.is_active ?? true);
+  const [photo, setPhoto] = useState<string | null>(item?.avatar_url || null);
   const [errors, setErrors] = useState<{ name?: string; quote?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,7 @@ const TestimonialModal: React.FC<{ item: TestimonialItem | null; nextOrder: numb
     setSaving(true);
     setError(null);
     try {
-      const body = { name: name.trim(), package_name: pkg.trim(), rating: Number(rating), quote: quote.trim(), avatar_url: item?.avatar_url ?? null, is_active: active, display_order: item?.display_order ?? nextOrder };
+      const body = { name: name.trim(), package_name: pkg.trim(), rating: Number(rating), quote: quote.trim(), avatar_url: photo, is_active: active, display_order: item?.display_order ?? nextOrder };
       if (item) await updateTestimonial(item.id, body);
       else await createTestimonial(body);
       onSaved();
@@ -59,7 +61,18 @@ const TestimonialModal: React.FC<{ item: TestimonialItem | null; nextOrder: numb
     >
       <form id="ws-testi" className="ag-form" onSubmit={submit} noValidate>
         {error && <Banner tone="danger">{error}</Banner>}
-        <Field label="Nama jamaah" error={errors.name} hint="Minta izin jamaah sebelum menampilkan namanya.">
+        {/* The photo is uploaded right away but only attached to the testimonial when it is saved. */}
+        <ImageField
+          label="Foto jamaah"
+          hint="Opsional. Persegi, maks. 5 MB. Tersimpan saat klik Simpan."
+          url={photo}
+          shape="square"
+          maxMB={5}
+          onUpload={async (file) => (await uploadTestimonialPhoto(file)).avatar_url}
+          onRemove={async () => {}}
+          onChange={setPhoto}
+        />
+        <Field label="Nama jamaah" error={errors.name} hint="Minta izin jamaah sebelum menampilkan nama dan fotonya.">
           {(id) => <input id={id} className="ku-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} aria-invalid={Boolean(errors.name)} />}
         </Field>
         <div className="st-grid">
@@ -101,7 +114,7 @@ export const Testimonials: React.FC = () => {
       header: 'Jamaah',
       cell: (t) => (
         <span className="ku-person">
-          <Avatar name={t.name} />
+          {t.avatar_url ? <img className="ku-avatar ws-avatar-img" src={getFullImageUrl(t.avatar_url)} alt="" loading="lazy" /> : <Avatar name={t.name} />}
           <span className="ag-name">
             {t.name}
             {t.package_name && <span className="ku-muted">{t.package_name}</span>}

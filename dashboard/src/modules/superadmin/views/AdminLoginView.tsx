@@ -1,206 +1,163 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { TerminalSquare } from 'lucide-react';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/500.css';
+import '@fontsource/jetbrains-mono/700.css';
 import { loginStaff } from '../../../services/staffApi';
+import './AdminLoginView.css';
+
+// Login typed like a terminal session: one prompt at a time, Enter to continue, no form boxes or buttons.
+type Step = 'email' | 'password' | 'verifying';
+type LogLine = { kind: 'echo' | 'error'; prompt?: string; text: string };
 
 export const AdminLoginView: React.FC = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Lines already "printed" above the active prompt.
+  const [log, setLog] = useState<LogLine[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [step]);
+
+  const submitEmail = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      setError('Email dan password wajib diisi');
+    const value = email.trim();
+    if (!value) {
+      setLog((l) => [...l, { kind: 'error', text: 'email wajib diisi' }]);
       return;
     }
+    setLog((l) => [...l, { kind: 'echo', prompt: 'login as:', text: value }]);
+    setStep('password');
+  };
 
+  const submitPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) {
+      setLog((l) => [...l, { kind: 'error', text: 'password wajib diisi' }]);
+      return;
+    }
+    setLog((l) => [...l, { kind: 'echo', prompt: 'password:', text: '' }]);
+    setStep('verifying');
     try {
-      setLoading(true);
-      setError(null);
       await loginStaff(email.trim(), password);
       navigate('/internal/dashboard', { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Login gagal. Periksa kembali email dan password.');
-    } finally {
-      setLoading(false);
+      // fetch() rejects with a TypeError when the server cannot be reached.
+      const text =
+        err instanceof TypeError
+          ? 'server tidak dapat dihubungi, coba lagi'
+          : err.message || 'Login gagal. Periksa kembali email dan password.';
+      setLog((l) => [...l, { kind: 'error', text }]);
+      setPassword('');
+      setStep('password');
     }
   };
 
+  // Back to the email prompt: the "ganti email" link (phones have no Esc key) or Esc on a keyboard.
+  const backToEmail = () => {
+    setPassword('');
+    setLog((l) => [...l, { kind: 'echo', prompt: 'password:', text: '' }]);
+    setStep('email');
+  };
+
+  const onPasswordKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') backToEmail();
+  };
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        backgroundColor: '#F8FAFC',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        boxSizing: 'border-box',
-        fontFamily: "'Roboto', sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '400px',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.03)',
-          padding: '32px 28px',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <h1
-            style={{
-              margin: '0 0 6px',
-              fontSize: '22px',
-              fontWeight: 800,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              color: '#0F172A',
-            }}
-          >
-            KlikUmroh Platform
-          </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748B' }}>
-            Masuk untuk mengelola operasional SaaS
-          </p>
+    <div className="term-login">
+      <main className="term-window" aria-labelledby="term-title" onClick={() => inputRef.current?.focus()}>
+        <div className="term-window__bar">
+          <TerminalSquare size={16} aria-hidden="true" />
+          <span>staff@klikumroh:~/auth</span>
         </div>
 
-        {error && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: '#FEF2F2',
-              border: '1px solid #FECACA',
-              color: '#DC2626',
-              padding: '10px 14px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              marginBottom: '20px',
-            }}
-          >
-            <AlertCircle size={15} style={{ flexShrink: 0 }} />
-            <span>{error}</span>
-          </div>
-        )}
+        <div className="term-window__body">
+          <h1 id="term-title" className="term-title">
+            KlikUmroh <span className="term-title__accent">Internal Console</span>
+          </h1>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#334155',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Email Akun
-            </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Mail size={15} style={{ position: 'absolute', left: '12px', color: '#94A3B8' }} />
+          <div className="term-log" aria-live="polite">
+            {log.map((line, i) =>
+              line.kind === 'error' ? (
+                <p key={i} className="term-line term-line--error" role="alert">
+                  [GAGAL] {line.text}
+                </p>
+              ) : (
+                <p key={i} className="term-line">
+                  <span className="term-prompt">{line.prompt}</span> {line.text}
+                </p>
+              ),
+            )}
+          </div>
+
+          {step === 'email' && (
+            <form onSubmit={submitEmail} className="term-line term-input-line">
+              <label htmlFor="term-email" className="term-prompt">
+                login as:
+              </label>
               <input
+                id="term-email"
+                ref={inputRef}
                 type="email"
-                required
-                autoFocus
-                placeholder="staff@klikumroh.id"
+                autoComplete="username"
+                spellCheck={false}
+                autoCapitalize="none"
+                enterKeyHint="next"
+                placeholder="nama@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  padding: '0 14px 0 36px',
-                  fontSize: '13px',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '6px',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  color: '#0F172A',
-                }}
+                className="term-input"
               />
-            </div>
-          </div>
+            </form>
+          )}
 
-          <div style={{ marginBottom: '24px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#334155',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Kata Sandi
-            </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Lock size={15} style={{ position: 'absolute', left: '12px', color: '#94A3B8' }} />
+          {step === 'password' && (
+            <form onSubmit={submitPassword} className="term-line term-input-line">
+              <label htmlFor="term-password" className="term-prompt">
+                password:
+              </label>
               <input
+                id="term-password"
+                ref={inputRef}
                 type="password"
-                required
-                placeholder="••••••••"
+                autoComplete="current-password"
+                enterKeyHint="go"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  padding: '0 14px 0 36px',
-                  fontSize: '13px',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '6px',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  color: '#0F172A',
-                }}
+                onKeyDown={onPasswordKey}
+                className="term-input"
               />
+            </form>
+          )}
+
+          {step === 'verifying' && (
+            <p className="term-line term-line--muted">
+              memverifikasi kredensial<span className="term-cursor" aria-hidden="true" />
+            </p>
+          )}
+
+          {step !== 'verifying' && (
+            <div className="term-hint">
+              <span>Enter untuk lanjut</span>
+              {step === 'password' && (
+                <button type="button" className="term-link" onClick={backToEmail}>
+                  ganti email
+                </button>
+              )}
             </div>
-          </div>
+          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              height: '42px',
-              backgroundColor: '#0F172A',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'background-color 0.12s ease',
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            <span>{loading ? 'Memverifikasi...' : 'Masuk ke Portal'}</span>
-            {!loading && <ArrowRight size={15} />}
-          </button>
-        </form>
-
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-            KlikUmroh Multi-Tenant SaaS Platform © 2026
-          </span>
+          <p className="term-foot">
+            <span className="term-prompt" aria-hidden="true">#</span> KlikUmroh Multi-Tenant SaaS Platform &copy; 2026
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

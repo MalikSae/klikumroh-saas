@@ -38,7 +38,7 @@ export const MobileNav: React.FC<{ badges: Record<BadgeKey, number>; siteUrl: st
             <NavLink key={item.id} to={item.to} end={item.to === '/'} className={`ap-tabbar__item${itemActive(item, pathname) ? ' ap-tabbar__item--on' : ''}`}>
               <span className="ap-tabbar__icon">
                 <Icon className="ku-icon" aria-hidden="true" />
-                {n > 0 && <span className="ap-tabbar__badge" aria-label={`${n} perlu tindakan`}>{n > 99 ? '99+' : n}</span>}
+                {n > 0 && <span className="ap-tabbar__dot" role="status" aria-label={`${n} perlu tindakan`} />}
               </span>
               {item.label}
             </NavLink>
@@ -47,7 +47,7 @@ export const MobileNav: React.FC<{ badges: Record<BadgeKey, number>; siteUrl: st
         <button type="button" className={`ap-tabbar__item${!onTab || open ? ' ap-tabbar__item--on' : ''}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
           <span className="ap-tabbar__icon">
             <LayoutGrid className="ku-icon" aria-hidden="true" />
-            {moreCount > 0 && <span className="ap-tabbar__badge" aria-label={`${moreCount} perlu tindakan`}>{moreCount > 99 ? '99+' : moreCount}</span>}
+            {moreCount > 0 && <span className="ap-tabbar__dot" role="status" aria-label={`${moreCount} perlu tindakan`} />}
           </span>
           Lainnya
         </button>

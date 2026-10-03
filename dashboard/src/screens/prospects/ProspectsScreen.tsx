@@ -1,11 +1,13 @@
 // Prospek: tabbed list + detail drawer (approved prototype: dashboard/design/prototype.html, screen "Prospek").
 // /prospects/:id opens the same list with the drawer on that prospect.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Clock, Download, Inbox, RotateCcw, SearchX, Wallet } from 'lucide-react';
+import { Banknote, Clock, Download, Handshake, Inbox, Percent, RotateCcw, SearchX, Users, Wallet } from 'lucide-react';
 import {
   downloadProspectsCSV,
   fetchDashboardAgents,
+  fetchDashboardOverview,
+  type DashboardOverviewData,
   fetchPackages,
   fetchProspectPage,
   fetchProspectSummary,
@@ -29,6 +31,7 @@ import {
   ChannelTag,
   DataTable,
   EmptyState,
+  KpiCard,
   Pagination,
   SearchField,
   Select,
@@ -37,9 +40,12 @@ import {
   Toolbar,
   channelOf,
   fmtNumber,
+  fmtPercent,
+  fmtRupiahShort,
 } from '../../ui';
 import { useFrame } from '../../app/AppFrame';
 import { ProspectDrawer } from './ProspectDrawer';
+import { compare, delta } from '../dashboard/kpiMath';
 import './prospects.css';
 
 const PAGE_SIZES = [25, 50, 100];
@@ -173,12 +179,38 @@ export const ProspectsScreen: React.FC = () => {
   const openProspect = (p: ProspectItem) => navigate(`/prospects/${p.id}${window.location.search}`);
   const closeDrawer = () => navigate(`/prospects${window.location.search}`);
 
+  // KPIs from the overview API: 30 days vs the 30 before, and the value of prospects still in progress.
+  const [overview, setOverview] = useState<DashboardOverviewData | null>(null);
+  useEffect(() => {
+    fetchDashboardOverview().then(setOverview).catch(() => setOverview(null));
+  }, []);
+  const kpi = useMemo(() => {
+    if (!overview) return null;
+    const days = overview.kpi_daily ?? [];
+    const prospects = compare(days, (d) => d.prospects);
+    const closings = compare(days, (d) => d.closings).cur;
+    return {
+      prospects,
+      jamaah: compare(days, (d) => d.closing_jamaah),
+      closings,
+      rate: prospects.cur ? (closings / prospects.cur) * 100 : 0,
+      pipeline: overview.pending_pipeline,
+    };
+  }, [overview]);
+
   const lostReasons = Object.entries(summary?.lost_reasons ?? {})
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="ku-stack">
+      {/* Sales KPIs of the last 30 days (status counts are already on the tabs below). */}
+      <div className="ku-kpi-row">
+        <KpiCard label="Prospek masuk" icon={<Users className="ku-icon" />} value={kpi ? fmtNumber(kpi.prospects.cur) : '—'} delta={kpi ? { ...delta(kpi.prospects.cur, kpi.prospects.prev), suffix: 'vs 30 hari sebelumnya' } : undefined} note="30 hari terakhir" />
+        <KpiCard label="Jamaah closing" icon={<Handshake className="ku-icon" />} value={kpi ? fmtNumber(kpi.jamaah.cur) : '—'} delta={kpi ? { ...delta(kpi.jamaah.cur, kpi.jamaah.prev), suffix: 'vs 30 hari sebelumnya' } : undefined} note="30 hari terakhir" />
+        <KpiCard label="Konversi" icon={<Percent className="ku-icon" />} value={kpi ? fmtPercent(kpi.rate) : '—'} note={kpi ? `${fmtNumber(kpi.closings)} dari ${fmtNumber(kpi.prospects.cur)} prospek closing` : undefined} />
+        <KpiCard label="Potensi pipeline" icon={<Banknote className="ku-icon" />} value={kpi ? fmtRupiahShort(kpi.pipeline.total_value) : '—'} note={kpi ? `${fmtNumber(kpi.pipeline.total_prospects)} prospek berjalan · ${fmtNumber(kpi.pipeline.total_pax)} jamaah` : undefined} />
+      </div>
       {summary && summary.stale_baru > 0 && status !== 'baru' && (
         <Banner tone="warning" icon={<Clock className="ku-icon--sm" />} action={<Button size="sm" onClick={() => change(setStatus)('baru')}>Lihat prospek</Button>}>
           <b>{fmtNumber(summary.stale_baru)} prospek baru</b> belum dihubungi lebih dari 24 jam.

@@ -1,7 +1,9 @@
-// Agen tab: every approved agent with referral performance; row opens the agent page.
+// Agen tab: every approved agent with referral performance and daily syiar (habit tracker); row opens the
+// agent page.
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAgentPerformance, fetchDashboardAgents, type AgentItem, type AgentPerformance } from '../../services/api';
+import { Award } from 'lucide-react';
+import { fetchAgentHabitOverview, getFullImageUrl, fetchAgentPerformance, fetchDashboardAgents, type AgentHabitOverview, type AgentItem, type AgentPerformance } from '../../services/api';
 import {
   Avatar,
   Banner,
@@ -23,8 +25,10 @@ import {
 } from '../../ui';
 import { AGENT_STATUS } from './shared';
 
-type Row = AgentItem & { perf: AgentPerformance | null; prospects: number; conversion: number | null };
-type Sort = 'closing' | 'prospects' | 'clicks' | 'commission' | 'newest';
+type Row = AgentItem & { perf: AgentPerformance | null; habit: AgentHabitOverview | null; prospects: number; conversion: number | null };
+type Sort = 'closing' | 'prospects' | 'clicks' | 'commission' | 'syiar' | 'newest';
+
+const badgeTier = (days: number) => (days >= 100 ? 'gold' : days >= 30 ? 'silver' : 'bronze');
 
 const PAGE_SIZE = 25;
 
@@ -32,6 +36,7 @@ export const AgentList: React.FC = () => {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [perf, setPerf] = useState<Map<number, AgentPerformance>>(new Map());
+  const [habits, setHabits] = useState<Map<number, AgentHabitOverview>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -40,10 +45,15 @@ export const AgentList: React.FC = () => {
   const [page, setPage] = useState(1);
 
   const load = () =>
-    Promise.all([fetchDashboardAgents(), fetchAgentPerformance().catch(() => [] as AgentPerformance[])])
-      .then(([a, p]) => {
+    Promise.all([
+      fetchDashboardAgents(),
+      fetchAgentPerformance().catch(() => [] as AgentPerformance[]),
+      fetchAgentHabitOverview().catch(() => [] as AgentHabitOverview[]),
+    ])
+      .then(([a, p, h]) => {
         setAgents(a.filter((x) => x.status === 'active' || x.status === 'inactive'));
         setPerf(new Map(p.map((x) => [x.agent_id, x])));
+        setHabits(new Map(h.map((x) => [x.agent_id, x])));
       })
       .catch((e) => setError(errorText(e, 'Gagal memuat agen')))
       .finally(() => setLoading(false));
@@ -59,18 +69,21 @@ export const AgentList: React.FC = () => {
       .filter((a) => !q || [a.name, a.phone, a.referral_code, a.domisili].some((v) => v?.toLowerCase().includes(q)))
       .map((a) => {
         const p = perf.get(a.id) || null;
+        const h = habits.get(a.id) || null;
         const prospects = p ? p.baru + p.dihubungi + p.tertarik + p.closing + p.tidak_lanjut : 0;
-        return { ...a, perf: p, prospects, conversion: prospects > 0 && p ? (p.closing / prospects) * 100 : null };
+        return { ...a, perf: p, habit: h, prospects, conversion: prospects > 0 && p ? (p.closing / prospects) * 100 : null };
       });
     const key: Record<Sort, (r: Row) => number> = {
       closing: (r) => r.perf?.closing_jamaah ?? 0,
       prospects: (r) => r.prospects,
       clicks: (r) => r.perf?.clicks_30d ?? 0,
       commission: (r) => r.perf?.commission_earned ?? 0,
+      // Most consistent first: active days this week, then the highest streak badge.
+      syiar: (r) => (r.habit?.active_days_7 ?? 0) * 1000 + (r.habit?.top_badge ?? 0),
       newest: (r) => new Date(r.created_at).getTime(),
     };
     return list.sort((a, b) => key[sort](b) - key[sort](a) || a.name.localeCompare(b.name));
-  }, [agents, perf, search, status, sort]);
+  }, [agents, perf, habits, search, status, sort]);
 
   useEffect(() => setPage(1), [search, status, sort]);
 
@@ -80,7 +93,7 @@ export const AgentList: React.FC = () => {
       header: 'Agen',
       cell: (r) => (
         <span className="ku-person">
-          <Avatar name={r.name} />
+          <Avatar name={r.name} src={r.photo_url ? getFullImageUrl(r.photo_url) : null} />
           <span className="ag-name">
             {r.name}
             <span className="ku-muted">{r.referral_code}</span>
@@ -93,7 +106,21 @@ export const AgentList: React.FC = () => {
     { key: 'closing', header: 'Jamaah closing', align: 'right', cell: (r) => fmtNumber(r.perf?.closing_jamaah ?? 0) },
     { key: 'conv', header: 'Konversi', align: 'right', mobile: 'hide', cell: (r) => (r.conversion === null ? '—' : fmtPercent(r.conversion)) },
     { key: 'commission', header: 'Komisi', align: 'right', cell: (r) => fmtRupiah(r.perf?.commission_earned ?? 0) },
-    { key: 'last', header: 'Prospek terakhir', mobile: 'labeled', cell: (r) => (r.perf?.last_prospect_at ? fmtAgo(r.perf.last_prospect_at) : <span className="ku-muted">Belum ada</span>) },
+    {
+      key: 'syiar',
+      header: 'Syiar 7 hari',
+      align: 'right',
+      mobile: 'stat',
+      cell: (r) => (
+        <span className="ag-syiar" title="Hari aktif syiar harian dalam 7 hari terakhir">
+          {r.habit?.top_badge ? (
+            <Award className={`ku-icon--sm ag-habit__medal ag-habit__medal--${badgeTier(r.habit.top_badge)}`} aria-label={`Lencana ${r.habit.top_badge} hari`} />
+          ) : null}
+          {r.habit?.active_days_7 ?? 0}/7
+        </span>
+      ),
+    },
+    { key: 'last', header: 'Prospek terakhir', mobile: 'stat', cell: (r) => (r.perf?.last_prospect_at ? fmtAgo(r.perf.last_prospect_at) : <span className="ku-muted">Belum ada</span>) },
     { key: 'status', header: 'Status', cell: (r) => <Pill tone={AGENT_STATUS[r.status]?.tone}>{AGENT_STATUS[r.status]?.label ?? r.status}</Pill> },
   ];
 
@@ -139,6 +166,7 @@ export const AgentList: React.FC = () => {
                   { value: 'prospects', label: 'Prospek terbanyak' },
                   { value: 'clicks', label: 'Klik 30 hari terbanyak' },
                   { value: 'commission', label: 'Komisi terbesar' },
+                  { value: 'syiar', label: 'Paling istiqamah syiar' },
                   { value: 'newest', label: 'Baru bergabung' },
                 ]}
               />

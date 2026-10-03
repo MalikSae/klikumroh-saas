@@ -195,6 +195,11 @@ export const AppFrame: React.FC = () => {
         </aside>
 
         <main className="ap-main">
+          {sub?.is_demo && (
+            <div className="ap-demo" role="note">
+              Akun demo: data kembali seperti semula tiap malam. Ganti password, tim, domain, dan Meta Pixel tidak tersedia.
+            </div>
+          )}
           <header className="ap-head">
             <IconButton label="Buka menu" className="ap-head__menu" onClick={() => setMobileNav(true)}>
               <Menu className="ku-icon" />

@@ -1,4 +1,4 @@
-// Agent detail page: contact, performance, commission balance and history, account actions.
+// Agent detail page: contact, performance, daily syiar (habits), commission balance and history, account actions.
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, MessageCircle, MoreHorizontal } from 'lucide-react';
@@ -6,6 +6,7 @@ import {
   fetchAgentCommissions,
   fetchAgentDetail,
   fetchAgentPerformance,
+  getFullImageUrl,
   resetAgentPassword,
   toggleAgentStatus,
   updateDashboardAgentProfile,
@@ -13,8 +14,9 @@ import {
   type AgentPerformance,
   type CommissionHistoryItem,
 } from '../../services/api';
-import { Avatar, Banner, Button, CityInput, Field, Menu, Modal, Pill, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
+import { Avatar, Banner, Button, Card, CardBody, CityInput, Field, Menu, Modal, Pill, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
 import { AGENT_STATUS, CopyText, PAYOUT_STATUS, waHref } from './shared';
+import { AgentHabits } from './AgentHabits';
 
 type Dialog = null | 'edit' | 'password' | 'deactivate';
 const MIN_PASSWORD = 8;
@@ -198,7 +200,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
         <>
           <header className="ag-page__head">
             <div className="ag-page__who">
-              <Avatar name={agent.name} />
+              <Avatar name={agent.name} src={agent.photo_url ? getFullImageUrl(agent.photo_url) : null} size="lg" />
               <div>
                 <h2 className="ag-page__title">{agent.name}</h2>
                 <div className="ag-sub ku-muted">
@@ -258,8 +260,8 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
             </div>
           </section>
 
-          <section>
-            <h3 className="ku-label">Performa</h3>
+          {/* Each part of the page is its own card with a title, so sections never run into each other. */}
+          <Card title="Performa" className="ag-section">
             <div className="ag-stats">
               <div>
                 <span>Klik 30 hari</span>
@@ -278,11 +280,15 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                 <b>{prospects > 0 && perf ? fmtPercent((perf.closing / prospects) * 100) : '—'}</b>
               </div>
             </div>
-          </section>
+          </Card>
+
+          <Card title="Syiar harian" description="Kebiasaan harian agen di portal" className="ag-section">
+            <AgentHabits agentId={agent.id} />
+          </Card>
 
           <div className="ag-page__grid">
-            <section>
-              <h3 className="ku-label">Saldo komisi</h3>
+            <Card title="Saldo komisi" className="ag-section">
+              <CardBody>
               <dl className="ag-balance">
                 <div>
                   <dt>Siap dicairkan</dt>
@@ -301,10 +307,11 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                   <dd>{fmtRupiah(agent.saldo_tertunda)}</dd>
                 </div>
               </dl>
-            </section>
+              </CardBody>
+            </Card>
 
-            <section>
-              <h3 className="ku-label">Riwayat komisi</h3>
+            <Card title="Riwayat komisi" className="ag-section">
+              <CardBody>
               {ledger.length === 0 ? (
                 <p className="ku-muted">Belum ada komisi.</p>
               ) : (
@@ -343,7 +350,8 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                   })}
                 </ul>
               )}
-            </section>
+              </CardBody>
+            </Card>
           </div>
         </>
       )}

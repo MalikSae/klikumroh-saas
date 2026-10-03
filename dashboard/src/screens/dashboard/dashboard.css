@@ -72,3 +72,99 @@
 @media (max-width: 768px) {
   .db2-toggle { height: 36px; padding: 0 var(--ku-space-3); }
 }
+
+/* The comparison note under the KPIs is for the phone panel only; desktop cards keep the suffix per card. */
+.db2-kpis__note { display: none; }
+
+/* Phone: the three KPIs in one compact panel, three columns split by lines. The whole cell opens its list. */
+@media (max-width: 768px) {
+  .db2-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-card); background: var(--ku-panel); }
+  .db2-kpis .ku-kpi { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--ku-space-3); border: 0; border-radius: 0; background: transparent; }
+  .db2-kpis .ku-kpi + .ku-kpi { border-left: 1px solid var(--ku-line-2); }
+  .db2-kpis .ku-kpi__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .db2-kpis .ku-kpi__value { margin-top: 2px; font-size: var(--ku-text-2xl); }
+  .db2-kpis .ku-kpi__value .ku-icon, .db2-kpis .ku-kpi__spark, .db2-kpis .ku-kpi__suffix { display: none; }
+  .db2-kpis .ku-kpi__delta { font-size: var(--ku-text-md); }
+  .db2-kpis .ku-kpi__go { position: absolute; inset: 0; width: auto; height: auto; border: 0; border-radius: 0; background: transparent; }
+  .db2-kpis .ku-kpi__go > svg { display: none; }
+  .db2-kpis .ku-kpi__go:focus-visible { outline: 2px solid var(--ku-accent); outline-offset: -2px; }
+  .db2-kpis .ku-kpi:first-child .ku-kpi__go { border-radius: var(--ku-radius-card) 0 0 0; }
+  /* The range picker is a button (custom dropdown), not a text field: no 16px anti-zoom size, same as "Lihat semua". */
+  .db2-home .ku-card__actions .ku-select__trigger { font-size: var(--ku-text-md); }
+  .db2-kpis__note { display: block; grid-column: 1 / -1; margin: 0; padding: var(--ku-space-2) var(--ku-space-3); border-top: 1px solid var(--ku-line-2); font-size: var(--ku-text-md); color: var(--ku-ink-3); }
+}
+
+/* Agent block: three network counts on the left, the most productive agents on the right. */
+.db2-agents__skeleton { height: 220px; }
+.db2-agents__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ku-space-6); padding: var(--ku-space-4) var(--ku-space-5) var(--ku-space-5); }
+.db2-agents__counts { margin: 0; display: flex; flex-direction: column; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); }
+.db2-agents__counts > div { display: grid; grid-template-columns: 96px 64px minmax(0, 1fr); align-items: baseline; gap: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-4); }
+.db2-agents__counts > div + div { border-top: 1px solid var(--ku-line); }
+.db2-agents__counts dt { font-weight: var(--ku-weight-medium); color: var(--ku-ink-2); }
+.db2-agents__counts dd { margin: 0; font: var(--ku-weight-bold) var(--ku-text-2xl) var(--ku-font-head); font-variant-numeric: tabular-nums; }
+.db2-agents__counts span { font-size: var(--ku-text-sm); color: var(--ku-ink-3); }
+.db2-agents__sub { margin: 0 0 var(--ku-space-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); color: var(--ku-ink-2); }
+.db2-agents__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.db2-agents__list li + li { border-top: 1px solid var(--ku-line-2); }
+.db2-agents__row { display: flex; align-items: center; gap: var(--ku-space-3); width: 100%; padding: var(--ku-space-2) 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.db2-agents__row:hover .db2-agents__name { text-decoration: underline; }
+.db2-agents__name { display: inline-flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: var(--ku-weight-medium); }
+.db2-agents__nums { flex-shrink: 0; font-size: var(--ku-text-sm); color: var(--ku-ink-3); font-variant-numeric: tabular-nums; }
+.db2-agents__nums b { font-weight: var(--ku-weight-semibold); color: var(--ku-ink); }
+@media (max-width: 760px) {
+  .db2-agents__body { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-4); padding: var(--ku-space-3) var(--ku-space-4) var(--ku-space-4); }
+  .db2-agents__counts > div { grid-template-columns: 84px 48px minmax(0, 1fr); padding: var(--ku-space-3); }
+}
+
+/* Closing per channel under the chart: prospects, closings and the closing rate (30 days). */
+.db2-quality { list-style: none; margin: 0; padding: var(--ku-space-3) var(--ku-space-5) var(--ku-space-4); display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--ku-line-2); }
+.db2-quality li { display: grid; grid-template-columns: auto 96px minmax(0, 1fr) 56px; align-items: center; gap: var(--ku-space-2); font-size: var(--ku-text-md); }
+.db2-quality__name { color: var(--ku-ink-2); }
+.db2-quality__nums { color: var(--ku-ink-3); font-variant-numeric: tabular-nums; }
+.db2-quality__rate { text-align: right; font-weight: var(--ku-weight-semibold); font-variant-numeric: tabular-nums; }
+
+/* Upcoming departures with seats left. */
+.db2-seats { list-style: none; margin: 0; padding: var(--ku-space-2) var(--ku-space-5) var(--ku-space-4); display: flex; flex-direction: column; }
+.db2-seats li + li { border-top: 1px solid var(--ku-line-2); }
+.db2-seats__row { display: flex; align-items: center; gap: var(--ku-space-4); width: 100%; padding: var(--ku-space-3) 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.db2-seats__row:hover .db2-seats__name { text-decoration: underline; }
+.db2-seats__main { display: flex; flex-direction: column; flex: 1; min-width: 0; font-size: var(--ku-text-sm); }
+.db2-seats__name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--ku-text-md); font-weight: var(--ku-weight-medium); }
+.db2-seats__fill { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; width: 140px; font-size: var(--ku-text-sm); }
+.db2-seats__left { font-weight: var(--ku-weight-medium); color: var(--ku-ink); }
+.db2-seats__left--full { color: var(--ku-green); }
+.db2-seats__bar { width: 100%; height: 6px; overflow: hidden; border-radius: 3px; background: var(--ku-gray-soft); }
+.db2-seats__bar span { display: block; height: 100%; border-radius: 3px; background: var(--ku-ink-3); }
+
+/* Top reasons prospects did not continue. */
+.db2-lost { list-style: none; margin: 0; padding: var(--ku-space-2) var(--ku-space-5) var(--ku-space-4); display: flex; flex-direction: column; }
+.db2-lost li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ku-space-3); padding: var(--ku-space-2) 0; }
+.db2-lost li + li { border-top: 1px solid var(--ku-line-2); }
+.db2-lost__reason { min-width: 0; color: var(--ku-ink-2); }
+.db2-lost b { flex-shrink: 0; font-weight: var(--ku-weight-semibold); font-variant-numeric: tabular-nums; }
+
+/* Phone: the business cards follow the action cards, the agent block comes last; four KPIs in a 2 x 2 panel. */
+@media (max-width: 768px) {
+  .db2-row3 { display: contents; }
+  .db2-row3 > :nth-child(1) { order: 5; }
+  .db2-row3 > :nth-child(2) { order: 6; }
+  .db2-agents { order: 7; }
+  .db2-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .db2-kpis .ku-kpi + .ku-kpi { border-left: 0; }
+  .db2-kpis .ku-kpi:nth-child(even) { border-left: 1px solid var(--ku-line-2); }
+  .db2-kpis .ku-kpi:nth-child(n + 3) { border-top: 1px solid var(--ku-line-2); }
+  .db2-quality { padding: var(--ku-space-3) var(--ku-space-4); }
+  .db2-quality li { grid-template-columns: auto 64px minmax(0, 1fr) 48px; font-size: var(--ku-text-sm); }
+  .db2-seats, .db2-lost { padding-left: var(--ku-space-4); padding-right: var(--ku-space-4); }
+  .db2-seats__fill { width: 110px; }
+}
+.db2-agents__left { display: flex; flex-direction: column; gap: var(--ku-space-3); min-width: 0; }
+.db2-agents__counts span { cursor: help; }
+.db2-agents__insight { margin: 0; padding: var(--ku-space-2) var(--ku-space-3); border-radius: var(--ku-radius-inner); background: var(--ku-amber-soft); color: var(--ku-amber-ink); font-size: var(--ku-text-sm); }
+
+/* Desktop: four KPI cards make the right column taller; the chart grows to fill its card instead of
+   leaving a blank band under it. */
+@media (min-width: 769px) {
+  .db2-row1 > .ku-card { display: flex; flex-direction: column; }
+  .db2-row1 > .ku-card .db2-chart { flex: 1; height: auto; min-height: 262px; }
+}
