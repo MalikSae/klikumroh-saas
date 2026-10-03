@@ -1,0 +1,222 @@
+{
+  "exported_at": "2026-10-03",
+  "tenant": {
+    "city": "Bandung",
+    "name": "Mabrur Tours",
+    "email": "info@mabrurtours.com",
+    "phone": "0227654321",
+    "address": "Jl. Soekarno-Hatta No. 123, Kota Bandung, Jawa Barat 40286",
+    "tagline": "Umroh nyaman, dibimbing sampai pulang",
+    "province": "Jawa Barat",
+    "meta_title": "Mabrur Tour - Paket Umroh dari Bandung",
+    "ppiu_number": "U.123/2026",
+    "trust_rating": "4.8",
+    "about_summary": "Mabrur Tour melayani perjalanan umroh jamaah Bandung dan sekitarnya. Pembimbing ibadah mendampingi dari manasik sampai pulang, dengan hotel dekat Masjidil Haram dan Masjid Nabawi serta jadwal keberangkatan yang jelas.",
+    "meta_keywords": "umroh bandung, paket umroh bandung, umroh plus turki, umroh ramadhan, mabrur tour",
+    "social_youtube": "https://youtube.com/@mabrurtour",
+    "social_facebook": "https://facebook.com/mabrurtour",
+    "trust_guarantee": "Pasti berangkat",
+    "meta_description": "Paket umroh reguler, plus Turki, dan Ramadhan dari Bandung bersama Mabrur Tour. Jadwal keberangkatan jelas, konsultasi gratis lewat WhatsApp.",
+    "social_instagram": "https://instagram.com/mabrurtour",
+    "trust_alumni_count": "12.000+",
+    "brand_primary_color": "#900609",
+    "commission_release_on": "lunas",
+    "minimum_payout_amount": 100000,
+    "agent_registration_fee": 150000,
+    "agent_terms_conditions": "1. Agen adalah mitra pemasaran Mabrur Tour, bukan karyawan. Agen tidak berwenang menerima pembayaran jamaah atas nama Mabrur Tour; semua pembayaran ditransfer langsung ke rekening resmi travel.\n2. Agen wajib menyampaikan informasi paket (harga, jadwal, fasilitas) sesuai data resmi di website Mabrur Tour dan tidak menjanjikan hal di luar itu.\n3. Komisi dihitung per jamaah yang closing lewat link referral atau kode agen, sesuai nominal komisi paket yang berlaku saat jamaah mendaftar.\n4. Komisi dapat dicairkan setelah jamaah melunasi pembayaran paket. Jika jamaah batal, komisi untuk jamaah tersebut ikut dibatalkan.\n5. Pencairan diajukan lewat dashboard agen ke rekening atas nama agen sendiri, minimal sesuai batas pencairan yang ditentukan travel, dan diproses paling lambat 7 hari kerja.\n6. Agen dilarang memakai logo, nama, atau materi promosi Mabrur Tour untuk produk atau travel lain, serta dilarang menyebarkan informasi menyesatkan atau spam.\n7. Data calon jamaah yang didapat dari kemitraan ini hanya boleh dipakai untuk keperluan perjalanan umroh bersama Mabrur Tour dan wajib dijaga kerahasiaannya.\n8. Mabrur Tour berhak menonaktifkan akun agen yang melanggar ketentuan ini. Komisi atas jamaah yang sudah lunas sebelum penonaktifan tetap dibayarkan.\n9. Biaya pendaftaran agen tidak dapat dikembalikan setelah akun agen disetujui.\n10. Ketentuan ini dapat diperbarui sewaktu-waktu dan berlaku sejak diumumkan di halaman pendaftaran agen.",
+    "agent_registration_benefits": "Komisi setiap jamaah closing\nBonus rekrut agen baru\nMateri promosi siap pakai\nPelatihan & pendampingan\nKesempatan Umroh GRATIS",
+    "commission_override_enabled": 1,
+    "commission_override_percentage": 10,
+    "brand_logo": "branding/274a3571-c60d-4d05-8ea1-3e215d4da1fd.png",
+    "brand_icon": "branding/6cb58bbc-fb83-4382-bb8d-d7fbd59012c3.png"
+  },
+  "packages": [
+    {
+      "name": "Paket Umroh Reguler 9 Hari",
+      "price": 29500000,
+      "quota": 45,
+      "status": "published",
+      "itinerary": "Hari 1: Berkumpul di Bandara Soekarno-Hatta, manasik singkat, terbang ke Jeddah. Tiba malam hari, perjalanan ke Makkah dan check-in hotel.\nHari 2: Umroh pertama bersama muthawwif: tawaf, sa'i, dan tahallul. Sore hari istirahat di hotel.\nHari 3: Ibadah mandiri di Masjidil Haram. Ba'da Isya kajian bersama pembimbing.\nHari 4: City tour Makkah: Jabal Tsur, Arafah, Muzdalifah, Mina, dan Jabal Rahmah. Miqat di Ji'ranah untuk umroh kedua.\nHari 5: Ibadah mandiri di Masjidil Haram. Malam hari tawaf wada' sebelum meninggalkan Makkah.\nHari 6: Perjalanan ke Madinah dengan bus. Check-in hotel lalu shalat berjamaah di Masjid Nabawi.\nHari 7: Ziarah Raudhah sesuai jadwal tasreh. City tour Madinah: Masjid Quba, Jabal Uhud, dan kebun kurma.\nHari 8: Ibadah mandiri di Masjid Nabawi. Malam hari persiapan kepulangan.\nHari 9: Check-out hotel, terbang dari Madinah ke Jakarta. Tiba di tanah air dengan selamat.",
+      "hotel_info": "[{\"city\":\"Makkah\",\"name\":\"Elaf Ajyad Hotel\",\"stars\":4},{\"city\":\"Madinah\",\"name\":\"Golden Tulip Al Zahabi\",\"stars\":4}]",
+      "description": "Paket perjalanan ibadah umroh reguler dengan fasilitas bintang 4 dan bimbingan ibadah sesuai sunnah.",
+      "flight_info": "{\"airline\":\"Saudia Airlines\",\"route\":\"Direct Jakarta (CGK) - Jeddah (JED)\\nMadinah (MED) - Jakarta (CGK)\"}",
+      "terms_conditions": "1. DP Rp 5.000.000 saat pendaftaran.\n2. Pelunasan H-30 sebelum keberangkatan.\n3. Paspor berlaku minimal 7 bulan.",
+      "commission_amount": 1000000,
+      "facilities_excluded": "- Paspor & suntik meningitis\n- Keperluan pribadi / laundry\n- Kelebihan bagasi",
+      "facilities_included": "- Tiket pesawat PP kelas ekonomi\n- Visa Umroh\n- Hotel Makkah & Madinah\n- Makan 3x sehari menu Indonesia\n- Muthawwif berpengalaman\n- Perlengkapan umroh eksklusif",
+      "departure_offset_days": 57,
+      "photos": [
+        "packages/918/c4845a67-a80d-4063-b348-9529e83cba70.webp"
+      ]
+    },
+    {
+      "name": "Umroh Awal Tahun 9 Hari",
+      "price": 29900000,
+      "quota": 40,
+      "status": "published",
+      "itinerary": "Hari 1: Berkumpul di Bandara Soekarno-Hatta, manasik singkat, terbang ke Jeddah. Tiba malam hari, perjalanan ke Makkah dan check-in hotel.\nHari 2: Umroh pertama bersama muthawwif: tawaf, sa'i, dan tahallul. Sore hari istirahat di hotel.\nHari 3: Ibadah mandiri di Masjidil Haram. Ba'da Isya kajian bersama pembimbing.\nHari 4: City tour Makkah: Jabal Tsur, Arafah, Muzdalifah, Mina, dan Jabal Rahmah. Miqat di Ji'ranah untuk umroh kedua.\nHari 5: Ibadah mandiri di Masjidil Haram. Malam hari tawaf wada' sebelum meninggalkan Makkah.\nHari 6: Perjalanan ke Madinah dengan bus. Check-in hotel lalu shalat berjamaah di Masjid Nabawi.\nHari 7: Ziarah Raudhah sesuai jadwal tasreh. City tour Madinah: Masjid Quba, Jabal Uhud, dan kebun kurma.\nHari 8: Ibadah mandiri di Masjid Nabawi. Malam hari persiapan kepulangan.\nHari 9: Check-out hotel, terbang dari Madinah ke Jakarta. Tiba di tanah air dengan selamat.",
+      "hotel_info": "[{\"city\":\"Makkah\",\"name\":\"Grand Al Massa Hotel\",\"stars\":4},{\"city\":\"Madinah\",\"name\":\"Elaf Taiba Hotel\",\"stars\":4}]",
+      "description": "Paket uji untuk pemeriksaan tampilan.",
+      "flight_info": "{\"airline\":\"Garuda Indonesia\",\"route\":\"Jakarta (CGK) - Jeddah (JED)\\nMadinah (MED) - Jakarta (CGK)\"}",
+      "terms_conditions": null,
+      "commission_amount": 1000000,
+      "facilities_excluded": "Paspor\nKelebihan bagasi",
+      "facilities_included": "Tiket pesawat PP\nVisa umroh\nHotel\nMakan 3x sehari",
+      "departure_offset_days": 70,
+      "photos": [
+        "packages/2676/7eeb1911-88dc-4628-814e-82049123d3a8.webp"
+      ]
+    },
+    {
+      "name": "Umroh Plus Turki 12 Hari",
+      "price": 42500000,
+      "quota": 30,
+      "status": "published",
+      "itinerary": "Hari 1: Berkumpul di Bandara Soekarno-Hatta, terbang ke Jeddah via Istanbul. Tiba malam hari, perjalanan ke Makkah dan check-in hotel.\nHari 2: Umroh pertama bersama muthawwif: tawaf, sa'i, dan tahallul. Sore hari istirahat di hotel.\nHari 3: Ibadah mandiri di Masjidil Haram. Ba'da Isya kajian bersama pembimbing.\nHari 4: City tour Makkah: Jabal Tsur, Arafah, Muzdalifah, Mina, dan Jabal Rahmah. Miqat di Ji'ranah untuk umroh kedua.\nHari 5: Ibadah mandiri. Malam hari tawaf wada' sebelum meninggalkan Makkah.\nHari 6: Perjalanan ke Madinah dengan bus. Check-in hotel lalu shalat berjamaah di Masjid Nabawi.\nHari 7: Ziarah Raudhah sesuai jadwal tasreh. City tour Madinah: Masjid Quba, Jabal Uhud, dan kebun kurma.\nHari 8: Ibadah mandiri di Masjid Nabawi. Malam hari persiapan ke Istanbul.\nHari 9: Terbang dari Madinah ke Istanbul. Check-in hotel, makan malam di kawasan Sultanahmet.\nHari 10: Wisata Istanbul: Masjid Biru, Hagia Sophia, Hippodrome, dan Istana Topkapi.\nHari 11: Ziarah makam Abu Ayyub al-Anshari, cruise Selat Bosphorus, dan belanja di Grand Bazaar.\nHari 12: Check-out hotel, terbang dari Istanbul ke Jakarta. Tiba di tanah air dengan selamat.",
+      "hotel_info": "[{\"city\":\"Makkah\",\"name\":\"Swissotel Makkah\",\"stars\":5},{\"city\":\"Madinah\",\"name\":\"Anwar Al Madinah Movenpick\",\"stars\":5},{\"city\":\"Istanbul\",\"name\":\"Ramada by Wyndham Istanbul Old City\",\"stars\":4}]",
+      "description": "Paket uji untuk pemeriksaan tampilan.",
+      "flight_info": "{\"airline\":\"Turkish Airlines\",\"route\":\"Jakarta (CGK) - Istanbul (IST) - Jeddah (JED)\\nMadinah (MED) - Istanbul (IST) - Jakarta (CGK)\"}",
+      "terms_conditions": null,
+      "commission_amount": 1500000,
+      "facilities_excluded": "Paspor\nKelebihan bagasi",
+      "facilities_included": "Tiket pesawat PP\nVisa umroh\nHotel\nMakan 3x sehari",
+      "departure_offset_days": 109,
+      "photos": [
+        "packages/2677/edde67e4-8000-4660-832d-607c3c8f71f9.webp"
+      ]
+    },
+    {
+      "name": "Umroh Ramadhan 12 Hari",
+      "price": 35000000,
+      "quota": 10,
+      "status": "published",
+      "itinerary": "Hari 1: Berkumpul di Bandara Soekarno-Hatta, manasik singkat, terbang langsung ke Madinah. Check-in hotel, sahur dan shalat Subuh di Masjid Nabawi.\nHari 2: Tarawih dan itikaf di Masjid Nabawi. Siang hari istirahat.\nHari 3: Ziarah Raudhah sesuai jadwal tasreh. Buka puasa bersama di hotel.\nHari 4: City tour Madinah: Masjid Quba, Jabal Uhud, dan kebun kurma. Malam tarawih di Masjid Nabawi.\nHari 5: Ibadah mandiri di Masjid Nabawi. Malam hari persiapan ke Makkah.\nHari 6: Perjalanan ke Makkah, miqat di Bir Ali. Malam hari umroh pertama bersama muthawwif.\nHari 7: Istirahat siang. Tarawih dan tadarus di Masjidil Haram.\nHari 8: City tour Makkah: Jabal Tsur, Arafah, Muzdalifah, Mina, dan Jabal Rahmah.\nHari 9: Miqat di Ji'ranah untuk umroh kedua. Malam itikaf di Masjidil Haram.\nHari 10: Ibadah mandiri, memperbanyak ibadah di malam-malam terakhir Ramadhan.\nHari 11: Ibadah mandiri. Malam hari tawaf wada'.\nHari 12: Perjalanan ke Jeddah, terbang ke Jakarta. Tiba di tanah air dengan selamat.",
+      "hotel_info": "[{\"city\":\"Makkah\",\"name\":\"Pullman Zamzam Makkah\",\"stars\":5},{\"city\":\"Madinah\",\"name\":\"Pullman Zamzam Madinah\",\"stars\":5}]",
+      "description": "Paket uji untuk pemeriksaan tampilan.",
+      "flight_info": "{\"airline\":\"Saudia Airlines\",\"route\":\"Jakarta (CGK) - Madinah (MED)\\nJeddah (JED) - Jakarta (CGK)\"}",
+      "terms_conditions": null,
+      "commission_amount": 1200000,
+      "facilities_excluded": "Paspor\nKelebihan bagasi",
+      "facilities_included": "Tiket pesawat PP\nVisa umroh\nHotel\nMakan 3x sehari",
+      "departure_offset_days": 145,
+      "photos": [
+        "packages/2678/e0c991c1-fcf6-49ba-93ba-7ff1395234af.webp"
+      ]
+    },
+    {
+      "name": "Umroh Syawal 10 Hari",
+      "price": 31000000,
+      "quota": 35,
+      "status": "published",
+      "itinerary": "Hari 1: Berkumpul di Bandara Soekarno-Hatta, manasik singkat, terbang ke Jeddah. Tiba malam hari, perjalanan ke Makkah dan check-in hotel.\nHari 2: Umroh pertama bersama muthawwif: tawaf, sa'i, dan tahallul. Sore hari istirahat di hotel.\nHari 3: Ibadah mandiri di Masjidil Haram. Ba'da Isya kajian bersama pembimbing.\nHari 4: City tour Makkah: Jabal Tsur, Arafah, Muzdalifah, Mina, dan Jabal Rahmah. Miqat di Ji'ranah untuk umroh kedua.\nHari 5: Ibadah mandiri di Masjidil Haram. Sore hari kunjungan ke Museum Dua Masjid Suci.\nHari 6: Ibadah mandiri. Malam hari tawaf wada' sebelum meninggalkan Makkah.\nHari 7: Perjalanan ke Madinah dengan bus. Check-in hotel lalu shalat berjamaah di Masjid Nabawi.\nHari 8: Ziarah Raudhah sesuai jadwal tasreh. City tour Madinah: Masjid Quba, Jabal Uhud, dan kebun kurma.\nHari 9: Ibadah mandiri di Masjid Nabawi. Malam hari persiapan kepulangan.\nHari 10: Check-out hotel, terbang dari Madinah ke Jakarta. Tiba di tanah air dengan selamat.",
+      "hotel_info": "[{\"city\":\"Makkah\",\"name\":\"Al Kiswah Towers Hotel\",\"stars\":4},{\"city\":\"Madinah\",\"name\":\"Dallah Taibah Hotel\",\"stars\":4}]",
+      "description": "Paket uji untuk pemeriksaan tampilan.",
+      "flight_info": "{\"airline\":\"Garuda Indonesia\",\"route\":\"Jakarta (CGK) - Jeddah (JED)\\nMadinah (MED) - Jakarta (CGK)\"}",
+      "terms_conditions": null,
+      "commission_amount": 1000000,
+      "facilities_excluded": "Paspor\nKelebihan bagasi",
+      "facilities_included": "Tiket pesawat PP\nVisa umroh\nHotel\nMakan 3x sehari",
+      "departure_offset_days": 189,
+      "photos": [
+        "packages/2679/cb6f2731-67a6-49b0-a056-a4500b4dee58.webp"
+      ]
+    }
+  ],
+  "banners": [
+    {
+      "title": "Umroh Ramadhan",
+      "subtitle": null,
+      "image": "banners/70cbe349-7321-4c68-9507-8e1f27ac640f.webp",
+      "cta_package": 2,
+      "cta_url": null,
+      "display_order": 2,
+      "is_active": 1
+    },
+    {
+      "title": "Umroh Plus Turki",
+      "subtitle": null,
+      "image": "banners/f7812c99-0264-46b7-9005-c913404a65f8.webp",
+      "cta_package": null,
+      "cta_url": null,
+      "display_order": 3,
+      "is_active": 1
+    },
+    {
+      "title": "Rekrutmen Agen",
+      "subtitle": null,
+      "image": "banners/af2aede8-5dfa-4a74-be5d-6fa1f4ff92c6.webp",
+      "cta_package": null,
+      "cta_url": null,
+      "display_order": 4,
+      "is_active": 1
+    }
+  ],
+  "testimonials": [
+    {
+      "name": "Kang Ujang, Garut",
+      "quote": "Dari kecil cita-cita naik pesawat. Alhamdulillah pertama kali naik pesawat langsung ke Tanah Suci. Pas take off saya zikir paling kencang satu kabin, pembimbing Mabrur cuma senyum sambil ikut aamiin.",
+      "rating": 5,
+      "is_active": 1,
+      "package_name": "Umroh Reguler 9 Hari",
+      "display_order": 1,
+      "avatar": "testimonials/7dcf3e83-903e-420b-9449-cf689c766e91.webp"
+    },
+    {
+      "name": "Pak Darto, Cimahi",
+      "quote": "Berangkat bawa koper dua, pulang bawa koper empat. Kurma, sajadah, oleh-oleh buat satu RT. Untung tim Mabrur sabar bantu packing ulang di hotel. Ibadahnya khusyuk, yang ramai cuma bagasinya.",
+      "rating": 5,
+      "is_active": 1,
+      "package_name": "Umroh Reguler 9 Hari",
+      "display_order": 2,
+      "avatar": null
+    },
+    {
+      "name": "Nenek Romlah, 72 tahun",
+      "quote": "Cucu saya khawatir nenek nyasar di Masjidil Haram. Alhamdulillah pembimbing Mabrur nempel terus kayak perangko. Yang sempat nyasar malah cucu saya sendiri, untung cepat ketemu lagi di titik kumpul.",
+      "rating": 5,
+      "is_active": 1,
+      "package_name": "Umroh Ramadhan 12 Hari",
+      "display_order": 3,
+      "avatar": "testimonials/2e863daf-1b29-4a5a-9223-4207a6663f71.webp"
+    },
+    {
+      "name": "Bu Imas, Bandung",
+      "quote": "Bintang saya kurangi satu karena nasi kebuli di hotelnya terlalu enak, timbangan naik tiga kilo. Selebihnya sempurna: jadwal rapi, hotel dekat masjid, dan pembimbingnya sabar nungguin saya nawar oleh-oleh di Istanbul.",
+      "rating": 4,
+      "is_active": 1,
+      "package_name": "Umroh Plus Turki 12 Hari",
+      "display_order": 4,
+      "avatar": "testimonials/a0f9ab87-c645-4389-87f3-7e4322909a1c.webp"
+    },
+    {
+      "name": "Mas Rizky & Mbak Sari, Sumedang",
+      "quote": "Niatnya bulan madu, jadinya ibadah bareng empat puluh jamaah. Romantisnya beda: tiap malam saling bangunin tahajud. Bonus yang tidak tertulis di brosur, suami saya sekarang rajin salat subuh berjamaah.",
+      "rating": 5,
+      "is_active": 1,
+      "package_name": "Umroh Awal Tahun 9 Hari",
+      "display_order": 5,
+      "avatar": null
+    }
+  ],
+  "faqs": [
+    {
+      "answer": "Persyaratan umum meliputi: Paspor asli yang masih berlaku minimal 7 bulan dengan nama minimal 2 kata, Buku Kuning (Meningitis), KTP, KK, dan pas foto terbaru latar belakang putih.",
+      "question": "Apa saja persyaratan dokumen untuk pendaftaran umroh?",
+      "is_active": 1,
+      "display_order": 1
+    },
+    {
+      "answer": "Pembayaran dapat dilakukan melalui transfer rekening resmi biro travel kami. Uang muka (DP) disetorkan saat pendaftaran dan pelunasan maksimal 30 hari sebelum jadwal keberangkatan.",
+      "question": "Bagaimana cara melakukan pembayaran dan pelunasan?",
+      "is_active": 1,
+      "display_order": 2
+    },
+    {
+      "answer": "Ya, tim muthawwif dan perwakilan kami di tanah suci siap membantu jamaah yang membutuhkan layanan khusus atau kursi roda demi kelancaran dan kenyamanan ibadah Anda.",
+      "question": "Apakah jamaah lansia atau yang membutuhkan kursi roda didampingi?",
+      "is_active": 1,
+      "display_order": 3
+    }
+  ],
+  "agent_photo": "agents/3672/photo.webp"
+}
