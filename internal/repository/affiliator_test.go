@@ -233,6 +233,29 @@ func TestAffiliator_Program(t *testing.T) {
 		}
 	})
 
+	t.Run("Logout ends only that session, on the server", func(t *testing.T) {
+		second, err := svc.Login(ctx, affA.Affiliator.Email, "rahasia-test-123", "")
+		if err != nil {
+			t.Fatalf("login: %v", err)
+		}
+		if w := get("/api/affiliator/me", second.Token); w.Code != http.StatusOK {
+			t.Fatalf("token before logout: expected 200, got %d", w.Code)
+		}
+		req := httptest.NewRequest(http.MethodPost, "/api/affiliator/logout", nil)
+		req.Header.Set("Authorization", "Bearer "+second.Token)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("logout: expected 200, got %d", w.Code)
+		}
+		if w := get("/api/affiliator/me", second.Token); w.Code != http.StatusUnauthorized {
+			t.Fatalf("copied token after logout: expected 401, got %d", w.Code)
+		}
+		if w := get("/api/affiliator/me", affA.Token); w.Code != http.StatusOK {
+			t.Fatalf("other session of the same affiliator must stay valid, got %d", w.Code)
+		}
+	})
+
 	t.Run("Payout: held commissions wait, request claims only own, reject releases, paid closes", func(t *testing.T) {
 		staff := &repository.StaffUser{Name: "Staff aff test", Email: fmt.Sprintf("staff-aff-%d@klikumroh.test", time.Now().UnixNano()),
 			PasswordHash: "[REDACTED-bcrypt-not-needed]", Status: "active"}
