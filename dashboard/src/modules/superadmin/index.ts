@@ -14,3 +14,5 @@ export * from './views/AdminPlansView';
 export * from './views/AdminCouponsView';
 export * from './views/AdminSettingsView';
 export * from './views/AdminStaffView';
+export * from './views/AdminAffiliatorsView';
+export * from './views/AdminAffiliatorDetailView';

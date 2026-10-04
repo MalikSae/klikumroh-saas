@@ -104,7 +104,7 @@
 .ap-head__menu { display: none; }
 .ap-head__title { margin: 0; min-width: 180px; font: var(--ku-weight-bold) var(--ku-text-2xl) / 28px var(--ku-font-head); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ap-head__search { flex: 0 1 380px; margin: 0 auto; }
-.ap-head__right { display: flex; gap: var(--ku-space-2); align-items: center; }
+.ap-head__right { display: flex; gap: var(--ku-space-2); align-items: center; margin-left: auto; flex-shrink: 0; }
 .ap-travel { display: flex; align-items: center; gap: var(--ku-space-2); height: var(--ku-size-control); padding: 0 10px 0 6px; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-soft); font-weight: var(--ku-weight-medium); max-width: 240px; }
 .ap-travel:hover { background: var(--ku-line-2); }
 .ap-travel__mark { width: 26px; height: 26px; border-radius: 6px; background: var(--ku-ink); color: var(--ku-on-accent); display: grid; place-items: center; font: var(--ku-weight-bold) 10px var(--ku-font-head); flex-shrink: 0; }

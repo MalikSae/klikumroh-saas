@@ -14,6 +14,7 @@ import {
   Search,
   HelpCircle,
   ArrowLeft,
+  Handshake,
 } from 'lucide-react';
 import { Tooltip } from '../shared/Tooltip';
 import { NotificationDropdown } from '../shared/NotificationDropdown';
@@ -123,6 +124,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           to: '/internal/payment-verifications',
           label: 'Verifikasi Pembayaran',
           icon: <CheckCircle2 size={16} />,
+        },
+      ],
+    },
+    {
+      group: 'Pemasaran',
+      items: [
+        {
+          to: '/internal/affiliators',
+          label: 'Affiliator',
+          icon: <Handshake size={16} />,
         },
       ],
     },

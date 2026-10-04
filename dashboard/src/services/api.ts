@@ -173,7 +173,19 @@ export interface CommissionSettingsResponse {
   commission_override_percentage: number | null;
 }
 
-export const API_BASE = 'http://localhost:8080';
+/**
+ * Travel admins sign in on the public web (klikumroh.id/login), which hands the session to the
+ * dashboard on app.klikumroh.id. A relative '/login' here would loop back into the dashboard.
+ */
+export const webLoginUrl = (): string => {
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:3000/login' : 'https://klikumroh.id/login';
+};
+
+// Empty by default: the dashboard calls the API on its own origin (`/api/...`). In production Caddy
+// routes `/api` and `/uploads` to the Go backend; in local dev the Vite proxy does (vite.config.ts).
+// Set VITE_API_BASE only when the API really lives on another origin.
+export const API_BASE: string = import.meta.env.VITE_API_BASE ?? '';
 
 export const getFullImageUrl = (path?: string | null): string => {
   if (!path) return '';
@@ -232,6 +244,21 @@ export const clearAuthSession = () => {
   localStorage.removeItem(TRAVEL_NAME_KEY);
 };
 
+/**
+ * Ends the session on the server too, so a token left in another tab or origin (the public web
+ * keeps its own copy) cannot reopen the dashboard. Local storage is cleared even when the call fails.
+ */
+export const logoutAdmin = async (): Promise<void> => {
+  const token = getStoredToken();
+  if (token) {
+    await fetch(`${API_BASE}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+  }
+  clearAuthSession();
+};
+
 export const loginAdmin = async (
   email: string,
   password: string
@@ -248,7 +275,7 @@ export const loginAdmin = async (
   }
 
   const data = await res.json();
-  // Pending tenants get a session too: PendingBillingGuard locks them to the
+  // Pending tenants get a session too: AppFrame locks them to the
   // billing page, and the backend (SubscriptionEnforcementMiddleware) only
   // allows /subscription endpoints until the first payment is approved.
   setAuthSession(data.token, data.user);

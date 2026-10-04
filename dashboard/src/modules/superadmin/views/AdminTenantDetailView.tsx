@@ -124,7 +124,10 @@ export const AdminTenantDetailView: React.FC = () => {
       setImpersonateError(null);
       const res = await impersonateTenant(tenant.id, trimmedReason);
       setShowImpersonateModal(false);
-      window.open(`/?impersonate_token=${encodeURIComponent(res.token)}`, '_blank');
+      // Only a one-time code goes in the URL (fragment, never sent to a server); the new tab trades it
+      // for the impersonation session, and only this browser can (main.tsx).
+      const handoff = encodeURIComponent(JSON.stringify({ code: res.handoff_code, redirect: '/' }));
+      window.open(`/#handoff=${handoff}`, '_blank');
     } catch (err: any) {
       setImpersonateError(err.message || 'Gagal impersonasi travel');
     } finally {

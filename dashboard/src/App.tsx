@@ -23,18 +23,22 @@ import {
   AdminCouponsView,
   AdminSettingsView,
   AdminStaffView,
+  AdminAffiliatorsView,
+  AdminAffiliatorDetailView,
   AdminAuthGuard,
 } from './modules/superadmin';
+import { webLoginUrl } from './services/api';
+import { AffiliatorFrame } from './modules/affiliator/AffiliatorFrame';
+import { AffiliatorAuthView } from './modules/affiliator/AffiliatorAuthView';
+import { AffiliatorHomeView } from './modules/affiliator/AffiliatorHomeView';
+import { AffiliatorTravelsView } from './modules/affiliator/AffiliatorTravelsView';
+import { AffiliatorCommissionsView } from './modules/affiliator/AffiliatorCommissionsView';
+import { AffiliatorAccountView } from './modules/affiliator/AffiliatorAccountView';
 
 
 const LoginRedirect: React.FC = () => {
   React.useEffect(() => {
-    const isLocal =
-      typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1');
-    const loginUrl = isLocal ? 'http://localhost:3000/login' : '/login';
-    window.location.href = loginUrl;
+    window.location.href = webLoginUrl();
   }, []);
 
   return null;
@@ -84,9 +88,23 @@ export const App: React.FC = () => {
           <Route path="/internal/coupons" element={<AdminCouponsView />} />
           <Route path="/internal/payment-verifications" element={<AdminPaymentsView />} />
           <Route path="/internal/staff" element={<AdminStaffView />} />
+          <Route path="/internal/affiliators" element={<AdminAffiliatorsView />} />
+          <Route path="/internal/affiliators/:id" element={<AdminAffiliatorDetailView />} />
           <Route path="/internal/settings" element={<AdminSettingsView />} />
           <Route path="/internal" element={<Navigate to="/internal/dashboard" replace />} />
         </Route>
+
+        {/* Affiliator KlikUmroh portal (own login and token) */}
+        <Route path="/affiliator/login" element={<AffiliatorAuthView mode="login" />} />
+        <Route path="/affiliator/daftar" element={<AffiliatorAuthView mode="register" />} />
+        <Route element={<AffiliatorFrame />}>
+          <Route path="/affiliator" element={<AffiliatorHomeView />} />
+          <Route path="/affiliator/travel" element={<AffiliatorTravelsView />} />
+          <Route path="/affiliator/komisi" element={<AffiliatorCommissionsView />} />
+          <Route path="/affiliator/akun" element={<AffiliatorAccountView />} />
+          <Route path="/affiliator/*" element={<Navigate to="/affiliator" replace />} />
+        </Route>
+
 
         {/* Legacy Alias /staff/* -> /internal/* */}
         <Route path="/staff/login" element={<AdminLoginView />} />

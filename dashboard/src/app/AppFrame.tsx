@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronsUpDown, ExternalLink, LogOut, Menu, UserRound } from 'lucide-react';
 import {
-  clearAuthSession,
+  logoutAdmin,
   fetchDashboardAgents,
   fetchPayoutRequests,
   fetchProspectSummary,
@@ -100,7 +100,7 @@ const UserMenu: React.FC<{ name: string; role: string }> = ({ name, role }) => {
           <button type="button" role="menuitem" onClick={() => { setOpen(false); navigate('/account'); }}>
             <UserRound className="ku-icon--sm" aria-hidden="true" /> Akun saya
           </button>
-          <button type="button" role="menuitem" onClick={() => { clearAuthSession(); window.location.href = '/'; }}>
+          <button type="button" role="menuitem" onClick={() => { void logoutAdmin().then(() => { window.location.href = '/'; }); }}>
             <LogOut className="ku-icon--sm" aria-hidden="true" /> Keluar
           </button>
         </div>
@@ -151,8 +151,16 @@ export const AppFrame: React.FC = () => {
     setMobileNav(false);
   }, [location.pathname, refreshBadges]);
 
+  // A travel that has not paid its activation can sign in, but only its billing pages work (the API
+  // answers 402 elsewhere), so every other route sends it to the invoice.
+  useEffect(() => {
+    if (sub?.status !== 'pending' || location.pathname.startsWith('/settings/subscription')) return;
+    navigate(subscriptionNotice(sub)?.to || '/settings/subscription', { replace: true });
+  }, [sub, location.pathname, navigate]);
+
   const siteUrl = publicSiteUrl(sub?.tenant_slug);
   const heading = title ?? titleForPath(location.pathname);
+  const invoiceRoute = /^\/settings\/subscription\/payment\/[^/]+\/?$/.test(location.pathname);
   // Urgent subscription states are shown on every page; the dashboard shows them in its own strip and
   // the billing pages show the full status, so neither repeats this banner.
   const notice = subscriptionNotice(sub);
@@ -161,6 +169,18 @@ export const AppFrame: React.FC = () => {
 
   return (
     <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub }}>
+      {invoiceRoute ? (
+        <div className="ku ap-invoice-frame">
+          <header className="ap-invoice-header">
+            <Link to="/settings/subscription" className="ap-logo" aria-label="KlikUmroh, kembali ke langganan">
+              <img src={brandIcon} alt="" className="ap-logo__icon" />
+              <span><b>Klik</b>Umroh</span>
+            </Link>
+            <Link to="/settings/subscription" className="ap-invoice-back">Kembali ke langganan</Link>
+          </header>
+          <main className="ap-invoice-main"><Outlet /></main>
+        </div>
+      ) : (
       <div className="ku ap">
         {mobileNav && <div className="ku-overlay ap-mobile-overlay" onClick={() => setMobileNav(false)} aria-hidden="true" />}
         <aside className={`ap-side${mobileNav ? ' ap-side--open' : ''}`}>
@@ -197,7 +217,7 @@ export const AppFrame: React.FC = () => {
         <main className="ap-main">
           {sub?.is_demo && (
             <div className="ap-demo" role="note">
-              Akun demo: data kembali seperti semula tiap malam. Ganti password, tim, domain, dan Meta Pixel tidak tersedia.
+              Akun demo KlikUmroh.
             </div>
           )}
           <header className="ap-head">
@@ -238,6 +258,7 @@ export const AppFrame: React.FC = () => {
         </main>
         <MobileNav badges={badges} siteUrl={siteUrl} />
       </div>
+      )}
     </FrameContext.Provider>
   );
 };

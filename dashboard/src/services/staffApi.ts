@@ -1,5 +1,6 @@
 // API Client for KlikUmroh Staff / Master Admin
 import { API_BASE } from './api';
+import type { Affiliator, AffiliatorBalance, AffiliatorCommission, AffiliatorPayout, AffiliatorTenant } from './affiliatorApi';
 
 export interface StaffUser {
   id: number;
@@ -615,7 +616,8 @@ export const fetchStaffOverview = async (): Promise<PlatformOverviewMetrics> => 
 };
 
 export interface ImpersonationResult {
-  token: string;
+  // One-time code bound to this browser; the dashboard trades it for the impersonation session (main.tsx).
+  handoff_code: string;
   expires_at: string;
   tenant_id: number;
   tenant: {
@@ -744,3 +746,76 @@ export const updateStaffUser = async (id: number, data: StaffUserInput): Promise
 
 
 
+
+// ---------------------------------------------------------------------------
+// Affiliator KlikUmroh (staff management)
+// ---------------------------------------------------------------------------
+
+export interface StaffAffiliatorItem extends Affiliator {
+  coupon_code: string | null;
+  tenant_count: number;
+  total_earned: number;
+}
+
+export interface StaffAffiliatorPayout extends AffiliatorPayout {
+  affiliator_id: number;
+  affiliator_name: string;
+}
+
+export interface StaffAffiliatorDetail {
+  affiliator: Affiliator;
+  coupon_code: string | null;
+  coupon_discount: number;
+  first_rate: number;
+  renewal_rate: number;
+  hold_days: number;
+  min_payout: number;
+  clicks: number;
+  tenant_count: number;
+  active_tenants: number;
+  balance: AffiliatorBalance;
+  tenants: AffiliatorTenant[];
+  commissions: AffiliatorCommission[];
+  payouts: AffiliatorPayout[];
+}
+
+export interface AffiliatorSettings {
+  first_rate: number;
+  renewal_rate: number;
+  coupon_discount: number;
+  hold_days: number;
+  min_payout: number;
+}
+
+async function staffRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...getStaffAuthHeader(), ...(init.headers as Record<string, string>) },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401) clearStaffAuthSession();
+    throw new Error(json.error || 'Permintaan gagal');
+  }
+  return json as T;
+}
+
+export const fetchStaffAffiliators = async () =>
+  (await staffRequest<{ affiliators: StaffAffiliatorItem[] }>('/api/staff/affiliators')).affiliators ?? [];
+export const fetchStaffAffiliatorDetail = (id: number) => staffRequest<StaffAffiliatorDetail>(`/api/staff/affiliators/${id}`);
+export const setStaffAffiliatorStatus = (id: number, status: 'active' | 'inactive') =>
+  staffRequest(`/api/staff/affiliators/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+/** null clears the override back to the platform default. */
+export const setStaffAffiliatorRates = (id: number, firstRate: number | null, renewalRate: number | null) =>
+  staffRequest(`/api/staff/affiliators/${id}/rates`, { method: 'PATCH', body: JSON.stringify({ first_rate: firstRate, renewal_rate: renewalRate }) });
+export const fetchStaffAffiliatorPayouts = async (status = 'all') =>
+  (await staffRequest<{ payouts: StaffAffiliatorPayout[] }>(`/api/staff/affiliator-payouts?status=${encodeURIComponent(status)}`)).payouts ?? [];
+export const markStaffAffiliatorPayoutPaid = (id: number) => staffRequest(`/api/staff/affiliator-payouts/${id}/paid`, { method: 'PATCH' });
+export const rejectStaffAffiliatorPayout = (id: number, reason: string) =>
+  staffRequest(`/api/staff/affiliator-payouts/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) });
+export const fetchAffiliatorSettings = () => staffRequest<AffiliatorSettings>('/api/staff/affiliator-settings');
+export const updateAffiliatorSettings = (s: AffiliatorSettings) =>
+  staffRequest<AffiliatorSettings>('/api/staff/affiliator-settings', { method: 'PUT', body: JSON.stringify(s) });
+/** Staff set a new password for an affiliator who forgot it; all its sessions end. */
+export const resetStaffAffiliatorPassword = (id: number, newPassword: string) =>
+  staffRequest(`/api/staff/affiliators/${id}/password`, { method: 'PATCH', body: JSON.stringify({ new_password: newPassword }) });

@@ -53,26 +53,8 @@
 .st-total__sum dt, .st-total__sum dd { color: var(--ku-ink); font-weight: var(--ku-weight-semibold); }
 .st-block { display: flex; flex-direction: column; gap: var(--ku-space-3); }
 
-/* Tagihan */
-.st-invoice__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--ku-space-4); }
-.st-invoice__title { margin: 0 0 2px; font: var(--ku-weight-semibold) var(--ku-text-xl) var(--ku-font-head); }
-.st-invoice__grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
-.st-pay, .st-proof { display: flex; flex-direction: column; gap: var(--ku-space-3); padding: var(--ku-space-5); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-card); }
-.st-pay__label { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
-.st-pay__amount { font: var(--ku-weight-bold) var(--ku-text-3xl) var(--ku-font-head); font-variant-numeric: tabular-nums; }
-.st-pay__note { margin: 0; color: var(--ku-ink-2); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
-.st-pay__lines { padding-top: var(--ku-space-3); border-top: 1px solid var(--ku-line); }
-.st-bank { display: flex; flex-direction: column; gap: var(--ku-space-2); padding-top: var(--ku-space-3); border-top: 1px solid var(--ku-line); }
-.st-bank__list dd { font-weight: var(--ku-weight-medium); }
-.st-copy { display: inline-flex; align-items: center; gap: var(--ku-space-2); }
-.st-copy__btn { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 var(--ku-space-2); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); color: var(--ku-ink-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); cursor: pointer; }
-.st-copy__btn:hover { color: var(--ku-ink); border-color: var(--ku-ink-4); }
-.st-help { display: inline-flex; align-items: center; gap: 6px; color: var(--ku-ink-2); font-size: var(--ku-text-md); text-decoration: none; }
-.st-help:hover { color: var(--ku-ink); text-decoration: underline; }
-
 @media (max-width: 960px) {
   .st-section { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-4); }
-  .st-invoice__grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .st-grid { grid-template-columns: 1fr; }

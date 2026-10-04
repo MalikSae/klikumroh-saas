@@ -103,4 +103,21 @@
   --ku-size-content: 1360px;
   --ku-size-tabbar: 64px;
   --ku-size-sheet-grip: 36px;
+
+  /* affiliator */
+  --ku-affiliator-contentWidth: 880px;
+  --ku-affiliator-statMinWidth: 140px;
+  --ku-affiliator-profileLabelWidth: 120px;
+
+  /* invoice */
+  --ku-invoice-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  --ku-invoice-touchTarget: 44px;
+  --ku-invoice-proofHeight: 200px;
+  --ku-invoice-amountSize: clamp(24px, 3vw, 32px);
+  --ku-invoice-cta: #166534;
+  --ku-invoice-ctaHover: #14532D;
+  --ku-invoice-sheetWidth: 840px;
+  --ku-invoice-headerWidth: 1120px;
+  --ku-invoice-paymentColumns: minmax(0, 1fr) minmax(0, 1fr);
+  --ku-invoice-previewHeight: 160px;
 }

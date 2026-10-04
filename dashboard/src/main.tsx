@@ -9,46 +9,57 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import App from './App.tsx';
+import { API_BASE, setAuthSession } from './services/api';
 
 // ---------------------------------------------------------------------------
-// Cross-origin auth handoff (local dev only)
+// Cross-origin auth handoff
 // ---------------------------------------------------------------------------
-// When a user logs in via the Next.js app (localhost:3000), the token can't
-// be shared through localStorage because the dashboard runs on a different
-// origin (localhost:5175). The Next.js login page passes credentials through
-// a URL hash fragment: #auth={encoded JSON}.  We extract them here, persist
-// to localStorage, then clean the URL before React mounts so RequireAuth
-// finds a valid session.
+// Travel admins log in on the Next.js app (klikumroh.id; localhost:3000 in local dev), but the dashboard
+// runs on another origin (app.klikumroh.id; localhost:5175), so localStorage is not shared. The login page
+// sends #handoff={code, redirect}: a one-time code, never the token. We trade it for the session here,
+// before React mounts, so RequireAuth finds it. The exchange only succeeds in the browser that logged in
+// (it holds the HttpOnly ku_handoff cookie), so a link crafted by someone else cannot sign a visitor into
+// another account. Staff impersonation (AdminTenantDetailView) opens a tab with the same kind of code.
 // ---------------------------------------------------------------------------
-(() => {
+async function redeemHandoff(): Promise<void> {
   const hash = window.location.hash;
-  if (!hash.startsWith('#auth=')) return;
+  if (!hash.startsWith('#handoff=')) return;
   let target = '/';
   try {
-    const payload = JSON.parse(decodeURIComponent(hash.slice('#auth='.length)));
-    if (payload.token) {
-      localStorage.setItem('klikumroh_token', payload.token);
-    }
-    if (payload.user) {
-      localStorage.setItem('klikumroh_user', JSON.stringify(payload.user));
-      if (payload.user.tenant_name) {
-        localStorage.setItem('klikumroh_travel_name', payload.user.tenant_name);
-      }
-    }
+    const payload = JSON.parse(decodeURIComponent(hash.slice('#handoff='.length)));
     // Optional landing path (e.g. the billing page right after signup). Only same-origin
     // absolute paths are accepted, so the payload can't send the user to another site.
     if (typeof payload.redirect === 'string' && /^\/(?![/\\])/.test(payload.redirect)) {
       target = payload.redirect;
     }
+    if (typeof payload.code === 'string' && payload.code) {
+      const res = await fetch(`${API_BASE}/api/auth/handoff/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ code: payload.code }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token && data.user) {
+          setAuthSession(data.token, data.user);
+          // Set by the server for staff impersonation, never taken from the URL.
+          if (data.impersonated) localStorage.setItem('klikumroh_impersonated', 'true');
+          else localStorage.removeItem('klikumroh_impersonated');
+        }
+      }
+    }
   } catch {
-    // Malformed payload — ignore, RequireAuth will redirect to /login
+    // Malformed payload or network error: without a session RequireAuth sends the user to login.
   }
-  // Clean the URL so the token doesn't linger in the address bar
+  // Clean the URL so the code doesn't linger in the address bar or history.
   history.replaceState(null, '', target);
-})();
+}
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+void redeemHandoff().then(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+});

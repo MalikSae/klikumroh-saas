@@ -1,7 +1,7 @@
 // Tagihan: how much to transfer, where, and the transfer proof upload.
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ExternalLink, ImagePlus, MessageCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Check, Copy, ExternalLink, ImagePlus } from 'lucide-react';
 import {
   fetchPaymentVerificationDetail,
   fetchPlatformSettings,
@@ -15,7 +15,7 @@ import {
 import { Banner, Button, Pill, fmtDate, fmtRupiah, errorText } from '../../ui';
 import { useFrame } from '../../app/AppFrame';
 import { invoiceStatus, planTitle } from './BillingSettings';
-import '../website/website.css';
+import './InvoiceScreen.css';
 
 const MAX_PROOF_BYTES = 10 * 1024 * 1024;
 
@@ -33,9 +33,8 @@ const CopyValue: React.FC<{ value: string; label: string; children: React.ReactN
   return (
     <span className="st-copy">
       {children}
-      <button type="button" className="st-copy__btn" onClick={copy} aria-label={`Salin ${label}`}>
+      <button type="button" className="st-copy__btn" onClick={copy} aria-label={copied ? `${label} tersalin` : `Salin ${label}`} title={copied ? 'Tersalin' : `Salin ${label}`}>
         {copied ? <Check className="ku-icon--sm" aria-hidden="true" /> : <Copy className="ku-icon--sm" aria-hidden="true" />}
-        {copied ? 'Tersalin' : 'Salin'}
       </button>
     </span>
   );
@@ -133,142 +132,63 @@ export const InvoiceScreen: React.FC = () => {
   const planText = planTitle(pv.plan_name, pv.plan_period_months);
   const amountText = Math.round(pv.final_amount).toString();
 
-  return (
-    <div className="st-stack st-invoice">
-      <div>
-        <Button variant="ghost" size="sm" to="/settings/subscription" icon={<ArrowLeft className="ku-icon--sm" />}>
-          Langganan
-        </Button>
-      </div>
 
+  return (
+    <article className="st-invoice" aria-labelledby="invoice-title">
       <header className="st-invoice__head">
         <div>
-          <h2 className="st-invoice__title">Tagihan #{pv.id}</h2>
-          <div className="st-muted">
-            {planText} · dibuat {fmtDate(pv.created_at)}
-          </div>
+          <p className="st-invoice__issuer">KlikUmroh.id</p>
+          <h1 id="invoice-title" className="st-invoice__title">Invoice #{pv.id}</h1>
+          <p className="st-muted">Diterbitkan {fmtDate(pv.created_at)}</p>
         </div>
         <Pill tone={status.tone}>{status.label}</Pill>
       </header>
-
-      {pv.status === 'rejected' && (
-        <Banner tone="danger">
-          <b>Bukti transfer ditolak.</b> {pv.rejection_reason || 'Bukti belum sesuai dengan tagihan.'} Unggah bukti yang benar di bawah.
-        </Banner>
-      )}
-      {pv.status === 'pending' && pv.proof_url && (
-        <Banner tone={justUploaded ? 'success' : 'info'}>
-          <b>{justUploaded ? 'Bukti transfer terkirim.' : 'Bukti transfer sedang diverifikasi.'}</b> Tim KlikUmroh sedang memeriksa. Anda mendapat notifikasi saat selesai.
-        </Banner>
-      )}
-      {pv.status === 'approved' && (
-        <Banner tone="success">
-          <b>Pembayaran diterima</b>
-          {pv.reviewed_at ? ` pada ${fmtDate(pv.reviewed_at)}` : ''}. Langganan Anda sudah diperbarui.
-        </Banner>
-      )}
-
-      <div className="st-invoice__grid">
-        <section className="st-pay">
-          <div className="st-pay__label">{needsTransfer ? 'Jumlah yang harus ditransfer' : 'Total tagihan'}</div>
-          <div className="st-pay__amount">
-            {needsTransfer ? <CopyValue value={amountText} label="jumlah transfer">{fmtRupiah(pv.final_amount)}</CopyValue> : fmtRupiah(pv.final_amount)}
-          </div>
-          {needsTransfer && (pv.unique_code ?? 0) > 0 && (
-            <p className="st-pay__note">
-              Transfer tepat sampai 3 digit terakhir. Kode unik <b>{pv.unique_code}</b> membantu kami mencocokkan pembayaran Anda.
-            </p>
-          )}
-
-          <dl className="st-pay__lines">
-            <div>
-              <dt>{planText || 'Paket langganan'}</dt>
-              <dd>{fmtRupiah(pv.amount)}</dd>
-            </div>
-            {pv.coupon_code && (
-              <div>
-                <dt>Kupon {pv.coupon_code}</dt>
-                <dd>−{fmtRupiah(Math.max(0, pv.amount - (pv.final_amount - (pv.unique_code ?? 0))))}</dd>
-              </div>
-            )}
-            {(pv.unique_code ?? 0) > 0 && (
-              <div>
-                <dt>Kode unik</dt>
-                <dd>{fmtRupiah(pv.unique_code ?? 0)}</dd>
-              </div>
-            )}
-          </dl>
-
-          {needsTransfer && (
-            <div className="st-bank">
-              <div className="st-pay__label">Transfer ke</div>
-              {bank ? (
-                <dl className="st-bank__list">
-                  <div>
-                    <dt>Bank</dt>
-                    <dd>{bank.bank_name}</dd>
-                  </div>
-                  <div>
-                    <dt>Nomor rekening</dt>
-                    <dd>
-                      <CopyValue value={bank.bank_account_number.replace(/\s/g, '')} label="nomor rekening">
-                        {bank.bank_account_number}
-                      </CopyValue>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Atas nama</dt>
-                    <dd>{bank.bank_account_holder}</dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="st-muted">Rekening tujuan belum tersedia. Hubungi tim KlikUmroh sebelum transfer.</p>
-              )}
-            </div>
-          )}
-        </section>
-
-        <section className="st-proof" aria-labelledby="st-proof-title">
-          <h3 id="st-proof-title" className="st-section__title">Bukti transfer</h3>
-          {pv.proof_url ? (
-            <div className="ws-slot ws-slot--proof">
-              {proofUrl && <img src={proofUrl} alt="Bukti transfer yang diunggah" />}
-              <div className="ws-slot__actions">
-                {proofUrl && (
-                  <a href={proofUrl} target="_blank" rel="noopener noreferrer" aria-label="Buka bukti transfer" title="Buka ukuran penuh">
-                    <ExternalLink className="ku-icon--sm" aria-hidden="true" />
-                  </a>
-                )}
-                {canUpload && (
-                  <button type="button" aria-label="Ganti bukti transfer" title="Ganti" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                    <RefreshCw className="ku-icon--sm" aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-              {uploading && <span className="ws-slot__busy">Mengunggah...</span>}
-            </div>
-          ) : canUpload && pv.final_amount > 0 ? (
-            <button type="button" className="ws-slot ws-slot--proof ws-slot--empty" onClick={() => fileRef.current?.click()} disabled={uploading}>
-              <ImagePlus className="ku-icon" aria-hidden="true" />
-              <span>{uploading ? 'Mengunggah...' : 'Unggah bukti transfer'}</span>
-            </button>
-          ) : (
-            <p className="st-muted">Tidak ada bukti transfer.</p>
-          )}
-          {canUpload && pv.final_amount > 0 && (
-            <>
-              <div className="ku-field__hint">Foto atau tangkapan layar bukti transfer. JPG, PNG, atau WebP, maks. 10 MB.</div>
-              {uploadError && <div className="ku-field__error" role="alert">{uploadError}</div>}
-              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="st-hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-            </>
-          )}
-          {platform?.whatsapp_number && (
-            <a className="st-help" href={waLink(platform.whatsapp_number, `Halo KlikUmroh, saya ingin bertanya tentang tagihan #${pv.id}.`)} target="_blank" rel="noopener noreferrer">
-              <MessageCircle className="ku-icon--sm" aria-hidden="true" /> Tanya tim KlikUmroh lewat WhatsApp
-            </a>
-          )}
+      <div className="st-invoice__recipient">
+        <span className="st-muted">Ditagihkan kepada</span>
+        <strong>{pv.tenant_name || frame?.subscription?.tenant_name || 'Travel Anda'}</strong>
+      </div>
+      {pv.status === 'rejected' && <Banner tone="danger"><b>Bukti transfer ditolak.</b> {pv.rejection_reason || 'Bukti belum sesuai dengan tagihan.'} Unggah ulang bukti yang benar.</Banner>}
+      {pv.status === 'pending' && pv.proof_url && <Banner tone={justUploaded ? 'success' : 'info'}><b>{justUploaded ? 'Bukti transfer terkirim.' : 'Pembayaran sedang diverifikasi.'}</b> Tim KlikUmroh akan memberi notifikasi setelah pemeriksaan selesai.</Banner>}
+      {pv.status === 'approved' && <Banner tone="success"><b>Pembayaran diterima</b>{pv.reviewed_at ? ' pada ' + fmtDate(pv.reviewed_at) : ''}. Langganan Anda sudah diperbarui.</Banner>}
+      <section aria-label="Rincian tagihan">
+        <div className="st-invoice__item-head"><span>Deskripsi</span><span>Jumlah</span></div>
+        <div className="st-invoice__item">
+          <div><strong>Langganan KlikUmroh</strong><span>{planText}</span></div>
+          <strong>{fmtRupiah(pv.amount)}</strong>
+        </div>
+        <dl className="st-invoice__totals">
+          {pv.coupon_code && <div><dt>Diskon kupon {pv.coupon_code}</dt><dd>−{fmtRupiah(Math.max(0, pv.amount - (pv.final_amount - (pv.unique_code ?? 0))))}</dd></div>}
+          {(pv.unique_code ?? 0) > 0 && <div><dt>Kode unik</dt><dd>{fmtRupiah(pv.unique_code ?? 0)}</dd></div>}
+          <div className="st-invoice__total"><dt>{needsTransfer ? 'Total transfer' : 'Total tagihan'}</dt><dd>{needsTransfer ? <CopyValue value={amountText} label="jumlah transfer">{fmtRupiah(pv.final_amount)}</CopyValue> : fmtRupiah(pv.final_amount)}</dd></div>
+        </dl>
+      </section>
+      <div className="st-invoice__payment">
+        {needsTransfer && <section className="st-bank" aria-labelledby="invoice-bank-title">
+          <h2 id="invoice-bank-title">Transfer bank</h2>
+          {bank ? <dl className="st-bank__list">
+            <div><dt>Bank</dt><dd>{bank.bank_name}</dd></div>
+            <div><dt>Nomor rekening</dt><dd><CopyValue value={bank.bank_account_number.replace(/\s/g, '')} label="nomor rekening">{bank.bank_account_number}</CopyValue></dd></div>
+            <div><dt>Atas nama</dt><dd>{bank.bank_account_holder}</dd></div>
+          </dl> : <p className="st-muted">Rekening tujuan belum tersedia. Hubungi tim KlikUmroh sebelum transfer.</p>}
+          {(pv.unique_code ?? 0) > 0 && <p className="st-invoice__note">Transfer sesuai total, termasuk kode unik <b>{pv.unique_code}</b>, agar pembayaran dapat dicocokkan.</p>}
+        </section>}
+        <section className="st-proof" aria-labelledby="invoice-proof-title">
+          <h2 id="invoice-proof-title">{canUpload ? 'Konfirmasi pembayaran' : 'Bukti pembayaran'}</h2>
+          {pv.proof_url && <div className="st-invoice__proof-preview">
+            {proofUrl ? <a href={proofUrl} target="_blank" rel="noopener noreferrer"><img src={proofUrl} alt="Bukti transfer yang diunggah" /><span><ExternalLink className="ku-icon--sm" aria-hidden="true" /> Lihat bukti transfer</span></a> : <p className="st-muted">Bukti transfer telah diunggah.</p>}
+          </div>}
+          {canUpload && pv.final_amount > 0 ? <>
+            <p className="st-proof__intro">Sudah transfer? Unggah bukti pembayaran untuk diverifikasi.</p>
+            <Button variant="primary" block className="st-proof__cta" onClick={() => fileRef.current?.click()} disabled={uploading} icon={<ImagePlus className="ku-icon--sm" />}>
+              {uploading ? 'Mengunggah...' : pv.proof_url ? 'Ganti bukti transfer' : 'Unggah bukti transfer'}
+            </Button>
+            <p className="st-invoice__file-hint">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
+            {uploadError && <div className="ku-field__error" role="alert">{uploadError}</div>}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="st-hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+          </> : !pv.proof_url && <p className="st-muted">Tidak ada bukti transfer.</p>}
         </section>
       </div>
-    </div>
+      {platform?.whatsapp_number && <footer className="st-invoice__footer"><span>Perlu bantuan dengan tagihan ini?</span><a href={waLink(platform.whatsapp_number, 'Halo KlikUmroh, saya ingin bertanya tentang tagihan #' + pv.id + '.')} target="_blank" rel="noopener noreferrer">Hubungi KlikUmroh</a></footer>}
+    </article>
   );
 };

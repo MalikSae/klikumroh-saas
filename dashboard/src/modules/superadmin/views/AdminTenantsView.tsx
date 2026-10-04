@@ -74,12 +74,13 @@ export const AdminTenantsView: React.FC = () => {
   };
 
 
-  // Metrics summary calculated from ALL tenants
-  const totalTenants = allTenants.length;
-  const activeTenants = allTenants.filter((t) => (t.subscription_status || t.status) === 'active').length;
-  const pendingTenants = allTenants.filter((t) => (t.subscription_status || t.status) === 'pending').length;
-  const expiredTenants = allTenants.filter((t) => (t.subscription_status || t.status) === 'expired').length;
-  const customDomainTenants = allTenants.filter((t) => Boolean(t.custom_domain)).length;
+  // Metrics summary from the paying travels only: the demo travel (demo.klikumroh.id) is a showcase.
+  const customers = allTenants.filter((t) => t.subscription_status !== 'demo');
+  const totalTenants = customers.length;
+  const activeTenants = customers.filter((t) => (t.subscription_status || t.status) === 'active').length;
+  const pendingTenants = customers.filter((t) => (t.subscription_status || t.status) === 'pending').length;
+  const expiredTenants = customers.filter((t) => (t.subscription_status || t.status) === 'expired').length;
+  const customDomainTenants = customers.filter((t) => Boolean(t.custom_domain)).length;
 
   // Filter & Search
   const filteredTenants = allTenants.filter((t) => {
@@ -403,7 +404,8 @@ export const AdminTenantsView: React.FC = () => {
                             <span>Kedaluwarsa</span>
                           </span>
                         )}
-                        {status !== 'active' && status !== 'pending' && status !== 'expired' && (
+                        {status === 'demo' && <span className="sa-pill sa-pill--neutral">Demo</span>}
+                        {status !== 'active' && status !== 'pending' && status !== 'expired' && status !== 'demo' && (
                           <span className="sa-pill sa-pill--neutral">{status}</span>
                         )}
                       </td>

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ExternalLink, LayoutGrid, LogOut, UserRound, X } from 'lucide-react';
-import { clearAuthSession } from '../services/api';
+import { logoutAdmin } from '../services/api';
 import { NAV_GROUPS, SETTINGS_ITEM, itemActive, type BadgeKey, type NavItem } from './nav';
 
 const TAB_IDS = ['home', 'prospects', 'agents'];
@@ -92,8 +92,9 @@ export const MobileNav: React.FC<{ badges: Record<BadgeKey, number>; siteUrl: st
                   type="button"
                   className="ap-sheet__item"
                   onClick={() => {
-                    clearAuthSession();
-                    window.location.href = '/';
+                    void logoutAdmin().then(() => {
+                      window.location.href = '/';
+                    });
                   }}
                 >
                   <LogOut className="ku-icon" aria-hidden="true" /> Keluar
