@@ -69,9 +69,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!tenantInfo) {
     return {
-      title: 'KlikUmroh.id — Lipatgandakan Jumlah Jamaah & Jadikan Agen Mesin Closing Produktif',
+      title: 'KlikUmroh.id — Website, Dashboard Travel & Portal Agen',
       description:
-        'Sistem akuisisi jamaah & aktivasi agen #1 untuk travel umroh: Script Chat WhatsApp Otomatis (TGJP), Peta 100+ Sumber Jamaah, Bank Caption Syiar, dan Website Whitelabel Resmi.',
+        'Bantu agen membawa calon jamaah ke travel Anda. Kelola website travel, link referral, bahan promosi, prospek, dan komisi agen melalui KlikUmroh.',
+      alternates: { canonical: 'https://klikumroh.id' },
       icons: {
         icon: [
           { url: '/icon-klikumroh.svg', type: 'image/svg+xml' },
@@ -213,7 +214,7 @@ export default async function RootLayout({
         {!tenantInfo?.is_demo && <TravelAgencyJsonLd tenantInfo={tenantInfo} host={host} />}
       </head>
       <body suppressHydrationWarning>
-        {tenantInfo?.is_demo && <DemoRibbon />}
+        {tenantInfo?.is_demo && <DemoRibbon host={host} />}
         {children}
         {metaPixelId && <MetaPixel pixelId={metaPixelId} />}
       </body>

@@ -23,6 +23,15 @@ interface TenantInfo {
   address?: string;
   phone?: string;
   email?: string;
+  is_demo?: boolean;
+}
+
+interface AgentAuthJson {
+  token?: string;
+  tenant_name?: string;
+  error?: string;
+  agent?: { name?: string; status?: string; tenant_name?: string };
+  data?: { token?: string; agent?: { name?: string; status?: string; tenant_name?: string } };
 }
 
 export default function AgenLoginPage() {
@@ -52,6 +61,49 @@ export default function AgenLoginPage() {
     }
   };
 
+  // Store the agent session returned by a login and open the portal.
+  const startSession = (json: AgentAuthJson): boolean => {
+    const token = json.token || json.data?.token;
+    if (!token) return false;
+    localStorage.setItem('agent_token', token);
+    const agentData = json.agent || json.data?.agent;
+    const resolvedTenantName = agentData?.tenant_name || json.tenant_name || tenantInfo?.name;
+    if (resolvedTenantName) {
+      localStorage.setItem('klikumroh_agent_tenant_name', resolvedTenantName);
+    }
+    if (agentData?.name) {
+      localStorage.setItem('klikumroh_agent_name', agentData.name);
+    }
+    router.push(agentData?.status === 'active' ? '/agen/dashboard' : '/agen/status');
+    return true;
+  };
+
+  // Demo travel only: sign in as the demo agent without a password (server refuses on a real travel).
+  const handleDemoLogin = async () => {
+    setErrorMessage(null);
+    try {
+      setIsSubmitting(true);
+      const res = await fetch('/api/agent/demo-login', { method: 'POST' });
+      const json: AgentAuthJson = await res.json().catch(() => ({}));
+      if (!res.ok || !startSession(json)) {
+        setErrorMessage(json.error || 'Akun demo belum bisa dibuka. Coba lagi sebentar.');
+      }
+    } catch {
+      setErrorMessage('Terjadi kesalahan koneksi. Silakan coba lagi.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // "Masuk portal agen" on the landing page links here with ?demo=1: sign in right away.
+  useEffect(() => {
+    if (tenantInfo?.is_demo && new URLSearchParams(window.location.search).get('demo') === '1') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- signs in once the travel is known to be the demo
+      handleDemoLogin();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantInfo?.is_demo]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -79,24 +131,7 @@ export default function AgenLoginPage() {
         return;
       }
 
-      const token = json.token || json.data?.token;
-      if (token) {
-        localStorage.setItem('agent_token', token);
-        const agentData = json.agent || json.data?.agent;
-        const resolvedTenantName = agentData?.tenant_name || json.tenant_name || tenantInfo?.name;
-        if (resolvedTenantName) {
-          localStorage.setItem('klikumroh_agent_tenant_name', resolvedTenantName);
-        }
-        if (agentData?.name) {
-          localStorage.setItem('klikumroh_agent_name', agentData.name);
-        }
-        const agentStatus = agentData?.status;
-        if (agentStatus === 'active') {
-          router.push('/agen/dashboard');
-        } else {
-          router.push('/agen/status');
-        }
-      } else {
+      if (!startSession(json)) {
         setErrorMessage('Gagal menerima sesi autentikasi agen');
       }
     } catch (err: unknown) {
@@ -139,6 +174,15 @@ export default function AgenLoginPage() {
               <AlertCircle size={18} aria-hidden="true" />
               <span>{errorMessage}</span>
             </p>
+          )}
+
+          {tenantInfo?.is_demo && (
+            <div className="tw-agen-login-demo">
+              <Button type="button" variant="primary" size="lg" disabled={isSubmitting} onClick={handleDemoLogin} className="tw-agen-login-submit">
+                {isSubmitting ? 'Memproses...' : 'Masuk sebagai agen demo'}
+              </Button>
+              <p className="tw-agen-login-subtitle">Akun demo, tanpa password.</p>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="tw-agen-login-form">
@@ -190,7 +234,7 @@ export default function AgenLoginPage() {
               {isSubmitting ? 'Memproses...' : 'Masuk'}
             </Button>
 
-            {helpWaUrl && (
+            {helpWaUrl && !tenantInfo?.is_demo && (
               <a href={helpWaUrl} target="_blank" rel="noopener noreferrer" className="tw-agen-login-link">
                 Lupa password? Hubungi admin
               </a>

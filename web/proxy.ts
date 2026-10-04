@@ -7,7 +7,7 @@ const getBackendBaseUrl = (): string => {
 
 // Hosts that serve KlikUmroh itself (same list as the marketing check in app/page.tsx).
 const PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id', 'klikumroh.local', 'localhost', '127.0.0.1']);
-const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing'];
+const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing', '/affiliator'];
 
 // Where platform pages live. Unset in development: the dev server would turn a redirect to its own
 // origin (localhost:3000) into a relative one and loop on the travel host, so dev answers 404 instead.
@@ -59,6 +59,42 @@ function withReferral(req: NextRequest, res: NextResponse): NextResponse {
   return res;
 }
 
+// Affiliator KlikUmroh link (klikumroh.id/?aff=CODE), platform hosts only: remember the affiliator for
+// 60 days (last link wins) so the checkout can send it with the signup. An affiliator coupon entered at
+// checkout still wins over this link (decided by the backend). Separate from the agent ?ref= above.
+const AFFILIATOR_COOKIE = 'ku_aff';
+const AFFILIATOR_CODE_PATTERN = /^[A-Za-z0-9]{4,20}$/;
+
+async function withAffiliator(req: NextRequest, res: NextResponse): Promise<NextResponse> {
+  const raw = req.nextUrl.searchParams.get('aff');
+  if (!raw || !AFFILIATOR_CODE_PATTERN.test(raw)) {
+    return res;
+  }
+  const code = raw.toUpperCase();
+  // Count a click once per browser and code, not on every reload of a page that still has ?aff=.
+  if (req.cookies.get(AFFILIATOR_COOKIE)?.value !== code) {
+    try {
+      const forwardedFor = req.headers.get('x-forwarded-for');
+      await fetch(`${getBackendBaseUrl()}/api/public/affiliator-clicks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(forwardedFor ? { 'X-Forwarded-For': forwardedFor } : {}) },
+        body: JSON.stringify({ code }),
+        cache: 'no-store',
+        signal: AbortSignal.timeout(1500),
+      });
+    } catch {
+      // Click logging is best-effort: never block or break the page.
+    }
+  }
+  res.cookies.set(AFFILIATOR_COOKIE, code, {
+    maxAge: 60 * 60 * 24 * 60,
+    path: '/',
+    httpOnly: false,
+    sameSite: 'lax',
+  });
+  return res;
+}
+
 /**
  * Next.js Proxy for travel host redirection (307, temporary).
  *
@@ -99,7 +135,10 @@ export async function proxy(req: NextRequest) {
 
   // Platform hosts never redirect. Default subdomains and custom domains ask the backend: a subdomain goes
   // to the travel's primary custom domain, an alias to its primary, a primary stays where it is.
-  if (PLATFORM_HOSTS.has(hostname) || (!isDefaultSubdomain && !hostname.includes('.'))) {
+  if (PLATFORM_HOSTS.has(hostname)) {
+    return withAffiliator(req, withReferral(req, withAttribution(req, NextResponse.next())));
+  }
+  if (!isDefaultSubdomain && !hostname.includes('.')) {
     return withReferral(req, withAttribution(req, NextResponse.next()));
   }
 

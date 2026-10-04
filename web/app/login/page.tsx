@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
-import { dashboardUrl, openDashboard, storeDashboardSession } from '@/lib/dashboardSession';
+import { clearDashboardSession, dashboardUrl, openDashboard, storeDashboardSession } from '@/lib/dashboardSession';
 import styles from './login.module.css';
 
 function LoginForm() {
@@ -29,6 +29,12 @@ function LoginForm() {
     dashboardUrl: string;
     isPending: boolean;
   } | null>(null);
+
+  // Opening the login page ends any session saved on this site. In local dev the dashboard runs on
+  // another origin, so its logout cannot clear this copy itself.
+  useEffect(() => {
+    clearDashboardSession();
+  }, []);
 
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -64,7 +70,7 @@ function LoginForm() {
       }
 
       // Active and pending travels both go to the dashboard. A pending travel lands on its
-      // billing page there (PendingBillingGuard) until the first payment is approved.
+      // billing page there (AppFrame redirects it) until the first payment is approved.
       storeDashboardSession(data);
       const targetDashboardUrl = dashboardUrl(data);
       setLoginSuccess({

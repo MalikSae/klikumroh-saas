@@ -612,8 +612,6 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
 
         </div>
 
-        <div className="tw-pkg-sticky-space" aria-hidden="true" />
-
         {/* 9. STICKY BOTTOM ACTION BAR (Price & Consultation Button) */}
         <div className="tw-pkg-sticky-bar">
           <div className="tw-pkg-sticky-price">

@@ -569,15 +569,13 @@
   margin: 0;
 }
 
-/* 7. Bottom action bar: price + the one primary action */
+/* 7. Bottom action bar: price + the one primary action. Sticky (not fixed) as the last item of the
+   page column, so it takes real space: no spacer to keep in sync with its height, which follows the
+   button text. margin-top: auto keeps it at the screen bottom when the content is short. */
 .tw-pkg-sticky-bar {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
-  max-width: 428px;
-  margin: 0 auto;
-  width: 100%;
+  margin-top: auto;
   z-index: 50;
   display: flex;
   align-items: center;
@@ -616,8 +614,9 @@
 .tw-pkg-sticky-consult-btn {
   flex: 0 0 auto;
   width: auto;
-  height: 46px;
-  padding: 0 16px;
+  /* Height comes from the text: line-height + vertical padding (45-47px at 14-15px). */
+  padding: 12px 16px;
+  line-height: 1.5;
   font-family: var(--tw-font-heading);
   font-size: 15px;
   font-weight: 600;
@@ -637,8 +636,21 @@
   background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900));
 }
 
-/* Room for the fixed action bar below the last content. */
-.tw-pkg-sticky-space { flex-shrink: 0; height: calc(67px + env(safe-area-inset-bottom)); }
+/* Price and button at full size need about 385px of content width (the widest bar, 428px, has 396px).
+   Below that the price overflowed under the button on narrow phones, so use smaller type and tighter
+   button spacing; the icon stays. Container width here is the bar's content box (minus its padding). */
+.tw-pkg-sticky-bar { container-type: inline-size; }
+
+@container (max-width: 389px) {
+  .tw-pkg-sticky-price__amount { font-size: 15px; }
+  .tw-pkg-sticky-consult-btn { padding: 12px 10px; gap: 6px; font-size: 14px; }
+}
+
+/* Smallest phones (320px wide). */
+@container (max-width: 299px) {
+  .tw-pkg-sticky-price__amount { font-size: 14px; }
+  .tw-pkg-sticky-consult-btn { padding: 12px 8px; }
+}
 
 /* Feedback after sharing falls back to copying the message (no share sheet in this browser). */
 .tw-pkg-share-toast {

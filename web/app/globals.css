@@ -91,6 +91,15 @@
   --tw-zinc-50: #FAFAFA;
 
   /* KlikUmroh Marketing Monochrome Tokens ($km-*) */
+  --km-checkout-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  --km-checkout-content-width: 1120px;
+  --km-checkout-sticky-offset: 96px;
+  --km-checkout-title-size: clamp(28px, 3vw, 36px);
+  --km-checkout-disabled-opacity: 0.5;
+  --km-checkout-spinner-duration: 900ms;
+  --km-checkout-radio-size: 16px;
+  --km-checkout-radio-dot-size: 8px;
+  --km-checkout-focus-ring: 0 0 0 3px var(--km-line);
   --km-bg: #FAFAFA;
   --km-paper: #FFFFFF;
   --km-ink: #09090B;
@@ -119,6 +128,104 @@
   --km-danger-border: #FEE2E2;
   --km-alert-text: #B84B3E;
   --km-suspended-card-shadow: rgba(5, 47, 44, 0.06);
+  /* Landing style (4 Oct 2026, after trybloom.ai): one green accent used sparingly, alternating light
+     surfaces, and "tactile" buttons (inner shadow: dark edge at the bottom, light edge at the top). */
+  --km-accent: #166534;
+  --km-accent-hover: #14532D;
+  --km-accent-edge-dark: #0F3D22;
+  --km-accent-edge-light: #1F8A47;
+  --km-surface-alt: #F6F6F5;
+  --km-popover: #FCFCFC;
+  --km-popover-edge-dark: #F4F4F4;
+  --km-popover-edge-light: #FFFFFF;
+  --km-tactile-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Preview landing v2 design values; source of truth is design-tokens.json > marketing.v2. */
+  --km-v2-gutter: 20px;
+  --km-v2-content-width: 1440px;
+  --km-v2-content-half-width: 720px;
+  --km-v2-desktop-gutter: max(64px, calc(50vw - var(--km-v2-content-half-width)));
+  --km-v2-copy-width: 720px;
+  --km-v2-plan-row-height: 176px;
+  --km-v2-nav-height: 64px;
+  --km-v2-touch-target: 48px;
+  --km-v2-icon-size: 20px;
+  --km-v2-layer-sticky: 5;
+  --km-v2-border-width: 1px;
+  --km-v2-type-hero: 40px;
+  --km-v2-type-hero-tablet: 48px;
+  --km-v2-type-hero-desktop: 64px;
+  --km-v2-type-section: 28px;
+  --km-v2-type-section-desktop: 40px;
+  --km-v2-type-subhead: 20px;
+  --km-v2-type-body: 16px;
+  --km-v2-type-small: 14px;
+  --km-v2-type-label: 13px;
+  --km-v2-type-eyebrow: 13px;
+  --km-v2-hero-measure: 13ch;
+  --km-v2-hero-measure-desktop: 12ch;
+  --km-v2-hero-tracking: -0.02em;
+  --km-v2-leading-tight: 1.08;
+  --km-v2-leading-normal: 1.5;
+  --km-v2-leading-relaxed: 1.65;
+  --km-v2-space-1: 4px;
+  --km-v2-space-2: 8px;
+  --km-v2-space-3: 12px;
+  --km-v2-space-4: 16px;
+  --km-v2-space-5: 20px;
+  --km-v2-space-6: 24px;
+  --km-v2-space-8: 32px;
+  --km-v2-space-10: 40px;
+  --km-v2-space-12: 48px;
+  --km-v2-space-16: 64px;
+  --km-v2-space-20: 80px;
+  --km-v2-radius-control: 8px;
+  --km-v2-radius-media: 12px;
+  --km-v2-radius-panel: 16px;
+  --km-v2-motion-fast: 180ms;
+  --km-v2-motion-easing: ease;
+  --km-v2-cta-shadow: inset 0 -2px 2px var(--km-accent-edge-dark), inset 0 2px 2px var(--km-accent-edge-light), var(--km-tactile-shadow);
+  /* Preview V3: design-tokens.json > marketing.v3. */
+  --km-v3-ecosystem-logo-height: 36px;
+  --km-v3-ecosystem-mobile-logo-height: 28px;
+  --km-v3-ecosystem-logo-opacity: 0.65;
+  --km-v3-ecosystem-logo-filter: grayscale(100%);
+  --km-v3-pattern-pitch: 14px;
+  --km-v3-journey-transition: 500ms;
+  --km-v3-journey-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  --km-v3-journey-preview-height: 280px;
+  --km-v3-journey-mobile-preview-height: 120px;
+  --km-v3-journey-number-width: 32px;
+  --km-v3-affiliator-figure-min-width: 160px;
+  --km-v3-pattern-square-size: 4px;
+  --km-v3-pattern-color: rgba(22, 101, 52, 0.16);
+  --km-v3-pattern-fps: 24;
+  --km-v3-pattern-cycle-duration: 4200;
+  --km-v3-pattern-minimum-opacity: 0.12;
+  --km-v3-pattern-mask: radial-gradient(ellipse 80% 60%, transparent 0%, transparent 55%, black 95%);
+  --km-v3-pattern-mobile-mask: linear-gradient(to bottom, black 0%, transparent 16%, transparent 84%, black 100%);
+  --km-v3-content-width: 1200px;
+  --km-v3-gutter: 24px;
+  --km-v3-desktop-gutter: 48px;
+  --km-v3-hero-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  --km-v3-feature-columns: repeat(2, minmax(0, 1fr));
+  --km-v3-agent-media-width: 560px;
+  --km-v3-media-height: 520px;
+  --km-v3-section-offset: 88px;
+  --km-v3-header-button-height: 36px;
+  --km-v3-mobile-header-button-height: 44px;
+  --km-v3-hero-copy-width: 860px;
+  --km-v3-hero-title-width: 820px;
+  --km-v3-hero-lead-width: 640px;
+  --km-v3-preview-width: 1120px;
+  --km-v3-preview-height: 560px;
+  --km-v3-type-hero: clamp(40px, 5.6vw, 80px);
+  --km-v3-type-section: clamp(32px, 3.6vw, 52px);
+  --km-v3-type-lead: 18px;
+  --km-v3-heading-leading: 1.1;
+  --km-v3-hero-padding: 72px;
+  --km-v3-section-padding: 104px;
+  --km-v3-mobile-section-padding: 48px;
+  --km-v3-column-gap: 88px;
 }
 
 * {
@@ -254,6 +361,13 @@ textarea.tw-field { height: auto; min-height: 96px; padding: 10px 12px; line-hei
 
 .tw-demo-ribbon svg {
   flex-shrink: 0;
+}
+
+/* One line: the visitor only needs to know this is a demo. */
+.tw-demo-ribbon > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tw-demo-ribbon__link {

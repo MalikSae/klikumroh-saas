@@ -22,11 +22,9 @@ import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSettings';
 import { toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
 import {
-  clearDashboardSession,
   dashboardUrl,
   openDashboard,
   storeDashboardSession,
-  storedDashboardSession,
 } from '@/lib/dashboardSession';
 import styles from './CheckoutView.module.css';
 
@@ -62,10 +60,10 @@ interface FormErrors {
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 const INCLUDED_FEATURES = [
-  'Jumlah agen tanpa batas',
-  'Website dengan brand travel',
-  'Manajemen prospek dan komisi',
-  'Tools marketing siap pakai',
+  'Website travel dan form minat',
+  'Dashboard prospek dan komisi',
+  'Portal agen dan materi promosi',
+  'Jumlah agen tidak dibatasi',
 ];
 
 // ─── Format Validations ───────────────────────────────────────────────────
@@ -230,7 +228,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         {/* Header */}
         <div className={styles.summaryHeader}>
           <div className={styles.summaryTitleGroup}>
-            <span className={styles.summaryEyebrow}>RINGKASAN PESANAN</span>
+            <span className={styles.summaryEyebrow}>Paket langganan Anda</span>
             <div className={styles.planTitleRow}>
               <h2 className={styles.selectedPlanTitle}>{selectedPlan.name}</h2>
               {selectedPlan.popular && (
@@ -439,28 +437,12 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   const searchParams = useSearchParams();
   const planIdParam = searchParams ? searchParams.get('plan_id') : null;
 
-  // Already signed in (valid session in this browser): signup makes no sense, open the dashboard.
-  // A pending travel lands on its billing page there. A stale/expired session is cleared instead.
+  // Checkout always shows the signup form, even with a session saved in this browser: a new travel
+  // can sign up with another email. A successful signup replaces the saved session.
   useEffect(() => {
     try {
       localStorage.removeItem('ku_pending_signup'); // leftover from the old public payment flow
     } catch {}
-    const session = storedDashboardSession();
-    if (!session) return;
-    let active = true;
-    fetch('/api/dashboard/subscription', { headers: { Authorization: `Bearer ${session.token}` } })
-      .then((res) => {
-        if (!active) return;
-        if (res.ok) {
-          openDashboard(dashboardUrl(session));
-        } else if (res.status === 401) {
-          clearDashboardSession();
-        }
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
   }, []);
 
   // Real plans rendered on the server; the browser only retries if the server could not reach the API.
@@ -570,7 +552,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     } catch {
       setSlugStatus('idle');
     }
-  }, []);
+  }, [setSlugStatus, setSlugReason]);
 
   const handleSlugChange = (val: string) => {
     const cleaned = val
@@ -725,6 +707,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         admin_email: adminEmail.trim().toLowerCase(),
         admin_password: adminPassword,
         coupon_code: coupon ? coupon.code : undefined,
+        // Affiliator link code remembered by proxy.ts (cookie ku_aff); an affiliator coupon wins over it.
+        affiliate_code: document.cookie.match(/(?:^|;\s*)ku_aff=([A-Za-z0-9]+)/)?.[1],
       };
 
       const res = await fetch('/api/public/tenant-signup', {
@@ -781,7 +765,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       {/* Checkout Navigation */}
       <header className={styles.navbar}>
         <div className={styles.navInner}>
-          <Link href="/marketing" className={styles.navBrand}>
+          <Link href="/" className={styles.navBrand}>
             <KlikUmrohBrand theme="light" iconSize={26} />
           </Link>
           <div className={styles.navSecure}>
@@ -793,11 +777,9 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
 
       {/* Checkout Main Content (gap: 56px, pad: 44px 120px 56px) */}
       <main className={styles.main}>
-        <div className={styles.mainInner}>
-          {/* ── Left: Checkout Form Column (w: 700px, gap: 22px) ── */}
-          <div className={styles.formColumn}>
+        <div className={styles.intro}>
             {/* Back to Pricing Link */}
-            <Link href="/marketing#harga" className={styles.backLink}>
+            <Link href="/#harga" className={styles.backLink}>
               <ArrowLeft size={16} className={styles.backArrow} />
               <span className={styles.backText}>Kembali ke pilihan paket</span>
             </Link>
@@ -810,6 +792,10 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
               </p>
             </div>
 
+        </div>
+        <div className={styles.mainInner}>
+          {/* ── Left: Checkout Form Column (w: 700px, gap: 22px) ── */}
+          <div className={styles.formColumn}>
             {submitError && (
               <div className={styles.alertError} role="alert">
                 <AlertCircle size={18} />
@@ -822,7 +808,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
               <h2 className={styles.formSectionHeading}>Informasi travel</h2>
 
               <form id="checkout-form" onSubmit={handleSubmit} noValidate>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className={styles.formFields}>
                   {/* Nama Travel */}
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel} htmlFor="travel-name">
