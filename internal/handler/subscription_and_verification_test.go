@@ -898,6 +898,39 @@ func TestCouponMaxUsesEnforcedAtApprove(t *testing.T) {
 	}
 }
 
+// Staff cannot switch off an affiliator coupon from the coupon endpoint (409): it is switched off by
+// deactivating the affiliator, which keeps approval able to tell a replaced code from a switched-off one.
+// Platform coupons are deactivated as before.
+func TestStaffCouponDeactivate_RefusesAffiliatorCoupon(t *testing.T) {
+	couponRepo, _, _, _, _, _, r := setupSubTestEnv()
+	affiliatorID := uint64(9)
+	affCoupon := &repository.Coupon{Code: "AFFKODE1", DiscountPercentage: 20, Status: "active", AffiliatorID: &affiliatorID}
+	platform := &repository.Coupon{Code: "PLATFORM1", DiscountPercentage: 10, Status: "active"}
+	_ = couponRepo.Create(context.Background(), affCoupon)
+	_ = couponRepo.Create(context.Background(), platform)
+
+	deactivate := func(id uint64) int {
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/staff/coupons/%d/deactivate", id), nil)
+		req.Header.Set("Authorization", "Bearer valid-staff-token")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	if code := deactivate(affCoupon.ID); code != http.StatusConflict {
+		t.Fatalf("affiliator coupon: expected 409, got %d", code)
+	}
+	if affCoupon.Status != "active" {
+		t.Fatalf("affiliator coupon must stay active, got %q", affCoupon.Status)
+	}
+	if code := deactivate(platform.ID); code != http.StatusOK {
+		t.Fatalf("platform coupon: expected 200, got %d", code)
+	}
+	if platform.Status != "inactive" {
+		t.Fatalf("platform coupon must be inactive, got %q", platform.Status)
+	}
+}
+
 // fakeAffiliatorRecorder stands in for the affiliator service at payment approval.
 type fakeAffiliatorRecorder struct{ active map[uint64]bool }
 

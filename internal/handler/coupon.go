@@ -117,6 +117,12 @@ func (h *CouponHandler) DeactivateStaff(w http.ResponseWriter, r *http.Request) 
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Kupon tidak ditemukan"})
 			return
 		}
+		if errors.Is(err, service.ErrCouponOwnedByAffiliator) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": "Kupon ini milik affiliator. Nonaktifkan affiliatornya di menu Affiliator untuk mematikan kuponnya.",
+			})
+			return
+		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menonaktifkan kupon"})
 		return
 	}

@@ -17,6 +17,9 @@ var (
 	ErrCouponPlanMismatch = errors.New("kupon ini tidak berlaku untuk paket yang dipilih")
 	ErrInvalidDiscount    = errors.New("persentase diskon harus antara 0 dan 100")
 	ErrEmptyCouponCode    = errors.New("kode kupon wajib diisi")
+	// ErrCouponOwnedByAffiliator: an affiliator coupon is switched off by deactivating its affiliator, so
+	// payment approval can tell "affiliator replaced its code" (honored) from "switched off" (refused).
+	ErrCouponOwnedByAffiliator = errors.New("kupon affiliator dinonaktifkan lewat menonaktifkan affiliatornya")
 )
 
 // CouponService provides business logic for managing and validating coupons.
@@ -71,6 +74,13 @@ func (s *couponService) Create(ctx context.Context, code string, discountPercent
 }
 
 func (s *couponService) Deactivate(ctx context.Context, id uint64) error {
+	coupon, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if coupon.AffiliatorID != nil {
+		return ErrCouponOwnedByAffiliator
+	}
 	return s.repo.Deactivate(ctx, id)
 }
 
