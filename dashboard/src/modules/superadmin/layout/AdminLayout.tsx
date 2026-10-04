@@ -21,7 +21,7 @@ import { NotificationDropdown } from '../shared/NotificationDropdown';
 import {
   getStoredStaffToken,
   getStoredStaffUser,
-  clearStaffAuthSession,
+  logoutStaff,
   setStaffAuthSession,
   fetchStaffMe,
   type StaffUser,
@@ -81,8 +81,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = () => {
-    clearStaffAuthSession();
+  const handleLogout = async () => {
+    await logoutStaff();
     navigate('/internal/login', { replace: true });
   };
 

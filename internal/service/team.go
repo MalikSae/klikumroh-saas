@@ -49,17 +49,21 @@ type TeamService interface {
 	ToggleStatus(ctx context.Context, tenantID uint64, currentAdminUserID uint64, targetUserID uint64, action string) (*TeamMemberResponse, error)
 	GetMyProfile(ctx context.Context, tenantID uint64, adminUserID uint64) (*MyProfileResponse, error)
 	UpdateMyProfile(ctx context.Context, tenantID uint64, adminUserID uint64, name, email *string) (*MyProfileResponse, error)
-	UpdateMyPassword(ctx context.Context, tenantID uint64, adminUserID uint64, currentPassword, newPassword string) error
+	// UpdateMyPassword changes the password and signs the admin out of every other session; currentToken
+	// (the session making the request) stays signed in.
+	UpdateMyPassword(ctx context.Context, tenantID uint64, adminUserID uint64, currentPassword, newPassword, currentToken string) error
 }
 
 type teamService struct {
 	adminUserRepo repository.AdminUserRepository
+	sessionRepo   repository.SessionRepository
 }
 
 // NewTeamService creates a new TeamService.
-func NewTeamService(adminUserRepo repository.AdminUserRepository) TeamService {
+func NewTeamService(adminUserRepo repository.AdminUserRepository, sessionRepo repository.SessionRepository) TeamService {
 	return &teamService{
 		adminUserRepo: adminUserRepo,
+		sessionRepo:   sessionRepo,
 	}
 }
 
@@ -164,6 +168,13 @@ func (s *teamService) ToggleStatus(ctx context.Context, tenantID uint64, current
 		return nil, err
 	}
 
+	// A deactivated admin must lose access now, not when their token expires.
+	if targetUser.Status == "inactive" {
+		if err := s.sessionRepo.DeleteByAdminUser(ctx, tenantID, targetUser.ID, ""); err != nil {
+			return nil, err
+		}
+	}
+
 	return &TeamMemberResponse{
 		ID:        targetUser.ID,
 		Name:      targetUser.Name,
@@ -235,7 +246,7 @@ func (s *teamService) UpdateMyProfile(ctx context.Context, tenantID uint64, admi
 	}, nil
 }
 
-func (s *teamService) UpdateMyPassword(ctx context.Context, tenantID uint64, adminUserID uint64, currentPassword, newPassword string) error {
+func (s *teamService) UpdateMyPassword(ctx context.Context, tenantID uint64, adminUserID uint64, currentPassword, newPassword, currentToken string) error {
 	if len(newPassword) < 8 {
 		return ErrPasswordTooShort
 	}
@@ -255,5 +266,10 @@ func (s *teamService) UpdateMyPassword(ctx context.Context, tenantID uint64, adm
 	}
 
 	user.PasswordHash = string(newHash)
-	return s.adminUserRepo.Update(ctx, tenantID, user)
+	if err := s.adminUserRepo.Update(ctx, tenantID, user); err != nil {
+		return err
+	}
+
+	// Changing the password evicts anyone else holding a session (e.g. a stolen token).
+	return s.sessionRepo.DeleteByAdminUser(ctx, tenantID, adminUserID, currentToken)
 }

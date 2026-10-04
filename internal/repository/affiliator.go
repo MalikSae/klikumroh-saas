@@ -132,6 +132,11 @@ type AffiliatorRepository interface {
 	RecordClick(ctx context.Context, affiliatorID uint64, ip string) error
 	CountClicks(ctx context.Context, affiliatorID uint64) (int, error)
 
+	// RecordLogin keeps the IP of a registration or login; HasLoginFromIP reports whether the affiliator
+	// used that IP within the last withinDays days (self-referral guard at travel signup).
+	RecordLogin(ctx context.Context, affiliatorID uint64, ip string) error
+	HasLoginFromIP(ctx context.Context, affiliatorID uint64, ip string, withinDays int) (bool, error)
+
 	AttributeTenant(ctx context.Context, tenantID, affiliatorID uint64, source string) error
 	TenantAffiliator(ctx context.Context, tenantID uint64) (*Affiliator, error)
 	ListTenants(ctx context.Context, affiliatorID uint64) ([]AffiliatorTenant, error)
@@ -413,6 +418,21 @@ func (r *mysqlAffiliatorRepository) SetCouponDiscount(ctx context.Context, disco
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE coupons SET discount_percentage = ? WHERE affiliator_id IS NOT NULL AND status = 'active'`, discount)
 	return err
+}
+
+func (r *mysqlAffiliatorRepository) RecordLogin(ctx context.Context, affiliatorID uint64, ip string) error {
+	_, err := r.db.ExecContext(ctx, `INSERT INTO affiliator_logins (affiliator_id, ip_address) VALUES (?, ?)`, affiliatorID, ip)
+	return err
+}
+
+func (r *mysqlAffiliatorRepository) HasLoginFromIP(ctx context.Context, affiliatorID uint64, ip string, withinDays int) (bool, error) {
+	// The window is computed by MySQL (NOW()), the same clock that filled logged_in_at.
+	var n int
+	err := r.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM affiliator_logins
+		WHERE affiliator_id = ? AND ip_address = ? AND logged_in_at >= NOW() - INTERVAL ? DAY`,
+		affiliatorID, ip, withinDays).Scan(&n)
+	return n > 0, err
 }
 
 func (r *mysqlAffiliatorRepository) RecordClick(ctx context.Context, affiliatorID uint64, ip string) error {

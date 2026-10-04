@@ -33,6 +33,9 @@ type CouponRedemption struct {
 	RedeemedAt time.Time `json:"redeemed_at"`
 }
 
+// ErrCouponLimitReached is returned by IncrementUsedCount when the coupon has no uses left.
+var ErrCouponLimitReached = errors.New("coupon usage limit reached")
+
 // CouponRepository provides access to coupon records.
 type CouponRepository interface {
 	List(ctx context.Context) ([]Coupon, error)
@@ -40,7 +43,11 @@ type CouponRepository interface {
 	Create(ctx context.Context, coupon *Coupon) error
 	FindByCode(ctx context.Context, code string) (*Coupon, error)
 	Deactivate(ctx context.Context, id uint64) error
+	// IncrementUsedCount consumes one use, atomically refusing (ErrCouponLimitReached) once max_uses is
+	// reached, so concurrent or stacked approvals can never push used_count past the limit.
 	IncrementUsedCount(ctx context.Context, couponID uint64) error
+	// ReleaseUsedCount gives back a use consumed by an approval that failed afterwards.
+	ReleaseUsedCount(ctx context.Context, couponID uint64) error
 	RecordRedemption(ctx context.Context, couponID, tenantID uint64) error
 }
 
@@ -272,7 +279,10 @@ func (r *mysqlCouponRepository) Deactivate(ctx context.Context, id uint64) error
 }
 
 func (r *mysqlCouponRepository) IncrementUsedCount(ctx context.Context, couponID uint64) error {
-	query := `UPDATE coupons SET used_count = used_count + 1, updated_at = NOW() WHERE id = ?`
+	query := `
+		UPDATE coupons SET used_count = used_count + 1, updated_at = NOW()
+		WHERE id = ? AND (max_uses IS NULL OR used_count < max_uses)
+	`
 	res, err := r.db.ExecContext(ctx, query, couponID)
 	if err != nil {
 		return err
@@ -282,9 +292,22 @@ func (r *mysqlCouponRepository) IncrementUsedCount(ctx context.Context, couponID
 		return err
 	}
 	if affected == 0 {
-		return ErrNotFound
+		var exists int
+		if err := r.db.QueryRowContext(ctx, `SELECT 1 FROM coupons WHERE id = ?`, couponID).Scan(&exists); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		return ErrCouponLimitReached
 	}
 	return nil
+}
+
+func (r *mysqlCouponRepository) ReleaseUsedCount(ctx context.Context, couponID uint64) error {
+	query := `UPDATE coupons SET used_count = used_count - 1, updated_at = NOW() WHERE id = ? AND used_count > 0`
+	_, err := r.db.ExecContext(ctx, query, couponID)
+	return err
 }
 
 func (r *mysqlCouponRepository) RecordRedemption(ctx context.Context, couponID, tenantID uint64) error {

@@ -31,10 +31,15 @@ type SessionRepository interface {
 	Delete(ctx context.Context, tenantID uint64, id uint64) error
 	DeleteByToken(ctx context.Context, token string) error
 
+	// DeleteByAdminUser signs an admin out everywhere (after deactivation or a password change/reset).
+	// A non-empty exceptToken keeps that one session, so changing your own password keeps you signed in.
+	DeleteByAdminUser(ctx context.Context, tenantID uint64, adminUserID uint64, exceptToken string) error
+
 	// FindByToken searches across all tenants by raw session token without requiring a tenant_id parameter.
 	// SPECIAL EXCEPTION: This function is strictly used by AuthMiddleware to authenticate incoming HTTP
 	// requests and extract tenant_id and admin_user_id from the session token before injecting them
-	// into the request context.
+	// into the request context. It only returns sessions whose principal is still active: the admin user
+	// for a normal session, the impersonating staff user for an impersonation session.
 	FindByToken(ctx context.Context, token string) (*Session, error)
 }
 
@@ -154,12 +159,26 @@ func (r *mysqlSessionRepository) DeleteByToken(ctx context.Context, token string
 	return nil
 }
 
+func (r *mysqlSessionRepository) DeleteByAdminUser(ctx context.Context, tenantID uint64, adminUserID uint64, exceptToken string) error {
+	query := `DELETE FROM sessions WHERE tenant_id = ? AND admin_user_id = ? AND token <> ?`
+	_, err := r.db.ExecContext(ctx, query, tenantID, adminUserID, exceptToken)
+	return err
+}
+
 func (r *mysqlSessionRepository) FindByToken(ctx context.Context, token string) (*Session, error) {
 	// SPECIAL EXCEPTION: Used by AuthMiddleware to authenticate request token across all tenants.
+	// An impersonation session is checked against the staff user (staff may open a travel whose admins are
+	// all inactive), a normal session against the admin user.
 	query := `
-		SELECT id, token, admin_user_id, tenant_id, expires_at, created_at, impersonated_by_staff_id, impersonation_reason
-		FROM sessions
-		WHERE token = ?
+		SELECT s.id, s.token, s.admin_user_id, s.tenant_id, s.expires_at, s.created_at, s.impersonated_by_staff_id, s.impersonation_reason
+		FROM sessions s
+		LEFT JOIN admin_users au ON au.id = s.admin_user_id AND au.tenant_id = s.tenant_id
+		LEFT JOIN staff_users su ON su.id = s.impersonated_by_staff_id
+		WHERE s.token = ?
+		  AND (
+		    (s.impersonated_by_staff_id IS NULL AND au.status = 'active')
+		    OR (s.impersonated_by_staff_id IS NOT NULL AND su.status = 'active')
+		  )
 	`
 	row := r.db.QueryRowContext(ctx, query, token)
 	return r.scanSession(row)

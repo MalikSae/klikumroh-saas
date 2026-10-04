@@ -140,7 +140,7 @@ func (r *inMemoryAdminUserRepo) FindByEmail(ctx context.Context, email string) (
 }
 
 func setupTeamTestRouter(adminRepo repository.AdminUserRepository) chi.Router {
-	teamSvc := service.NewTeamService(adminRepo)
+	teamSvc := service.NewTeamService(adminRepo, &mockSessionRepo{sessions: map[string]*repository.Session{}})
 	teamH := handler.NewTeamHandler(teamSvc)
 
 	r := chi.NewRouter()

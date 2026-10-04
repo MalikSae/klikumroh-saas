@@ -193,6 +193,21 @@ func (h *PackageHandler) List(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, packages)
 }
 
+// publicPackage is a package as visitors see it. The shadowing CommissionAmount (always nil, omitempty)
+// hides the agent commission, which is internal to the travel and its agents.
+type publicPackage struct {
+	repository.Package
+	CommissionAmount *float64 `json:"commission_amount,omitempty"`
+}
+
+func toPublicPackages(pkgs []repository.Package) []publicPackage {
+	out := make([]publicPackage, 0, len(pkgs))
+	for _, p := range pkgs {
+		out = append(out, publicPackage{Package: p})
+	}
+	return out
+}
+
 // ListPublic handles GET /api/public/packages (strictly published packages).
 func (h *PackageHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := middleware.GetTenantID(r.Context())
@@ -207,7 +222,7 @@ func (h *PackageHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, packages)
+	respondJSON(w, http.StatusOK, toPublicPackages(packages))
 }
 
 // GetPublic handles GET /api/public/packages/{id} (strictly published packages).
@@ -241,7 +256,7 @@ func (h *PackageHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, pkg)
+	respondJSON(w, http.StatusOK, publicPackage{Package: *pkg})
 }
 
 // Update handles PUT /api/dashboard/packages/{id}.

@@ -226,7 +226,7 @@ func (h *TeamHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.teamService.UpdateMyPassword(r.Context(), tenantID, adminUserID, payload.CurrentPassword, payload.NewPassword)
+	err := h.teamService.UpdateMyPassword(r.Context(), tenantID, adminUserID, payload.CurrentPassword, payload.NewPassword, bearerToken(r))
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCurrentPassword) {
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})

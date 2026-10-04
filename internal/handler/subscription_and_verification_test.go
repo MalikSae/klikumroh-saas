@@ -86,7 +86,17 @@ func (m *mockCouponRepo) IncrementUsedCount(ctx context.Context, id uint64) erro
 	if !ok {
 		return repository.ErrNotFound
 	}
+	if c.MaxUses != nil && c.UsedCount >= *c.MaxUses {
+		return repository.ErrCouponLimitReached
+	}
 	c.UsedCount++
+	return nil
+}
+
+func (m *mockCouponRepo) ReleaseUsedCount(ctx context.Context, id uint64) error {
+	if c, ok := m.coupons[id]; ok && c.UsedCount > 0 {
+		c.UsedCount--
+	}
 	return nil
 }
 
@@ -377,6 +387,10 @@ func (m *mockSessionRepoSub) Delete(ctx context.Context, tenantID uint64, id uin
 
 func (m *mockSessionRepoSub) DeleteByToken(ctx context.Context, token string) error {
 	delete(m.sessions, token)
+	return nil
+}
+
+func (m *mockSessionRepoSub) DeleteByAdminUser(ctx context.Context, tenantID uint64, adminUserID uint64, exceptToken string) error {
 	return nil
 }
 
@@ -820,6 +834,66 @@ func TestCouponAuditCountOnApprove(t *testing.T) {
 	}
 	if couponRepo.redemptions[0].CouponID != coupon.ID || couponRepo.redemptions[0].TenantID != 53 {
 		t.Errorf("redemption record mismatch: %+v", couponRepo.redemptions[0])
+	}
+}
+
+// A coupon with one use left can sit on several pending invoices (the use is only counted at approval).
+// Approval must let exactly one through: the next approval gets 409, the invoice stays pending, the coupon
+// is not over-counted, and once staff remove the coupon the invoice can be approved at full price.
+func TestCouponMaxUsesEnforcedAtApprove(t *testing.T) {
+	couponRepo, pvRepo, _, _, _, _, r := setupSubTestEnv()
+
+	maxUses := 1
+	_ = couponRepo.Create(context.Background(), &repository.Coupon{
+		Code: "SEKALI", DiscountPercentage: 100, MaxUses: &maxUses, Status: "active",
+	})
+	code := "SEKALI"
+	pvA := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: &code, Amount: 1500000, FinalAmount: 0, Status: "pending"}
+	pvB := &repository.PaymentVerification{TenantID: 78, PlanID: 1, CouponCode: &code, Amount: 1500000, FinalAmount: 0, Status: "pending"}
+	_ = pvRepo.Create(context.Background(), pvA)
+	_ = pvRepo.Create(context.Background(), pvB)
+
+	patch := func(path string, body string) *httptest.ResponseRecorder {
+		var req *http.Request
+		if body == "" {
+			req = httptest.NewRequest(http.MethodPatch, path, nil)
+		} else {
+			req = httptest.NewRequest(http.MethodPatch, path, strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+		}
+		req.Header.Set("Authorization", "Bearer valid-staff-token")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	if w := patch(fmt.Sprintf("/api/staff/payment-verifications/%d/approve", pvA.ID), ""); w.Code != http.StatusOK {
+		t.Fatalf("first approval: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if w := patch(fmt.Sprintf("/api/staff/payment-verifications/%d/approve", pvB.ID), ""); w.Code != http.StatusConflict {
+		t.Fatalf("second approval over the limit: expected 409, got %d: %s", w.Code, w.Body.String())
+	}
+
+	coupon, _ := couponRepo.FindByCode(context.Background(), "SEKALI")
+	if coupon.UsedCount != 1 {
+		t.Fatalf("used_count must stay at max_uses (1), got %d", coupon.UsedCount)
+	}
+	if got, _ := pvRepo.GetByID(context.Background(), pvB.ID); got.Status != "pending" {
+		t.Fatalf("refused invoice must stay pending, got %q", got.Status)
+	}
+	if tenant78 := pvB.TenantID; len(couponRepo.redemptions) != 1 || couponRepo.redemptions[0].TenantID == tenant78 {
+		t.Fatalf("only the first travel's redemption may be recorded, got %+v", couponRepo.redemptions)
+	}
+
+	// Staff remove the coupon (full price is recalculated), then the approval goes through.
+	if w := patch(fmt.Sprintf("/api/staff/payment-verifications/%d/coupon", pvB.ID), `{"coupon_code":null}`); w.Code != http.StatusOK {
+		t.Fatalf("remove coupon: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if w := patch(fmt.Sprintf("/api/staff/payment-verifications/%d/approve", pvB.ID), ""); w.Code != http.StatusOK {
+		t.Fatalf("approval without coupon: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if coupon.UsedCount != 1 {
+		t.Fatalf("used_count must still be 1, got %d", coupon.UsedCount)
 	}
 }
 

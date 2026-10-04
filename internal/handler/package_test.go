@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -244,9 +245,11 @@ func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {
 	ctx := context.Background()
 
 	// Seed package for Tenant A (tenant_id = 10)
+	commissionA := 1500000.0
 	pkgA := &repository.Package{
-		Name:   "Paket Umroh Tenant A",
-		Status: "published",
+		Name:             "Paket Umroh Tenant A",
+		Status:           "published",
+		CommissionAmount: &commissionA, // internal: must never appear on the public endpoints
 	}
 	_ = pkgRepo.Create(ctx, 10, pkgA)
 
@@ -378,6 +381,22 @@ func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {
 		_ = json.Unmarshal(rr.Body.Bytes(), &res)
 		if res.ID != pkgA.ID || res.Name != pkgA.Name {
 			t.Errorf("Unexpected package data: %+v", res)
+		}
+	})
+
+	// 6a-2. The agent commission is internal to the travel: never in the public list or detail.
+	t.Run("Public package list and detail never expose commission_amount", func(t *testing.T) {
+		for _, path := range []string{"/api/public/packages", fmt.Sprintf("/api/public/packages/%d", pkgA.ID)} {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Host = "travela.klikumroh.local"
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("%s: expected 200, got %d", path, rr.Code)
+			}
+			if strings.Contains(rr.Body.String(), "commission_amount") {
+				t.Errorf("%s leaks commission_amount: %s", path, rr.Body.String())
+			}
 		}
 	})
 

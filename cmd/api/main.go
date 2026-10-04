@@ -124,7 +124,7 @@ func main() {
 	)
 
 	domainService := service.NewDomainService(domainRepo, nil)
-	teamService := service.NewTeamService(adminUserRepo)
+	teamService := service.NewTeamService(adminUserRepo, sessionRepo)
 	dashboardOverviewService := service.NewDashboardOverviewService(dashboardOverviewRepo)
 	staffService := service.NewStaffService(
 		staffRepo,
@@ -278,6 +278,7 @@ func main() {
 		staffProtected.Use(appMiddleware.StaffAuthMiddleware(staffRepo, sessionRepo))
 
 		staffProtected.Get("/api/staff/me", staffHandler.Me)
+		staffProtected.Post("/api/staff/logout", staffHandler.Logout)
 		staffProtected.Get("/api/staff/files", handler.ServeStaffPrivateFile)
 		staffProtected.Get("/api/staff/overview", staffHandler.GetOverview)
 		staffProtected.Get("/api/staff/tenants", staffHandler.ListTenants)

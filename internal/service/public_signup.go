@@ -73,6 +73,8 @@ type TenantSignupRequest struct {
 	CouponCode    string `json:"coupon_code,omitempty"`
 	// AffiliateCode is the Affiliator KlikUmroh link code (cookie ku_aff), used when no affiliator coupon is applied.
 	AffiliateCode string `json:"affiliate_code,omitempty"`
+	// ClientIP is set by the handler (never from the body), for the affiliator self-referral guard.
+	ClientIP string `json:"-"`
 }
 
 // TenantSignupResult represents the output of a successful self-registration.
@@ -355,7 +357,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		if couponCodePtr != nil {
 			coupon = *couponCodePtr
 		}
-		s.affiliators.AttributeSignup(ctx, tenant.ID, coupon, req.AffiliateCode, adminEmail, wa)
+		s.affiliators.AttributeSignup(ctx, tenant.ID, coupon, req.AffiliateCode, adminEmail, wa, req.ClientIP)
 	}
 
 	return &TenantSignupResult{

@@ -69,6 +69,16 @@ func (h *StaffHandler) Login(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, res)
 }
 
+// Logout handles POST /api/staff/logout: deletes the staff session server-side, so a copied token stops
+// working instead of staying valid until it expires. Mounted behind StaffAuthMiddleware.
+func (h *StaffHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	if err := h.staffService.Logout(r.Context(), bearerToken(r)); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal logout"})
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"message": "logged out successfully"})
+}
+
 // Me handles GET /api/staff/me.
 func (h *StaffHandler) Me(w http.ResponseWriter, r *http.Request) {
 	staffUserID, ok := middleware.GetStaffUserID(r.Context())

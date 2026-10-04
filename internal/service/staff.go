@@ -420,8 +420,8 @@ func (s *staffService) GetTenantDetail(ctx context.Context, tenantID uint64, sta
 }
 
 func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID uint64, adminUserID uint64, newPassword string, staffUserID uint64) error {
-	if s.adminUserRepo == nil {
-		return errors.New("admin user repository not configured")
+	if s.adminUserRepo == nil || s.sessionRepo == nil {
+		return errors.New("admin user or session repository not configured")
 	}
 
 	trimmed := strings.TrimSpace(newPassword)
@@ -446,7 +446,12 @@ func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID ui
 	}
 
 	adminUser.PasswordHash = string(hashed)
-	return s.adminUserRepo.Update(ctx, tenantID, adminUser)
+	if err := s.adminUserRepo.Update(ctx, tenantID, adminUser); err != nil {
+		return err
+	}
+
+	// A reset is often incident response: whoever holds an old token must be signed out too.
+	return s.sessionRepo.DeleteByAdminUser(ctx, tenantID, adminUserID, "")
 }
 
 func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOverviewMetrics, error) {

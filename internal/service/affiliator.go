@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"math/big"
+	"net"
 	"net/mail"
 	"regexp"
 	"strconv"
@@ -71,6 +72,8 @@ type AffiliatorRegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	WhatsApp string `json:"whatsapp,omitempty"`
+	// ClientIP is set by the handler (never from the body), for the self-referral guard.
+	ClientIP string `json:"-"`
 }
 
 // AffiliatorBankRequest is the payout account.
@@ -117,7 +120,7 @@ type AffiliatorCommissionRecorder interface {
 
 // AffiliatorAttributor links a newly signed-up travel to the affiliator that brought it.
 type AffiliatorAttributor interface {
-	AttributeSignup(ctx context.Context, tenantID uint64, couponCode, linkCode, adminEmail, adminWhatsApp string)
+	AttributeSignup(ctx context.Context, tenantID uint64, couponCode, linkCode, adminEmail, adminWhatsApp, signupIP string)
 }
 
 // AffiliatorService is the business logic of the Affiliator KlikUmroh program.
@@ -126,7 +129,7 @@ type AffiliatorService interface {
 	AffiliatorAttributor
 
 	Register(ctx context.Context, req AffiliatorRegisterRequest) (*AffiliatorLoginResult, error)
-	Login(ctx context.Context, email, password string) (*AffiliatorLoginResult, error)
+	Login(ctx context.Context, email, password, clientIP string) (*AffiliatorLoginResult, error)
 	Logout(ctx context.Context, token string) error
 	ChangePassword(ctx context.Context, affiliatorID uint64, currentToken, currentPassword, newPassword string) error
 	Overview(ctx context.Context, affiliatorID uint64) (*AffiliatorOverview, error)
@@ -277,10 +280,16 @@ func (s *affiliatorService) Register(ctx context.Context, req AffiliatorRegister
 			return nil, err
 		}
 	}
-	return s.startSession(ctx, a)
+	return s.startSession(ctx, a, req.ClientIP)
 }
 
-func (s *affiliatorService) startSession(ctx context.Context, a *repository.Affiliator) (*AffiliatorLoginResult, error) {
+func (s *affiliatorService) startSession(ctx context.Context, a *repository.Affiliator, clientIP string) (*AffiliatorLoginResult, error) {
+	if guardableIP(clientIP) {
+		// Logged, never blocks the login: a missing row only weakens the self-referral guard.
+		if err := s.repo.RecordLogin(ctx, a.ID, clientIP); err != nil {
+			log.Printf("[Affiliator] %d: cannot record login IP: %v", a.ID, err)
+		}
+	}
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return nil, err
@@ -296,7 +305,7 @@ func (s *affiliatorService) startSession(ctx context.Context, a *repository.Affi
 	return &AffiliatorLoginResult{Token: session.Token, ExpiresAt: session.ExpiresAt, Affiliator: a}, nil
 }
 
-func (s *affiliatorService) Login(ctx context.Context, email, password string) (*AffiliatorLoginResult, error) {
+func (s *affiliatorService) Login(ctx context.Context, email, password, clientIP string) (*AffiliatorLoginResult, error) {
 	a, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -308,7 +317,7 @@ func (s *affiliatorService) Login(ctx context.Context, email, password string) (
 	if bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(password)) != nil || a.Status != "active" {
 		return nil, ErrAffiliatorInvalidCredentials
 	}
-	return s.startSession(ctx, a)
+	return s.startSession(ctx, a, clientIP)
 }
 
 func (s *affiliatorService) Logout(ctx context.Context, token string) error {
@@ -460,9 +469,23 @@ func (s *affiliatorService) RecordClick(ctx context.Context, linkCode, ip string
 	return s.repo.RecordClick(ctx, a.ID, ip)
 }
 
+// selfReferralIPWindowDays is how far back an affiliator's login IPs count against a travel signup.
+const selfReferralIPWindowDays = 30
+
+// guardableIP reports whether an IP can be used for the self-referral guard. Loopback and unspecified
+// addresses are what every request shows when the proxy does not forward the visitor IP (or in local
+// dev); matching on them would refuse every attribution, so they are ignored.
+func guardableIP(ip string) bool {
+	parsed := net.ParseIP(strings.TrimSpace(ip))
+	return parsed != nil && !parsed.IsLoopback() && !parsed.IsUnspecified()
+}
+
 // AttributeSignup: the coupon wins over the link (keputusan pendiri). An affiliator never gets credit
-// for a travel registered with its own email or WhatsApp. Failures are logged, never block the signup.
-func (s *affiliatorService) AttributeSignup(ctx context.Context, tenantID uint64, couponCode, linkCode, adminEmail, adminWhatsApp string) {
+// for a travel registered with its own email or WhatsApp, or signed up from an IP the affiliator itself
+// registered or logged in from in the last 30 days (keputusan pendiri 4 Okt 2026: block, accepting that a
+// shared network can refuse a genuine referral). The coupon discount still applies; only the attribution,
+// and so the commission, is refused. Failures are logged, never block the signup.
+func (s *affiliatorService) AttributeSignup(ctx context.Context, tenantID uint64, couponCode, linkCode, adminEmail, adminWhatsApp, signupIP string) {
 	var a *repository.Affiliator
 	source := ""
 	if code := strings.TrimSpace(couponCode); code != "" {
@@ -486,6 +509,18 @@ func (s *affiliatorService) AttributeSignup(ctx context.Context, tenantID uint64
 	if a.WhatsApp != nil && strings.TrimSpace(adminWhatsApp) != "" &&
 		util.NormalizePhoneToWhatsApp(adminWhatsApp) == *a.WhatsApp {
 		return
+	}
+	if guardableIP(signupIP) {
+		same, err := s.repo.HasLoginFromIP(ctx, a.ID, strings.TrimSpace(signupIP), selfReferralIPWindowDays)
+		if err != nil {
+			// Fail closed: without the check the travel could be the affiliator's own.
+			log.Printf("[Affiliator] tenant %d: cannot check self-referral IP for affiliator %d, not attributed: %v", tenantID, a.ID, err)
+			return
+		}
+		if same {
+			log.Printf("[Affiliator] tenant %d: signup IP matches a login of affiliator %d, not attributed (self-referral guard)", tenantID, a.ID)
+			return
+		}
 	}
 	if err := s.repo.AttributeTenant(ctx, tenantID, a.ID, source); err != nil {
 		log.Printf("[Affiliator] tenant %d: cannot attribute to affiliator %d: %v", tenantID, a.ID, err)

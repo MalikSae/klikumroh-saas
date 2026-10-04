@@ -181,12 +181,50 @@ func setupCrossAuthRouter(
 	r.Group(func(staffProtected chi.Router) {
 		staffProtected.Use(middleware.StaffAuthMiddleware(staffRepo, sessionRepo))
 		staffProtected.Get("/api/staff/me", staffHandler.Me)
+		staffProtected.Post("/api/staff/logout", staffHandler.Logout)
 		staffProtected.Get("/api/staff/tenants", staffHandler.ListTenants)
 		staffProtected.Get("/api/staff/pricing-plans", pricingPlanHandler.List)
 		staffProtected.Delete("/api/staff/pricing-plans/{id}", pricingPlanHandler.Delete)
 	})
 
 	return r
+}
+
+// Staff logout deletes the session on the server: the same token is rejected afterwards, and a travel
+// admin token cannot be used to log a staff session out.
+func TestStaffLogout_RevokesTokenServerSide(t *testing.T) {
+	sessions := &mockSessionRepo{sessions: make(map[string]*repository.Session)}
+	staffRepo := newMockStaffRepo()
+	staffRepo.staffUsers["staff@klikumroh.id"] = &repository.StaffUser{ID: 1, Name: "Staff", Email: "staff@klikumroh.id", Status: "active"}
+	staffToken := "staff-logout-token"
+	staffRepo.sessions[staffToken] = &repository.StaffSession{ID: 1, StaffUserID: 1, Token: staffToken, ExpiresAt: time.Now().Add(time.Hour)}
+	adminToken := "admin-token-at-staff-logout"
+	sessions.sessions[adminToken] = &repository.Session{ID: 2, Token: adminToken, AdminUserID: 1, TenantID: 53, ExpiresAt: time.Now().Add(time.Hour)}
+
+	r := setupCrossAuthRouter(sessions, staffRepo, newMockPricingPlanRepo())
+	do := func(method, path, token string) int {
+		req := httptest.NewRequest(method, path, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w.Code
+	}
+
+	if code := do(http.MethodPost, "/api/staff/logout", adminToken); code == http.StatusOK {
+		t.Fatalf("travel admin token must not reach staff logout, got %d", code)
+	}
+	if code := do(http.MethodGet, "/api/staff/me", staffToken); code != http.StatusOK {
+		t.Fatalf("staff token should work before logout, got %d", code)
+	}
+	if code := do(http.MethodPost, "/api/staff/logout", staffToken); code != http.StatusOK {
+		t.Fatalf("staff logout: expected 200, got %d", code)
+	}
+	if _, ok := staffRepo.sessions[staffToken]; ok {
+		t.Fatal("staff session still stored after logout")
+	}
+	if code := do(http.MethodGet, "/api/staff/me", staffToken); code != http.StatusUnauthorized {
+		t.Fatalf("staff token after logout: expected 401, got %d", code)
+	}
 }
 
 func TestCrossContextIsolation(t *testing.T) {

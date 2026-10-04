@@ -75,6 +75,23 @@ export const clearStaffAuthSession = () => {
   localStorage.removeItem(STAFF_USER_KEY);
 };
 
+// Ends the session on the server first, so the token is useless even if it was copied, then clears it
+// locally. A network error or an already-expired token still signs the user out of this browser.
+export const logoutStaff = async (): Promise<void> => {
+  const token = getStoredStaffToken();
+  if (token) {
+    try {
+      await fetch(`${API_BASE}/api/staff/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // Ignore: the local session is cleared below either way.
+    }
+  }
+  clearStaffAuthSession();
+};
+
 export const getStaffAuthHeader = (): Record<string, string> => {
   const token = getStoredStaffToken();
   if (token) {

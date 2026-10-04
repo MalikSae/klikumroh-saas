@@ -417,10 +417,34 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 		return err
 	}
 
+	// Consume the coupon before anything else changes. The use is only counted at approval, so several
+	// pending invoices can carry a coupon that has one use left: the conditional increment lets exactly
+	// that many through and stops the rest here, and staff can then remove the coupon or reject.
+	var consumedCouponID uint64
+	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" {
+		if coupon, err := s.couponRepo.FindByCode(ctx, *pv.CouponCode); err == nil && coupon != nil {
+			if err := s.couponRepo.IncrementUsedCount(ctx, coupon.ID); err != nil {
+				s.releaseApprovalClaim(ctx, pv.ID)
+				if errors.Is(err, repository.ErrCouponLimitReached) {
+					return ErrCouponExhausted
+				}
+				return err
+			}
+			consumedCouponID = coupon.ID
+		}
+	}
+	// abort undoes the claim (and the coupon use) when a later step fails, so the invoice can be retried.
+	abort := func() {
+		s.releaseApprovalClaim(ctx, pv.ID)
+		if consumedCouponID != 0 {
+			_ = s.couponRepo.ReleaseUsedCount(ctx, consumedCouponID)
+		}
+	}
+
 	// Read the tenant after the claim so the expiry is based on the latest value.
 	tenant, err := s.tenantRepo.GetByID(ctx, pv.TenantID)
 	if err != nil {
-		s.releaseApprovalClaim(ctx, pv.ID)
+		abort()
 		return err
 	}
 
@@ -435,7 +459,7 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 
 	// Update tenant subscription and set status to active
 	if err := s.tenantRepo.UpdateSubscription(ctx, pv.TenantID, pv.PlanID, newExpiry, "active"); err != nil {
-		s.releaseApprovalClaim(ctx, pv.ID)
+		abort()
 		return err
 	}
 
@@ -452,12 +476,9 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 		}
 	}
 
-	// Record coupon redemption if coupon was applied
-	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" {
-		if coupon, err := s.couponRepo.FindByCode(ctx, *pv.CouponCode); err == nil && coupon != nil {
-			_ = s.couponRepo.IncrementUsedCount(ctx, coupon.ID)
-			_ = s.couponRepo.RecordRedemption(ctx, coupon.ID, pv.TenantID)
-		}
+	// Audit trail of the coupon use counted above.
+	if consumedCouponID != 0 {
+		_ = s.couponRepo.RecordRedemption(ctx, consumedCouponID, pv.TenantID)
 	}
 
 	// Commission for the affiliator that brought this travel (logged on failure, never blocks the approval).

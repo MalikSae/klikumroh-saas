@@ -143,6 +143,7 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Format request tidak valid"})
 		return
 	}
+	req.ClientIP = middleware.ClientIP(r)
 
 	res, err := h.publicSignupService.TenantSignup(r.Context(), req)
 	if err != nil {

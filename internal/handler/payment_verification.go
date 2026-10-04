@@ -80,6 +80,12 @@ func (h *PaymentVerificationHandler) Approve(w http.ResponseWriter, r *http.Requ
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, service.ErrCouponExhausted) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": "Kuota kupon pada invoice ini sudah habis. Hapus atau ganti kupon (harga akan dihitung ulang), atau tolak pembayaran.",
+			})
+			return
+		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menyetujui verifikasi pembayaran"})
 		return
 	}

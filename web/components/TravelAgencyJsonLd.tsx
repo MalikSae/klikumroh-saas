@@ -89,10 +89,20 @@ export const TravelAgencyJsonLd: React.FC<TravelAgencyJsonLdProps> = ({ tenantIn
     jsonLd.sameAs = socialLinks;
   }
 
+  // The fields above are typed by the travel, and JSON.stringify leaves "</script>" intact, which would end
+  // this tag and run whatever follows. Escaping <, > and & (plus the JS line separators) as \uXXXX keeps the
+  // JSON identical for parsers while making a breakout impossible.
+  const safeJson = JSON.stringify(jsonLd)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .split(String.fromCharCode(0x2028)).join('\\u2028')
+    .split(String.fromCharCode(0x2029)).join('\\u2029');
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJson }}
     />
   );
 };

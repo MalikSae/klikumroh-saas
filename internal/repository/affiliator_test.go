@@ -87,12 +87,12 @@ func TestAffiliator_Program(t *testing.T) {
 	tenantNone := createDummyTenant(t, ctx, tenantRepo, "aff-none")
 
 	t.Run("Attribution: link, coupon wins over link, no self-referral, set once", func(t *testing.T) {
-		svc.AttributeSignup(ctx, tenantLink.ID, "", affA.Affiliator.LinkCode, "travel-link@klikumroh.test", "")
-		svc.AttributeSignup(ctx, tenantCoupon.ID, couponB.Code, affA.Affiliator.LinkCode, "travel-coupon@klikumroh.test", "")
-		svc.AttributeSignup(ctx, tenantSelf.ID, "", affSelf.Affiliator.LinkCode, "someone@klikumroh.test", *affSelf.Affiliator.WhatsApp)
-		svc.AttributeSignup(ctx, tenantNone.ID, "", "", "nobody@klikumroh.test", "")
+		svc.AttributeSignup(ctx, tenantLink.ID, "", affA.Affiliator.LinkCode, "travel-link@klikumroh.test", "", "")
+		svc.AttributeSignup(ctx, tenantCoupon.ID, couponB.Code, affA.Affiliator.LinkCode, "travel-coupon@klikumroh.test", "", "")
+		svc.AttributeSignup(ctx, tenantSelf.ID, "", affSelf.Affiliator.LinkCode, "someone@klikumroh.test", *affSelf.Affiliator.WhatsApp, "")
+		svc.AttributeSignup(ctx, tenantNone.ID, "", "", "nobody@klikumroh.test", "", "")
 		// A second attribution never moves a travel to another affiliator.
-		svc.AttributeSignup(ctx, tenantLink.ID, couponB.Code, "", "travel-link@klikumroh.test", "")
+		svc.AttributeSignup(ctx, tenantLink.ID, couponB.Code, "", "travel-link@klikumroh.test", "", "")
 
 		check := func(tenantID uint64, wantAffiliator uint64) {
 			t.Helper()
@@ -400,7 +400,7 @@ func TestAffiliator_ApprovalHookAndRenewalCoupon(t *testing.T) {
 	}
 
 	tenant := createDummyTenant(t, ctx, tenantRepo, "aff-hook")
-	affSvc.AttributeSignup(ctx, tenant.ID, coupon.Code, "", "travel-hook@klikumroh.test", "")
+	affSvc.AttributeSignup(ctx, tenant.ID, coupon.Code, "", "travel-hook@klikumroh.test", "", "")
 
 	pv := &repository.PaymentVerification{TenantID: tenant.ID, PlanID: plan.ID, Amount: plan.Price,
 		FinalAmount: 1200000 + 250, UniqueCode: 250, Status: "pending", CouponCode: &coupon.Code}
@@ -495,10 +495,10 @@ func TestAffiliator_StaffResetPassword(t *testing.T) {
 	if _, _, err := affRepo.FindSessionByToken(ctx, res.Token); !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("expected the old session to end after reset, got %v", err)
 	}
-	if _, err := svc.Login(ctx, res.Affiliator.Email, "sandi-lama-123"); !errors.Is(err, service.ErrAffiliatorInvalidCredentials) {
+	if _, err := svc.Login(ctx, res.Affiliator.Email, "sandi-lama-123", ""); !errors.Is(err, service.ErrAffiliatorInvalidCredentials) {
 		t.Fatalf("expected the old password to stop working, got %v", err)
 	}
-	if _, err := svc.Login(ctx, res.Affiliator.Email, "sandi-baru-456"); err != nil {
+	if _, err := svc.Login(ctx, res.Affiliator.Email, "sandi-baru-456", ""); err != nil {
 		t.Fatalf("expected the new password to work, got %v", err)
 	}
 	if err := svc.ResetPassword(ctx, 0, "sandi-baru-456", 0); !errors.Is(err, repository.ErrNotFound) {
@@ -523,7 +523,7 @@ func TestAffiliator_ChangeOwnPassword(t *testing.T) {
 		t.Fatalf("register: %v", err)
 	}
 	t.Cleanup(func() { _, _ = db.Exec("DELETE FROM affiliators WHERE id = ?", here.Affiliator.ID) })
-	other, err := svc.Login(ctx, email, "sandi-lama-123")
+	other, err := svc.Login(ctx, email, "sandi-lama-123", "")
 	if err != nil {
 		t.Fatalf("second login: %v", err)
 	}
@@ -557,10 +557,10 @@ func TestAffiliator_ChangeOwnPassword(t *testing.T) {
 	if _, _, err := affRepo.FindSessionByToken(ctx, other.Token); !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("expected other sessions to end, got %v", err)
 	}
-	if _, err := svc.Login(ctx, email, "sandi-lama-123"); !errors.Is(err, service.ErrAffiliatorInvalidCredentials) {
+	if _, err := svc.Login(ctx, email, "sandi-lama-123", ""); !errors.Is(err, service.ErrAffiliatorInvalidCredentials) {
 		t.Fatalf("expected the old password to stop working, got %v", err)
 	}
-	if _, err := svc.Login(ctx, email, "sandi-baru-456"); err != nil {
+	if _, err := svc.Login(ctx, email, "sandi-baru-456", ""); err != nil {
 		t.Fatalf("expected the new password to work, got %v", err)
 	}
 }

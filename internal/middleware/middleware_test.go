@@ -38,6 +38,10 @@ func (m *mockSessionRepo) DeleteByToken(ctx context.Context, token string) error
 	return nil
 }
 
+func (m *mockSessionRepo) DeleteByAdminUser(ctx context.Context, tenantID uint64, adminUserID uint64, exceptToken string) error {
+	return nil
+}
+
 func (m *mockSessionRepo) FindByToken(ctx context.Context, token string) (*repository.Session, error) {
 	s, ok := m.sessions[token]
 	if !ok {
