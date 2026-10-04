@@ -3,6 +3,8 @@
 
 export interface LoginResponse {
   token: string;
+  // One-time code bound to this browser (HttpOnly cookie); the dashboard trades it for the session.
+  handoff_code?: string;
   tenant_status?: string;
   user?: { tenant_name?: string } & Record<string, unknown>;
 }
@@ -51,16 +53,16 @@ export function storedDashboardSession(): LoginResponse | null {
 }
 
 // `path` is a dashboard route such as '/' or '/settings/subscription/payment/12'. A pending travel
-// always ends up on its billing page (the dashboard's PendingBillingGuard), so callers only pass a
+// always ends up on its billing page (the dashboard's AppFrame redirects it), so callers only pass a
 // path when they already know the invoice.
 export function dashboardUrl(data: LoginResponse, path = '/'): string {
-  if (isLocalHost()) {
-    // In local dev the dashboard runs on another origin (localhost:5175), so localStorage is not
-    // shared. Pass the session in the URL fragment; the dashboard stores it and cleans the URL.
-    const payload = encodeURIComponent(JSON.stringify({ token: data.token, user: data.user, redirect: path }));
-    return `http://localhost:5175/#auth=${payload}`;
-  }
-  return path;
+  // The dashboard runs on its own origin (app.klikumroh.id; localhost:5175 in local dev), so
+  // localStorage is not shared. The URL carries only the one-time handoff code, never the token: the
+  // dashboard redeems it, and only this browser (it holds the cookie set by the login) can.
+  const origin = isLocalHost() ? 'http://localhost:5175' : 'https://app.klikumroh.id';
+  if (!data.handoff_code) return `${origin}/`;
+  const payload = encodeURIComponent(JSON.stringify({ code: data.handoff_code, redirect: path }));
+  return `${origin}/#handoff=${payload}`;
 }
 
 export function openDashboard(url: string): void {
