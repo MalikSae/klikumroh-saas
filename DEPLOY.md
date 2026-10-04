@@ -70,6 +70,8 @@ https:// {
 }
 ```
 
+Blok global ini juga harus memuat `http_port`, `https_port`, dan `servers :8443 { listener_wrappers { proxy_protocol ... } }` dari Bagian 4.2a. Tanpa itu backend melihat semua pengunjung sebagai `127.0.0.1`.
+
 ### Parameter Kunci:
 - **`ask http://127.0.0.1:8080/internal/domain-ask`**: Caddy akan otomatis memanggil URL ini sebelum meminta sertifikat baru. Backend Go akan merespons `200 OK` **hanya jika** hostname terdaftar dengan `type='custom'` dan `status='active'`. Jika tidak (atau berstatus `pending`/`failed`), backend merespons `404`, dan Caddy langsung menolak penerbitan TLS. Ini mencegah server disalahgunakan untuk menerbitkan sertifikat domain acak.
 - **`burst 5` & `interval 2m`**: Membatasi penerbitan maksimal 5 sertifikat baru per 2 menit untuk mematuhi rate limit Let's Encrypt.
@@ -218,6 +220,81 @@ SNI hanya ada di HTTPS; `stream` tidak bisa membedakan hostname di port 80. Port
 - Pengunjung yang mengetik `http://namatravel.com` hanya sampai ke website travel jika Nginx punya `server` **default** di port 80 yang meneruskan host yang tidak dikenal ke port HTTP internal Caddy (misal Caddy `http_port 8081`, lalu `proxy_pass http://127.0.0.1:8081;` dengan `proxy_set_header Host $host;`). Jangan arahkan ke `8080`: itu port backend Go yang tidak boleh terbuka ke publik (Bagian 3). Caddy lalu mengalihkan ke HTTPS.
 - Penerbitan sertifikat: Caddy mencoba challenge **HTTP-01** (butuh port 80 sampai ke Caddy) dan **TLS-ALPN-01** (lewat port 443, jalan selama SNI mengarah ke Caddy). Jika port 80 tidak diteruskan, pastikan TLS-ALPN-01 aktif (bawaan Caddy) dan uji penerbitan satu domain sebelum membuka fitur ke travel.
 - Server default port 80 yang sudah ada di aaPanel (jika ada) harus dicek agar tidak menelan domain travel.
+
+### 4.2a IP pengunjung asli sampai ke backend (PROXY protocol)
+
+**Masalah.** Nginx `stream` meneruskan koneksi TLS apa adanya (Layer 4), jadi Caddy melihat semua pengunjung datang dari `127.0.0.1`. Caddy lalu menulis `X-Forwarded-For: 127.0.0.1` untuk semua request, Next.js meneruskannya apa adanya, dan backend Go (`middleware.ClientIP`, entri pertama `X-Forwarded-For`) menganggap semua orang satu IP. Akibatnya:
+- semua rate limiter per IP (login travel/agen/affiliator/staf, form prospek, pendaftaran travel, klik link affiliator) berbagi **satu** jatah untuk seluruh pengunjung, sehingga satu orang yang salah login 5 kali bisa memblokir login semua orang;
+- penjaga self-referral affiliator (IP pendaftaran travel vs IP login affiliator) diam-diam tidak aktif, karena IP loopback sengaja diabaikan;
+- IP di Meta Conversions API dan `affiliator_clicks` tidak berguna.
+
+**Solusi.** Nginx mengirim IP asli ke Caddy lewat **PROXY protocol**, dan Caddy membacanya. Caddy lalu mengisi `X-Forwarded-For` dengan IP asli, dan rantai selanjutnya (Next.js, Go) sudah benar tanpa perubahan kode.
+
+`proxy_protocol on;` di Nginx berlaku untuk semua upstream dalam satu blok `server`, padahal situs aaPanel di port `4433` tidak mengerti PROXY protocol. Karena itu `map` mengarah ke dua listener stream internal: satu meneruskan PROXY header ke Caddy, satu membuangnya untuk situs aaPanel (yang tidak perlu diubah).
+
+Cek dulu modul realip stream ada: `nginx -V 2>&1 | grep -o with-stream_realip_module` harus menampilkan `with-stream_realip_module`. Jika tidak ada, Nginx aaPanel perlu dikompilasi ulang dengan modul itu sebelum langkah ini.
+
+```nginx
+# Ganti blok upstream/server dari contoh 4.1 dengan ini (map tetap sama).
+upstream caddy_https { server 127.0.0.1:8442; }   # listener internal ke Caddy
+upstream nginx_https { server 127.0.0.1:4432; }   # listener internal ke situs aaPanel
+
+# Pintu publik: baca SNI, tempelkan PROXY header berisi IP pengunjung.
+server {
+    listen 443;
+    listen [::]:443;
+    ssl_preread on;
+    proxy_protocol on;
+    proxy_pass $klikumroh_upstream;
+}
+
+# Ke Caddy: terima PROXY header dari pintu publik dan teruskan dengan IP asli.
+server {
+    listen 127.0.0.1:8442 proxy_protocol;
+    set_real_ip_from 127.0.0.1;      # $remote_addr = IP pengunjung dari PROXY header
+    proxy_protocol on;
+    proxy_pass 127.0.0.1:8443;
+}
+
+# Ke situs aaPanel: buang PROXY header, situs lain tidak berubah.
+server {
+    listen 127.0.0.1:4432 proxy_protocol;
+    proxy_pass 127.0.0.1:4433;
+}
+```
+
+Di `Caddyfile`, opsi global (gabungkan dengan blok global di Bagian 2):
+
+```caddy
+{
+    http_port  8081
+    https_port 8443
+
+    servers :8443 {
+        listener_wrappers {
+            # Hanya Nginx lokal yang boleh mengirim PROXY header; koneksi lain ditolak memalsukan IP.
+            proxy_protocol {
+                timeout 5s
+                allow 127.0.0.1/32
+            }
+            tls
+        }
+    }
+}
+```
+
+Catatan:
+- `proxy_protocol` listener wrapper butuh Caddy v2.7 atau lebih baru (`caddy version`).
+- **Jangan** pasang `trusted_proxies` di Caddy untuk listener publik. Tanpa itu Caddy mengabaikan `X-Forwarded-For` kiriman pengunjung dan menulis ulang dengan IP asli, sehingga IP tidak bisa dipalsukan. Backend Go mempercayai entri pertama header ini justru karena Caddy menulisnya ulang.
+- Port 80 (Bagian 4.2) hanya mengalihkan ke HTTPS dan menjawab challenge sertifikat, jadi tidak perlu PROXY protocol.
+- Caddy `8443` dan listener `8442`/`4432` harus hanya didengar di `127.0.0.1`.
+
+**Cara uji** (wajib, sebelum membuka program affiliator ke publik):
+1. Dari HP dengan data seluler (bukan WiFi server), buka `https://klikumroh.id/?aff=KODE_AFFILIATOR_UJI`.
+2. Di server: `SELECT ip_address, clicked_at FROM affiliator_clicks ORDER BY id DESC LIMIT 1;` harus menampilkan IP publik HP (cek di whatismyip dari HP yang sama), **bukan** `127.0.0.1`.
+3. Login portal affiliator uji dari HP itu, lalu `SELECT ip_address FROM affiliator_logins ORDER BY id DESC LIMIT 1;` harus IP yang sama.
+4. Pastikan situs aaPanel lain masih terbuka normal lewat HTTPS.
+5. Hapus data uji (klik, login, affiliator uji) setelah selesai.
 
 ### 4.3 Cara uji setelah konfigurasi
 
