@@ -127,6 +127,39 @@ func TestAudit2Fixes(t *testing.T) {
 		}
 	})
 
+	t.Run("Vuln 1: save and revocation are one transaction (all or nothing)", func(t *testing.T) {
+		taken, target := newStaff("taken"), newStaff("target4")
+		tok := staffToken(target)
+		before, _ := staffRepo.FindByID(ctx, target.ID)
+
+		// The save fails inside the transaction (unique email), so nothing may be revoked either.
+		u := *before
+		u.Email = taken.Email
+		u.PasswordHash = "[REDACTED-new-hash]"
+		if err := staffRepo.UpdateAndRevokeSessions(ctx, &u, ""); err == nil {
+			t.Fatal("expected the duplicate email to fail the transaction")
+		}
+		if !staffValid(tok) {
+			t.Fatal("a failed save must leave the sessions in place")
+		}
+		after, _ := staffRepo.FindByID(ctx, target.ID)
+		if after.PasswordHash != before.PasswordHash || after.Email != before.Email {
+			t.Fatal("a failed transaction must not change the staff user")
+		}
+
+		// The same call with valid data saves and revokes together.
+		u.Email = before.Email
+		if err := staffRepo.UpdateAndRevokeSessions(ctx, &u, ""); err != nil {
+			t.Fatalf("UpdateAndRevokeSessions: %v", err)
+		}
+		if staffValid(tok) {
+			t.Fatal("session must be revoked once the save succeeds")
+		}
+		if after, _ := staffRepo.FindByID(ctx, target.ID); after.PasswordHash != u.PasswordHash {
+			t.Fatal("password hash must be saved")
+		}
+	})
+
 	t.Run("Vuln 1: editing name only does not sign anyone out", func(t *testing.T) {
 		actor, target := newStaff("actor3"), newStaff("target3")
 		actorTok, tok := staffToken(actor), staffToken(target)

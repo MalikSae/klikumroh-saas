@@ -74,9 +74,12 @@ func (m *mockStaffRepo) DeleteSession(ctx context.Context, token string) error {
 	return nil
 }
 
-func (m *mockStaffRepo) RevokeSessions(ctx context.Context, staffUserID uint64, keepToken string) error {
+func (m *mockStaffRepo) UpdateAndRevokeSessions(ctx context.Context, user *repository.StaffUser, keepToken string) error {
+	if err := m.Update(ctx, user); err != nil {
+		return err
+	}
 	for tok, s := range m.sessions {
-		if s.StaffUserID == staffUserID && tok != keepToken {
+		if s.StaffUserID == user.ID && tok != keepToken {
 			delete(m.sessions, tok)
 		}
 	}

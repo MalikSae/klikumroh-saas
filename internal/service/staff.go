@@ -800,21 +800,20 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 		passwordChanged = true
 	}
 
-	if err := s.staffRepo.Update(ctx, existing); err != nil {
-		return nil, err
-	}
-
 	// A password change or deactivation is often incident response: whoever holds an old staff token
 	// (or an impersonation session opened with it) must lose access now, and must not get it back if
 	// the account is reactivated later. Changing your own password keeps the session you are using.
+	// The save and the revocation are one transaction: a new password never lands while old sessions live.
 	if passwordChanged || status == "inactive" {
 		keep := ""
 		if id == currentStaffUserID {
 			keep = currentToken
 		}
-		if err := s.staffRepo.RevokeSessions(ctx, id, keep); err != nil {
+		if err := s.staffRepo.UpdateAndRevokeSessions(ctx, existing, keep); err != nil {
 			return nil, err
 		}
+	} else if err := s.staffRepo.Update(ctx, existing); err != nil {
+		return nil, err
 	}
 
 	return &StaffUserInfo{
