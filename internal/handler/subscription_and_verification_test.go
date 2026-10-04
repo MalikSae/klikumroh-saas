@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -894,6 +895,82 @@ func TestCouponMaxUsesEnforcedAtApprove(t *testing.T) {
 	}
 	if coupon.UsedCount != 1 {
 		t.Fatalf("used_count must still be 1, got %d", coupon.UsedCount)
+	}
+}
+
+// fakeAffiliatorRecorder stands in for the affiliator service at payment approval.
+type fakeAffiliatorRecorder struct{ active map[uint64]bool }
+
+func (f *fakeAffiliatorRecorder) RecordCommission(ctx context.Context, pv *repository.PaymentVerification, approvedAt time.Time) {
+}
+func (f *fakeAffiliatorRecorder) IsAffiliatorActive(ctx context.Context, id uint64) (bool, error) {
+	return f.active[id], nil
+}
+
+// A coupon that became inactive or expired after the invoice was made (keputusan pendiri 4 Okt 2026):
+// expiry is honored when the invoice was created in time; an inactive platform coupon is refused; an
+// inactive affiliator coupon is honored while its affiliator is active (code replaced) and refused once
+// the affiliator is deactivated. A refusal keeps the invoice pending and does not count a use.
+func TestCouponStatusAtApprove(t *testing.T) {
+	ctx := context.Background()
+	yesterday := time.Now().AddDate(0, 0, -1)
+	activeAff, inactiveAff := uint64(7), uint64(8)
+
+	cases := []struct {
+		name      string
+		coupon    repository.Coupon
+		createdAt time.Time
+		wantErr   error
+	}{
+		{"expired, invoice made before expiry: honored",
+			repository.Coupon{Status: "active", ExpiresAt: &yesterday}, yesterday.AddDate(0, 0, -2), nil},
+		{"expired, invoice made after expiry: refused",
+			repository.Coupon{Status: "active", ExpiresAt: &yesterday}, time.Now(), service.ErrCouponExpired},
+		{"inactive platform coupon: refused",
+			repository.Coupon{Status: "inactive"}, time.Now(), service.ErrCouponInactive},
+		{"inactive coupon of an active affiliator (code replaced): honored",
+			repository.Coupon{Status: "inactive", AffiliatorID: &activeAff}, time.Now(), nil},
+		{"inactive coupon of a deactivated affiliator: refused",
+			repository.Coupon{Status: "inactive", AffiliatorID: &inactiveAff}, time.Now(), service.ErrCouponInactive},
+	}
+	for i, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			couponRepo := newMockCouponRepo()
+			pvRepo := newMockPVRepo()
+			planRepo := newMockPricingPlanRepo()
+			tenantRepo := newMockTenantRepoSub()
+			planRepo.plans[1] = &repository.PricingPlan{ID: 1, PeriodMonths: 3, Price: 1500000}
+			tenantRepo.tenants[53] = &repository.Tenant{ID: 53, Slug: "albarakah", Status: "pending"}
+
+			coupon := c.coupon
+			coupon.Code = fmt.Sprintf("STATUS%d", i)
+			coupon.DiscountPercentage = 20
+			_ = couponRepo.Create(ctx, &coupon)
+			code := coupon.Code
+			pv := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: &code, Amount: 1500000,
+				FinalAmount: 1200000, Status: "pending", CreatedAt: c.createdAt}
+			_ = pvRepo.Create(ctx, pv)
+
+			svc := service.NewSubscriptionService(pvRepo, couponRepo, service.NewCouponService(couponRepo), planRepo, tenantRepo)
+			svc.(interface {
+				SetAffiliatorRecorder(service.AffiliatorCommissionRecorder)
+			}).SetAffiliatorRecorder(&fakeAffiliatorRecorder{active: map[uint64]bool{activeAff: true, inactiveAff: false}})
+
+			err := svc.ApproveVerification(ctx, pv.ID, 1)
+			if !errors.Is(err, c.wantErr) {
+				t.Fatalf("ApproveVerification error = %v, want %v", err, c.wantErr)
+			}
+			got, _ := pvRepo.GetByID(ctx, pv.ID)
+			if c.wantErr == nil {
+				if got.Status != "approved" || coupon.UsedCount != 1 {
+					t.Fatalf("honored: want approved + 1 use, got status %q uses %d", got.Status, coupon.UsedCount)
+				}
+				return
+			}
+			if got.Status != "pending" || coupon.UsedCount != 0 {
+				t.Fatalf("refused: want pending + 0 uses, got status %q uses %d", got.Status, coupon.UsedCount)
+			}
+		})
 	}
 }
 

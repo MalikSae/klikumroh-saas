@@ -116,6 +116,9 @@ type AffiliatorDetail struct {
 // AffiliatorCommissionRecorder is called when staff approve a subscription payment.
 type AffiliatorCommissionRecorder interface {
 	RecordCommission(ctx context.Context, pv *repository.PaymentVerification, approvedAt time.Time)
+	// IsAffiliatorActive tells payment approval whether an inactive affiliator coupon was merely replaced
+	// (affiliator still active: honored) or switched off with its affiliator (refused).
+	IsAffiliatorActive(ctx context.Context, affiliatorID uint64) (bool, error)
 }
 
 // AffiliatorAttributor links a newly signed-up travel to the affiliator that brought it.
@@ -531,6 +534,17 @@ func (s *affiliatorService) AttributeSignup(ctx context.Context, tenantID uint64
 // is the transfer without the unique code (the bill after discount). The first approved payment of the
 // travel uses the first-payment rate, later ones the renewal rate. Errors are logged: the approval and
 // the travel's activation never fail because of the affiliate program.
+func (s *affiliatorService) IsAffiliatorActive(ctx context.Context, affiliatorID uint64) (bool, error) {
+	a, err := s.repo.GetByID(ctx, affiliatorID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return a.Status == "active", nil
+}
+
 func (s *affiliatorService) RecordCommission(ctx context.Context, pv *repository.PaymentVerification, approvedAt time.Time) {
 	a, err := s.repo.TenantAffiliator(ctx, pv.TenantID)
 	if err != nil {

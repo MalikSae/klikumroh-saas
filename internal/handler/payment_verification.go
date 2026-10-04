@@ -86,6 +86,18 @@ func (h *PaymentVerificationHandler) Approve(w http.ResponseWriter, r *http.Requ
 			})
 			return
 		}
+		if errors.Is(err, service.ErrCouponInactive) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": "Kupon pada invoice ini sudah dinonaktifkan. Hapus atau ganti kupon (harga akan dihitung ulang), atau tolak pembayaran.",
+			})
+			return
+		}
+		if errors.Is(err, service.ErrCouponExpired) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": "Invoice ini dibuat setelah kupon kedaluwarsa. Hapus atau ganti kupon (harga akan dihitung ulang), atau tolak pembayaran.",
+			})
+			return
+		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menyetujui verifikasi pembayaran"})
 		return
 	}

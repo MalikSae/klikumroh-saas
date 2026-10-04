@@ -423,6 +423,10 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 	var consumedCouponID uint64
 	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" {
 		if coupon, err := s.couponRepo.FindByCode(ctx, *pv.CouponCode); err == nil && coupon != nil {
+			if err := s.couponHonoredAtApproval(ctx, pv, coupon); err != nil {
+				s.releaseApprovalClaim(ctx, pv.ID)
+				return err
+			}
 			if err := s.couponRepo.IncrementUsedCount(ctx, coupon.ID); err != nil {
 				s.releaseApprovalClaim(ctx, pv.ID)
 				if errors.Is(err, repository.ErrCouponLimitReached) {
@@ -596,6 +600,38 @@ func (s *subscriptionService) HandleManualSubscriptionChange(ctx context.Context
 
 // releaseApprovalClaim puts a claimed verification back to 'pending' when the subscription could not be
 // extended, so staff can retry instead of leaving an 'approved' invoice with no activation behind it.
+// couponHonoredAtApproval decides whether the coupon on a pending invoice still counts when staff approve
+// it (keputusan pendiri 4 Okt 2026). The price was locked when the invoice was made, so:
+//   - expiry: honored when the invoice was created on or before the coupon's last day (the travel acted in
+//     time), refused otherwise;
+//   - inactive platform coupon (switched off by staff, e.g. leaked or abused): refused;
+//   - inactive affiliator coupon: honored when the affiliator is still active (it only replaced its code),
+//     refused when the affiliator itself was deactivated.
+//
+// A refusal leaves the invoice pending; staff remove or change the coupon (repricing it) or reject.
+func (s *subscriptionService) couponHonoredAtApproval(ctx context.Context, pv *repository.PaymentVerification, coupon *repository.Coupon) error {
+	if coupon.Status != "active" {
+		if coupon.AffiliatorID == nil || s.affiliators == nil {
+			return ErrCouponInactive
+		}
+		active, err := s.affiliators.IsAffiliatorActive(ctx, *coupon.AffiliatorID)
+		if err != nil {
+			return err
+		}
+		if !active {
+			return ErrCouponInactive
+		}
+	}
+	if coupon.ExpiresAt != nil {
+		// Same end-of-day rule as couponService.Validate.
+		exp := time.Date(coupon.ExpiresAt.Year(), coupon.ExpiresAt.Month(), coupon.ExpiresAt.Day(), 23, 59, 59, 0, time.Local)
+		if pv.CreatedAt.After(exp) {
+			return ErrCouponExpired
+		}
+	}
+	return nil
+}
+
 func (s *subscriptionService) releaseApprovalClaim(ctx context.Context, id uint64) {
 	_ = s.pvRepo.TransitionStatus(ctx, id, "approved", "pending", nil, nil, nil)
 }
