@@ -245,6 +245,9 @@ func (s *subscriptionService) CreateRenewalRequest(
 		if existing.PlanID == planID && existing.Amount == baseAmount && sameCouponCode(existing.CouponCode, validCouponCode) {
 			if proofURL != nil {
 				if err := s.pvRepo.UpdateProofURL(ctx, tenantID, existing.ID, *proofURL); err != nil {
+					if errors.Is(err, repository.ErrStatusConflict) {
+						return nil, ErrVerificationNotPending // approved or rejected meanwhile
+					}
 					return nil, err
 				}
 				existing.ProofURL = proofURL
@@ -363,6 +366,9 @@ func (s *subscriptionService) UploadRenewalProof(
 	} else {
 		if err := s.pvRepo.UpdateProofURL(ctx, tenantID, verificationID, relPath); err != nil {
 			_ = os.Remove(absPath)
+			if errors.Is(err, repository.ErrStatusConflict) {
+				return "", ErrVerificationNotPending // approved or rejected meanwhile
+			}
 			return "", err
 		}
 	}

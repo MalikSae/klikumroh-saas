@@ -59,6 +59,8 @@ var reservedSlugs = map[string]bool{
 	"static":    true,
 	"assets":    true,
 	"help":      true,
+	// Target custom domains point their CNAME at (cname.klikumroh.id); never a travel's subdomain.
+	"cname": true,
 }
 
 // TenantSignupRequest represents input payload for new travel self-registration.

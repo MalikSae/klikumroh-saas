@@ -378,11 +378,14 @@ func (r *mysqlPaymentVerificationRepository) missingOrConflict(ctx context.Conte
 	return ErrStatusConflict
 }
 
+// UpdateProofURL attaches a proof only while the invoice is still pending: the status condition sits in
+// the UPDATE itself, so an approval landing between the service's check and this write cannot be
+// followed by a different proof on an already-approved invoice (ErrStatusConflict).
 func (r *mysqlPaymentVerificationRepository) UpdateProofURL(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	query := `
 		UPDATE payment_verifications
 		SET proof_url = ?, updated_at = NOW()
-		WHERE id = ? AND tenant_id = ?
+		WHERE id = ? AND tenant_id = ? AND status = 'pending'
 	`
 	res, err := r.db.ExecContext(ctx, query, proofURL, id, tenantID)
 	if err != nil {
@@ -393,11 +396,23 @@ func (r *mysqlPaymentVerificationRepository) UpdateProofURL(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	if affected == 0 {
+	if affected > 0 {
+		return nil
+	}
+	// No row changed: not this tenant's invoice, no longer pending, or identical values written.
+	var status string
+	err = r.db.QueryRowContext(ctx,
+		`SELECT status FROM payment_verifications WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
-
-	return nil
+	if err != nil {
+		return err
+	}
+	if status == "pending" {
+		return nil
+	}
+	return ErrStatusConflict
 }
 
 func (r *mysqlPaymentVerificationRepository) ResetToPendingWithProof(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {

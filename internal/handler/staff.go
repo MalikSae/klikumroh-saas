@@ -422,7 +422,7 @@ func (h *StaffHandler) UpdateStaffUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.staffService.UpdateStaffUser(r.Context(), targetID, req.Name, req.Email, req.Password, req.Status, currentStaffID)
+	user, err := h.staffService.UpdateStaffUser(r.Context(), targetID, req.Name, req.Email, req.Password, req.Status, currentStaffID, bearerToken(r))
 	if err != nil {
 		if errors.Is(err, service.ErrStaffCannotDeactivateSelf) {
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})

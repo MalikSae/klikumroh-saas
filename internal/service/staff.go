@@ -162,7 +162,9 @@ type StaffService interface {
 	UpdateTenantSubscription(ctx context.Context, tenantID uint64, planID uint64, staffUserID uint64, customPeriodMonths ...int) error
 	ListStaffUsers(ctx context.Context) ([]StaffUserInfo, error)
 	CreateStaffUser(ctx context.Context, name, email, password, status string) (*StaffUserInfo, error)
-	UpdateStaffUser(ctx context.Context, id uint64, name, email string, password *string, status string, currentStaffUserID uint64) (*StaffUserInfo, error)
+	// UpdateStaffUser revokes the target's sessions when its password changes or it is deactivated;
+	// currentToken (the caller's own session) is kept when staff change their own password.
+	UpdateStaffUser(ctx context.Context, id uint64, name, email string, password *string, status string, currentStaffUserID uint64, currentToken string) (*StaffUserInfo, error)
 }
 
 // ManualSubscriptionHook runs the effects of a manual subscription change (cancel open invoices,
@@ -743,7 +745,7 @@ func (s *staffService) CreateStaffUser(ctx context.Context, name, email, passwor
 	}, nil
 }
 
-func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, email string, password *string, status string, currentStaffUserID uint64) (*StaffUserInfo, error) {
+func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, email string, password *string, status string, currentStaffUserID uint64, currentToken string) (*StaffUserInfo, error) {
 	name = strings.TrimSpace(name)
 	email = strings.ToLower(strings.TrimSpace(email))
 	status = strings.ToLower(strings.TrimSpace(status))
@@ -784,6 +786,7 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 	existing.Email = email
 	existing.Status = status
 
+	passwordChanged := false
 	if password != nil && strings.TrimSpace(*password) != "" {
 		pwd := strings.TrimSpace(*password)
 		if len(pwd) < 8 {
@@ -794,10 +797,24 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 			return nil, fmt.Errorf("gagal mengenkripsi password: %w", err)
 		}
 		existing.PasswordHash = string(hash)
+		passwordChanged = true
 	}
 
 	if err := s.staffRepo.Update(ctx, existing); err != nil {
 		return nil, err
+	}
+
+	// A password change or deactivation is often incident response: whoever holds an old staff token
+	// (or an impersonation session opened with it) must lose access now, and must not get it back if
+	// the account is reactivated later. Changing your own password keeps the session you are using.
+	if passwordChanged || status == "inactive" {
+		keep := ""
+		if id == currentStaffUserID {
+			keep = currentToken
+		}
+		if err := s.staffRepo.RevokeSessions(ctx, id, keep); err != nil {
+			return nil, err
+		}
 	}
 
 	return &StaffUserInfo{

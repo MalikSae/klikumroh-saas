@@ -388,6 +388,9 @@ func (m *mockStaffRepoMw) FindSessionByToken(ctx context.Context, token string) 
 	return s, u, nil
 }
 func (m *mockStaffRepoMw) DeleteSession(ctx context.Context, token string) error { return nil }
+func (m *mockStaffRepoMw) RevokeSessions(ctx context.Context, staffUserID uint64, keepToken string) error {
+	return nil
+}
 func (m *mockStaffRepoMw) ListAllTenants(ctx context.Context, statusFilter ...string) ([]repository.StaffTenantItem, error) {
 	return nil, nil
 }

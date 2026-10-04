@@ -54,6 +54,9 @@ type StaffRepository interface {
 	CreateSession(ctx context.Context, session *StaffSession) error
 	FindSessionByToken(ctx context.Context, token string) (*StaffSession, *StaffUser, error)
 	DeleteSession(ctx context.Context, token string) error
+	// RevokeSessions signs a staff user out everywhere (after a password change or deactivation): every
+	// staff session except keepToken, and every travel-dashboard session the user opened by impersonation.
+	RevokeSessions(ctx context.Context, staffUserID uint64, keepToken string) error
 
 	// ListAllTenants retrieves all tenants across the platform.
 	// SPECIAL EXCEPTION: Staff users legitimately have cross-tenant platform visibility.
@@ -203,6 +206,25 @@ func (r *mysqlStaffRepository) FindSessionByToken(ctx context.Context, token str
 		return nil, nil, err
 	}
 	return &session, &user, nil
+}
+
+// RevokeSessions: impersonation sessions live in the tenant `sessions` table and span tenants; they are
+// deleted by the staff user that created them (SPECIAL EXCEPTION, like the other staff-wide queries here).
+func (r *mysqlStaffRepository) RevokeSessions(ctx context.Context, staffUserID uint64, keepToken string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM staff_sessions WHERE staff_user_id = ? AND token <> ?`, staffUserID, keepToken); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM sessions WHERE impersonated_by_staff_id = ?`, staffUserID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *mysqlStaffRepository) DeleteSession(ctx context.Context, token string) error {

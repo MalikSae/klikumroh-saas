@@ -74,6 +74,15 @@ func (m *mockStaffRepo) DeleteSession(ctx context.Context, token string) error {
 	return nil
 }
 
+func (m *mockStaffRepo) RevokeSessions(ctx context.Context, staffUserID uint64, keepToken string) error {
+	for tok, s := range m.sessions {
+		if s.StaffUserID == staffUserID && tok != keepToken {
+			delete(m.sessions, tok)
+		}
+	}
+	return nil
+}
+
 func (m *mockStaffRepo) ListAllTenants(ctx context.Context, statusFilter ...string) ([]repository.StaffTenantItem, error) {
 	return m.allTenants, nil
 }
