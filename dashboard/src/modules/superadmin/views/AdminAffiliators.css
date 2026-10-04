@@ -1,0 +1,30 @@
+/* Affiliator KlikUmroh in the staff portal. Colors from --sa-* (AdminLayout.css), spacing and type from
+   the dashboard tokens (--ku-*); no literal values. */
+
+.sa-aff-tabs { margin-bottom: var(--ku-space-4); }
+
+.sa-aff-msg { display: flex; align-items: center; gap: var(--ku-space-2); margin-bottom: var(--ku-space-4); padding: var(--ku-space-3) var(--ku-space-4); border-radius: var(--sa-radius-sm); font-size: var(--ku-text-md); }
+.sa-aff-msg--ok { background: var(--sa-green-bg); border: 1px solid var(--sa-green-border); color: var(--sa-green-text); }
+.sa-aff-msg--error { background: var(--sa-red-bg); border: 1px solid var(--sa-red-border); color: var(--sa-red-text); }
+
+.sa-aff-name { font-weight: var(--ku-weight-semibold); color: var(--sa-text); }
+.sa-aff-sub { display: block; font-size: var(--ku-text-sm); color: var(--sa-text-muted); }
+.sa-aff-code { font-family: var(--sa-font-code); font-size: var(--ku-text-md); color: var(--sa-text); }
+.sa-aff-amount { font-weight: var(--ku-weight-semibold); color: var(--sa-text); }
+.sa-aff-actions { display: inline-flex; gap: var(--ku-space-2); justify-content: flex-end; }
+
+/* Detail: one specification panel (labels left, values right). */
+.sa-aff-spec { padding: var(--ku-space-5); }
+.sa-aff-spec__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); flex-wrap: wrap; margin-bottom: var(--ku-space-4); }
+.sa-aff-spec__title { margin: 0; font: var(--ku-weight-semibold) var(--ku-text-xl) var(--sa-font-display); color: var(--sa-text); }
+.sa-aff-spec__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--ku-affiliator-statMinWidth), 1fr)); gap: var(--ku-space-4) var(--ku-space-6); margin: 0; }
+.sa-aff-spec__list dt { font-size: var(--ku-text-sm); color: var(--sa-text-muted); }
+.sa-aff-spec__list dd { margin: var(--ku-space-1) 0 0; color: var(--sa-text); overflow-wrap: anywhere; }
+
+/* Program settings form. */
+.sa-aff-settings { padding: var(--ku-space-6); max-width: var(--ku-affiliator-contentWidth); }
+.sa-aff-settings__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--ku-size-sidebar), 1fr)); gap: var(--ku-space-4); }
+.sa-aff-settings__foot { display: flex; justify-content: flex-end; margin-top: var(--ku-space-5); }
+
+.sa-aff-modal-text { margin: 0 0 var(--ku-space-4); font-size: var(--ku-text-md); color: var(--sa-text-secondary); }
+.sa-aff-modal-fields { display: flex; flex-direction: column; gap: var(--ku-space-3); }

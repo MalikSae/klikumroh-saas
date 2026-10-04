@@ -1,0 +1,73 @@
+/* Affiliator KlikUmroh portal. Frame classes come from app/app.css; tokens only (dashboard.foundation). */
+
+.af-stack { display: flex; flex-direction: column; gap: var(--ku-space-5); max-width: var(--ku-affiliator-contentWidth); }
+.af-muted { margin: 0; color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+
+/* Balance: the one figure that matters, flat on the panel (not a card). */
+.af-balance { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--ku-space-4); flex-wrap: wrap; padding-bottom: var(--ku-space-5); border-bottom: 1px solid var(--ku-line-2); }
+.af-balance__label { color: var(--ku-ink-2); font-size: var(--ku-text-base); }
+.af-balance__value { margin-top: var(--ku-space-1); font: var(--ku-weight-bold) var(--ku-text-4xl) / var(--ku-leading-tight) var(--ku-font-head); letter-spacing: -0.01em; color: var(--ku-ink); }
+.af-balance__note { margin-top: var(--ku-space-1); color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+
+/* Share: link and coupon rows. */
+.af-share { display: flex; flex-direction: column; }
+.af-share__row { display: flex; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-3) 0; }
+.af-share__row + .af-share__row { border-top: 1px solid var(--ku-line-2); }
+.af-share__text { flex: 1; min-width: 0; }
+.af-share__label { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+.af-share__value { margin-top: var(--ku-space-1); font: var(--ku-weight-semibold) var(--ku-text-lg) var(--ku-font-head); color: var(--ku-ink); letter-spacing: 0.02em; }
+.af-share__value--link { font: var(--ku-weight-medium) var(--ku-text-base) var(--ku-font-body); letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.af-share__actions { display: flex; align-items: center; gap: var(--ku-space-1); flex-shrink: 0; }
+
+.af-coupon { display: flex; flex-direction: column; gap: var(--ku-space-3); padding-top: var(--ku-space-3); border-top: 1px solid var(--ku-line-2); }
+.af-coupon__input { text-transform: uppercase; letter-spacing: 0.04em; }
+.af-coupon__actions, .af-form__actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--ku-space-2); flex-wrap: wrap; }
+
+/* Plain figures in one row, no card per number. */
+.af-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--ku-affiliator-statMinWidth), 1fr)); gap: var(--ku-space-4); margin: 0; }
+.af-stats dt { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
+.af-stats dd { margin: var(--ku-space-1) 0 0; font: var(--ku-weight-semibold) var(--ku-text-xl) var(--ku-font-head); color: var(--ku-ink); }
+
+.af-tabs { padding: var(--ku-space-2) var(--ku-space-5) 0; }
+
+.af-profile { display: grid; gap: var(--ku-space-3); margin: 0; }
+.af-profile div { display: grid; grid-template-columns: var(--ku-affiliator-profileLabelWidth) minmax(0, 1fr); gap: var(--ku-space-3); }
+.af-profile dt { color: var(--ku-ink-3); }
+.af-profile dd { margin: 0; overflow-wrap: anywhere; }
+
+.af-form { display: flex; flex-direction: column; gap: var(--ku-space-4); }
+.af-saved { display: inline-flex; align-items: center; gap: var(--ku-space-1); color: var(--ku-green-deep); font-size: var(--ku-text-md); }
+/* Phones only: on desktop the sidebar already has "Keluar". */
+.af-signout { display: none; }
+
+/* Sign up / log in. */
+.af-auth { min-height: 100vh; display: grid; place-items: center; padding: var(--ku-space-6) var(--ku-space-4); background: var(--ku-frame); }
+.af-auth__panel { width: 100%; max-width: var(--ku-size-drawer); display: flex; flex-direction: column; gap: var(--ku-space-4); padding: var(--ku-space-8); background: var(--ku-panel); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-panel); }
+.af-auth__brand { display: flex; align-items: center; gap: var(--ku-space-2); font: var(--ku-weight-medium) var(--ku-text-xl) var(--ku-font-head); }
+/* Max weight 700 here: AGENTS.md 3.4 allows 800 only for "Klik" in the sidebar logo. */
+.af-auth__brand b { font-weight: var(--ku-weight-bold); }
+.af-auth__title { margin: var(--ku-space-2) 0 0; font: var(--ku-weight-bold) var(--ku-text-2xl) / var(--ku-leading-tight) var(--ku-font-head); }
+.af-auth__lead { margin: 0; color: var(--ku-ink-2); font-size: var(--ku-text-base); line-height: var(--ku-leading-loose); }
+.af-auth__form { display: flex; flex-direction: column; gap: var(--ku-space-4); }
+.af-auth__switch { margin: 0; color: var(--ku-ink-2); font-size: var(--ku-text-base); text-align: center; }
+.af-auth__switch a { color: var(--ku-ink); font-weight: var(--ku-weight-semibold); text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .af-signout { display: flex; justify-content: flex-start; }
+  .af-balance { align-items: stretch; flex-direction: column; }
+  .af-balance .ku-btn { width: 100%; }
+  .af-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .af-tabs { padding: var(--ku-space-2) var(--ku-space-4) 0; }
+  .af-profile div { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-1); }
+  .af-auth { place-items: start center; padding: var(--ku-space-4); }
+  .af-auth__panel { padding: var(--ku-space-6) var(--ku-space-5); }
+  /* Safari iOS zooms into inputs under 16px (AGENTS.md 3.10). */
+  .af-auth .ku-input, .af-form .ku-input, .af-coupon .ku-input { height: var(--ku-invoice-touchTarget); font-size: var(--ku-text-xl); }
+}
+
+.af-auth__lead a, .af-auth .ku-check a { color: var(--ku-ink); font-weight: var(--ku-weight-medium); text-decoration: underline; }
+
+/* Show/hide password: the toggle sits inside the input on the right. */
+.af-password { position: relative; }
+.af-password .ku-input { padding-right: calc(var(--ku-size-control-sm) + var(--ku-space-2)); }
+.af-password__toggle { position: absolute; top: 50%; right: var(--ku-space-1); transform: translateY(-50%); }
