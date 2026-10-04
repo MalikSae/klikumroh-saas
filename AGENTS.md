@@ -66,6 +66,7 @@ Aturan umum:
   - **Pengecualian yang disetujui pendiri (1 Okt 2026):** ikon Ka'bah (`web/components/icons/KaabaIcon.tsx`), karena lucide tidak punya. Digambar dengan gaya lucide (24×24, garis 2px, `currentColor`). Ikon lain di luar lucide tetap butuh persetujuan pendiri dulu.
 - **Font wajib**: `Plus Jakarta Sans` untuk heading/display text, `Roboto` untuk body text — di kedua project (dashboard dan web publik). Dimuat via `next/font/google` di `/web` dan `@fontsource` di `/dashboard` (bukan link CDN eksternal saat runtime).
   - **Pengecualian yang disetujui pendiri (2 Okt 2026):** halaman login internal (`/internal/login`, `dashboard/src/modules/superadmin/views/AdminLoginView.tsx`) bergaya terminal memakai `JetBrains Mono` (`@fontsource/jetbrains-mono`) dan token `dashboard.terminal` (`--db-term-*`). Hanya halaman ini — jangan dipakai di halaman lain tanpa persetujuan.
+  - **Pengecualian yang disetujui pendiri (4 Okt 2026):** landing page pemasaran klikumroh.id (`web/components/marketing/`, dimuat di `MarketingLandingView`) memakai serif display `Instrument Serif` (berat 400, `--km-font-display`) untuk judul, mengikuti gaya trybloom.ai. Isi teks tetap Roboto. Web travel, portal agen, dan dashboard tidak berubah.
 - **Aturan Penggunaan Font Dashboard**:
   - `Plus Jakarta Sans`: Khusus elemen struktural & display (Judul Halaman `h1`/22px, Judul Kartu/Panel `h2`/16px, Judul Modal/18px, Angka Metrik Utama/KPI 28px bold, Wordmark Brand, dan Tombol CTA Utama).
   - `Roboto`: Khusus teks fungsional UI & data density (seluruh cell tabel `td`, header kolom `th`, input formulir & labels, teks body/paragraf, menu navigasi sidebar, badges, tooltips, dan timestamp).
@@ -130,7 +131,7 @@ Disarikan dari riset publik soal ciri-ciri desain yang gampang ketauan "asal dib
 - Jangan spasi semua elemen identik rata — pakai spacing buat bikin hierarki, bukan keseragaman.
 
 **Tombol & Komponen:**
-- Border-radius tombol: **4-8px**, bukan bentuk pil penuh (`rounded-full`) kecuali memang ada alasan spesifik.
+- Border-radius tombol: **4-8px**, bukan bentuk pil penuh (`rounded-full`) kecuali memang ada alasan spesifik. Pengecualian (disetujui pendiri 4 Okt 2026): tombol landing page pemasaran klikumroh.id memakai radius 12px dengan efek timbul (gaya trybloom.ai).
 - Satu warna aksen kuat per halaman buat SATU aksi/elemen utama — jangan sebar warna aksen ke banyak elemen sekaligus (tombol, badge, ikon, teks) yang bikin semuanya "teriak" bareng dan nggak ada yang menonjol.
 - Hindari ikon dibungkus lingkaran/kotak warna di mana-mana ("badge chrome") — itu template yang gampang ketauan generik, biarkan ikon berdiri sendiri kecuali memang perlu ditonjolkan.
 

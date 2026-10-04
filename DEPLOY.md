@@ -76,6 +76,70 @@ https:// {
 
 ---
 
+## 2a. Dashboard Travel & Super Admin di `app.klikumroh.id`
+
+Dashboard (React SPA di folder `dashboard/`) disajikan di subdomain sendiri, `app.klikumroh.id`. Rutenya (`/`, `/prospects`, `/settings/...`, `/internal/...`) bentrok dengan web Next.js kalau ditaruh di `klikumroh.id`.
+
+Alur login:
+- Travel login di `https://klikumroh.id/login`, lalu dibuka `https://app.klikumroh.id/#handoff=...`. URL hanya berisi **kode sekali pakai** (berlaku 2 menit), bukan token. Respons login juga memasang cookie HttpOnly `ku_handoff` di domain `klikumroh.id` (path `/api/auth/handoff`). Dashboard menukar kode itu lewat `POST /api/auth/handoff/exchange`, dan penukaran hanya berhasil di browser yang memegang cookie tersebut. Jadi link berisi kode milik orang lain tidak bisa memasukkan pengunjung ke akun orang itu (login CSRF).
+- Domain cookie ditentukan otomatis: host `klikumroh.id` atau `*.klikumroh.id` mendapat `Domain=klikumroh.id`. Jika domain platform berubah, isi `AUTH_COOKIE_DOMAIN` di `.env` backend.
+- Kode handoff disimpan di memori proses Go. Jika backend nanti dijalankan lebih dari satu instance di belakang load balancer, penyimpanan ini harus dipindah ke database atau Redis dulu.
+- Tanpa sesi, dashboard mengalihkan ke `https://klikumroh.id/login`.
+- Super admin login langsung di `https://app.klikumroh.id/internal/login`.
+
+### DNS
+Tidak perlu record baru jika wildcard `*.klikumroh.id` sudah mengarah ke VPS (dipakai juga oleh subdomain travel). Jika belum ada wildcard, tambahkan **A record** `app` ke IP VPS dengan **DNS Only (Grey Cloud)**.
+
+Slug `app` sudah termasuk slug terlarang saat pendaftaran (`reservedSlugs` di `internal/service/public_signup.go`), jadi tidak ada travel yang bisa memakai `app.klikumroh.id`.
+
+### Build
+```bash
+cd dashboard
+npm ci
+npm run build
+```
+Salin isi `dashboard/dist/` ke server, misalnya ke `/var/www/klikumroh-dashboard/`.
+
+Jangan isi `VITE_API_BASE`. Tanpa variabel itu dashboard memanggil API di origin-nya sendiri (`https://app.klikumroh.id/api/...`), dan Caddy meneruskannya ke backend Go.
+
+### Caddyfile
+Tambahkan blok ini di samping blok `https://` on-demand di atas:
+
+```caddy
+app.klikumroh.id {
+    encode gzip
+
+    # API dan file upload diteruskan ke backend Go (hanya didengar di 127.0.0.1).
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+    handle /uploads/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    # Selain itu file statis SPA. Path yang tidak ada (misal /prospects/12) jatuh ke index.html.
+    handle {
+        root * /var/www/klikumroh-dashboard
+        try_files {path} /index.html
+        file_server
+    }
+}
+```
+
+> [!WARNING]
+> **Jangan** teruskan `/internal/*` ke backend Go. Di domain ini `/internal/...` adalah halaman super admin milik SPA. Endpoint Go `/internal/domain-ask` hanya untuk Caddy dan tidak boleh bisa diakses dari internet (Bagian 3).
+
+Blok dengan hostname eksplisit seperti ini mendapat sertifikat TLS biasa dari Caddy. Ia tidak lewat `on_demand`/ask endpoint, dan Caddy memilihnya lebih dulu daripada blok `https://`. Di Nginx SNI (Bagian 4), `app.klikumroh.id` ikut aturan `*.klikumroh.id` ke Caddy.
+
+### Cara uji
+1. `curl -s -o /dev/null -w "%{http_code}\n" https://app.klikumroh.id/api/public/pricing-plans` menghasilkan `200`.
+2. `curl -s "https://app.klikumroh.id/internal/domain-ask?domain=contoh.com" | head -c 60` harus menampilkan awal HTML SPA (`<!doctype html>`), bukan respons dari backend Go.
+3. Buka `https://app.klikumroh.id/prospects` tanpa login. Browser harus dialihkan ke `https://klikumroh.id/login`.
+4. Login di `https://klikumroh.id/login` dengan travel uji. Browser harus mendarat di `https://app.klikumroh.id/` dan `#handoff=` hilang dari address bar. Di DevTools > Application > Cookies, `ku_handoff` harus ber-domain `.klikumroh.id` dan terhapus setelah dashboard terbuka. Travel yang belum bayar harus mendarat di halaman tagihan.
+5. Klik **Keluar**, lalu buka `https://klikumroh.id` dan pilih paket. Form checkout harus tampil, bukan dashboard.
+
+---
+
 ## 3. Keamanan Endpoint Ask (/internal/domain-ask)
 
 > [!CAUTION]
@@ -195,7 +259,7 @@ Diisi manual oleh pemilik produk di environment backend (aaPanel Go Project), bu
 Travel demo adalah travel biasa di database produksi dengan slug `demo` dan kolom `tenants.is_demo = 1`. Subdomain `*.klikumroh.id` sudah diarahkan ke Caddy, jadi **tidak perlu DNS, server, atau sertifikat baru**. Isinya (profil, paket, banner, testimoni, FAQ, gambar) ada di repo: `demo/fixtures.json` dan `demo/assets/`. Agen, prospek, komisi, pencairan, dan syiar harian dibuat otomatis oleh `cmd/seed-demo` dengan tanggal relatif terhadap saat dijalankan.
 
 **Selama `is_demo = 1`, aplikasi otomatis:**
-- menampilkan pita "Website demo KlikUmroh, bukan travel sungguhan" di web publik dan portal agen, dan pita "Akun demo" di dashboard;
+- menampilkan pita satu baris "Website demo KlikUmroh" di web publik dan portal agen, dan pita "Akun demo" di dashboard;
 - memberi `noindex, nofollow` dan tidak memasang data terstruktur travel (tidak masuk Google);
 - tidak pernah membuka WhatsApp setelah form minat (nomor demo memakai rentang `0800…`, bukan nomor HP);
 - menolak (403) ganti password/profil admin, tambah/nonaktifkan anggota tim, reset password agen, custom domain, pengaturan Meta Pixel/CAPI, dan ganti password agen. Selain itu semua fitur boleh dicoba pengunjung.
@@ -206,7 +270,7 @@ Travel demo adalah travel biasa di database produksi dengan slug `demo` dan kolo
    ```bash
    go run ./cmd/migrate
    ```
-2. Isi kredensial demo di `.env` server (dibagikan ke pengunjung lewat tombol "Coba demo", jadi jangan dipakai di tempat lain; password minimal 8 karakter). Email admin demo harus belum dipakai travel lain:
+2. Isi kredensial demo di `.env` server (password minimal 8 karakter, jangan dipakai di tempat lain). Pengunjung **tidak perlu** password ini: tombol "Coba demo" di landing page masuk sekali klik lewat `POST /api/auth/demo-login` (dashboard) dan `POST /api/agent/demo-login` (portal agen), yang hanya berlaku untuk travel `is_demo = 1`. Password tetap wajib supaya akun demo juga bisa dipakai lewat form login biasa. Email admin demo harus belum dipakai travel lain:
    ```
    DEMO_SLUG=demo
    DEMO_ROOT_DOMAIN=klikumroh.id
@@ -225,8 +289,8 @@ Travel demo adalah travel biasa di database produksi dengan slug `demo` dan kolo
    0 2 * * * cd /www/wwwroot/klikumroh && /usr/local/go/bin/go run ./cmd/seed-demo --reset >> /var/log/klikumroh-demo.log 2>&1
    ```
    `--reset` menghapus travel demo lama beserta seluruh datanya dan foldernya di `uploads/`, lalu membangunnya ulang. Hanya travel dengan `is_demo = 1` yang bisa dihapus perintah ini. Sesi login demo ikut terhapus; pengunjung cukup login lagi.
-5. Cek: buka `https://demo.klikumroh.id` (pita demo tampil), login dashboard di `https://klikumroh.id` dengan akun admin demo, dan login portal agen di `https://demo.klikumroh.id/agen/login` dengan akun agen demo.
+5. Cek: di landing page `https://klikumroh.id` bagian "Coba demo tanpa daftar": "Buka website" (pita demo tampil), "Masuk dashboard" (`/demo`, langsung ke dashboard travel demo), dan "Masuk portal agen" (`demo.klikumroh.id/agen/login?demo=1`, langsung masuk sebagai agen demo).
 
 **Mengubah isi demo:** atur ulang data travel contoh di lingkungan lokal, jalankan `node scripts/export-demo-fixtures.mjs <tenant_id>` dari root repo (menulis ulang `demo/fixtures.json` dan `demo/assets/`), commit, deploy. Malam berikutnya cron memakai isi baru.
 
-**Catatan:** travel demo belum dikecualikan dari statistik super admin (jumlah travel, dsb.). Langganannya diisi aktif 10 tahun sehingga tidak pernah ditagih atau ditangguhkan.
+**Catatan:** travel demo tidak dihitung di statistik super admin (jumlah travel, MRR, prospek, agen) dan tampil dengan status "Demo" di daftar travel. Langganannya diisi aktif 10 tahun sehingga tidak pernah ditagih atau ditangguhkan.

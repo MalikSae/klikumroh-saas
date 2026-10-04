@@ -191,6 +191,23 @@
         "content": "1360px",
         "tabbar": "64px",
         "sheet-grip": "36px"
+      },
+      "affiliator": {
+        "contentWidth": "880px",
+        "statMinWidth": "140px",
+        "profileLabelWidth": "120px"
+      },
+      "invoice": {
+        "columns": "minmax(0, 1.2fr) minmax(0, 1fr)",
+        "touchTarget": "44px",
+        "proofHeight": "200px",
+        "amountSize": "clamp(24px, 3vw, 32px)",
+        "cta": "#166534",
+        "ctaHover": "#14532D",
+        "sheetWidth": "840px",
+        "headerWidth": "1120px",
+        "paymentColumns": "minmax(0, 1fr) minmax(0, 1fr)",
+        "previewHeight": "160px"
       }
     },
     "terminal": {
@@ -331,7 +348,15 @@
       "dangerLine": "#FECACA",
       "dangerBg": "#FEF2F2",
       "dangerBorder": "#FEE2E2",
-      "alertText": "#B84B3E"
+      "alertText": "#B84B3E",
+      "accent": "#166534",
+      "accentHover": "#14532D",
+      "accentEdgeDark": "#0F3D22",
+      "accentEdgeLight": "#1F8A47",
+      "surfaceAlt": "#F6F6F5",
+      "popover": "#FCFCFC",
+      "popoverEdgeDark": "#F4F4F4",
+      "popoverEdgeLight": "#FFFFFF"
     },
     "compound": {
       "workflowCardBg": "rgba(255, 255, 255, 0.04)",
@@ -341,6 +366,139 @@
       "navShadow": "0 2px 10px -2px rgba(0, 0, 0, 0.04)",
       "shadowColor": "#000000",
       "suspendedCardShadow": "rgba(5, 47, 44, 0.06)"
+    },
+    "v2": {
+      "_note": "Token layout/typography khusus preview landing marketing v2. Nilai warna dan aksen memakai token marketing yang sama; landing saat ini tidak berubah.",
+      "layout": {
+        "desktopBreakpoint": "768px",
+        "wideBreakpoint": "1080px",
+        "gutter": "20px",
+        "contentWidth": "1440px",
+        "contentHalfWidth": "720px",
+        "desktopGutter": "max(64px, calc(50vw - 720px))",
+        "copyWidth": "720px",
+        "planRowHeight": "176px",
+        "navHeight": "64px",
+        "touchTarget": "48px",
+        "iconSize": "20px",
+        "layerSticky": "5",
+        "borderWidth": "1px"
+      },
+      "type": {
+        "hero": "40px",
+        "heroTablet": "48px",
+        "heroDesktop": "64px",
+        "section": "28px",
+        "sectionDesktop": "40px",
+        "subhead": "20px",
+        "body": "16px",
+        "small": "14px",
+        "label": "13px",
+        "eyebrow": "13px",
+        "heroMeasure": "13ch",
+        "heroMeasureDesktop": "12ch",
+        "heroTracking": "-0.02em",
+        "tight": "1.08",
+        "normal": "1.5",
+        "relaxed": "1.65"
+      },
+      "space": {
+        "1": "4px",
+        "2": "8px",
+        "3": "12px",
+        "4": "16px",
+        "5": "20px",
+        "6": "24px",
+        "8": "32px",
+        "10": "40px",
+        "12": "48px",
+        "16": "64px",
+        "20": "80px"
+      },
+      "radius": {
+        "control": "8px",
+        "media": "12px",
+        "panel": "16px"
+      },
+      "motion": {
+        "fast": "180ms",
+        "easing": "ease"
+      },
+      "compound": {
+        "ctaShadow": "inset 0 -2px 2px var(--km-accent-edge-dark), inset 0 2px 2px var(--km-accent-edge-light), var(--km-tactile-shadow)"
+      }
+    },
+    "v3": {
+      "affiliator": {
+        "_note": "Halaman Program Affiliator KlikUmroh (web/app/affiliator).",
+        "figureMinWidth": "160px"
+      },
+      "journey": {
+        "transition": "500ms",
+        "columns": "minmax(0, 0.95fr) minmax(0, 1.05fr)",
+        "previewHeight": "280px",
+        "mobilePreviewHeight": "120px",
+        "numberWidth": "32px"
+      },
+      "_note": "Layout marketing V3: container terpusat, ukuran judul diterapkan pada heading, media dibatasi, desktop dua kolom dan mobile satu kolom.",
+      "ecosystem": {
+        "logoHeight": "36px",
+        "mobileLogoHeight": "28px",
+        "logoOpacity": "0.65",
+        "logoFilter": "grayscale(100%)"
+      },
+      "pattern": {
+        "pitch": "14px",
+        "squareSize": "4px",
+        "color": "rgba(22, 101, 52, 0.16)",
+        "framesPerSecond": "24",
+        "cycleDuration": "4200",
+        "minimumOpacity": "0.12",
+        "mask": "radial-gradient(ellipse 80% 60%, transparent 0%, transparent 55%, black 95%)",
+        "mobileMask": "linear-gradient(to bottom, black 0%, transparent 16%, transparent 84%, black 100%)"
+      },
+      "layout": {
+        "contentWidth": "1200px",
+        "gutter": "24px",
+        "desktopGutter": "48px",
+        "heroColumns": "minmax(0, 0.95fr) minmax(0, 1.05fr)",
+        "featureColumns": "repeat(2, minmax(0, 1fr))",
+        "agentMediaWidth": "560px",
+        "mediaHeight": "520px",
+        "sectionOffset": "88px",
+        "desktopBreakpoint": "960px",
+        "headerButtonHeight": "36px",
+        "mobileHeaderButtonHeight": "44px",
+        "heroCopyWidth": "860px",
+        "heroTitleWidth": "820px",
+        "heroLeadWidth": "640px",
+        "previewWidth": "1120px",
+        "previewHeight": "560px"
+      },
+      "type": {
+        "hero": "clamp(40px, 5.6vw, 80px)",
+        "section": "clamp(32px, 3.6vw, 52px)",
+        "lead": "18px",
+        "headingLeading": "1.1"
+      },
+      "space": {
+        "heroPadding": "72px",
+        "sectionPadding": "104px",
+        "mobileSectionPadding": "48px",
+        "columnGap": "88px"
+      }
+    },
+    "_noteLanding": "4 Okt 2026: gaya landing mengikuti trybloom.ai atas keputusan pendiri. Judul memakai serif display (Instrument Serif, khusus landing marketing), satu aksen hijau dipakai hemat, tombol radius 12px dengan efek timbul.",
+    "checkout": {
+      "columns": "minmax(0, 1.45fr) minmax(0, 1fr)",
+      "contentWidth": "1120px",
+      "stickyOffset": "96px",
+      "titleSize": "clamp(28px, 3vw, 36px)",
+      "disabledOpacity": "0.5",
+      "spinnerDuration": "900ms",
+      "radioSize": "16px",
+      "radioDotSize": "8px",
+      "focusRing": "0 0 0 3px var(--km-line)"
     }
   }
 }
