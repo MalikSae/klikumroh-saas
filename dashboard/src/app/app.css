@@ -168,4 +168,5 @@
 @keyframes ap-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
 
 /* Demo travel (demo.klikumroh.id): one line above every page. */
-.ap-demo { margin: 0 0 var(--ku-space-3); padding: var(--ku-space-2) var(--ku-space-4); border-radius: var(--ku-radius-inner); background: var(--ku-ink); color: var(--ku-on-accent); font-size: var(--ku-text-sm); }
+.ap-demo { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); flex-wrap: wrap; margin: 0 0 var(--ku-space-3); padding: var(--ku-space-2) var(--ku-space-2) var(--ku-space-2) var(--ku-space-4); border-radius: var(--ku-radius-inner); background: var(--ku-ink); color: var(--ku-on-accent); font-size: var(--ku-text-md); }
+.ap-demo__cta { flex-shrink: 0; }

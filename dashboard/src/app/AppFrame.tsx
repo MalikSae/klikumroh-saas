@@ -53,6 +53,12 @@ export function publicSiteUrl(slug?: string | null): string | null {
   return local ? `http://${slug}.localhost:3000` : `https://${slug}.klikumroh.id`;
 }
 
+/** Pricing on the KlikUmroh landing page (demo ribbon call to action). */
+const subscribeUrl = (): string => {
+  const local = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  return `${local ? 'http://localhost:3000' : 'https://klikumroh.id'}/#harga`;
+};
+
 const initials = (name: string) =>
   name
     .split(/\s+/)
@@ -217,7 +223,10 @@ export const AppFrame: React.FC = () => {
         <main className="ap-main">
           {sub?.is_demo && (
             <div className="ap-demo" role="note">
-              Akun demo KlikUmroh.
+              <span>Akun demo KlikUmroh. Pakai untuk travel Anda sendiri?</span>
+              <a href={subscribeUrl()} className="ku-btn ku-btn--light ku-btn--sm ap-demo__cta">
+                Berlangganan
+              </a>
             </div>
           )}
           <header className="ap-head">
