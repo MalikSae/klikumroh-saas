@@ -297,6 +297,25 @@ Catatan:
 4. Pastikan situs aaPanel lain masih terbuka normal lewat HTTPS.
 5. Hapus data uji (klik, login, affiliator uji) setelah selesai.
 
+**Cara uji Caddy menimpa `X-Forwarded-For` palsu** (wajib, bersama uji di atas). Backend Go mempercayai entri paling kanan `X-Forwarded-For` yang ditulis Caddy. Ini hanya aman kalau Caddy **membuang** header kiriman pengunjung, yaitu perilaku bawaan Caddy selama `trusted_proxies` tidak dipasang.
+
+1. Cek konfigurasi: `grep -n trusted_proxies /etc/caddy/Caddyfile` (sesuaikan path) tidak boleh menghasilkan apa pun untuk listener publik.
+2. Dari komputer **di luar** VPS (bukan di server, bukan lewat VPN ke server), catat IP publiknya (`curl -s https://api.ipify.org`), lalu kirim klik dengan header palsu lewat kedua jalur:
+   ```bash
+   # Jalur Next.js (klikumroh.id -> Caddy -> Next.js -> Go)
+   curl -s -o /dev/null -w "%{http_code}\n" -X POST https://klikumroh.id/api/public/affiliator-clicks \
+     -H "Content-Type: application/json" -H "X-Forwarded-For: 203.0.113.66" \
+     -d '{"code":"KODE_LINK_AFFILIATOR_UJI"}'
+   # Jalur langsung (app.klikumroh.id -> Caddy -> Go)
+   curl -s -o /dev/null -w "%{http_code}\n" -X POST https://app.klikumroh.id/api/public/affiliator-clicks \
+     -H "Content-Type: application/json" -H "X-Forwarded-For: 203.0.113.66, 198.51.100.77" \
+     -d '{"code":"KODE_LINK_AFFILIATOR_UJI"}'
+   ```
+   Keduanya harus `204`. `KODE_LINK_AFFILIATOR_UJI` adalah kode link (bukan kode kupon) affiliator uji yang aktif; kode yang salah tidak dicatat.
+3. Di server: `SELECT ip_address, clicked_at FROM affiliator_clicks ORDER BY id DESC LIMIT 2;` kedua baris harus berisi IP publik komputer tadi. Kalau muncul `203.0.113.66` atau `198.51.100.77` (alamat dokumentasi RFC 5737), Caddy meneruskan header palsu: cari dan hapus `trusted_proxies` di listener publik, reload Caddy, ulangi. Kalau muncul `127.0.0.1`, PROXY protocol di atas belum jalan.
+4. Pastikan Next.js tidak bisa dihubungi langsung: dari komputer luar yang sama, `curl -m 5 http://IP_VPS:3000` harus gagal tersambung (timeout atau connection refused). Kalau tersambung, header palsu bisa masuk lewat Next.js tanpa Caddy.
+5. Hapus baris klik uji: `DELETE FROM affiliator_clicks WHERE affiliator_id = <ID_AFFILIATOR_UJI> AND clicked_at >= '<waktu mulai uji>';`
+
 ### 4.3 Cara uji setelah konfigurasi
 
 1. Daftarkan domain uji milik sendiri di dashboard travel uji (Website > Domain), ikuti tabel DNS-nya, klik **Periksa sekarang** sampai aktif.
