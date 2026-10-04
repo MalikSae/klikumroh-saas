@@ -288,6 +288,7 @@ Catatan:
 - **Jangan** pasang `trusted_proxies` di Caddy untuk listener publik. Tanpa itu Caddy mengabaikan `X-Forwarded-For` kiriman pengunjung dan menulis ulang dengan IP asli, sehingga IP tidak bisa dipalsukan. Backend Go mempercayai entri pertama header ini justru karena Caddy menulisnya ulang.
 - Port 80 (Bagian 4.2) hanya mengalihkan ke HTTPS dan menjawab challenge sertifikat, jadi tidak perlu PROXY protocol.
 - Caddy `8443` dan listener `8442`/`4432` harus hanya didengar di `127.0.0.1`.
+- **Next.js juga wajib hanya didengar di `127.0.0.1:3000`** (mis. `next start -H 127.0.0.1 -p 3000`, atau `HOSTNAME=127.0.0.1` untuk output standalone). Backend Go hanya mempercayai `X-Forwarded-For` dari koneksi loopback dan membacanya dari kanan, melewati hop lokal. Kalau port 3000 terbuka ke internet, siapa pun bisa melewati Caddy dan mengirim `X-Forwarded-For` palsu lewat Next.js. Cek dari luar server: `curl -m 5 http://IP_VPS:3000` harus gagal tersambung.
 
 **Cara uji** (wajib, sebelum membuka program affiliator ke publik):
 1. Dari HP dengan data seluler (bukan WiFi server), buka `https://klikumroh.id/?aff=KODE_AFFILIATOR_UJI`.

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -92,18 +91,7 @@ func (h *ProspectHandler) RecordReferralClick(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip != "" {
-		parts := strings.Split(ip, ",")
-		ip = strings.TrimSpace(parts[0])
-	} else {
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err == nil {
-			ip = host
-		} else {
-			ip = r.RemoteAddr
-		}
-	}
+	ip := middleware.ClientIP(r)
 
 	if err := h.prospectService.RecordReferralClick(r.Context(), tenantID, trimmedCode, ip); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
