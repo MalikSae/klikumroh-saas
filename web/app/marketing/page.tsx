@@ -1,18 +1,14 @@
-import React from 'react';
-import { MarketingLandingView } from '../../components/marketing/MarketingLandingView';
-import { fetchPricingPlans, toPlanTiers } from '../../lib/pricingPlans';
+import { permanentRedirect } from 'next/navigation';
 
-// ISR: the HTML (seen by visitors before JS and by search engines) carries the real prices from the
-// super admin, refreshed every 5 minutes, instead of hardcoded fallback prices.
-export const revalidate = 300;
+type SearchParams = Record<string, string | string[] | undefined>;
 
-export const metadata = {
-  title: 'KlikUmroh.id — Platform Agen & Affiliate Khusus Travel Umroh',
-  description:
-    'Bangun pasukan agen umroh dan lipatgandakan closing jamaah. Rekrut dan aktifkan agen dengan tools marketing siap pakai, manajemen prospek terintegrasi, dan website whitelabel resmi.',
-};
-
-export default async function MarketingPage() {
-  const plans = toPlanTiers(await fetchPricingPlans());
-  return <MarketingLandingView plans={plans} />;
+export default async function MarketingRedirect({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) {
+      query.append(key, item);
+    }
+  }
+  const suffix = query.toString();
+  permanentRedirect(suffix ? `/?${suffix}` : '/');
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { ScrollReveal } from './ScrollReveal';
+
 import styles from './MarketingEcosystemBar.module.css';
 
 interface EcosystemLogo {
@@ -57,42 +57,20 @@ const ECOSYSTEM_LOGOS: EcosystemLogo[] = [
   },
 ];
 
-export const MarketingEcosystemBar: React.FC = () => {
-  return (
-    <section className={styles.section} aria-label="Kompatibilitas Ekosistem Travel Umroh">
-      <div className={styles.container}>
-        <ScrollReveal animation="fade-up">
-          <div className={styles.header}>
-            <span className={styles.eyebrow}>KOMPATIBILITAS EKOSISTEM</span>
-            <h2 className={styles.headline}>
-              Dirancang Selaras untuk Ekosistem Biro Travel Berizin Resmi
-            </h2>
-            <p className={styles.subheadline}>
-              KlikUmroh berfokus pada aktivasi agen dan akuisisi jamaah, siap mendukung operasional biro perjalanan umroh (PPIU) anggota asosiasi resmi di Indonesia.
-            </p>
-          </div>
-        </ScrollReveal>
+const V3_ECOSYSTEM_LOGOS: EcosystemLogo[] = [
+  ...ECOSYSTEM_LOGOS,
+  { name: 'Nusuk Umrah', src: '/images/ecosystem/clean/nusuk-umrah.png', width: 1024, height: 285 },
+];
 
-        <div className={styles.logoGrid}>
-          {ECOSYSTEM_LOGOS.map((logo, idx) => (
-            <ScrollReveal
-              key={logo.name}
-              as="div"
-              className={styles.logoItem}
-              animation="fade-up"
-              delay={idx * 60}
-            >
-              <Image
-                src={logo.src}
-                alt={logo.name}
-                width={logo.width}
-                height={logo.height}
-                className={styles.logoImg}
-              />
-            </ScrollReveal>
-          ))}
+export function MarketingEcosystemBar() {
+  return (
+    <section className={styles.logosSection} aria-label="Ekosistem travel umroh di Indonesia">
+      <div className={styles.logosContainer}>
+        <p className={styles.logosCaption}>Ekosistem travel umroh di Indonesia</p>
+        <div className={styles.compactLogoGrid}>
+          {V3_ECOSYSTEM_LOGOS.map(logo => <Image key={logo.name} src={logo.src} alt={logo.name} width={logo.width} height={logo.height} />)}
         </div>
       </div>
     </section>
   );
-};
+}

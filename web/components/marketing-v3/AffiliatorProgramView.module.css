@@ -1,0 +1,22 @@
+/* Affiliator KlikUmroh program page. Shares the marketing V3 layout (MarketingV3View.module.css); tokens only. */
+.hero { max-width: var(--km-v3-hero-copy-width); text-align: center; }
+.hero h1 { max-width: var(--km-v3-hero-title-width); margin-inline: auto; }
+.heroActions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--km-v2-space-4); margin-top: var(--km-v2-space-6); }
+
+.band { background: var(--km-surface-alt); border-block: var(--km-v2-border-width) solid var(--km-line); }
+.copy { max-width: var(--km-v2-copy-width); }
+
+.steps { display: grid; gap: var(--km-v2-space-5); margin: var(--km-v2-space-8) 0 0; padding-left: var(--km-v2-space-5); }
+.steps li, .rules li, .terms li { font-size: var(--km-v2-type-body); line-height: var(--km-v2-leading-relaxed); color: var(--km-neutral-700); }
+.steps li::marker, .terms li::marker { font-weight: 600; color: var(--km-ink); }
+.steps b { color: var(--km-ink); font-weight: 600; }
+
+.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--km-v3-affiliator-figure-min-width), 1fr)); gap: var(--km-v2-space-5); margin: var(--km-v2-space-8) 0; padding-block: var(--km-v2-space-5); border-block: var(--km-v2-border-width) solid var(--km-line); }
+.figures dt { font-size: var(--km-v2-type-label); color: var(--km-muted); }
+.figures dd { margin: var(--km-v2-space-1) 0 0; font-family: var(--tw-font-heading), sans-serif; font-size: var(--km-v2-type-subhead); font-weight: 600; color: var(--km-ink); }
+
+.rules, .terms { display: grid; gap: var(--km-v2-space-3); margin: var(--km-v2-space-5) 0 0; padding-left: var(--km-v2-space-5); }
+.note { margin-top: var(--km-v2-space-4); }
+
+.signup { display: flex; flex-direction: column; align-items: flex-start; gap: var(--km-v2-space-3); margin-top: var(--km-v2-space-8); padding-top: var(--km-v2-space-6); border-top: var(--km-v2-border-width) solid var(--km-line); }
+.signup a:not([class]) { color: var(--km-ink); text-decoration: underline; text-underline-offset: var(--km-v2-space-1); }
