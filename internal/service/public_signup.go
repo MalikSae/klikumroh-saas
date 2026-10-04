@@ -71,6 +71,8 @@ type TenantSignupRequest struct {
 	AdminWhatsApp string `json:"admin_whatsapp,omitempty"`
 	PlanID        uint64 `json:"plan_id"`
 	CouponCode    string `json:"coupon_code,omitempty"`
+	// AffiliateCode is the Affiliator KlikUmroh link code (cookie ku_aff), used when no affiliator coupon is applied.
+	AffiliateCode string `json:"affiliate_code,omitempty"`
 }
 
 // TenantSignupResult represents the output of a successful self-registration.
@@ -100,6 +102,13 @@ type publicSignupService struct {
 	pvRepo        repository.PaymentVerificationRepository
 	domainRepo    repository.DomainRepository
 	settingsRepo  repository.PlatformSettingsRepository
+	affiliators   AffiliatorAttributor
+}
+
+// SetAffiliatorAttributor enables linking new travels to the affiliator that brought them. Wired in main
+// via a type assertion.
+func (s *publicSignupService) SetAffiliatorAttributor(a AffiliatorAttributor) {
+	s.affiliators = a
 }
 
 // SetPlatformSettingsRepo enables the check that Terms/Privacy URLs are configured before accepting signups.
@@ -335,6 +344,18 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 			Status:   "active",
 		}
 		_ = s.domainRepo.Create(ctx, tenant.ID, defaultSubdomain)
+	}
+
+	if s.affiliators != nil {
+		wa := ""
+		if whatsappPtr != nil {
+			wa = *whatsappPtr
+		}
+		coupon := ""
+		if couponCodePtr != nil {
+			coupon = *couponCodePtr
+		}
+		s.affiliators.AttributeSignup(ctx, tenant.ID, coupon, req.AffiliateCode, adminEmail, wa)
 	}
 
 	return &TenantSignupResult{

@@ -10,17 +10,19 @@ import (
 
 // Coupon represents a discount coupon platform-wide.
 type Coupon struct {
-	ID                 uint64     `json:"id"`
-	Code               string     `json:"code"`
-	DiscountPercentage float64    `json:"discount_percentage"`
-	PlanID             *uint64    `json:"plan_id"`
-	PlanName           *string    `json:"plan_name,omitempty"`
-	MaxUses            *int       `json:"max_uses"`
-	UsedCount          int        `json:"used_count"`
-	ExpiresAt          *time.Time `json:"expires_at"`
-	Status             string     `json:"status"` // 'active' | 'inactive'
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	ID                 uint64  `json:"id"`
+	Code               string  `json:"code"`
+	DiscountPercentage float64 `json:"discount_percentage"`
+	PlanID             *uint64 `json:"plan_id"`
+	PlanName           *string `json:"plan_name,omitempty"`
+	// AffiliatorID is set on an Affiliator KlikUmroh coupon (owned by that affiliator).
+	AffiliatorID *uint64    `json:"affiliator_id,omitempty"`
+	MaxUses      *int       `json:"max_uses"`
+	UsedCount    int        `json:"used_count"`
+	ExpiresAt    *time.Time `json:"expires_at"`
+	Status       string     `json:"status"` // 'active' | 'inactive'
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 // CouponRedemption tracks usage of coupons by tenants.
@@ -53,9 +55,10 @@ func NewCouponRepository(db *sql.DB) CouponRepository {
 
 func (r *mysqlCouponRepository) List(ctx context.Context) ([]Coupon, error) {
 	query := `
-		SELECT c.id, c.code, c.discount_percentage, c.plan_id, p.name, c.max_uses, c.used_count, c.expires_at, c.status, c.created_at, c.updated_at
+		SELECT c.id, c.code, c.discount_percentage, c.plan_id, p.name, c.max_uses, c.used_count, c.expires_at, c.status, c.created_at, c.updated_at, c.affiliator_id
 		FROM coupons c
 		LEFT JOIN pricing_plans p ON c.plan_id = p.id
+		WHERE c.affiliator_id IS NULL
 		ORDER BY c.id DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query)
@@ -71,10 +74,11 @@ func (r *mysqlCouponRepository) List(ctx context.Context) ([]Coupon, error) {
 		var planName sql.NullString
 		var maxUses sql.NullInt64
 		var expiresAt sql.NullTime
+		var affiliatorID sql.NullInt64
 
 		if err := rows.Scan(
 			&c.ID, &c.Code, &c.DiscountPercentage, &planID, &planName, &maxUses, &c.UsedCount,
-			&expiresAt, &c.Status, &c.CreatedAt, &c.UpdatedAt,
+			&expiresAt, &c.Status, &c.CreatedAt, &c.UpdatedAt, &affiliatorID,
 		); err != nil {
 			return nil, err
 		}
@@ -93,6 +97,10 @@ func (r *mysqlCouponRepository) List(ctx context.Context) ([]Coupon, error) {
 		if expiresAt.Valid {
 			c.ExpiresAt = &expiresAt.Time
 		}
+		if affiliatorID.Valid {
+			v := uint64(affiliatorID.Int64)
+			c.AffiliatorID = &v
+		}
 
 		coupons = append(coupons, c)
 	}
@@ -106,7 +114,7 @@ func (r *mysqlCouponRepository) List(ctx context.Context) ([]Coupon, error) {
 
 func (r *mysqlCouponRepository) GetByID(ctx context.Context, id uint64) (*Coupon, error) {
 	query := `
-		SELECT c.id, c.code, c.discount_percentage, c.plan_id, p.name, c.max_uses, c.used_count, c.expires_at, c.status, c.created_at, c.updated_at
+		SELECT c.id, c.code, c.discount_percentage, c.plan_id, p.name, c.max_uses, c.used_count, c.expires_at, c.status, c.created_at, c.updated_at, c.affiliator_id
 		FROM coupons c
 		LEFT JOIN pricing_plans p ON c.plan_id = p.id
 		WHERE c.id = ?
@@ -116,10 +124,11 @@ func (r *mysqlCouponRepository) GetByID(ctx context.Context, id uint64) (*Coupon
 	var planName sql.NullString
 	var maxUses sql.NullInt64
 	var expiresAt sql.NullTime
+	var affiliatorID sql.NullInt64
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&c.ID, &c.Code, &c.DiscountPercentage, &planID, &planName, &maxUses, &c.UsedCount,
-		&expiresAt, &c.Status, &c.CreatedAt, &c.UpdatedAt,
+		&expiresAt, &c.Status, &c.CreatedAt, &c.UpdatedAt, &affiliatorID,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -141,6 +150,10 @@ func (r *mysqlCouponRepository) GetByID(ctx context.Context, id uint64) (*Coupon
 	}
 	if expiresAt.Valid {
 		c.ExpiresAt = &expiresAt.Time
+	}
+	if affiliatorID.Valid {
+		v := uint64(affiliatorID.Int64)
+		c.AffiliatorID = &v
 	}
 
 	return &c, nil
@@ -196,7 +209,7 @@ func (r *mysqlCouponRepository) Create(ctx context.Context, coupon *Coupon) erro
 
 func (r *mysqlCouponRepository) FindByCode(ctx context.Context, code string) (*Coupon, error) {
 	query := `
-		SELECT c.id, c.code, c.discount_percentage, c.plan_id, p.name, c.max_uses, c.used_count, c.expires_at, c.status, c.created_at, c.updated_at
+		SELECT c.id, c.code, c.discount_percentage, c.plan_id, p.name, c.max_uses, c.used_count, c.expires_at, c.status, c.created_at, c.updated_at, c.affiliator_id
 		FROM coupons c
 		LEFT JOIN pricing_plans p ON c.plan_id = p.id
 		WHERE c.code = ?
@@ -206,11 +219,12 @@ func (r *mysqlCouponRepository) FindByCode(ctx context.Context, code string) (*C
 	var planName sql.NullString
 	var maxUses sql.NullInt64
 	var expiresAt sql.NullTime
+	var affiliatorID sql.NullInt64
 
 	cleanCode := strings.ToUpper(strings.TrimSpace(code))
 	err := r.db.QueryRowContext(ctx, query, cleanCode).Scan(
 		&c.ID, &c.Code, &c.DiscountPercentage, &planID, &planName, &maxUses, &c.UsedCount,
-		&expiresAt, &c.Status, &c.CreatedAt, &c.UpdatedAt,
+		&expiresAt, &c.Status, &c.CreatedAt, &c.UpdatedAt, &affiliatorID,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -232,6 +246,10 @@ func (r *mysqlCouponRepository) FindByCode(ctx context.Context, code string) (*C
 	}
 	if expiresAt.Valid {
 		c.ExpiresAt = &expiresAt.Time
+	}
+	if affiliatorID.Valid {
+		v := uint64(affiliatorID.Int64)
+		c.AffiliatorID = &v
 	}
 
 	return &c, nil

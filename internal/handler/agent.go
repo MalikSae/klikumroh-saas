@@ -44,6 +44,7 @@ func (h *AgentHandler) RegisterPublicRoutes(r chi.Router) {
 	r.Get("/api/public/consultant", h.GetPublicConsultant)
 	r.With(h.signupLimiter).Post("/api/public/agents/register", h.Register)
 	r.With(h.loginLimiter).Post("/api/agent/login", h.Login)
+	r.With(h.loginLimiter).Post("/api/agent/demo-login", h.DemoLogin)
 }
 
 // RegisterAgentProtectedRoutes mounts protected endpoints for authenticated agents.
@@ -82,6 +83,26 @@ func (h *AgentHandler) RegisterDashboardRoutes(r chi.Router) {
 	r.Patch("/api/dashboard/payout-requests/{id}/approve", h.ApprovePayoutRequest)
 	r.Patch("/api/dashboard/payout-requests/{id}/paid", h.MarkPayoutRequestPaid)
 	r.Patch("/api/dashboard/payout-requests/{id}/reject", h.RejectPayoutRequest)
+}
+
+// POST /api/agent/demo-login (on the travel's host)
+// "Masuk sebagai agen demo" on the demo travel's portal login. 404 on any travel not marked is_demo.
+func (h *AgentHandler) DemoLogin(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant not found"})
+		return
+	}
+	res, err := h.agentService.DemoLogin(r.Context(), tenantID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "demo belum tersedia"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
+	respondJSON(w, http.StatusOK, res)
 }
 
 // GET /api/public/consultant?ref=CODE

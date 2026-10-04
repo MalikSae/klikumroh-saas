@@ -145,10 +145,57 @@ func TestAccessLog_ImpersonationFlowIsAuditedAndTenantIsolated(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200 impersonate, got %d: %s", w.Code, w.Body.String())
 	}
-	var res struct {
-		Token string `json:"token"`
+	// The token is never in the response: the staff browser gets a one-time code bound to its cookie and
+	// trades it at /api/auth/handoff/exchange (same flow the dashboard uses).
+	var started map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &started)
+	if _, leaked := started["token"]; leaked {
+		t.Fatalf("SECURITY VIOLATION: impersonation response exposes the session token")
 	}
-	_ = json.Unmarshal(w.Body.Bytes(), &res)
+	code, _ := started["handoff_code"].(string)
+	var bindingCookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "ku_handoff" {
+			bindingCookie = c
+		}
+	}
+	if code == "" || bindingCookie == nil {
+		t.Fatalf("expected handoff_code and ku_handoff cookie, got body=%s", w.Body.String())
+	}
+
+	authRouter := chi.NewRouter()
+	handler.NewAuthHandler(nil).RegisterRoutes(authRouter)
+	exchange := func(cookie *http.Cookie) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]string{"code": code})
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/handoff/exchange", bytes.NewBuffer(body))
+		if cookie != nil {
+			req.AddCookie(&http.Cookie{Name: cookie.Name, Value: cookie.Value})
+		}
+		rr := httptest.NewRecorder()
+		authRouter.ServeHTTP(rr, req)
+		return rr
+	}
+	if rr := exchange(nil); rr.Code != http.StatusUnauthorized {
+		t.Fatalf("SECURITY VIOLATION: impersonation code redeemed without the staff browser cookie (%d)", rr.Code)
+	}
+	ex := exchange(bindingCookie)
+	if ex.Code != http.StatusOK {
+		t.Fatalf("expected 200 exchange, got %d: %s", ex.Code, ex.Body.String())
+	}
+	var res struct {
+		Token        string `json:"token"`
+		Impersonated bool   `json:"impersonated"`
+		User         struct {
+			TenantID uint64 `json:"tenant_id"`
+		} `json:"user"`
+	}
+	_ = json.Unmarshal(ex.Body.Bytes(), &res)
+	if !res.Impersonated || res.User.TenantID != 53 {
+		t.Fatalf("expected impersonated session for tenant 53, got %s", ex.Body.String())
+	}
+	if rr := exchange(bindingCookie); rr.Code != http.StatusUnauthorized {
+		t.Fatalf("expected impersonation code to be single-use, got %d", rr.Code)
+	}
 
 	session := env.sessionRepo.sessions[res.Token]
 	if session == nil || session.ImpersonatedByStaffID == nil || *session.ImpersonatedByStaffID != 1 {

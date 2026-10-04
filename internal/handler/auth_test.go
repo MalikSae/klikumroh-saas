@@ -32,7 +32,13 @@ func (m *mockAdminUserRepo) GetByID(ctx context.Context, tenantID uint64, id uin
 }
 
 func (m *mockAdminUserRepo) ListByTenant(ctx context.Context, tenantID uint64) ([]repository.AdminUser, error) {
-	return nil, nil
+	var out []repository.AdminUser
+	for _, u := range m.users {
+		if u.TenantID == tenantID {
+			out = append(out, *u)
+		}
+	}
+	return out, nil
 }
 
 func (m *mockAdminUserRepo) Update(ctx context.Context, tenantID uint64, user *repository.AdminUser) error {

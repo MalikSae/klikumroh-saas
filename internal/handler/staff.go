@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -244,7 +245,52 @@ func (h *StaffHandler) ImpersonateTenant(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, res)
+	// The staff browser opens the travel dashboard with a one-time code (see auth_handoff.go); the
+	// impersonation token itself is not sent back, so it never lands in a URL.
+	tenantName, tenantStatus := "", "active"
+	if res.Tenant != nil {
+		tenantName = res.Tenant.Name
+		if res.Tenant.Status != "" {
+			tenantStatus = res.Tenant.Status
+		}
+	}
+	code, err := issueHandoff(w, r, handoffPayload{
+		LoginResult: service.LoginResult{
+			Token:        res.Token,
+			ExpiresAt:    res.ExpiresAt,
+			TenantStatus: tenantStatus,
+			User: service.AdminUserInfo{
+				ID:         res.AdminUser.ID,
+				TenantID:   res.TenantID,
+				TenantName: tenantName,
+				Email:      res.AdminUser.Email,
+				Name:       res.AdminUser.Name,
+				Status:     res.AdminUser.Status,
+			},
+		},
+		Impersonated: true,
+	})
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, impersonateTenantResponse{
+		HandoffCode: code,
+		ExpiresAt:   res.ExpiresAt,
+		TenantID:    res.TenantID,
+		Tenant:      res.Tenant,
+		AdminUser:   res.AdminUser,
+	})
+}
+
+// impersonateTenantResponse is TenantImpersonationResult without the session token.
+type impersonateTenantResponse struct {
+	HandoffCode string                       `json:"handoff_code"`
+	ExpiresAt   time.Time                    `json:"expires_at"`
+	TenantID    uint64                       `json:"tenant_id"`
+	Tenant      *repository.Tenant           `json:"tenant"`
+	AdminUser   service.StaffTenantAdminItem `json:"admin_user"`
 }
 
 type updateTenantSubscriptionRequest struct {

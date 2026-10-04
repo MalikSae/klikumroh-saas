@@ -158,6 +158,11 @@ func (h *CouponHandler) ValidateTravel(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
+	// Renewal in the travel dashboard: affiliator coupons only apply to a new travel's signup.
+	if coupon.AffiliatorID != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrAffiliatorCouponSignupOnly.Error()})
+		return
+	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"valid":               true,

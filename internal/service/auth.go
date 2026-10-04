@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -37,6 +38,9 @@ type LoginResult struct {
 // AuthService defines the authentication business logic.
 type AuthService interface {
 	Login(ctx context.Context, email, password string) (*LoginResult, error)
+	// DemoLogin signs in as the admin of the demo travel with the given slug, without a password. Only a
+	// tenant marked is_demo qualifies (demo.klikumroh.id "Coba demo" button); anything else is ErrNotFound.
+	DemoLogin(ctx context.Context, slug string) (*LoginResult, error)
 	Logout(ctx context.Context, token string) error
 }
 
@@ -83,6 +87,35 @@ func (s *authService) Login(ctx context.Context, email, password string) (*Login
 		return nil, ErrInvalidCredentials
 	}
 
+	return s.startSession(ctx, user)
+}
+
+// DemoLogin: see AuthService. The session is the same as a password login; what the shared demo account
+// may change is limited by middleware.DemoGuard.
+func (s *authService) DemoLogin(ctx context.Context, slug string) (*LoginResult, error) {
+	if s.tenantRepo == nil || strings.TrimSpace(slug) == "" {
+		return nil, repository.ErrNotFound
+	}
+	tenant, err := s.tenantRepo.GetBySlug(ctx, strings.TrimSpace(slug))
+	if err != nil {
+		return nil, err
+	}
+	if tenant == nil || !tenant.IsDemo {
+		return nil, repository.ErrNotFound
+	}
+	users, err := s.adminUserRepo.ListByTenant(ctx, tenant.ID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range users {
+		if users[i].Status == "active" {
+			return s.startSession(ctx, &users[i])
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+
+func (s *authService) startSession(ctx context.Context, user *repository.AdminUser) (*LoginResult, error) {
 	// Generate 32-byte secure random session token encoded in hex (64 chars)
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {

@@ -465,11 +465,14 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 	}
 
 	now := time.Now()
-	metrics := &PlatformOverviewMetrics{
-		TotalTenants: len(allTenants),
-	}
+	metrics := &PlatformOverviewMetrics{}
 
 	for _, t := range allTenants {
+		// The demo travel is a showcase, not a customer: no tenant count, revenue, prospects or agents.
+		if t.IsDemo {
+			continue
+		}
+		metrics.TotalTenants++
 		switch t.SubscriptionStatus {
 		case "active":
 			metrics.ActiveTenants++

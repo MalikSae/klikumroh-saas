@@ -42,6 +42,8 @@ type StaffTenantItem struct {
 	CustomDomain          *string    `json:"custom_domain"`
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at"`
 	CreatedAt             time.Time  `json:"created_at"`
+	// IsDemo: the showcase travel (demo.klikumroh.id); left out of the platform metrics.
+	IsDemo bool `json:"is_demo"`
 }
 
 // StaffRepository defines access methods for staff users, sessions, and cross-tenant staff queries.
@@ -220,7 +222,8 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 			p.name AS current_plan, 
 			t.subscription_expires_at, 
 			t.created_at,
-			(SELECT hostname FROM domains WHERE tenant_id = t.id AND type = 'custom' LIMIT 1) AS custom_domain
+			(SELECT hostname FROM domains WHERE tenant_id = t.id AND type = 'custom' LIMIT 1) AS custom_domain,
+			t.is_demo
 		FROM tenants t
 		LEFT JOIN pricing_plans p ON t.current_plan_id = p.id
 		ORDER BY t.created_at DESC
@@ -255,6 +258,7 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 			&subExpires,
 			&item.CreatedAt,
 			&customDomain,
+			&item.IsDemo,
 		); err != nil {
 			return nil, err
 		}
@@ -274,8 +278,10 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 			item.CustomDomain = &customDomain.String
 		}
 
-		// Calculate subscription status
-		if item.Status == "pending" {
+		// Calculate subscription status (the demo travel has its own status: never billed)
+		if item.IsDemo {
+			item.SubscriptionStatus = "demo"
+		} else if item.Status == "pending" {
 			item.SubscriptionStatus = "pending"
 		} else if item.Status == "suspended" || item.Status == "inactive" {
 			item.SubscriptionStatus = "suspended"
@@ -371,4 +377,3 @@ func (r *mysqlStaffRepository) Update(ctx context.Context, user *StaffUser) erro
 
 	return nil
 }
-

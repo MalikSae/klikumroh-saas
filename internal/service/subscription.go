@@ -75,6 +75,13 @@ type subscriptionService struct {
 	admins    repository.AdminUserRepository
 	staff     StaffLister
 	reminders repository.SubscriptionReminderRepository
+	// Affiliator KlikUmroh commission on approval (optional, see SetAffiliatorRecorder).
+	affiliators AffiliatorCommissionRecorder
+}
+
+// SetAffiliatorRecorder enables affiliator commissions on payment approval. Wired in main via a type assertion.
+func (s *subscriptionService) SetAffiliatorRecorder(r AffiliatorCommissionRecorder) {
+	s.affiliators = r
 }
 
 // NewSubscriptionService creates a new SubscriptionService.
@@ -205,6 +212,10 @@ func (s *subscriptionService) CreateRenewalRequest(
 		coupon, err := s.couponService.Validate(ctx, code, planID)
 		if err != nil {
 			return nil, err
+		}
+		// An affiliator coupon only discounts a new travel's first payment (signup), not renewals.
+		if coupon.AffiliatorID != nil {
+			return nil, ErrAffiliatorCouponSignupOnly
 		}
 		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
 		discountedAmount = math.Round(baseAmount - discount)
@@ -447,6 +458,11 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 			_ = s.couponRepo.IncrementUsedCount(ctx, coupon.ID)
 			_ = s.couponRepo.RecordRedemption(ctx, coupon.ID, pv.TenantID)
 		}
+	}
+
+	// Commission for the affiliator that brought this travel (logged on failure, never blocks the approval).
+	if s.affiliators != nil {
+		s.affiliators.RecordCommission(ctx, pv, now)
 	}
 
 	title, body := "Pembayaran disetujui", fmt.Sprintf("Paket %s aktif hingga %s. Terima kasih telah memperpanjang langganan KlikUmroh.", plan.Name, formatDateID(newExpiry))

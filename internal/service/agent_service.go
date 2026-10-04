@@ -245,6 +245,9 @@ type AgentService interface {
 	GetPublicConsultant(ctx context.Context, tenantID uint64, referralCode string) (*PublicConsultant, error)
 	Register(ctx context.Context, tenantID uint64, req *RegisterAgentRequest) (*AgentAuthResult, error)
 	Login(ctx context.Context, tenantID uint64, email, password string) (*AgentAuthResult, error)
+	// DemoLogin signs in as the demo agent account of the demo travel, without a password. ErrNotFound
+	// when the travel is not marked is_demo.
+	DemoLogin(ctx context.Context, tenantID uint64) (*AgentAuthResult, error)
 	Logout(ctx context.Context, token string) error
 	GetProfile(ctx context.Context, tenantID uint64, agentID uint64) (*AgentProfileResult, error)
 	UpdateProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateProfileRequest) (*AgentProfileResult, error)
@@ -533,6 +536,34 @@ func (s *agentService) Login(ctx context.Context, tenantID uint64, email, passwo
 		ExpiresAt: expiresAt,
 		Agent:     profile,
 	}, nil
+}
+
+// DemoLogin: see AgentService. The demo agent is the active agent of the demo travel that has a password
+// (cmd/seed-demo gives a password to that one account only).
+func (s *agentService) DemoLogin(ctx context.Context, tenantID uint64) (*AgentAuthResult, error) {
+	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	if tenant == nil || !tenant.IsDemo {
+		return nil, repository.ErrNotFound
+	}
+	agents, err := s.agentRepo.List(ctx, tenantID, "active")
+	if err != nil {
+		return nil, err
+	}
+	for i := range agents {
+		a := &agents[i]
+		if a.PasswordHash == nil || *a.PasswordHash == "" {
+			continue
+		}
+		sessionToken, expiresAt, err := s.createSession(ctx, a.ID)
+		if err != nil {
+			return nil, err
+		}
+		return &AgentAuthResult{Token: sessionToken, ExpiresAt: expiresAt, Agent: s.buildProfile(a, tenant)}, nil
+	}
+	return nil, repository.ErrNotFound
 }
 
 func (s *agentService) Logout(ctx context.Context, token string) error {

@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"klikumroh/internal/middleware"
+	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
 )
 
@@ -38,7 +40,28 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 // RegisterRoutes mounts the auth routes onto the chi router.
 func (h *AuthHandler) RegisterRoutes(r chi.Router) {
 	r.With(h.loginLimiter).Post("/api/auth/login", h.Login)
+	r.With(h.loginLimiter).Post("/api/auth/demo-login", h.DemoLogin)
 	r.Post("/api/auth/logout", h.Logout)
+	r.With(h.loginLimiter).Post("/api/auth/handoff/exchange", h.ExchangeHandoff)
+}
+
+// DemoLogin handles POST /api/auth/demo-login: the "Coba demo" button signs in as the admin of the demo
+// travel (slug DEMO_SLUG, default "demo"). 404 when there is no travel marked is_demo with that slug.
+func (h *AuthHandler) DemoLogin(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimSpace(os.Getenv("DEMO_SLUG"))
+	if slug == "" {
+		slug = "demo"
+	}
+	res, err := h.authService.DemoLogin(r.Context(), slug)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "demo belum tersedia"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
+	h.respondLogin(w, r, res)
 }
 
 // Login handles POST /api/auth/login.
@@ -77,7 +100,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if h.loginFailures != nil {
 		h.loginFailures.Reset(key)
 	}
-	respondJSON(w, http.StatusOK, res)
+	h.respondLogin(w, r, res)
 }
 
 // Logout handles POST /api/auth/logout.

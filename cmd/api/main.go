@@ -215,6 +215,21 @@ func main() {
 
 	publicSignupService := service.NewPublicSignupService(tenantRepo, adminUserRepo, pricingPlanRepo, couponService, pvRepo, domainRepo)
 	publicSignupService.SetPlatformSettingsRepo(platformSettingsRepo)
+
+	// Affiliator KlikUmroh: attribution at signup, commission on payment approval, portal, staff management.
+	affiliatorRepo := repository.NewAffiliatorRepository(db)
+	affiliatorService := service.NewAffiliatorService(affiliatorRepo, couponRepo, pvRepo, platformSettingsRepo)
+	affiliatorHandler := handler.NewAffiliatorHandler(affiliatorService)
+	if a, ok := publicSignupService.(interface {
+		SetAffiliatorAttributor(service.AffiliatorAttributor)
+	}); ok {
+		a.SetAffiliatorAttributor(affiliatorService)
+	}
+	if rec, ok := subscriptionService.(interface {
+		SetAffiliatorRecorder(service.AffiliatorCommissionRecorder)
+	}); ok {
+		rec.SetAffiliatorRecorder(affiliatorService)
+	}
 	publicSignupHandler := handler.NewPublicSignupHandler(publicSignupService, pricingPlanService, couponService)
 
 	port := os.Getenv("PORT")
@@ -250,6 +265,13 @@ func main() {
 	// Public Marketing & Signup Routes
 	publicSignupHandler.RegisterPublicRoutes(r)
 	r.Get("/api/public/platform-settings", platformSettingsHandler.GetPublic)
+
+	// Affiliator KlikUmroh portal (own login and sessions, never a travel or staff token)
+	affiliatorHandler.RegisterPublicRoutes(r)
+	r.Group(func(affiliatorProtected chi.Router) {
+		affiliatorProtected.Use(appMiddleware.AffiliatorAuthMiddleware(affiliatorRepo))
+		affiliatorHandler.RegisterProtectedRoutes(affiliatorProtected)
+	})
 
 	// Protected Staff (Internal / Master Admin) API Routes
 	r.Group(func(staffProtected chi.Router) {
@@ -289,6 +311,9 @@ func main() {
 		// Staff Platform Settings
 		staffProtected.Get("/api/staff/platform-settings", platformSettingsHandler.GetStaff)
 		staffProtected.Put("/api/staff/platform-settings", platformSettingsHandler.UpdateStaff)
+
+		// Staff Affiliator KlikUmroh
+		affiliatorHandler.RegisterStaffRoutes(staffProtected)
 
 		// Staff Notifications
 		notifHandler.RegisterStaffRoutes(staffProtected)

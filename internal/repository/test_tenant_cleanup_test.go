@@ -55,6 +55,7 @@ func purgeTestTenant(db *sql.DB, tenantID uint64) error {
 		"DELETE FROM admin_users WHERE tenant_id = ?",
 		"DELETE FROM domains WHERE tenant_id = ?",
 		"DELETE FROM coupon_redemptions WHERE tenant_id = ?",
+		"DELETE FROM affiliator_commissions WHERE tenant_id = ?",
 		"DELETE FROM payment_verifications WHERE tenant_id = ?",
 		"DELETE FROM tenant_banners WHERE tenant_id = ?",
 		"DELETE FROM tenant_faqs WHERE tenant_id = ?",
