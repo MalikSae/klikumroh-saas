@@ -8,6 +8,126 @@ Dokumen ini memuat panduan langkah manual yang **HARUS dilakukan sendiri oleh pe
 
 ---
 
+## 0. Build & Urutan Deploy
+
+Tiga bagian yang dijalankan di VPS, semuanya hanya didengar di loopback dan di belakang Caddy:
+
+| Bagian | Bentuk | Listen | Dijalankan sebagai |
+|---|---|---|---|
+| Backend Go (`cmd/api`) | binary `klikumroh-api` | `127.0.0.1:8080` | service (systemd / Supervisor aaPanel) |
+| Web publik Next.js (`web/`) | output standalone `server.js` | `127.0.0.1:3000` | aaPanel Node.js Project |
+| Dashboard React (`dashboard/`) | file statis `dist/` | — (disajikan Caddy) | Bagian 2a |
+
+### 0.1 Tata letak di server
+
+Gunakan satu checkout repo, misal `/www/wwwroot/klikumroh`. Backend **wajib** dijalankan dengan working directory = root repo, karena path berikut relatif terhadapnya:
+- `.env` (dibaca `godotenv`)
+- `migrations/` (dibaca `klikumroh-migrate`)
+- `uploads/` (gambar publik) dan `storage/private/` (bukti transfer, tidak pernah disajikan publik)
+- `demo/fixtures.json`, `demo/assets/` (dibaca `klikumroh-seed-demo`)
+
+`uploads/` dan `storage/` berisi data pengguna: ikut di-backup, jangan pernah dihapus saat deploy, dan tidak ada di git.
+
+### 0.2 Environment produksi
+
+`.env` di root repo diisi **manual oleh pemilik produk** (AGENTS.md 3.2). Acuan nama variabel: `.env.example`.
+
+Backend (`.env`):
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`: user MySQL khusus aplikasi, bukan `root`.
+- `HOST=127.0.0.1` (atau kosong; backend menolak start di alamat non-loopback), `PORT=8080`.
+- `APP_ENCRYPTION_KEY`: Bagian 3a. Simpan cadangannya; kalau hilang, token Meta yang tersimpan tidak bisa dibaca.
+- `PLATFORM_IPS`: Bagian 4a. `AUTH_COOKIE_DOMAIN` hanya bila domain platform bukan `klikumroh.id`.
+- `DEMO_*`: Bagian 5. `META_GRAPH_VERSION` opsional.
+- **Jangan** isi `SEED_*` di produksi.
+
+Web Next.js (env di aaPanel Node.js Project, bukan di `.env` root):
+- `NODE_ENV=production`
+- `HOSTNAME=127.0.0.1`, `PORT=3000`: wajib loopback (Bagian 4.2a).
+- `BACKEND_INTERNAL_URL=http://127.0.0.1:8080`: **wajib diisi**. Beberapa file memakai default `http://localhost:8080`, dan di Linux `localhost` bisa resolve ke `::1` sementara backend hanya mendengar IPv4.
+- `PLATFORM_ORIGIN=https://klikumroh.id`.
+
+Dashboard: jangan isi `VITE_API_BASE` (Bagian 2a).
+
+### 0.3 Build
+
+**Backend (Go).** Pure Go, `CGO_ENABLED=0`, tidak butuh library sistem atau binary eksternal. Pilih salah satu:
+- di komputer lokal: `bash scripts/build-linux.sh` (Git Bash/Linux) atau `powershell -ExecutionPolicy Bypass -File scripts\build-linux.ps1` (Windows), lalu upload `dist/klikumroh-api`, `dist/klikumroh-migrate`, `dist/klikumroh-seed-demo` ke `bin/` di root repo server dan `chmod +x`;
+- di server (bila Go terpasang): `bash scripts/build-linux.sh`, hasil di `dist/`.
+
+**Web (Next.js), di server.** Build di VPS Linux, jangan upload hasil build Windows (dependensi native di `node_modules` berbeda per OS):
+```bash
+cd /www/wwwroot/klikumroh/web
+npm ci
+npm run build
+# server.js ada di .next/standalone/web/ (root tracing = root repo, karena web/ mengimpor ../design-tokens.json)
+cp -r public .next/standalone/web/
+mkdir -p .next/standalone/web/.next && cp -r .next/static .next/standalone/web/.next/
+```
+Di aaPanel Node.js Project: run directory `/www/wwwroot/klikumroh/web/.next/standalone/web`, entry file `server.js`, port `3000`, env sesuai 0.2. Langkah `cp` wajib diulang setiap build; tanpa itu CSS/JS dan file `public/` 404.
+
+**Dashboard (React):** Bagian 2a (`npm ci && npm run build`, salin `dist/`).
+
+### 0.3a Isian form aaPanel
+
+aaPanel hanya menjalankan dan mengawasi file yang sudah ada di disk; ia bukan alat deploy dari Git.
+
+**Go Project (backend):**
+
+| Field | Isi |
+|---|---|
+| Executable File | `/www/wwwroot/klikumroh/bin/klikumroh-api` |
+| Project Name | `klikumroh-api` |
+| Project Port | `8080` |
+| Execution Command | `/www/wwwroot/klikumroh/bin/klikumroh-api` (working directory **harus** `/www/wwwroot/klikumroh`; kalau form tidak punya field working directory, pakai `cd /www/wwwroot/klikumroh && ./bin/klikumroh-api`) |
+| Run User | user non-root yang memiliki folder repo, misal `www` |
+| Domain name | **kosongkan**. Domain ditangani Caddy; jangan biarkan aaPanel membuat vhost Nginx untuk port 8080 (backend tidak boleh terbuka ke internet). |
+
+**Node.js Project (web publik):**
+
+| Field | Isi |
+|---|---|
+| Project directory / run directory | `/www/wwwroot/klikumroh/web/.next/standalone/web` |
+| Entry file / startup file | `server.js` |
+| Project Name | `klikumroh-web` |
+| Project Port | `3000` |
+| Run User | user yang sama, misal `www` |
+| Environment variables | `NODE_ENV=production`, `HOSTNAME=127.0.0.1`, `PORT=3000`, `BACKEND_INTERNAL_URL=http://127.0.0.1:8080`, `PLATFORM_ORIGIN=https://klikumroh.id` |
+| Domain name | **kosongkan**, alasan sama: Caddy yang menerima domain. |
+
+Setelah keduanya jalan, cek dari luar server bahwa `http://IP_VPS:8080` dan `http://IP_VPS:3000` **tidak** bisa dihubungi (Bagian 3, 4.2a). Kalau aaPanel membuka port itu di firewall panel, tutup kembali.
+
+### 0.4 Urutan deploy (setiap rilis)
+
+1. `cd /www/wwwroot/klikumroh && git pull`
+2. **Backup database** dan file data:
+   ```bash
+   mysqldump --single-transaction -u <user_backup> -p <DB_NAME> > ~/backup/klikumroh-$(date +%F-%H%M).sql
+   tar czf ~/backup/klikumroh-files-$(date +%F-%H%M).tgz uploads storage
+   ```
+3. **Matikan backend** sebelum migrasi (AGENTS.md 5.1: koneksi aktif bisa menahan metadata lock dan membuat migrasi gagal setengah jalan).
+4. Migrasi dari root repo: `./bin/klikumroh-migrate up` (atau `./dist/klikumroh-migrate up`).
+   - Kalau gagal dan versi tercatat `dirty`: perbaiki penyebabnya, lalu `./bin/klikumroh-migrate force <versi_terakhir_yang_berhasil>`, lalu `up` lagi.
+   - > [!CAUTION]
+     > **Jangan pernah menjalankan `klikumroh-migrate down` di produksi.** Perintah itu membatalkan **semua** migrasi sampai nol (`m.Down()`), bukan satu langkah. Hasilnya sama dengan menghapus seluruh tabel dan data. Rollback produksi = restore backup langkah 2.
+5. Pasang binary baru dan nyalakan backend; cek `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8080/api/public/platform-settings` → `200`.
+6. Build web (0.3), lalu restart Node.js Project di aaPanel.
+7. Build dan salin dashboard (Bagian 2a).
+8. Uji asap dari luar server:
+   - `https://klikumroh.id` (landing) dan satu `https://<slug>.klikumroh.id` (website travel) tampil dengan CSS lengkap;
+   - `https://app.klikumroh.id/api/public/pricing-plans` → `200`;
+   - login dashboard travel dan super admin;
+   - uji di Bagian 2a, 4.2a, dan 4.3 bila konfigurasi Caddy/Nginx berubah.
+
+**Rollback:** checkout commit/tag sebelumnya, pasang binary lama, build ulang web/dashboard. Kalau rilis yang gagal sudah menjalankan migrasi, restore database dari backup langkah 2 (jangan `migrate down`).
+
+### 0.5 Risiko yang belum tervalidasi di lingkungan nyata
+
+Uji dua hal ini **paling awal** di sesi deploy pertama, sebelum langkah lain, supaya masalah ketahuan cepat:
+1. **Next.js standalone di Linux/aaPanel.** Sudah diuji di lokal Windows (5 Okt 2026, `node .next/standalone/web/server.js` dengan `HOSTNAME=127.0.0.1`): halaman dua travel tampil sesuai tenant masing-masing, rewrite `/api` dan `/uploads` ke backend, file `public/`, dan chunk `/_next/static` semuanya `200`. Belum pernah dijalankan di Linux maupun lewat aaPanel Node.js Project.
+2. **Nginx stream SNI + PROXY protocol (Bagian 4, 4.2a).** Belum pernah dijalankan di VPS. Kesalahan konfigurasi bisa membuat situs aaPanel lain tidak tampil, atau membuat semua pengunjung terbaca `127.0.0.1`.
+
+---
+
 ## 1. Setup DNS Zone untuk CNAME Target
 
 Agar travel mitra dapat mengarahkan custom domain mereka ke KlikUmroh, domain target CNAME harus diatur di DNS zone `klikumroh.id`:
