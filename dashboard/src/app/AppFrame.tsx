@@ -13,6 +13,7 @@ import {
   getFullImageUrl,
   getStoredTravelName,
   getStoredUser,
+  isImpersonatedSession,
   type TenantSubscriptionInfo,
 } from '../services/api';
 import { AlertTriangle } from 'lucide-react';
@@ -125,6 +126,15 @@ export const AppFrame: React.FC = () => {
   const [query, setQuery] = useState('');
   const user = getStoredUser();
   const [travelName, setTravelName] = useState(getStoredTravelName());
+  // Staff impersonation: shown for the whole session so staff never mistake it for the travel's own login.
+  const impersonated = isImpersonatedSession();
+  const endImpersonation = () => {
+    void logoutAdmin().then(() => {
+      // The tab was opened by the super admin page; close it, or fall back to the staff portal.
+      window.close();
+      window.location.href = '/internal/tenants';
+    });
+  };
   const [travelIcon, setTravelIcon] = useState<string | null>(null);
 
   const refreshTravel = React.useCallback(() => {
@@ -173,6 +183,20 @@ export const AppFrame: React.FC = () => {
   const pageNotice =
     notice && notice.tone !== 'accent' && location.pathname !== '/' && !location.pathname.startsWith('/settings') ? notice : null;
 
+  const impersonationBanner = impersonated ? (
+    <Banner
+      tone="warning"
+      icon={<AlertTriangle className="ku-icon" aria-hidden="true" />}
+      action={
+        <Button variant="ghost" size="sm" onClick={endImpersonation}>
+          Akhiri sesi
+        </Button>
+      }
+    >
+      Anda membuka dashboard {travelName || 'travel ini'} sebagai staf KlikUmroh. Setiap halaman yang dibuka tercatat di riwayat akses travel.
+    </Banner>
+  ) : null;
+
   return (
     <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub }}>
       {invoiceRoute ? (
@@ -184,7 +208,7 @@ export const AppFrame: React.FC = () => {
             </Link>
             <Link to="/settings/subscription" className="ap-invoice-back">Kembali ke langganan</Link>
           </header>
-          <main className="ap-invoice-main"><Outlet /></main>
+          <main className="ap-invoice-main">{impersonationBanner}<Outlet /></main>
         </div>
       ) : (
       <div className="ku ap">
@@ -221,6 +245,7 @@ export const AppFrame: React.FC = () => {
         </aside>
 
         <main className="ap-main">
+          {impersonationBanner}
           {sub?.is_demo && (
             <div className="ap-demo" role="note">
               <span>Akun demo KlikUmroh. Pakai untuk travel Anda sendiri?</span>

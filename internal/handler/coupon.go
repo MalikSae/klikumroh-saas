@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -26,6 +27,19 @@ type createCouponRequest struct {
 // CouponHandler handles HTTP endpoints for coupons management and validation.
 type CouponHandler struct {
 	couponService service.CouponService
+	// affiliatorCoupons decides whether a travel may use an affiliator coupon from the dashboard (only
+	// its own affiliator's, before its first approved payment). Without it, affiliator coupons are refused.
+	affiliatorCoupons AffiliatorCouponChecker
+}
+
+// AffiliatorCouponChecker is implemented by the subscription service.
+type AffiliatorCouponChecker interface {
+	AffiliatorCouponAllowedForTenant(ctx context.Context, tenantID uint64, coupon *repository.Coupon) (bool, error)
+}
+
+// SetAffiliatorCouponChecker wires the subscription service in (main.go).
+func (h *CouponHandler) SetAffiliatorCouponChecker(c AffiliatorCouponChecker) {
+	h.affiliatorCoupons = c
 }
 
 // NewCouponHandler creates a new CouponHandler instance.
@@ -134,7 +148,7 @@ func (h *CouponHandler) DeactivateStaff(w http.ResponseWriter, r *http.Request) 
 
 // ValidateTravel handles GET /api/dashboard/coupons/validate?code=...&plan_id=...
 func (h *CouponHandler) ValidateTravel(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetTenantID(r.Context())
+	tenantID, ok := middleware.GetTenantID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -164,10 +178,22 @@ func (h *CouponHandler) ValidateTravel(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
-	// Renewal in the travel dashboard: affiliator coupons only apply to a new travel's signup.
+	// Travel dashboard: an affiliator coupon only applies to the travel's first payment, and only its own
+	// affiliator's (same rule as the renewal request).
 	if coupon.AffiliatorID != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrAffiliatorCouponSignupOnly.Error()})
-		return
+		allowed := false
+		if h.affiliatorCoupons != nil {
+			ok, err := h.affiliatorCoupons.AffiliatorCouponAllowedForTenant(r.Context(), tenantID, coupon)
+			if err != nil {
+				respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memeriksa kupon"})
+				return
+			}
+			allowed = ok
+		}
+		if !allowed {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrAffiliatorCouponSignupOnly.Error()})
+			return
+		}
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{

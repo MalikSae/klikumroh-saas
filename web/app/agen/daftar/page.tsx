@@ -65,7 +65,9 @@ export default function AgenDaftarPage() {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the browser after hydration; not available on the server render
         setReferralCode(ref.toUpperCase().trim());
       } else {
-        const cookieMatch = document.cookie.match(/(?:^|;\s*)referral_agent_code=([^;]+)/);
+        // ref_code is the cookie /ref/[code] and proxy.ts set; the backend falls back to it too, so the
+        // field must show it: an applicant should see (and can change) the upline they will be linked to.
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)ref_code=([^;]+)/);
         if (cookieMatch && cookieMatch[1]) {
           setReferralCode(decodeURIComponent(cookieMatch[1]).toUpperCase().trim());
         }

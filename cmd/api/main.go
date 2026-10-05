@@ -208,6 +208,9 @@ func main() {
 	accessLogHandler := handler.NewAccessLogHandler(accessLogService)
 	pricingPlanHandler := handler.NewPricingPlanHandler(pricingPlanService)
 	couponHandler := handler.NewCouponHandler(couponService)
+	if checker, ok := subscriptionService.(handler.AffiliatorCouponChecker); ok {
+		couponHandler.SetAffiliatorCouponChecker(checker)
+	}
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionService, pricingPlanService)
 	pvHandler := handler.NewPaymentVerificationHandler(subscriptionService)
 	platformSettingsService := service.NewPlatformSettingsService(platformSettingsRepo)

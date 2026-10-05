@@ -9,7 +9,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import App from './App.tsx';
-import { API_BASE, setAuthSession } from './services/api';
+import { API_BASE, setAuthSession, setImpersonatedSession } from './services/api';
 
 // ---------------------------------------------------------------------------
 // Cross-origin auth handoff
@@ -44,8 +44,7 @@ async function redeemHandoff(): Promise<void> {
         if (data.token && data.user) {
           setAuthSession(data.token, data.user);
           // Set by the server for staff impersonation, never taken from the URL.
-          if (data.impersonated) localStorage.setItem('klikumroh_impersonated', 'true');
-          else localStorage.removeItem('klikumroh_impersonated');
+          setImpersonatedSession(Boolean(data.impersonated));
         }
       }
     }

@@ -219,6 +219,10 @@ func (h *SubscriptionHandler) UploadRenewalProof(w http.ResponseWriter, r *http.
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data tagihan tidak ditemukan"})
 			return
 		}
+		if errors.Is(err, service.ErrAnotherInvoiceOpen) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, service.ErrVerificationNotPending) ||
 			errors.Is(err, service.ErrEmptyProofFile) ||
 			errors.Is(err, util.ErrInvalidImageFormat) ||

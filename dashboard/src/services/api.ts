@@ -237,11 +237,29 @@ export const setAuthSession = (token: string, user: AdminUser) => {
   }
 };
 
+// Set when KlikUmroh staff opened this dashboard by impersonation (decided by the server in the auth
+// handoff, never by the URL); the frame shows a banner for the whole session.
+const IMPERSONATED_KEY = 'klikumroh_impersonated';
+
+export const setImpersonatedSession = (impersonated: boolean) => {
+  if (impersonated) localStorage.setItem(IMPERSONATED_KEY, 'true');
+  else localStorage.removeItem(IMPERSONATED_KEY);
+};
+
+export const isImpersonatedSession = (): boolean => {
+  try {
+    return localStorage.getItem(IMPERSONATED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
 export const clearAuthSession = () => {
   invalidateSubscriptionCache();
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(TRAVEL_NAME_KEY);
+  localStorage.removeItem(IMPERSONATED_KEY);
 };
 
 /**

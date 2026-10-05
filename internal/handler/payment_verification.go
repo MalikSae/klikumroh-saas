@@ -192,6 +192,14 @@ func (h *PaymentVerificationHandler) UpdatePlan(w http.ResponseWriter, r *http.R
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
+		// The invoice's coupon would not apply to the new plan: the plan is not changed, staff decide.
+		if errors.Is(err, service.ErrCouponPlanMismatch) || errors.Is(err, service.ErrCouponInactive) ||
+			errors.Is(err, service.ErrCouponExpired) || errors.Is(err, service.ErrCouponNotFound) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": "Paket tidak diubah: kupon pada tagihan ini (" + err.Error() + ") tidak berlaku untuk paket baru. Hapus atau ganti kuponnya dulu, lalu ubah paket.",
+			})
+			return
+		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui paket verifikasi: " + err.Error()})
 		return
 	}

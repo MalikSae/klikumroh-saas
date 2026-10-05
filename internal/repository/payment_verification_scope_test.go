@@ -57,4 +57,27 @@ func TestPaymentVerification_TravelWritesAreTenantScoped(t *testing.T) {
 	if err := pvRepo.UpdateProofURL(ctx, a.ID, pv.ID, own); err != nil {
 		t.Fatalf("UpdateProofURL by owner: %v", err)
 	}
+
+	// ResetToPendingWithProof reopens only a rejected invoice: a pending or approved one is never
+	// flipped back (bug hunt 5 Oct 2026).
+	if err := pvRepo.ResetToPendingWithProof(ctx, a.ID, pv.ID, own); !errors.Is(err, repository.ErrStatusConflict) {
+		t.Fatalf("reset of a pending invoice: expected ErrStatusConflict, got %v", err)
+	}
+	reason := "Nominal tidak sesuai"
+	if err := pvRepo.TransitionStatus(ctx, pv.ID, "pending", "rejected", &reason, nil, nil); err != nil {
+		t.Fatalf("reject: %v", err)
+	}
+	if err := pvRepo.ResetToPendingWithProof(ctx, a.ID, pv.ID, own); err != nil {
+		t.Fatalf("reset of a rejected invoice: %v", err)
+	}
+	now := time.Now()
+	if err := pvRepo.TransitionStatus(ctx, pv.ID, "pending", "approved", nil, nil, &now); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if err := pvRepo.ResetToPendingWithProof(ctx, a.ID, pv.ID, own); !errors.Is(err, repository.ErrStatusConflict) {
+		t.Fatalf("reset of an approved invoice: expected ErrStatusConflict, got %v", err)
+	}
+	if got, _ := pvRepo.GetByID(ctx, pv.ID); got.Status != "approved" {
+		t.Fatalf("approved invoice was flipped to %q", got.Status)
+	}
 }

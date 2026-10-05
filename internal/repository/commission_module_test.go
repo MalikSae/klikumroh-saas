@@ -335,6 +335,69 @@ func TestCommissionModule_CrossTenantAndCalculations(t *testing.T) {
 		}
 	})
 
+	// 5b. Package round-trip on a closed prospect: to a zero-commission package and back. The upline's
+	// override must come back at the share the prospect was closed with (15%), not stay 0, and not
+	// switch to the tenant's current setting.
+	t.Run("Package round-trip keeps the upline override share", func(t *testing.T) {
+		zero := 0.0
+		pkgZero := &repository.Package{Name: "Paket Tanpa Komisi", CommissionAmount: &zero, Status: "published"}
+		if err := packageRepo.Create(ctx, tenantA.ID, pkgZero); err != nil {
+			t.Fatalf("Failed to create zero-commission package: %v", err)
+		}
+		jamaah5 := 5
+		reason := "Salah pilih paket"
+		edit := func(pkgID uint64) {
+			t.Helper()
+			id := pkgID
+			if err := prospectSvc.UpdateDetail(ctx, tenantA.ID, prospectA.ID, adminUserA.ID, service.UpdateProspectInput{
+				Name: prospectA.Name, Phone: prospectA.Phone, PackageID: &id, JumlahJamaah: &jamaah5, CorrectionReason: &reason,
+			}); err != nil {
+				t.Fatalf("UpdateDetail to package %d: %v", pkgID, err)
+			}
+		}
+		totals := func() (direct, override float64) {
+			t.Helper()
+			detail, err := prospectSvc.GetDetail(ctx, tenantA.ID, prospectA.ID)
+			if err != nil || detail.InfoKomisi == nil {
+				t.Fatalf("GetDetail: %v", err)
+			}
+			return detail.InfoKomisi.DirectAmount, detail.InfoKomisi.OverrideAmount
+		}
+
+		edit(pkgZero.ID)
+		if d, o := totals(); d != 0 || o != 0 {
+			t.Fatalf("on the zero-commission package: direct %.0f override %.0f, want 0 and 0", d, o)
+		}
+
+		// The tenant's current setting changes meanwhile; the closed prospect keeps its own 15%.
+		pct20 := 20.0
+		if err := tenantRepo.UpdateCommissionSettings(ctx, tenantA.ID, true, &pct20); err != nil {
+			t.Fatalf("UpdateCommissionSettings: %v", err)
+		}
+		t.Cleanup(func() { _ = tenantRepo.UpdateCommissionSettings(context.Background(), tenantA.ID, true, &overridePct) })
+
+		edit(pkgA.ID)
+		wantDirect := 2000000.0 * 5
+		if d, o := totals(); d != wantDirect || o != wantDirect*0.15 {
+			t.Fatalf("back on the original package: direct %.0f override %.0f, want %.0f and %.0f (upline override lost)", d, o, wantDirect, wantDirect*0.15)
+		}
+
+		// The override sum is booked to the upline, not to the closing agent.
+		ledgers, err := commissionRepo.ListByProspect(ctx, tenantA.ID, prospectA.ID)
+		if err != nil {
+			t.Fatalf("ListByProspect: %v", err)
+		}
+		var parentNet float64
+		for _, l := range ledgers {
+			if l.AgentID == parentAgentA.ID {
+				parentNet += l.Amount
+			}
+		}
+		if parentNet != wantDirect*0.15 {
+			t.Fatalf("upline net %.0f, want %.0f", parentNet, wantDirect*0.15)
+		}
+	})
+
 	// 6. Add prospect notes
 	t.Run("Admin can add prospect note", func(t *testing.T) {
 		note, err := prospectSvc.AddNote(ctx, tenantA.ID, prospectA.ID, adminUserA.ID, "Follow up via WA: jamaah berminat ambil paket 5 orang.")

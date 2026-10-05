@@ -415,11 +415,14 @@ func (r *mysqlPaymentVerificationRepository) UpdateProofURL(ctx context.Context,
 	return ErrStatusConflict
 }
 
+// ResetToPendingWithProof reopens a rejected invoice with a new proof. Only a rejected one: the status
+// condition sits in the UPDATE, so an approved or cancelled invoice can never be flipped back to pending
+// (ErrStatusConflict).
 func (r *mysqlPaymentVerificationRepository) ResetToPendingWithProof(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	query := `
 		UPDATE payment_verifications
 		SET proof_url = ?, status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
-		WHERE id = ? AND tenant_id = ?
+		WHERE id = ? AND tenant_id = ? AND status = 'rejected'
 	`
 	res, err := r.db.ExecContext(ctx, query, proofURL, id, tenantID)
 	if err != nil {
@@ -430,11 +433,19 @@ func (r *mysqlPaymentVerificationRepository) ResetToPendingWithProof(ctx context
 	if err != nil {
 		return err
 	}
-	if affected == 0 {
+	if affected > 0 {
+		return nil
+	}
+	var status string
+	err = r.db.QueryRowContext(ctx,
+		`SELECT status FROM payment_verifications WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
-
-	return nil
+	if err != nil {
+		return err
+	}
+	return ErrStatusConflict
 }
 
 // UpdateDetails is used by platform staff (plan/coupon correction on any travel's invoice), so it is not

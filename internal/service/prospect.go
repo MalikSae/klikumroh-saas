@@ -1091,10 +1091,18 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 		return err
 	}
 
-	var directTotal, overrideTotal float64
+	// Net totals (original rows + corrections) say what is booked now; the original rows alone, which are
+	// never edited, say what override share the prospect was closed with.
+	var directTotal, overrideTotal, origDirect, origOverride float64
 	var overrideAgentID *uint64
 	for i := range ledgers {
 		l := ledgers[i]
+		switch l.Type {
+		case "direct":
+			origDirect += l.Amount
+		case "override":
+			origOverride += l.Amount
+		}
 		switch {
 		case l.Type == "direct" || (l.Type == "correction" && l.AgentID == agentID):
 			directTotal += l.Amount
@@ -1118,14 +1126,21 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 	}
 	targetDirect := rate * float64(newJamaah)
 
-	// Keep the override share the prospect was closed with; if it had none yet, use the tenant's
-	// current override setting.
+	// Keep the override share the prospect was closed with. It comes from the original rows, not the net
+	// totals: after an edit to a zero-commission package the net direct is 0, and deriving the share from
+	// it would drop the upline's override for good when the package is changed back. If the closing had
+	// no commission to take a share from, use the tenant's current override setting.
 	var targetOverride float64
-	if overrideAgentID != nil && directTotal > 0 {
+	switch {
+	case overrideAgentID != nil && origDirect > 0:
+		targetOverride = targetDirect * (origOverride / origDirect)
+	case overrideAgentID != nil && directTotal > 0:
 		targetOverride = targetDirect * (overrideTotal / directTotal)
-	} else if overrideAgentID == nil {
+	default:
 		if parentID, pct := s.overrideFor(ctx, tenantID, agentID); parentID != nil {
-			overrideAgentID = parentID
+			if overrideAgentID == nil {
+				overrideAgentID = parentID
+			}
 			targetOverride = (pct / 100.0) * targetDirect
 		}
 	}

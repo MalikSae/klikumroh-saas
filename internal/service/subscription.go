@@ -23,6 +23,7 @@ var (
 	ErrProofRequired           = errors.New("bukti transfer wajib diunggah untuk pembayaran lebih dari Rp 0")
 	ErrVerificationAlreadyDone = errors.New("permohonan verifikasi ini sudah diproses sebelumnya")
 	ErrRejectionReasonRequired = errors.New("alasan penolakan wajib diisi")
+	ErrAnotherInvoiceOpen      = errors.New("masih ada tagihan lain yang menunggu pembayaran; unggah bukti transfer pada tagihan tersebut")
 )
 
 // TenantSubscriptionInfo encapsulates current subscription details and history.
@@ -206,17 +207,52 @@ func (s *subscriptionService) CreateRenewalRequest(
 	baseAmount := plan.Price
 	discountedAmount := baseAmount
 
-	var validCouponCode *string
+	existingHistory, err := s.pvRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	var pending *repository.PaymentVerification
+	for i := range existingHistory {
+		if existingHistory[i].Status == "pending" {
+			pending = &existingHistory[i]
+			break
+		}
+	}
+
+	var coupon *repository.Coupon
 	if couponCode != nil && strings.TrimSpace(*couponCode) != "" {
-		code := strings.TrimSpace(*couponCode)
-		coupon, err := s.couponService.Validate(ctx, code, planID)
+		c, err := s.couponService.Validate(ctx, strings.TrimSpace(*couponCode), planID)
 		if err != nil {
 			return nil, err
 		}
-		// An affiliator coupon only discounts a new travel's first payment (signup), not renewals.
-		if coupon.AffiliatorID != nil {
-			return nil, ErrAffiliatorCouponSignupOnly
+		if c.AffiliatorID != nil {
+			allowed, err := s.affiliatorCouponAllowed(ctx, tenantID, c, existingHistory)
+			if err != nil {
+				return nil, err
+			}
+			if !allowed {
+				return nil, ErrAffiliatorCouponSignupOnly
+			}
 		}
+		coupon = c
+	} else if pending != nil && pending.CouponCode != nil {
+		// A travel that has not paid yet and changes plan keeps the affiliator coupon of its signup
+		// invoice (the plan picker does not send it again). Same rule as approval, so it still applies
+		// after the affiliator replaced its code.
+		if c, err := s.couponRepo.FindByCode(ctx, *pending.CouponCode); err == nil && c.AffiliatorID != nil &&
+			(c.PlanID == nil || *c.PlanID == planID) && s.couponHonoredAtApproval(ctx, pending, c) == nil {
+			allowed, err := s.affiliatorCouponAllowed(ctx, tenantID, c, existingHistory)
+			if err != nil {
+				return nil, err
+			}
+			if allowed {
+				coupon = c
+			}
+		}
+	}
+
+	var validCouponCode *string
+	if coupon != nil {
 		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
 		discountedAmount = math.Round(baseAmount - discount)
 		if discountedAmount < 0 {
@@ -232,13 +268,9 @@ func (s *subscriptionService) CreateRenewalRequest(
 		finalAmount = discountedAmount + float64(uniqueCode)
 	}
 
-	// Check if there is already an existing pending verification for this tenant to prevent duplicate spam
-	existingHistory, _ := s.pvRepo.ListByTenant(ctx, tenantID)
-	for i := range existingHistory {
-		if existingHistory[i].Status != "pending" {
-			continue
-		}
-		existing := &existingHistory[i]
+	// An existing pending verification is updated instead of creating a second open invoice.
+	if pending != nil {
+		existing := pending
 
 		// Same plan, price, and coupon: the billed amount is unchanged, so keep the unique code
 		// and any proof already uploaded. Only attach a new proof if this request carries one.
@@ -348,6 +380,19 @@ func (s *subscriptionService) UploadRenewalProof(
 	if len(fileBytes) == 0 {
 		return "", ErrEmptyProofFile
 	}
+	// Reopening a rejected invoice while the travel already has another one waiting would leave two open
+	// invoices; approving both would extend the subscription twice. The proof belongs on the open one.
+	if pv.Status == "rejected" {
+		history, err := s.pvRepo.ListByTenant(ctx, tenantID)
+		if err != nil {
+			return "", err
+		}
+		for i := range history {
+			if history[i].ID != pv.ID && history[i].Status == "pending" {
+				return "", ErrAnotherInvoiceOpen
+			}
+		}
+	}
 
 	fileName := uuid.New().String() + ".webp"
 	relPath := fmt.Sprintf("/uploads/%d/subscription-proofs/%s", tenantID, fileName)
@@ -361,6 +406,9 @@ func (s *subscriptionService) UploadRenewalProof(
 	if pv.Status == "rejected" {
 		if err := s.pvRepo.ResetToPendingWithProof(ctx, tenantID, verificationID, relPath); err != nil {
 			_ = os.Remove(absPath)
+			if errors.Is(err, repository.ErrStatusConflict) {
+				return "", ErrVerificationNotPending // no longer rejected (changed meanwhile)
+			}
 			return "", err
 		}
 	} else {
@@ -637,6 +685,38 @@ func (s *subscriptionService) couponHonoredAtApproval(ctx context.Context, pv *r
 	return nil
 }
 
+// affiliatorCouponAllowed: an affiliator coupon discounts only a travel's first payment (keputusan
+// pendiri: "pembayaran pertama" = the first payment staff approve), and only the coupon of the affiliator
+// the travel signed up through, so a travel cannot pick up another affiliator's discount from the dashboard.
+func (s *subscriptionService) affiliatorCouponAllowed(ctx context.Context, tenantID uint64, coupon *repository.Coupon, history []repository.PaymentVerification) (bool, error) {
+	if coupon.AffiliatorID == nil {
+		return true, nil
+	}
+	for i := range history {
+		if history[i].Status == "approved" {
+			return false, nil
+		}
+	}
+	if s.affiliators == nil {
+		return false, nil
+	}
+	tenantAffiliator, err := s.affiliators.TenantAffiliatorID(ctx, tenantID)
+	if err != nil {
+		return false, err
+	}
+	return tenantAffiliator != nil && *tenantAffiliator == *coupon.AffiliatorID, nil
+}
+
+// AffiliatorCouponAllowedForTenant is affiliatorCouponAllowed for the dashboard coupon check
+// (GET /api/dashboard/coupons/validate), which has no payment history at hand.
+func (s *subscriptionService) AffiliatorCouponAllowedForTenant(ctx context.Context, tenantID uint64, coupon *repository.Coupon) (bool, error) {
+	history, err := s.pvRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return false, err
+	}
+	return s.affiliatorCouponAllowed(ctx, tenantID, coupon, history)
+}
+
 func (s *subscriptionService) releaseApprovalClaim(ctx context.Context, id uint64) {
 	_ = s.pvRepo.TransitionStatus(ctx, id, "approved", "pending", nil, nil, nil)
 }
@@ -685,21 +765,31 @@ func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verifi
 	baseAmount := newPlan.Price
 	discountedAmount := baseAmount
 
-	// Revalidate coupon if previously applied
+	// Keep the coupon already on the invoice under the same rule as approval (couponHonoredAtApproval:
+	// expiry judged against the invoice date, a replaced affiliator code still honored), plus the new
+	// plan. If it no longer applies, refuse instead of silently repricing to the full amount: staff then
+	// remove or change the coupon explicitly (UpdateVerificationCoupon).
 	validCouponCode := pv.CouponCode
-	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" && s.couponService != nil {
-		coupon, err := s.couponService.Validate(ctx, *pv.CouponCode, newPlan.ID)
-		if err == nil && coupon != nil {
-			discount := (coupon.DiscountPercentage / 100.0) * baseAmount
-			discountedAmount = math.Round(baseAmount - discount)
-			if discountedAmount < 0 {
-				discountedAmount = 0
+	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" {
+		coupon, err := s.couponRepo.FindByCode(ctx, *pv.CouponCode)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, ErrCouponNotFound
 			}
-			validCouponCode = &coupon.Code
-		} else {
-			validCouponCode = nil
-			discountedAmount = baseAmount
+			return nil, err
 		}
+		if coupon.PlanID != nil && *coupon.PlanID != newPlan.ID {
+			return nil, ErrCouponPlanMismatch
+		}
+		if err := s.couponHonoredAtApproval(ctx, pv, coupon); err != nil {
+			return nil, err
+		}
+		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
+		discountedAmount = math.Round(baseAmount - discount)
+		if discountedAmount < 0 {
+			discountedAmount = 0
+		}
+		validCouponCode = &coupon.Code
 	}
 
 	uniqueCode := pv.UniqueCode

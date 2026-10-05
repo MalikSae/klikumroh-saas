@@ -194,8 +194,11 @@ func (m *mockPVRepo) UpdateProofURL(ctx context.Context, tenantID uint64, id uin
 
 func (m *mockPVRepo) ResetToPendingWithProof(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	pv, ok := m.verifications[id]
-	if !ok {
+	if !ok || pv.TenantID != tenantID {
 		return repository.ErrNotFound
+	}
+	if pv.Status != "rejected" { // mirrors the status condition in the MySQL UPDATE
+		return repository.ErrStatusConflict
 	}
 	pv.ProofURL = &proofURL
 	pv.Status = "pending"
@@ -932,12 +935,21 @@ func TestStaffCouponDeactivate_RefusesAffiliatorCoupon(t *testing.T) {
 }
 
 // fakeAffiliatorRecorder stands in for the affiliator service at payment approval.
-type fakeAffiliatorRecorder struct{ active map[uint64]bool }
+type fakeAffiliatorRecorder struct {
+	active           map[uint64]bool
+	tenantAffiliator map[uint64]uint64 // tenant -> affiliator it signed up through
+}
 
 func (f *fakeAffiliatorRecorder) RecordCommission(ctx context.Context, pv *repository.PaymentVerification, approvedAt time.Time) {
 }
 func (f *fakeAffiliatorRecorder) IsAffiliatorActive(ctx context.Context, id uint64) (bool, error) {
 	return f.active[id], nil
+}
+func (f *fakeAffiliatorRecorder) TenantAffiliatorID(ctx context.Context, tenantID uint64) (*uint64, error) {
+	if id, ok := f.tenantAffiliator[tenantID]; ok {
+		return &id, nil
+	}
+	return nil, nil
 }
 
 // A coupon that became inactive or expired after the invoice was made (keputusan pendiri 4 Okt 2026):
@@ -1005,6 +1017,114 @@ func TestCouponStatusAtApprove(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Bug hunt group 2 (5 Oct 2026): invoice and coupon rules around a travel's first payment.
+func TestBugHunt2_InvoiceAndCouponRules(t *testing.T) {
+	ctx := context.Background()
+	const affA, affB = uint64(7), uint64(8)
+
+	newEnv := func() (*mockCouponRepo, *mockPVRepo, service.SubscriptionService) {
+		couponRepo := newMockCouponRepo()
+		pvRepo := newMockPVRepo()
+		planRepo := newMockPricingPlanRepo()
+		tenantRepo := newMockTenantRepoSub()
+		planRepo.plans[1] = &repository.PricingPlan{ID: 1, Name: "3 Bulan", PeriodMonths: 3, Price: 1500000}
+		planRepo.plans[2] = &repository.PricingPlan{ID: 2, Name: "6 Bulan", PeriodMonths: 6, Price: 2700000}
+		tenantRepo.tenants[53] = &repository.Tenant{ID: 53, Slug: "albarakah", Status: "pending"}
+		svc := service.NewSubscriptionService(pvRepo, couponRepo, service.NewCouponService(couponRepo), planRepo, tenantRepo)
+		svc.(interface {
+			SetAffiliatorRecorder(service.AffiliatorCommissionRecorder)
+		}).SetAffiliatorRecorder(&fakeAffiliatorRecorder{
+			active:           map[uint64]bool{affA: true, affB: true},
+			tenantAffiliator: map[uint64]uint64{53: affA}, // tenant 53 signed up through affiliator A
+		})
+		return couponRepo, pvRepo, svc
+	}
+	strp := func(s string) *string { return &s }
+
+	t.Run("pending travel changing plan keeps its affiliator coupon, even after the affiliator replaced its code", func(t *testing.T) {
+		couponRepo, pvRepo, svc := newEnv()
+		a := affA
+		old := &repository.Coupon{Code: "AFFOLD", DiscountPercentage: 20, Status: "inactive", AffiliatorID: &a} // replaced
+		_ = couponRepo.Create(ctx, old)
+		signup := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: strp("AFFOLD"), Amount: 1500000,
+			FinalAmount: 1200123, UniqueCode: 123, Status: "pending", CreatedAt: time.Now()}
+		_ = pvRepo.Create(ctx, signup)
+
+		pv, err := svc.CreateRenewalRequest(ctx, 53, 2, nil, nil) // plan picker sends no coupon
+		if err != nil {
+			t.Fatalf("CreateRenewalRequest: %v", err)
+		}
+		if pv.CouponCode == nil || *pv.CouponCode != "AFFOLD" || pv.FinalAmount != 2160000+float64(pv.UniqueCode) {
+			t.Fatalf("coupon not kept: code=%v final=%v unique=%d", pv.CouponCode, pv.FinalAmount, pv.UniqueCode)
+		}
+	})
+
+	t.Run("affiliator coupon: own affiliator before the first approved payment only", func(t *testing.T) {
+		couponRepo, pvRepo, svc := newEnv()
+		a, b := affA, affB
+		_ = couponRepo.Create(ctx, &repository.Coupon{Code: "AFFA", DiscountPercentage: 20, Status: "active", AffiliatorID: &a})
+		_ = couponRepo.Create(ctx, &repository.Coupon{Code: "AFFB", DiscountPercentage: 20, Status: "active", AffiliatorID: &b})
+
+		if _, err := svc.CreateRenewalRequest(ctx, 53, 1, strp("AFFB"), nil); !errors.Is(err, service.ErrAffiliatorCouponSignupOnly) {
+			t.Fatalf("another affiliator's coupon: expected ErrAffiliatorCouponSignupOnly, got %v", err)
+		}
+		pv, err := svc.CreateRenewalRequest(ctx, 53, 1, strp("AFFA"), nil)
+		if err != nil || pv.CouponCode == nil || *pv.CouponCode != "AFFA" {
+			t.Fatalf("own affiliator's coupon before first payment: %v / %+v", err, pv)
+		}
+
+		// After the first approved payment it is a renewal: refused, and not carried over either.
+		pvRepo.verifications[pv.ID].Status = "approved"
+		if _, err := svc.CreateRenewalRequest(ctx, 53, 1, strp("AFFA"), nil); !errors.Is(err, service.ErrAffiliatorCouponSignupOnly) {
+			t.Fatalf("renewal with affiliator coupon: expected ErrAffiliatorCouponSignupOnly, got %v", err)
+		}
+	})
+
+	t.Run("a rejected invoice cannot be reopened while another invoice is open", func(t *testing.T) {
+		_, pvRepo, svc := newEnv()
+		rejected := &repository.PaymentVerification{TenantID: 53, PlanID: 1, Amount: 1500000, FinalAmount: 1500123, UniqueCode: 123, Status: "rejected"}
+		open := &repository.PaymentVerification{TenantID: 53, PlanID: 2, Amount: 2700000, FinalAmount: 2700456, UniqueCode: 456, Status: "pending"}
+		_ = pvRepo.Create(ctx, rejected)
+		_ = pvRepo.Create(ctx, open)
+
+		if _, err := svc.UploadRenewalProof(ctx, 53, rejected.ID, []byte("not-reached")); !errors.Is(err, service.ErrAnotherInvoiceOpen) {
+			t.Fatalf("expected ErrAnotherInvoiceOpen, got %v", err)
+		}
+		if got, _ := pvRepo.GetByID(ctx, rejected.ID); got.Status != "rejected" {
+			t.Fatalf("rejected invoice must stay rejected, got %q", got.Status)
+		}
+	})
+
+	t.Run("staff plan change keeps an honored coupon and refuses one that would not apply", func(t *testing.T) {
+		couponRepo, pvRepo, svc := newEnv()
+		a := affA
+		_ = couponRepo.Create(ctx, &repository.Coupon{Code: "AFFREPL", DiscountPercentage: 20, Status: "inactive", AffiliatorID: &a})
+		plan1 := uint64(1)
+		_ = couponRepo.Create(ctx, &repository.Coupon{Code: "ONLY3", DiscountPercentage: 10, Status: "active", PlanID: &plan1})
+
+		withAff := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: strp("AFFREPL"), Amount: 1500000,
+			FinalAmount: 1200123, UniqueCode: 123, Status: "pending", CreatedAt: time.Now()}
+		_ = pvRepo.Create(ctx, withAff)
+		updated, err := svc.UpdateVerificationPlan(ctx, withAff.ID, 2, 1)
+		if err != nil {
+			t.Fatalf("UpdateVerificationPlan: %v", err)
+		}
+		if updated.CouponCode == nil || *updated.CouponCode != "AFFREPL" || updated.FinalAmount != 2160000+123 {
+			t.Fatalf("honored coupon dropped: code=%v final=%v", updated.CouponCode, updated.FinalAmount)
+		}
+
+		planOnly := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: strp("ONLY3"), Amount: 1500000,
+			FinalAmount: 1350123, UniqueCode: 123, Status: "pending", CreatedAt: time.Now()}
+		_ = pvRepo.Create(ctx, planOnly)
+		if _, err := svc.UpdateVerificationPlan(ctx, planOnly.ID, 2, 1); !errors.Is(err, service.ErrCouponPlanMismatch) {
+			t.Fatalf("expected ErrCouponPlanMismatch, got %v", err)
+		}
+		if got, _ := pvRepo.GetByID(ctx, planOnly.ID); got.PlanID != 1 || got.CouponCode == nil || *got.CouponCode != "ONLY3" {
+			t.Fatalf("refused change must leave the invoice untouched, got %+v", got)
+		}
+	})
 }
 
 // 6. TestRejectVerification_ReasonMandatory: rejection_reason is mandatory
