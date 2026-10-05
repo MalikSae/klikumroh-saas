@@ -255,6 +255,16 @@ export const AdminStaffView: React.FC = () => {
       },
     },
     {
+      // Read-only: the role is display only (sidebar OWNER / ADMIN badge) and cannot be changed here.
+      key: 'role',
+      label: 'Peran',
+      render: (row) => (
+        <span className="sa-pill sa-pill--neutral" style={{ fontSize: '13px' }}>
+          {row.role === 'owner' ? 'Pemilik' : 'Admin'}
+        </span>
+      ),
+    },
+    {
       key: 'status',
       label: 'Status Akun',
       render: (row) =>

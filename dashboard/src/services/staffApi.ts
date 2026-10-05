@@ -797,7 +797,13 @@ export interface StaffAffiliatorItem extends Affiliator {
   total_earned: number;
 }
 
-export interface StaffAffiliatorPayout extends AffiliatorPayout {
+/** Staff-only payout trace: who requested it on the affiliator's behalf (null = the affiliator itself). */
+export interface StaffPayoutTrace {
+  requested_by_staff_id: number | null;
+  requested_by_staff_name: string | null;
+}
+
+export interface StaffAffiliatorPayout extends AffiliatorPayout, StaffPayoutTrace {
   affiliator_id: number;
   affiliator_name: string;
 }
@@ -816,7 +822,7 @@ export interface StaffAffiliatorDetail {
   balance: AffiliatorBalance;
   tenants: AffiliatorTenant[];
   commissions: AffiliatorCommission[];
-  payouts: AffiliatorPayout[];
+  payouts: (AffiliatorPayout & StaffPayoutTrace)[];
 }
 
 export interface AffiliatorSettings {

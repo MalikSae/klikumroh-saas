@@ -272,14 +272,14 @@ func TestAffiliator_Program(t *testing.T) {
 		}
 
 		later := time.Now().Add(15 * 24 * time.Hour)
-		p, err := affRepo.RequestPayout(ctx, affA.Affiliator.ID, 100000, later, "BSI", "123", "Affiliator A")
+		p, err := affRepo.RequestPayout(ctx, affA.Affiliator.ID, 100000, later, "BSI", "123", "Affiliator A", nil)
 		if err != nil {
 			t.Fatalf("RequestPayout: %v", err)
 		}
 		if p.Amount != 510000 {
 			t.Fatalf("expected payout of A's 360000+150000, got %v", p.Amount)
 		}
-		if _, err := affRepo.RequestPayout(ctx, affA.Affiliator.ID, 100000, later, "BSI", "123", "Affiliator A"); !errors.Is(err, repository.ErrPayoutPending) {
+		if _, err := affRepo.RequestPayout(ctx, affA.Affiliator.ID, 100000, later, "BSI", "123", "Affiliator A", nil); !errors.Is(err, repository.ErrPayoutPending) {
 			t.Fatalf("expected second request to be refused while one is pending, got %v", err)
 		}
 		balB, _ := affRepo.Balance(ctx, affB.Affiliator.ID, later)
@@ -295,7 +295,7 @@ func TestAffiliator_Program(t *testing.T) {
 			t.Fatalf("expected rejected payout to return 510000 to available, got %+v", bal)
 		}
 
-		p2, err := affRepo.RequestPayout(ctx, affA.Affiliator.ID, 100000, later, "BSI", "123", "Affiliator A")
+		p2, err := affRepo.RequestPayout(ctx, affA.Affiliator.ID, 100000, later, "BSI", "123", "Affiliator A", nil)
 		if err != nil {
 			t.Fatalf("RequestPayout again: %v", err)
 		}

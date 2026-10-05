@@ -292,7 +292,36 @@ func (h *AffiliatorHandler) ListPayouts(w http.ResponseWriter, r *http.Request) 
 		respondAffiliatorError(w, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, map[string]any{"payouts": list})
+	out := make([]affiliatorPortalPayout, 0, len(list))
+	for i := range list {
+		out = append(out, toPortalPayout(&list[i]))
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"payouts": out})
+}
+
+// affiliatorPortalPayout is the payout as the affiliator's own portal sees it. It is an explicit field list
+// (not the repository struct) so staff-only data, such as which staff requested a payout on the
+// affiliator's behalf, never reaches the affiliator, including fields added to the repository later.
+type affiliatorPortalPayout struct {
+	ID                uint64     `json:"id"`
+	AffiliatorID      uint64     `json:"affiliator_id"`
+	Amount            float64    `json:"amount"`
+	Status            string     `json:"status"`
+	BankName          string     `json:"bank_name"`
+	BankAccountNumber string     `json:"bank_account_number"`
+	BankAccountHolder string     `json:"bank_account_holder"`
+	RejectionReason   *string    `json:"rejection_reason"`
+	ReviewedBy        *uint64    `json:"reviewed_by"`
+	ReviewedAt        *time.Time `json:"reviewed_at"`
+	CreatedAt         time.Time  `json:"created_at"`
+}
+
+func toPortalPayout(p *repository.AffiliatorPayout) affiliatorPortalPayout {
+	return affiliatorPortalPayout{
+		ID: p.ID, AffiliatorID: p.AffiliatorID, Amount: p.Amount, Status: p.Status,
+		BankName: p.BankName, BankAccountNumber: p.BankAccountNumber, BankAccountHolder: p.BankAccountHolder,
+		RejectionReason: p.RejectionReason, ReviewedBy: p.ReviewedBy, ReviewedAt: p.ReviewedAt, CreatedAt: p.CreatedAt,
+	}
 }
 
 func (h *AffiliatorHandler) RequestPayout(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +334,7 @@ func (h *AffiliatorHandler) RequestPayout(w http.ResponseWriter, r *http.Request
 		respondAffiliatorError(w, err)
 		return
 	}
-	respondJSON(w, http.StatusCreated, p)
+	respondJSON(w, http.StatusCreated, toPortalPayout(p))
 }
 
 // ---- Staff ----

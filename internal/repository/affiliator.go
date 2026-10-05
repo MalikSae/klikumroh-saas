@@ -77,18 +77,23 @@ type AffiliatorCommission struct {
 
 // AffiliatorPayout is a payout request; the bank details are a snapshot taken when it was requested.
 type AffiliatorPayout struct {
-	ID                uint64     `json:"id"`
-	AffiliatorID      uint64     `json:"affiliator_id"`
-	AffiliatorName    string     `json:"affiliator_name,omitempty"`
-	Amount            float64    `json:"amount"`
-	Status            string     `json:"status"` // 'pending' | 'paid' | 'rejected'
-	BankName          string     `json:"bank_name"`
-	BankAccountNumber string     `json:"bank_account_number"`
-	BankAccountHolder string     `json:"bank_account_holder"`
-	RejectionReason   *string    `json:"rejection_reason"`
-	ReviewedBy        *uint64    `json:"reviewed_by"`
-	ReviewedAt        *time.Time `json:"reviewed_at"`
-	CreatedAt         time.Time  `json:"created_at"`
+	ID                uint64  `json:"id"`
+	AffiliatorID      uint64  `json:"affiliator_id"`
+	AffiliatorName    string  `json:"affiliator_name,omitempty"`
+	Amount            float64 `json:"amount"`
+	Status            string  `json:"status"` // 'pending' | 'paid' | 'rejected'
+	BankName          string  `json:"bank_name"`
+	BankAccountNumber string  `json:"bank_account_number"`
+	BankAccountHolder string  `json:"bank_account_holder"`
+	// RequestedByStaffID / RequestedByStaffName: the staff who requested the payout on the affiliator's
+	// behalf (StaffRequestPayout); nil when the affiliator requested it from the portal. Staff-facing
+	// only: the affiliator portal responses leave both out (handler.affiliatorPortalPayout).
+	RequestedByStaffID   *uint64    `json:"requested_by_staff_id"`
+	RequestedByStaffName *string    `json:"requested_by_staff_name"`
+	RejectionReason      *string    `json:"rejection_reason"`
+	ReviewedBy           *uint64    `json:"reviewed_by"`
+	ReviewedAt           *time.Time `json:"reviewed_at"`
+	CreatedAt            time.Time  `json:"created_at"`
 }
 
 // AffiliatorBalance sums an affiliator's commissions by stage.
@@ -146,7 +151,7 @@ type AffiliatorRepository interface {
 	ListCommissions(ctx context.Context, affiliatorID uint64) ([]AffiliatorCommission, error)
 	Balance(ctx context.Context, affiliatorID uint64, now time.Time) (*AffiliatorBalance, error)
 
-	RequestPayout(ctx context.Context, affiliatorID uint64, minAmount float64, now time.Time, bankName, accountNumber, accountHolder string) (*AffiliatorPayout, error)
+	RequestPayout(ctx context.Context, affiliatorID uint64, minAmount float64, now time.Time, bankName, accountNumber, accountHolder string, requestedByStaffID *uint64) (*AffiliatorPayout, error)
 	ListPayouts(ctx context.Context, affiliatorID uint64) ([]AffiliatorPayout, error)
 	ListAllPayouts(ctx context.Context, status string) ([]AffiliatorPayout, error)
 	MarkPayoutPaid(ctx context.Context, payoutID, staffUserID uint64) error
@@ -591,8 +596,9 @@ func (r *mysqlAffiliatorRepository) Balance(ctx context.Context, affiliatorID ui
 
 // RequestPayout moves every available commission of the affiliator into a new pending payout, in one
 // transaction with the affiliator row locked so two requests cannot claim the same commissions.
+// requestedByStaffID is the staff requesting on the affiliator's behalf, nil for a self-request.
 func (r *mysqlAffiliatorRepository) RequestPayout(ctx context.Context, affiliatorID uint64, minAmount float64, now time.Time,
-	bankName, accountNumber, accountHolder string) (*AffiliatorPayout, error) {
+	bankName, accountNumber, accountHolder string, requestedByStaffID *uint64) (*AffiliatorPayout, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -644,8 +650,9 @@ func (r *mysqlAffiliatorRepository) RequestPayout(ctx context.Context, affiliato
 		return nil, ErrPayoutBelowMinimum
 	}
 	res, err := tx.ExecContext(ctx, `
-		INSERT INTO affiliator_payouts (affiliator_id, amount, status, bank_name, bank_account_number, bank_account_holder)
-		VALUES (?, ?, 'pending', ?, ?, ?)`, affiliatorID, available, bankName, accountNumber, accountHolder)
+		INSERT INTO affiliator_payouts (affiliator_id, amount, status, bank_name, bank_account_number, bank_account_holder,
+			requested_by_staff_id)
+		VALUES (?, ?, 'pending', ?, ?, ?, ?)`, affiliatorID, available, bankName, accountNumber, accountHolder, requestedByStaffID)
 	if err != nil {
 		return nil, err
 	}
@@ -666,21 +673,31 @@ func (r *mysqlAffiliatorRepository) RequestPayout(ctx context.Context, affiliato
 	} else if n != int64(len(ids)) {
 		return nil, ErrStatusConflict // the locked set changed; nothing is committed
 	}
+	var staffName *string
+	if requestedByStaffID != nil {
+		var name string
+		if err := tx.QueryRowContext(ctx, `SELECT name FROM staff_users WHERE id = ?`, *requestedByStaffID).Scan(&name); err != nil {
+			return nil, err
+		}
+		staffName = &name
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return &AffiliatorPayout{
 		ID: uint64(payoutID), AffiliatorID: affiliatorID, Amount: available, Status: "pending",
-		BankName: bankName, BankAccountNumber: accountNumber, BankAccountHolder: accountHolder, CreatedAt: now,
+		BankName: bankName, BankAccountNumber: accountNumber, BankAccountHolder: accountHolder,
+		RequestedByStaffID: requestedByStaffID, RequestedByStaffName: staffName, CreatedAt: now,
 	}, nil
 }
 
 const payoutColumns = `p.id, p.affiliator_id, a.name, p.amount, p.status, p.bank_name, p.bank_account_number,
-	p.bank_account_holder, p.rejection_reason, p.reviewed_by, p.reviewed_at, p.created_at`
+	p.bank_account_holder, p.requested_by_staff_id, rs.name, p.rejection_reason, p.reviewed_by, p.reviewed_at, p.created_at`
 
 func (r *mysqlAffiliatorRepository) queryPayouts(ctx context.Context, where string, args ...any) ([]AffiliatorPayout, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT `+payoutColumns+`
-		FROM affiliator_payouts p JOIN affiliators a ON a.id = p.affiliator_id `+where+` ORDER BY p.id DESC`, args...)
+		FROM affiliator_payouts p JOIN affiliators a ON a.id = p.affiliator_id
+		LEFT JOIN staff_users rs ON rs.id = p.requested_by_staff_id `+where+` ORDER BY p.id DESC`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -688,12 +705,18 @@ func (r *mysqlAffiliatorRepository) queryPayouts(ctx context.Context, where stri
 	out := []AffiliatorPayout{}
 	for rows.Next() {
 		var p AffiliatorPayout
-		var reason sql.NullString
-		var reviewedBy sql.NullInt64
+		var reason, staffName sql.NullString
+		var reviewedBy, requestedBy sql.NullInt64
 		var reviewedAt sql.NullTime
 		if err := rows.Scan(&p.ID, &p.AffiliatorID, &p.AffiliatorName, &p.Amount, &p.Status, &p.BankName,
-			&p.BankAccountNumber, &p.BankAccountHolder, &reason, &reviewedBy, &reviewedAt, &p.CreatedAt); err != nil {
+			&p.BankAccountNumber, &p.BankAccountHolder, &requestedBy, &staffName, &reason, &reviewedBy, &reviewedAt,
+			&p.CreatedAt); err != nil {
 			return nil, err
+		}
+		if requestedBy.Valid {
+			v := uint64(requestedBy.Int64)
+			p.RequestedByStaffID = &v
+			p.RequestedByStaffName = nullStringPtr(staffName)
 		}
 		p.RejectionReason = nullStringPtr(reason)
 		if reviewedBy.Valid {

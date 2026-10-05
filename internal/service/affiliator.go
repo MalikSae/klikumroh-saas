@@ -473,7 +473,7 @@ func (s *affiliatorService) RequestPayout(ctx context.Context, affiliatorID uint
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.RequestPayout(ctx, affiliatorID, st.MinPayout, s.now(), *a.BankName, *a.BankAccountNumber, *a.BankAccountHolder)
+	return s.repo.RequestPayout(ctx, affiliatorID, st.MinPayout, s.now(), *a.BankName, *a.BankAccountNumber, *a.BankAccountHolder, nil)
 }
 
 // RecordClick logs a click on an active affiliator's link. Unknown codes are ignored.
@@ -728,7 +728,7 @@ func (s *affiliatorService) StaffRequestPayout(ctx context.Context, affiliatorID
 		return nil, ErrStaffPayoutBankMissing
 	}
 	// minAmount 0: the repository then refuses only an empty (zero) available balance.
-	p, err := s.repo.RequestPayout(ctx, affiliatorID, 0, s.now(), *a.BankName, *a.BankAccountNumber, *a.BankAccountHolder)
+	p, err := s.repo.RequestPayout(ctx, affiliatorID, 0, s.now(), *a.BankName, *a.BankAccountNumber, *a.BankAccountHolder, &staffUserID)
 	switch {
 	case errors.Is(err, repository.ErrPayoutPending):
 		return nil, ErrStaffPayoutPending

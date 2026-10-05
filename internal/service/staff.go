@@ -56,10 +56,12 @@ const (
 
 // StaffUserInfo holds safe, non-sensitive staff user details.
 type StaffUserInfo struct {
-	ID        uint64    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Status    string    `json:"status"`
+	ID     uint64 `json:"id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Status string `json:"status"`
+	// Role: owner | admin, display only (sidebar OWNER / ADMIN badge); grants no permission.
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -301,6 +303,7 @@ func (s *staffService) Login(ctx context.Context, email, password string) (*Staf
 			Name:      user.Name,
 			Email:     user.Email,
 			Status:    user.Status,
+			Role:      user.Role,
 			CreatedAt: user.CreatedAt,
 		},
 	}, nil
@@ -320,6 +323,7 @@ func (s *staffService) GetProfile(ctx context.Context, staffUserID uint64) (*Sta
 		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
+		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
 	}, nil
 }
@@ -728,6 +732,7 @@ func (s *staffService) ListStaffUsers(ctx context.Context) ([]StaffUserInfo, err
 			Name:      u.Name,
 			Email:     u.Email,
 			Status:    u.Status,
+			Role:      u.Role,
 			CreatedAt: u.CreatedAt,
 		})
 	}
@@ -784,6 +789,7 @@ func (s *staffService) CreateStaffUser(ctx context.Context, name, email, passwor
 		Name:      newUser.Name,
 		Email:     newUser.Email,
 		Status:    newUser.Status,
+		Role:      newUser.Role,
 		CreatedAt: newUser.CreatedAt,
 	}, nil
 }
@@ -870,6 +876,7 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 		Name:      existing.Name,
 		Email:     existing.Email,
 		Status:    existing.Status,
+		Role:      existing.Role,
 		CreatedAt: existing.CreatedAt,
 	}, nil
 }

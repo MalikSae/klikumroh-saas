@@ -161,7 +161,16 @@ export const AdminAffiliatorsView: React.FC = () => {
   ];
 
   const payoutColumns: AdminColumn<StaffAffiliatorPayout>[] = [
-    { key: 'created_at', label: 'Diajukan', render: (p) => formatDateID(p.created_at) },
+    {
+      key: 'created_at',
+      label: 'Diajukan',
+      render: (p) => (
+        <span>
+          {formatDateID(p.created_at)}
+          {p.requested_by_staff_id != null && <span className="sa-aff-sub">Diajukan staf: {p.requested_by_staff_name ?? '-'}</span>}
+        </span>
+      ),
+    },
     { key: 'affiliator_name', label: 'Affiliator', render: (p) => <span className="sa-aff-name">{p.affiliator_name}</span> },
     { key: 'amount', label: 'Jumlah', align: 'right', render: (p) => <span className="sa-aff-amount">{formatIDR(p.amount)}</span> },
     {

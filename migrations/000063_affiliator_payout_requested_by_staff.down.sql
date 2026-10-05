@@ -1,0 +1,3 @@
+ALTER TABLE affiliator_payouts DROP FOREIGN KEY fk_affiliator_payouts_requested_by_staff;
+ALTER TABLE affiliator_payouts DROP INDEX idx_affiliator_payouts_requested_by_staff;
+ALTER TABLE affiliator_payouts DROP COLUMN requested_by_staff_id;

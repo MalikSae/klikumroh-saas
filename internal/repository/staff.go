@@ -13,14 +13,23 @@ import (
 // StaffUser represents an internal ClickUmroh platform staff member.
 // Notice: There is NO tenant_id because staff users belong to the platform globally.
 type StaffUser struct {
-	ID           uint64    `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Status       string    `json:"status"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           uint64 `json:"id"`
+	Name         string `json:"name"`
+	Email        string `json:"email"`
+	PasswordHash string `json:"-"`
+	Status       string `json:"status"`
+	// Role is display-only (OWNER / ADMIN badge): owner | admin. It grants no extra permission and the
+	// API never changes it; new staff are always admin (keputusan pendiri 6 Okt 2026).
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// StaffRoleAdmin / StaffRoleOwner are the staff_users.role values.
+const (
+	StaffRoleAdmin = "admin"
+	StaffRoleOwner = "owner"
+)
 
 // StaffSession represents an authenticated staff user session.
 type StaffSession struct {
@@ -84,11 +93,14 @@ func NewStaffRepository(db *sql.DB) StaffRepository {
 
 func (r *mysqlStaffRepository) Create(ctx context.Context, user *StaffUser) error {
 	query := `
-		INSERT INTO staff_users (name, email, password_hash, status)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO staff_users (name, email, password_hash, status, role)
+		VALUES (?, ?, ?, ?, ?)
 	`
 	if user.Status == "" {
 		user.Status = "active"
+	}
+	if user.Role == "" {
+		user.Role = StaffRoleAdmin
 	}
 
 	result, err := r.db.ExecContext(ctx, query,
@@ -96,6 +108,7 @@ func (r *mysqlStaffRepository) Create(ctx context.Context, user *StaffUser) erro
 		user.Email,
 		user.PasswordHash,
 		user.Status,
+		user.Role,
 	)
 	if err != nil {
 		return err
@@ -111,7 +124,7 @@ func (r *mysqlStaffRepository) Create(ctx context.Context, user *StaffUser) erro
 
 func (r *mysqlStaffRepository) FindByEmail(ctx context.Context, email string) (*StaffUser, error) {
 	query := `
-		SELECT id, name, email, password_hash, status, created_at, updated_at
+		SELECT id, name, email, password_hash, status, role, created_at, updated_at
 		FROM staff_users
 		WHERE email = ?
 	`
@@ -122,6 +135,7 @@ func (r *mysqlStaffRepository) FindByEmail(ctx context.Context, email string) (*
 		&user.Email,
 		&user.PasswordHash,
 		&user.Status,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -136,7 +150,7 @@ func (r *mysqlStaffRepository) FindByEmail(ctx context.Context, email string) (*
 
 func (r *mysqlStaffRepository) FindByID(ctx context.Context, id uint64) (*StaffUser, error) {
 	query := `
-		SELECT id, name, email, password_hash, status, created_at, updated_at
+		SELECT id, name, email, password_hash, status, role, created_at, updated_at
 		FROM staff_users
 		WHERE id = ?
 	`
@@ -147,6 +161,7 @@ func (r *mysqlStaffRepository) FindByID(ctx context.Context, id uint64) (*StaffU
 		&user.Email,
 		&user.PasswordHash,
 		&user.Status,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -185,7 +200,7 @@ func (r *mysqlStaffRepository) FindSessionByToken(ctx context.Context, token str
 	query := `
 		SELECT 
 			s.id, s.staff_user_id, s.token, s.expires_at, s.created_at,
-			u.id, u.name, u.email, u.password_hash, u.status, u.created_at, u.updated_at
+			u.id, u.name, u.email, u.password_hash, u.status, u.role, u.created_at, u.updated_at
 		FROM staff_sessions s
 		JOIN staff_users u ON s.staff_user_id = u.id
 		WHERE s.token = ? AND s.expires_at > NOW() AND u.status = 'active'
@@ -203,6 +218,7 @@ func (r *mysqlStaffRepository) FindSessionByToken(ctx context.Context, token str
 		&user.Email,
 		&user.PasswordHash,
 		&user.Status,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -345,7 +361,7 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 
 func (r *mysqlStaffRepository) ListStaffUsers(ctx context.Context) ([]StaffUser, error) {
 	query := `
-		SELECT id, name, email, password_hash, status, created_at, updated_at
+		SELECT id, name, email, password_hash, status, role, created_at, updated_at
 		FROM staff_users
 		ORDER BY id ASC
 	`
@@ -364,6 +380,7 @@ func (r *mysqlStaffRepository) ListStaffUsers(ctx context.Context) ([]StaffUser,
 			&u.Email,
 			&u.PasswordHash,
 			&u.Status,
+			&u.Role,
 			&u.CreatedAt,
 			&u.UpdatedAt,
 		); err != nil {
