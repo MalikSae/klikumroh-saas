@@ -21,16 +21,13 @@
         "Pada tahap Desire, CTA sebaiknya masih ringan sampai menengah."
     ],
     "placeholders": [
-        "{{nama}}",
         "{{bulan}}",
         "{{tahun}}",
         "{{tanggal}}",
-        "{{kota}}",
         "{{paket}}",
         "{{harga}}",
         "{{hotel}}",
-        "{{travel}}",
-        "{{nama_jamaah}}"
+        "{{travel}}"
     ],
     "desire_pillars": [
         {

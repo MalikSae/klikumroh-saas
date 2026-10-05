@@ -9,21 +9,16 @@ import { logHabit } from '../../../lib/agentHabits';
 import {
   getAllCopies,
   getCopywritingCategories,
-  replaceCopyPlaceholders,
+  fillCaptionParts,
   assembleFullCaption,
   type CopyItem,
   type CopyPlaceholderReplacements,
 } from '../../../lib/copywritingData';
+import { packageFacts, type PackageLike } from '../../../lib/placeholderFill';
 
 const FAVORITES_STORAGE_KEY = 'klikumroh_agent_caption_favorites';
 
-interface TenantPackage {
-  id: number;
-  name: string;
-  price?: number;
-  hotel_info?: string;
-  flight_info?: string;
-}
+type TenantPackage = PackageLike;
 
 
 export default function BankCaptionPage() {
@@ -33,6 +28,8 @@ export default function BankCaptionPage() {
   const [tenantName, setTenantName] = useState<string>('Travel Umroh');
   const [agentName, setAgentName] = useState<string>('Mitra Agen');
   const [referralLink, setReferralLink] = useState<string>('');
+  const [ppiuNumber, setPpiuNumber] = useState<string>('');
+  const [tenantAddress, setTenantAddress] = useState<string>('');
 
   // Packages & Personalization
   const [packages, setPackages] = useState<TenantPackage[]>([]);
@@ -115,8 +112,23 @@ export default function BankCaptionPage() {
       }
     };
 
+    // Travel license number and address for the trust captions (only when the travel filled them in).
+    const fetchTenantInfo = async () => {
+      try {
+        const res = await fetch('/api/public/tenant-info');
+        if (res.ok) {
+          const info = await res.json();
+          if (typeof info.ppiu_number === 'string') setPpiuNumber(info.ppiu_number.trim());
+          if (typeof info.address === 'string') setTenantAddress(info.address.trim());
+        }
+      } catch {
+        // Soft fail: captions needing these values stay hidden
+      }
+    };
+
     fetchProfile();
     fetchPublicPackages();
+    fetchTenantInfo();
   }, [router]);
 
   const toggleFavorite = (id: string) => {
@@ -141,28 +153,19 @@ export default function BankCaptionPage() {
     return packages.find((p) => String(p.id) === selectedPackageId) || null;
   }, [packages, selectedPackageId]);
 
-  // Replacements builder
-  const replacements: CopyPlaceholderReplacements = useMemo(() => {
-    const formattedPrice = selectedPackage?.price
-      ? new Intl.NumberFormat('id-ID', {
-          style: 'currency',
-          currency: 'IDR',
-          maximumFractionDigits: 0,
-        }).format(selectedPackage.price)
-      : 'Rp 28.500.000';
-
-    return {
-      travel: tenantName || 'Travel Umroh',
-      nama: agentName || 'Bapak/Ibu',
-      paket: selectedPackage?.name || 'Paket Umroh Reguler',
-      harga: formattedPrice,
-      hotel: selectedPackage?.hotel_info || 'Hotel Bintang 4 Dekat Masjid',
-      maskapai: selectedPackage?.flight_info || 'Saudia Airlines Direct',
+  // Replacements builder: real data only. A caption whose opening needs a missing value is hidden,
+  // other sentences with a missing value are dropped (lib/placeholderFill).
+  const replacements: CopyPlaceholderReplacements = useMemo(
+    () => ({
+      ...packageFacts(selectedPackage),
+      travel: tenantName,
+      agent_name: agentName,
+      nomor_izin: ppiuNumber,
+      alamat: tenantAddress,
       link: includeReferralLink ? referralLink : '',
-      bulan: 'Syawal',
-      tahun: String(new Date().getFullYear()),
-    };
-  }, [tenantName, agentName, selectedPackage, includeReferralLink, referralLink]);
+    }),
+    [tenantName, agentName, ppiuNumber, tenantAddress, selectedPackage, includeReferralLink, referralLink]
+  );
 
   // Filtered copies
   const filteredCopies = useMemo(() => {
@@ -186,8 +189,10 @@ export default function BankCaptionPage() {
       }
 
       return true;
-    });
-  }, [allCopies, activeGoal, searchQuery, favorites]);
+    })
+      .map((copy) => ({ copy, parts: fillCaptionParts(copy, replacements) }))
+      .filter((item): item is { copy: CopyItem; parts: { hook: string; body: string; cta: string } } => item.parts !== null);
+  }, [allCopies, activeGoal, searchQuery, favorites, replacements]);
 
   // Infinite scroll pagination state (8 items per load)
   const PAGE_SIZE = 8;
@@ -262,6 +267,7 @@ export default function BankCaptionPage() {
   // Copy handler
   const handleCopyFull = async (copy: CopyItem) => {
     const text = assembleFullCaption(copy, replacements);
+    if (text === null) return;
     // The habit counts the agent's intent, even if the browser refuses the clipboard.
     logHabit('caption');
     try {
@@ -275,10 +281,10 @@ export default function BankCaptionPage() {
   };
 
   const handleCopyPart = async (text: string, copyId: string, partName: string) => {
-    const replaced = replaceCopyPlaceholders(text, replacements);
+    if (!text) return;
     logHabit('caption');
     try {
-      await navigator.clipboard.writeText(replaced);
+      await navigator.clipboard.writeText(text);
       setCopiedId(copyId);
       setCopiedPart(partName);
       setTimeout(() => {
@@ -292,8 +298,9 @@ export default function BankCaptionPage() {
 
   // WhatsApp share
   const handleShareWA = (copy: CopyItem) => {
-    logHabit('caption');
     const text = assembleFullCaption(copy, replacements);
+    if (text === null) return;
+    logHabit('caption');
     const encoded = encodeURIComponent(text);
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
   };
@@ -367,7 +374,7 @@ export default function BankCaptionPage() {
 
         {/* Caption cards */}
         <div className="bc-list">
-          {displayedCopies.map((copy) => {
+          {displayedCopies.map(({ copy, parts }) => {
             const isFav = favorites.includes(copy.id);
             const fullCopied = copiedId === copy.id && !copiedPart;
             const partsOpen = partsOpenId === copy.id;
@@ -405,10 +412,10 @@ export default function BankCaptionPage() {
                   <div className="bc-parts" role="group" aria-label="Salin sebagian">
                     <span className="bc-muted">Salin:</span>
                     {([
-                      ['hook', 'Pembuka', copy.hook],
-                      ['body', 'Isi', copy.body],
-                      ['cta', 'Ajakan', copy.cta],
-                    ] as const).map(([key, label, text]) => (
+                      ['hook', 'Pembuka', parts.hook],
+                      ['body', 'Isi', parts.body],
+                      ['cta', 'Ajakan', parts.cta],
+                    ] as const).filter(([, , text]) => Boolean(text)).map(([key, label, text]) => (
                       <button key={key} type="button" className="bc-part" onClick={() => handleCopyPart(text, copy.id, key)}>
                         {copiedId === copy.id && copiedPart === key ? <Check size={14} aria-hidden="true" /> : null}
                         {label}
@@ -419,9 +426,9 @@ export default function BankCaptionPage() {
 
                 {/* The caption as it will be copied: opener in bold, then body and call to action. */}
                 <div className="bc-text">
-                  <strong>{replaceCopyPlaceholders(copy.hook, replacements)}</strong>
-                  {copy.body && `\n\n${replaceCopyPlaceholders(copy.body, replacements)}`}
-                  {copy.cta && `\n\n${replaceCopyPlaceholders(copy.cta, replacements)}`}
+                  <strong>{parts.hook}</strong>
+                  {parts.body && `\n\n${parts.body}`}
+                  {parts.cta && `\n\n${parts.cta}`}
                   {/* The link block is long; the preview only notes it (the copied text includes it in full). */}
                   {replacements.link && <span className="bc-text__link">{'\n\n+ link pendaftaran Anda'}</span>}
                 </div>

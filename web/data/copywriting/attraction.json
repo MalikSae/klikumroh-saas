@@ -18,10 +18,8 @@
         "Untuk WhatsApp Status, utamakan copy yang pendek dan cepat dibaca."
     ],
     "placeholders": [
-        "{{nama}}",
         "{{bulan}}",
         "{{tahun}}",
-        "{{kota}}",
         "{{travel}}",
         "{{paket}}",
         "{{harga}}"
@@ -788,7 +786,7 @@
             ],
             "format": "short",
             "title": "Berangkat dari Kota Sendiri",
-            "hook": "Kalau ada pilihan umroh berangkat dari {{kota}}, apakah Anda lebih memilih itu daripada harus menuju kota lain dulu?",
+            "hook": "Kalau ada pilihan umroh berangkat dari kota Anda sendiri, apakah Anda lebih memilih itu daripada harus menuju kota lain dulu?",
             "body": "Buat sebagian jamaah, titik keberangkatan juga sangat memengaruhi kenyamanan.",
             "cta": null,
             "tags": [

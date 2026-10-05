@@ -17,9 +17,7 @@
         "{{cs_name}}",
         "{{agent_name}}",
         "{{travel}}",
-        "{{sumber}}",
         "{{bulan}}",
-        "{{kota}}",
         "{{paket}}"
     ],
     "scripts": [
@@ -110,7 +108,7 @@
             "title": "Tanya Paket Termurah",
             "use_when": "Prospek langsung mencari harga paling murah.",
             "prospect_example": "Yang paling murah berapa?",
-            "script": "Ada beberapa pilihan Kak 😊 Biar saya carikan yang pas, boleh tahu rencananya berangkat dari {{kota}} atau kota lain?",
+            "script": "Ada beberapa pilihan Kak 😊 Biar saya carikan yang pas, boleh tahu rencananya berangkat dari kota mana?",
             "next_stage": "identification",
             "tags": [
                 "harga",

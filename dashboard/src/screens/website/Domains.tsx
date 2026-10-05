@@ -5,25 +5,13 @@ import { deleteCustomDomain, fetchDomains, getDomainARecordTargets, getDomainCNA
 import { Banner, Button, Checkbox, Field, IconButton, Modal, Pill, errorText, fmtAgo, type PillTone } from '../../ui';
 import { SettingsSection } from '../settings/Section';
 import { CopyText } from '../agents/shared';
+import { hostField, isRoot, pairOf, zoneOf } from './domainZone';
 
 const STATUS: Record<DomainItem['status'], { label: string; tone: PillTone }> = {
   pending: { label: 'Menunggu DNS', tone: 'amber' },
   active: { label: 'Aktif', tone: 'green' },
   failed: { label: 'Gagal diverifikasi', tone: 'red' },
 };
-
-/** Registrable domain of a hostname: namatravel.com, or namatravel.co.id for Indonesian second-level names. */
-const zoneOf = (host: string) => {
-  const parts = host.split('.');
-  const n = /.(co|or|ac|go|web|my|sch|net|biz|ponpes|desa).id$/.test(host) ? 3 : 2;
-  return parts.slice(-n).join('.');
-};
-
-/** A root domain (namatravel.com) cannot have a CNAME; it needs A records. www.namatravel.com can. */
-const isRoot = (host: string) => zoneOf(host) === host;
-
-/** What to type in the "Host" field of most DNS panels, which append the domain themselves. */
-const hostField = (name: string, zone: string) => (name === zone ? '@' : name.endsWith('.' + zone) ? name.slice(0, -(zone.length + 1)) : name);
 
 type Row = { type: string; name: string; value: string };
 
@@ -66,14 +54,6 @@ const DnsTable: React.FC<{ primary: DomainItem; alias?: DomainItem }> = ({ prima
       </tbody>
     </table>
   );
-};
-
-/** The www / non-www pair for a typed host, or null when the host is neither (e.g. umroh.namatravel.com). */
-const pairOf = (host: string): { primary: string; alias: string } | null => {
-  if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(host)) return null;
-  if (isRoot(host)) return { primary: 'www.' + host, alias: host };
-  if (host.startsWith('www.') && isRoot(host.slice(4))) return { primary: host, alias: host.slice(4) };
-  return null;
 };
 
 /** Step-by-step guide, open while the travel has no custom domain yet. */

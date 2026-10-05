@@ -334,6 +334,29 @@ func TestAgentHandler_Register_DuplicatePhoneSameTenant(t *testing.T) {
 	}
 }
 
+// An invalid WhatsApp number is refused with 400. Before, "abc" was stored normalized as "" and the
+// next invalid one hit a false "duplicate" (bug hunt 5 Oct 2026).
+func TestAgentHandler_Register_InvalidPhoneRefused(t *testing.T) {
+	r, _, _, _, t1, _ := setupAgentTestRouter()
+
+	for i, phone := range []string{"abc", "12345", "0812-abc-7890"} {
+		body, _ := json.Marshal(map[string]string{
+			"name":     "Invalid Phone",
+			"phone":    phone,
+			"email":    fmt.Sprintf("invalid-phone-%d@example.com", i),
+			"password": "password123",
+			"domisili": "Kota Bandung",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/public/agents/register", bytes.NewReader(body))
+		req = req.WithContext(middleware.WithTenantID(req.Context(), t1.ID))
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("phone %q: expected 400, got %d: %s", phone, w.Code, w.Body.String())
+		}
+	}
+}
+
 // 6. Login berhasil -> token valid, status-agnostic
 func TestAgentHandler_Login_StatusAgnostic(t *testing.T) {
 	r, agentRepo, _, _, t1, _ := setupAgentTestRouter()

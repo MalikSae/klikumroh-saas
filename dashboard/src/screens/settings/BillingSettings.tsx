@@ -1,5 +1,5 @@
 // Langganan: current plan, open invoice, plan picker to renew or activate, invoice history.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ReceiptText } from 'lucide-react';
 import {
@@ -62,12 +62,18 @@ export const BillingSettings: React.FC = () => {
   const [checking, setChecking] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  // Only the latest coupon check may update the form (the plan can change while one is in flight).
+  const checkSeq = useRef(0);
+
   useEffect(() => {
     Promise.all([fetchTenantSubscription(true), fetchPricingPlansForRenewal()])
       .then(([s, p]) => {
         setSub(s);
         setPlans(p);
         setPlanId(s.pending_verification?.plan_id ?? s.current_plan_id ?? p[0]?.id ?? null);
+        // Replacing the open invoice must keep its coupon: prefill it (validated when the picker opens).
+        const openCoupon = s.pending_verification?.coupon_code?.trim();
+        if (openCoupon) setCoupon(openCoupon.toUpperCase());
       })
       .catch((e) => setError(errorText(e, 'Gagal memuat data')))
       .finally(() => setLoading(false));
@@ -79,34 +85,59 @@ export const BillingSettings: React.FC = () => {
     return discount ? Math.max(0, Math.round(plan.price - (discount.pct / 100) * plan.price)) : plan.price;
   }, [plan, discount]);
 
+  /** Validates a coupon for a plan and updates the form. Returns the applied discount, or null when invalid. */
+  const checkCoupon = async (code: string, pid: number | null) => {
+    const c = code.trim().toUpperCase();
+    if (!c || !pid) return null;
+    const seq = ++checkSeq.current;
+    setChecking(true);
+    setCouponError(null);
+    try {
+      const r = await validateCoupon(c, pid);
+      const d = { code: r.code, pct: r.discount_percentage };
+      if (seq === checkSeq.current) setDiscount(d);
+      return d;
+    } catch (e) {
+      if (seq === checkSeq.current) {
+        setDiscount(null);
+        setCouponError(errorText(e, 'Kupon tidak valid'));
+      }
+      return null;
+    } finally {
+      if (seq === checkSeq.current) setChecking(false);
+    }
+  };
+
+  const applyCoupon = () => {
+    void checkCoupon(coupon, planId);
+  };
+
+  const startPicking = () => {
+    setPicking(true);
+    if (coupon.trim() && !discount) void checkCoupon(coupon, planId);
+  };
+
   const choosePlan = (id: number) => {
     setPlanId(id);
     // A coupon can be limited to one plan: validate it again for the new choice.
     setDiscount(null);
     setCouponError(null);
-  };
-
-  const applyCoupon = async () => {
-    if (!coupon.trim() || !planId) return;
-    setChecking(true);
-    setCouponError(null);
-    try {
-      const r = await validateCoupon(coupon.trim().toUpperCase(), planId);
-      setDiscount({ code: r.code, pct: r.discount_percentage });
-    } catch (e) {
-      setDiscount(null);
-      setCouponError(errorText(e, 'Kupon tidak valid'));
-    } finally {
-      setChecking(false);
-    }
+    if (coupon.trim()) void checkCoupon(coupon, id);
   };
 
   const createInvoice = async () => {
     if (!planId) return;
-    setCreating(true);
     setError(null);
+    // A typed coupon is never dropped silently: it must validate for this plan before the invoice is made.
+    let code = discount?.code;
+    if (coupon.trim() && (!discount || discount.code.toUpperCase() !== coupon.trim().toUpperCase())) {
+      const d = await checkCoupon(coupon, planId);
+      if (!d) return;
+      code = d.code;
+    }
+    setCreating(true);
     try {
-      const r = await createRenewalInvoice(planId, discount?.code);
+      const r = await createRenewalInvoice(planId, code);
       navigate(`/settings/subscription/payment/${r.payment_verification.id}`);
     } catch (e) {
       setError(errorText(e, 'Gagal membuat tagihan'));
@@ -142,7 +173,7 @@ export const BillingSettings: React.FC = () => {
           {state.text && <p className="st-plan__text">{state.text}</p>}
         </div>
         {!showPicker && !open && (
-          <Button variant="primary" onClick={() => setPicking(true)}>
+          <Button variant="primary" onClick={startPicking}>
             Perpanjang langganan
           </Button>
         )}
@@ -158,7 +189,7 @@ export const BillingSettings: React.FC = () => {
             </span>
           </div>
           {!open.proof_url && !picking && (
-            <Button variant="ghost" onClick={() => setPicking(true)}>
+            <Button variant="ghost" onClick={startPicking}>
               Ganti paket
             </Button>
           )}
@@ -205,6 +236,9 @@ export const BillingSettings: React.FC = () => {
                       value={coupon}
                       onChange={(e) => {
                         setCoupon(e.target.value.toUpperCase());
+                        // Drop any check still in flight for the previous text.
+                        checkSeq.current++;
+                        setChecking(false);
                         setDiscount(null);
                         setCouponError(null);
                       }}
@@ -237,7 +271,7 @@ export const BillingSettings: React.FC = () => {
                 {open ? "Tagihan sebelumnya yang belum dibayar akan diganti. " : ""}Total transfer ditambah kode unik 3 digit agar pembayaran Anda mudah dicocokkan.
               </p>
               <div className="st-checkout__actions">
-                <Button variant="primary" onClick={createInvoice} disabled={creating}>
+                <Button variant="primary" onClick={createInvoice} disabled={creating || checking}>
                   {creating ? 'Memproses...' : 'Lanjut ke pembayaran'}
                 </Button>
               </div>

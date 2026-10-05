@@ -441,7 +441,8 @@ func (r *mysqlAgentTargetRepository) ListAgentProgress(ctx context.Context, tena
 	}
 	defer rows.Close()
 
-	var result []AgentTargetProgressRow
+	// Empty slice, not nil: a travel without active agents must get "rows": [] (the dashboard spreads it).
+	result := []AgentTargetProgressRow{}
 	for rows.Next() {
 		var row AgentTargetProgressRow
 		var phone, rewardStatus sql.NullString

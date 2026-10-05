@@ -21,18 +21,14 @@
         "Jika topik menyangkut kesehatan, hindari memberikan diagnosis atau saran medis."
     ],
     "placeholders": [
-        "{{nama}}",
         "{{travel}}",
         "{{paket}}",
         "{{harga}}",
         "{{bulan}}",
         "{{tanggal}}",
-        "{{kota}}",
         "{{hotel}}",
-        "{{jarak_hotel}}",
         "{{maskapai}}",
         "{{durasi}}",
-        "{{dp}}",
         "{{fasilitas_utama}}"
     ],
     "topics": [

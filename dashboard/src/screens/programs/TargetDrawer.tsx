@@ -32,7 +32,7 @@ export const TargetDrawer: React.FC<{ targetId: number; onClose: () => void; onC
     try {
       const p = await fetchTargetProgress(targetId);
       setTarget(p.target);
-      setProgress([...p.rows].sort((a, b) => b.achieved_value - a.achieved_value));
+      setProgress([...(p.rows ?? [])].sort((a, b) => b.achieved_value - a.achieved_value));
       setAchievements(p.target.status === 'closed' ? await fetchTargetAchievements(targetId) : []);
     } catch (e) {
       setError(errorText(e, 'Gagal memuat target'));

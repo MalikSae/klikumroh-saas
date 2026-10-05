@@ -13,7 +13,8 @@
     "test:affiliator": "node --experimental-strip-types test/proxy-affiliator.test.mjs",
     "test:commission": "node --experimental-strip-types test/commission-summary.test.mjs",
     "test:checkout": "node --experimental-strip-types test/checkout-validation.test.mjs",
-    "test:web-fixes": "node --experimental-strip-types test/web-fixes.test.mjs"
+    "test:web-fixes": "node --experimental-strip-types test/web-fixes.test.mjs",
+    "test:placeholders": "node --experimental-strip-types test/placeholder-fill.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

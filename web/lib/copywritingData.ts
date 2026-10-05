@@ -3,6 +3,7 @@ import educationData from '../data/copywriting/education.json';
 import desireData from '../data/copywriting/desire.json';
 import trustData from '../data/copywriting/trust.json';
 import offerData from '../data/copywriting/offer.json';
+import { fillTemplate, CAPTION_PLACEHOLDERS } from './placeholderFill';
 
 export interface CopyItem {
   id: string;
@@ -34,21 +35,14 @@ export interface CopyGoalCategory {
 }
 
 export interface CopyPlaceholderReplacements {
-  nama?: string;
   travel?: string;
-  paket?: string;
-  harga?: string;
-  bulan?: string;
-  tahun?: string;
-  tanggal?: string;
-  kota?: string;
-  hotel?: string;
-  jarak_hotel?: string;
-  maskapai?: string;
-  durasi?: string;
-  dp?: string;
-  fasilitas_utama?: string;
+  agent_name?: string;
+  nomor_izin?: string;
+  alamat?: string;
+  /** Referral link appended under the caption; not a placeholder inside the texts. */
   link?: string;
+  // Package facts (see packageFacts): paket, harga, tanggal, bulan, tahun, seat, hotel, maskapai, rute, durasi, fasilitas_utama.
+  [packageFact: string]: string | undefined;
 }
 
 const allRawCopies: CopyItem[] = [
@@ -124,53 +118,30 @@ export const getCopywritingCategories = (): CopyGoalCategory[] => {
   ];
 };
 
-export const replaceCopyPlaceholders = (text: string, values: CopyPlaceholderReplacements): string => {
-  if (!text) return '';
+/**
+ * Fills a caption part with real data only: null when it cannot be shown (opening sentence needs a missing
+ * value); other sentences with a missing value are dropped. Never a made-up fallback, never a raw {{...}}.
+ */
+export const replaceCopyPlaceholders = (text: string, values: CopyPlaceholderReplacements): string | null =>
+  fillTemplate(text, values, { allowed: CAPTION_PLACEHOLDERS });
 
-  const travelDisplay = values.travel || 'Travel Umroh';
-  const nameDisplay = values.nama || 'Bapak/Ibu';
-  const paketDisplay = values.paket || 'Paket Umroh Pilihan';
-  const hargaDisplay = values.harga || 'Harga Terbaik';
-  const bulanDisplay = values.bulan || 'Musim Depan';
-  const tahunDisplay = values.tahun || String(new Date().getFullYear());
-  const tanggalDisplay = values.tanggal || 'Sesuai Jadwal';
-  const kotaDisplay = values.kota || 'Indonesia';
-  const hotelDisplay = values.hotel || 'Hotel Bintang Nyaman';
-  const jarakHotelDisplay = values.jarak_hotel || 'Dekat Pelataran Masjid';
-  const maskapaiDisplay = values.maskapai || 'Maskapai Ternama Direct';
-  const durasiDisplay = values.durasi || '9 - 12 Hari';
-  const dpDisplay = values.dp || 'Rp 5.000.000';
-  const fasilitasDisplay = values.fasilitas_utama || 'Visa, tiket PP, hotel, makan 3x, & muthawwif';
-  const linkDisplay = values.link || '';
-
-  return text
-    .replace(/\{\{travel\}\}/gi, travelDisplay)
-    .replace(/\{\{nama\}\}/gi, nameDisplay)
-    .replace(/\{\{paket\}\}/gi, paketDisplay)
-    .replace(/\{\{harga\}\}/gi, hargaDisplay)
-    .replace(/\{\{bulan\}\}/gi, bulanDisplay)
-    .replace(/\{\{tahun\}\}/gi, tahunDisplay)
-    .replace(/\{\{tanggal\}\}/gi, tanggalDisplay)
-    .replace(/\{\{kota\}\}/gi, kotaDisplay)
-    .replace(/\{\{hotel\}\}/gi, hotelDisplay)
-    .replace(/\{\{jarak_hotel\}\}/gi, jarakHotelDisplay)
-    .replace(/\{\{maskapai\}\}/gi, maskapaiDisplay)
-    .replace(/\{\{durasi\}\}/gi, durasiDisplay)
-    .replace(/\{\{dp\}\}/gi, dpDisplay)
-    .replace(/\{\{fasilitas_utama\}\}/gi, fasilitasDisplay)
-    .replace(/\{\{link\}\}/gi, linkDisplay);
+/** Hook, body and CTA filled for one caption, or null when any non-empty part cannot be shown. */
+export const fillCaptionParts = (
+  copy: Pick<CopyItem, 'hook' | 'body' | 'cta'>,
+  replacements: CopyPlaceholderReplacements
+): { hook: string; body: string; cta: string } | null => {
+  const hook = copy.hook ? replaceCopyPlaceholders(copy.hook, replacements) : '';
+  const body = copy.body ? replaceCopyPlaceholders(copy.body, replacements) : '';
+  const cta = copy.cta ? replaceCopyPlaceholders(copy.cta, replacements) : '';
+  if (hook === null || body === null || cta === null) return null;
+  return { hook, body, cta };
 };
 
-export const assembleFullCaption = (copy: CopyItem, replacements: CopyPlaceholderReplacements): string => {
-  const hook = replaceCopyPlaceholders(copy.hook, replacements);
-  const body = replaceCopyPlaceholders(copy.body, replacements);
-  const cta = replaceCopyPlaceholders(copy.cta, replacements);
+export const assembleFullCaption = (copy: CopyItem, replacements: CopyPlaceholderReplacements): string | null => {
+  const filled = fillCaptionParts(copy, replacements);
+  if (!filled) return null;
 
-  const parts: string[] = [];
-  if (hook) parts.push(hook);
-  if (body) parts.push(body);
-  if (cta) parts.push(cta);
-
+  const parts = [filled.hook, filled.body, filled.cta].filter(Boolean);
   if (replacements.link) {
     parts.push(`\nInfo detail & pendaftaran:\n${replacements.link}`);
   }

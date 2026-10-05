@@ -443,3 +443,21 @@ Lima agen paralel (prospek & komisi, langganan & affiliator, portal agen, dashbo
   - Tidak dikerjakan: urutan koreksi komisi sebelum update prospek di `UpdateDetail` (butuh refactor transaksi)
 - [x] Keputusan pendiri 5 Okt 2026: kartu "Siap ditarik" di Riwayat komisi agen disamakan dengan Tarik saldo (komisi cair dikurangi pengajuan diproses, disetujui, dan dibayar = `saldo_tersedia` server). Contoh: cair Rp1jt, pengajuan Rp300rb belum diproses → Rp700rb di kedua halaman. Test `web/test/commission-summary.test.mjs`
 - [ ] Pendiri cek visual: banner impersonasi, warna token baru di super admin (merah/hijau sedikit bergeser), dropdown custom super admin, catatan kode unik di checkout
+
+### Bug Hunt Putaran 2 (5 Oktober 2026)
+
+Tidak ada regresi dari perbaikan putaran 1. Temuan: 8 MEDIUM (kelompok A, dikerjakan) dan sekitar 30 LOW (kelompok B, menunggu keputusan pendiri).
+
+- [x] Kelompok A, 5 Okt 2026 (keputusan pendiri: placeholder tanpa sumber data dihapus dari skrip, tidak ada fakta karangan):
+  - A1 Script WA agen: placeholder hanya diisi dari data nyata (paket terpilih + jumlah jamaah); kalimat yang datanya kosong dibuang, skrip yang kalimat pembukanya tidak bisa diisi disembunyikan; nilai palsu ('mulai 28 Jutaan', 'Rp 5.000.000', 'sisa 4 seat', maskapai, '9 hari') dihapus. Placeholder tanpa sumber (`dp`, `deadline`, `kota`, `rekening`, `promo`, `jarak_hotel`, `budget`, dll) ditulis ulang dari teks `web/data/scripts-chat`. Logika di `web/lib/placeholderFill.ts`
+  - A2 Bank caption: tidak lagi menampilkan JSON mentah hotel/penerbangan, harga palsu, atau `{{...}}` tersisa; nilai dari `packageFacts` paket + `ppiu_number`/`address` tenant. Test `web/test/placeholder-fill.test.mjs` (`npm run test:placeholders`, 8 subtest, termasuk scan data JSON)
+  - A3 Regex zona `.id` di halaman Domain di-escape (`travelco.id` tidak lagi terbaca `co.id`); helper di `dashboard/src/screens/website/domainZone.ts`, test `npm run test:domain-zone`
+  - A4 Drawer target tidak crash pada travel tanpa agen aktif: API mengembalikan `"rows": []`, dashboard null-safe. Test `TestAgentTarget_ProgressWithoutAgentsIsEmptyArray`
+  - A5 Profil travel: bila gagal dimuat, hanya banner error + "Coba lagi"; form kosong tidak bisa disimpan menimpa data kontak
+  - A6 Halaman status agen: tombol WhatsApp admin travel dan warna brand diambil dari tenant-info (profil agen tidak membawa objek tenant)
+  - A7 Nomor WhatsApp agen divalidasi (aturan sama dengan prospek) di daftar agen, edit profil agen, dan edit admin; nomor tidak valid ditolak 400 (`ErrInvalidAgentPhone`), bukan disimpan kosong. Test `TestAgentHandler_Register_InvalidPhoneRefused`
+  - A8 Tagihan "Ganti paket": kupon invoice terbuka dibawa dan divalidasi ulang per paket; kupon yang diketik tapi belum diterapkan divalidasi sebelum invoice dibuat
+  - Tanggal super admin (tenant, pembayaran, kupon, staf, dashboard, notifikasi, affiliator) dan rentang bulan TargetModal memakai WIB
+- [ ] Pendiri cek visual: banner error profil + Coba lagi, prefill/pesan kupon di Tagihan, tabel DNS domain `.id`, daftar skrip WA dan bank caption setelah filter
+- [ ] Pendiri putuskan (AGENTS.md 3.8): tiga judul caption diganti agar cocok dengan teks baru ("Keberangkatan dari Kota" jadi "Jadwal Keberangkatan", "Lebih Praktis dari Kota Sendiri" jadi "Perjalanan Lebih Nyaman", "Promo Aktual" jadi "Info Harga Terbaru"); jumlah per kategori bank caption masih dari total JSON (bisa lebih besar dari yang tampil); emoji di teks greeting.json (isi chat, tidak dicek lint)
+- [ ] Kelompok B (LOW, sekitar 30 item): menunggu permintaan pendiri

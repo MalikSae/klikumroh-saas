@@ -24,26 +24,18 @@
         "Gunakan satu offer utama dalam satu copy."
     ],
     "placeholders": [
-        "{{nama}}",
         "{{travel}}",
         "{{paket}}",
         "{{harga}}",
-        "{{harga_promo}}",
         "{{tanggal}}",
         "{{bulan}}",
         "{{tahun}}",
-        "{{kota}}",
         "{{durasi}}",
         "{{hotel}}",
-        "{{jarak_hotel}}",
         "{{maskapai}}",
         "{{rute}}",
-        "{{dp}}",
         "{{seat}}",
-        "{{jumlah_jamaah}}",
-        "{{deadline}}",
-        "{{fasilitas_utama}}",
-        "{{bonus}}"
+        "{{fasilitas_utama}}"
     ],
     "offer_pillars": [
         {
@@ -331,8 +323,8 @@
                 "facebook"
             ],
             "format": "short",
-            "title": "Keberangkatan dari Kota",
-            "hook": "Cari umroh berangkat dari {{kota}}?",
+            "title": "Jadwal Keberangkatan",
+            "hook": "Sedang cari jadwal umroh yang pas?",
             "body": "Ada pilihan {{paket}} untuk keberangkatan {{tanggal}}.",
             "cta": "Kalau mau, saya kirim jadwal dan detail biayanya.",
             "requires_verified_data": true,
@@ -355,9 +347,9 @@
                 "whatsapp_status"
             ],
             "format": "medium",
-            "title": "Lebih Praktis dari Kota Sendiri",
-            "hook": "Buat yang lebih nyaman memulai perjalanan dari {{kota}}, ada jadwal yang bisa dipertimbangkan.",
-            "body": "{{paket}} berangkat {{tanggal}} dengan harga {{harga}}. Cocok untuk yang ingin mengurangi tambahan perjalanan menuju kota keberangkatan lain.",
+            "title": "Perjalanan Lebih Nyaman",
+            "hook": "Buat yang ingin memulai perjalanan umroh dengan nyaman, ada jadwal yang bisa dipertimbangkan.",
+            "body": "{{paket}} berangkat {{tanggal}} dengan harga {{harga}}. Rute penerbangannya {{rute}}.",
             "cta": "Kalau ada rencana untuk keluarga, saya bantu cek kebutuhan seat-nya.",
             "requires_verified_data": true,
             "tags": [
@@ -429,7 +421,7 @@
             "format": "direct_offer",
             "title": "Hotel Lebih Dekat",
             "hook": "Cari paket untuk orang tua dengan prioritas hotel lebih dekat?",
-            "body": "{{paket}} menggunakan {{hotel}} dengan jarak sekitar {{jarak_hotel}}.",
+            "body": "{{paket}} menggunakan {{hotel}}. Detail jarak hotel ke masjid bisa saya kirimkan.",
             "cta": "Kalau ingin saya cek detail paketnya, boleh chat.",
             "requires_verified_data": true,
             "tags": [
@@ -711,9 +703,9 @@
                 "instagram"
             ],
             "format": "direct_offer",
-            "title": "Promo Aktual",
-            "hook": "Ada promo untuk {{paket}}.",
-            "body": "Harga normal {{harga}}, sekarang {{harga_promo}} sesuai ketentuan promo yang berlaku sampai {{deadline}}.",
+            "title": "Info Harga Terbaru",
+            "hook": "Ada info harga terbaru untuk {{paket}}.",
+            "body": "Harganya {{harga}}, mengikuti ketentuan yang berlaku dari {{travel}}.",
             "cta": "Kalau ingin saya kirim syarat dan detailnya, boleh chat.",
             "requires_verified_data": true,
             "tags": [
@@ -737,7 +729,7 @@
             "format": "short",
             "title": "Untuk yang Menunggu Harga",
             "hook": "Buat yang kemarin menunggu pilihan di budget lebih ringan...",
-            "body": "Sekarang ada {{paket}} di harga {{harga_promo}} untuk keberangkatan {{tanggal}}.",
+            "body": "Sekarang ada {{paket}} di harga {{harga}} untuk keberangkatan {{tanggal}}.",
             "cta": "Kalau jadwalnya cocok, saya kirim detailnya.",
             "requires_verified_data": true,
             "tags": [
@@ -804,7 +796,7 @@
             "format": "short",
             "title": "DP Paket",
             "hook": "Sudah cocok paketnya tapi masih menghitung pembayaran awal?",
-            "body": "Untuk {{paket}}, DP awalnya {{dp}} sesuai ketentuan yang berlaku.",
+            "body": "Untuk {{paket}}, besaran DP dan tahapan pembayarannya mengikuti ketentuan {{travel}}.",
             "cta": "Kalau mau lihat tahapan pembayaran lengkapnya, saya kirim.",
             "requires_verified_data": true,
             "tags": [

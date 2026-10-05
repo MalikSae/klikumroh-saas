@@ -200,6 +200,10 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": "nomor whatsapp sudah terdaftar sebagai agen"})
 			return
 		}
+		if errors.Is(err, service.ErrInvalidAgentPhone) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, service.ErrTermsRequired) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Syarat & Ketentuan wajib disetujui"})
 			return
@@ -635,7 +639,7 @@ func (h *AgentHandler) UpdateDashboardAgentProfile(w http.ResponseWriter, r *htt
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "nomor whatsapp sudah terdaftar di travel ini"})
 			return
 		}
-		if errors.Is(err, service.ErrAgentPhoneRequired) || errors.Is(err, service.ErrAgentEmailRequired) {
+		if errors.Is(err, service.ErrAgentPhoneRequired) || errors.Is(err, service.ErrAgentEmailRequired) || errors.Is(err, service.ErrInvalidAgentPhone) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -1137,7 +1141,7 @@ func (h *AgentHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	profile, err := h.agentService.UpdateProfile(r.Context(), tenantID, agentID, &req)
 	if err != nil {
-		if errors.Is(err, repository.ErrDuplicateAgentEmail) || errors.Is(err, repository.ErrDuplicateAgentPhone) {
+		if errors.Is(err, repository.ErrDuplicateAgentEmail) || errors.Is(err, repository.ErrDuplicateAgentPhone) || errors.Is(err, service.ErrInvalidAgentPhone) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

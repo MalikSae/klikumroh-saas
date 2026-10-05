@@ -61,6 +61,7 @@ interface FooterInfo {
   whatsapp_number?: string | null;
   email?: string | null;
   ppiu_number?: string | null;
+  brand_primary_color?: string | null;
 }
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024;
@@ -236,7 +237,8 @@ export default function AgenStatusPage() {
           rejection_reason: rawAgent.rejection_reason || null,
         },
         tenant: {
-          name: rawTenant.name || 'Portal Mitra Agen',
+          // GET /api/agent/me returns the travel name flat (tenant_name), without a tenant object.
+          name: rawTenant.name || rawData.tenant_name || rawAgent.tenant_name || 'Portal Mitra Agen',
           brand_primary_color: rawTenant.brand_primary_color,
           brand_logo_url: rawTenant.brand_logo_url,
           whatsapp_number: rawTenant.whatsapp_number,
@@ -369,11 +371,13 @@ export default function AgenStatusPage() {
   const layoutStyle = Object.fromEntries(
     Object.entries(designTokens.publicConversionLayout).map(([key, value]) => ['--cro-' + key, value])
   );
-  const brandingStyle = data?.tenant?.brand_primary_color ? { '--tw-brand-primary': data.tenant.brand_primary_color } : {};
+  // Travel branding and WhatsApp come from the public tenant info (the agent profile has no tenant object).
+  const brandColor = footer?.brand_primary_color || data?.tenant?.brand_primary_color;
+  const brandingStyle = brandColor ? { '--tw-brand-primary': brandColor } : {};
 
   // No travel WhatsApp number -> hide the contact button instead of pointing to a placeholder number.
   const helpWaUrl = whatsappLink(
-    data?.tenant?.whatsapp_number,
+    footer?.whatsapp_number || data?.tenant?.whatsapp_number,
     `Halo Admin, saya mitra agen ${data?.tenant?.name || 'travel'} ingin menanyakan status kemitraan`
   );
 

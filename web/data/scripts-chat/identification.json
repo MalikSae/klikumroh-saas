@@ -15,10 +15,7 @@
     "placeholders": [
         "{{nama}}",
         "{{bulan}}",
-        "{{kota}}",
-        "{{budget}}",
-        "{{jumlah_jamaah}}",
-        "{{nama_pendamping}}"
+        "{{jumlah_jamaah}}"
     ],
     "categories": [
         {

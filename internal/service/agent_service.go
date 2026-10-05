@@ -25,6 +25,10 @@ var (
 	ErrAgentNotActive      = errors.New("Akun belum aktif")
 	// ErrAgentPhoneRequired: the agent's WhatsApp number cannot be emptied from the admin edit.
 	ErrAgentPhoneRequired = errors.New("nomor WhatsApp agen wajib diisi")
+	// ErrInvalidAgentPhone: the agent's WhatsApp number must be a valid Indonesian number (same rule as
+	// prospects). Without this, "abc" normalized to "" was stored and blocked the next invalid one as a
+	// "duplicate".
+	ErrInvalidAgentPhone = errors.New("nomor WhatsApp agen tidak valid, gunakan format 08xx atau 62xx")
 	// ErrAgentEmailRequired: the agent's email (its login) cannot be emptied from the admin edit.
 	ErrAgentEmailRequired = errors.New("email agen wajib diisi (dipakai agen untuk login)")
 	// ErrAgentRegistrationClosed: the travel's subscription is pending or suspended.
@@ -447,6 +451,9 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 	email := strings.TrimSpace(req.Email)
 	domisili := strings.TrimSpace(req.Domisili)
 	phone := strings.TrimSpace(req.Phone)
+	if err := validateAgentPhone(phone); err != nil {
+		return nil, err
+	}
 
 	agent := &repository.Agent{
 		TenantID:        tenantID,
@@ -1476,7 +1483,20 @@ func (s *agentService) GetCommissionHistoryForAdmin(ctx context.Context, tenantI
 	return items, nil
 }
 
+// validateAgentPhone applies the prospect phone rule (Indonesian WhatsApp, 62 + 8-13 digits) to an agent.
+func validateAgentPhone(raw string) error {
+	if _, _, err := validateProspectPhone(raw); err != nil {
+		return ErrInvalidAgentPhone
+	}
+	return nil
+}
+
 func (s *agentService) UpdateProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateProfileRequest) (*AgentProfileResult, error) {
+	if req.Phone != nil && strings.TrimSpace(*req.Phone) != "" {
+		if err := validateAgentPhone(*req.Phone); err != nil {
+			return nil, err
+		}
+	}
 	params := repository.UpdateAgentProfileParams{
 		Name:              req.Name,
 		Phone:             req.Phone,
@@ -1715,6 +1735,11 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 	// lock the agent out. A blank value is refused (400) instead of being silently kept.
 	if req.Phone != nil && strings.TrimSpace(*req.Phone) == "" {
 		return nil, ErrAgentPhoneRequired
+	}
+	if req.Phone != nil {
+		if err := validateAgentPhone(*req.Phone); err != nil {
+			return nil, err
+		}
 	}
 	if req.Email != nil && strings.TrimSpace(*req.Email) == "" {
 		return nil, ErrAgentEmailRequired

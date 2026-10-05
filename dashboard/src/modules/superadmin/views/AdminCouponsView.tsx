@@ -1,3 +1,4 @@
+import { formatDateWIB } from '../../../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import { Plus, PowerOff, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
@@ -43,20 +44,7 @@ export const AdminCouponsView: React.FC = () => {
     loadData();
   }, []);
 
-  const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return '-';
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr?: string | null) => formatDateWIB(dateStr);
 
   const handleDeactivate = async (id: number) => {
     if (!window.confirm('Nonaktifkan kupon ini sekarang?')) return;

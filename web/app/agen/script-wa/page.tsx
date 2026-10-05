@@ -21,6 +21,7 @@ import {
   type CycleStage,
   type PlaceholderReplacements,
 } from '../../../lib/scriptData';
+import { packageFacts, type PackageLike } from '../../../lib/placeholderFill';
 
 const FAVORITES_STORAGE_KEY = 'klikumroh_agent_script_favorites';
 const PROSPECT_NAME_STORAGE_KEY = 'klikumroh_agent_script_prospect_name';
@@ -65,6 +66,8 @@ function ScriptWAContent() {
   const [prospectName, setProspectName] = useState<string>('');
   const [prospectPhone, setProspectPhone] = useState<string>('');
   const [prospectPackageName, setProspectPackageName] = useState<string>('');
+  // Published packages of this travel: the source of the package facts in the scripts (price, date, seats...).
+  const [packages, setPackages] = useState<PackageLike[]>([]);
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabType>('greeting');
@@ -231,6 +234,18 @@ function ScriptWAContent() {
       }
     };
 
+    const fetchPackages = async () => {
+      try {
+        const res = await fetch('/api/public/packages');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) setPackages(data as PackageLike[]);
+        }
+      } catch {
+        // Soft fail: scripts that need package facts stay hidden
+      }
+    };
+
     const fetchProspects = async () => {
       try {
         setLoadingProspects(true);
@@ -271,6 +286,7 @@ function ScriptWAContent() {
     fetchTenantPublicInfo();
     fetchAgentInfo();
     fetchProspects();
+    fetchPackages();
 
     try {
       const savedFavs = localStorage.getItem(FAVORITES_STORAGE_KEY);
@@ -346,39 +362,39 @@ function ScriptWAContent() {
     window.open(url, '_blank');
   };
 
-  // Replacement values
+  // Replacement values: real data only. A script whose opening needs a missing value is hidden, other
+  // sentences with a missing value are dropped (lib/placeholderFill). Package facts come from the selected
+  // jamaah's package; manual mode has no package, so those scripts are hidden there.
+  const prospectPackage = useMemo(() => {
+    if (!selectedProspect?.package_id) return null;
+    return packages.find((pkg) => pkg.id === selectedProspect.package_id) || null;
+  }, [packages, selectedProspect]);
+
   const replacements: PlaceholderReplacements = useMemo(
     () => ({
+      ...packageFacts(prospectPackage),
+      // The jamaah's own package name is real data even when the package is no longer published.
+      paket: prospectPackage?.name || prospectPackageName.trim(),
       nama: prospectName.trim(),
       travel: tenantName,
-      cs_name: agentName,
       agent_name: agentName,
       referral_link: referralLink,
-      paket: prospectPackageName || 'Paket Umroh Pilihan',
-      harga: 'mulai 28 Jutaan',
-      dp: 'Rp 5.000.000',
-      seat: 'sisa 4 seat lagi',
-      bulan: 'keberangkatan terdekat',
-      tanggal: 'jadwal yang tersedia',
-      hotel: 'Hotel Bintang 4 / 5',
-      jarak_hotel: 'jalan kaki ke pelataran masjid',
-      maskapai: 'Garuda / Saudia Airlines',
-      fasilitas_utama: 'hotel dekat pelataran dan maskapai direct',
-      durasi: '9 hari',
-      rekening: 'rekening resmi travel',
-      nama_rekening: tenantName,
+      jumlah_jamaah: selectedProspect && selectedProspect.jumlah_jamaah > 0 ? String(selectedProspect.jumlah_jamaah) : '',
     }),
-    [prospectName, tenantName, agentName, referralLink, prospectPackageName]
+    [prospectPackage, prospectPackageName, prospectName, tenantName, agentName, referralLink, selectedProspect]
   );
+
+  // Only the scripts that can be filled for the current jamaah are listed.
+  const canShow = useCallback((text: string) => replacePlaceholders(text, replacements) !== null, [replacements]);
 
   // Raw datasets
   const stages = useMemo<CycleStage[]>(() => getCycleStages(), []);
-  const greetings = useMemo<StandardScriptItem[]>(() => getGreetingScripts(), []);
-  const identifications = useMemo<StandardScriptItem[]>(() => getIdentificationScripts(), []);
-  const offers = useMemo<StandardScriptItem[]>(() => getOfferScripts(), []);
-  const closings = useMemo<StandardScriptItem[]>(() => getClosingScripts(), []);
+  const greetings = useMemo<StandardScriptItem[]>(() => getGreetingScripts().filter((item) => canShow(item.script)), [canShow]);
+  const identifications = useMemo<StandardScriptItem[]>(() => getIdentificationScripts().filter((item) => canShow(item.script)), [canShow]);
+  const offers = useMemo<StandardScriptItem[]>(() => getOfferScripts().filter((item) => canShow(item.script)), [canShow]);
+  const closings = useMemo<StandardScriptItem[]>(() => getClosingScripts().filter((item) => canShow(item.script)), [canShow]);
   const objections = useMemo<ObjectionTGJPItem[]>(() => getObjectionScripts(), []);
-  const followups = useMemo<StandardScriptItem[]>(() => getFollowupScripts(), []);
+  const followups = useMemo<StandardScriptItem[]>(() => getFollowupScripts().filter((item) => canShow(item.script)), [canShow]);
 
   // Stage Metadata Mapping
   const activeStageInfo = useMemo(() => {
@@ -656,7 +672,8 @@ function ScriptWAContent() {
         {activeTab !== 'objection' && (
           <div className="sw-list">
             {displayedStandardScripts.map((item) => {
-              const personalizedText = replacePlaceholders(item.script, replacements);
+              // The list only holds scripts that can be filled (canShow), so null cannot reach here.
+              const personalizedText = replacePlaceholders(item.script, replacements) ?? '';
               const isFav = favoriteKeys.includes(item.id);
               const isCopied = copiedKey === item.id;
               return (
@@ -753,6 +770,7 @@ function ScriptWAContent() {
                             ? obj.tgjp.jawab.map((jItem, idx) => {
                                 const text = replacePlaceholders(jItem.script, replacements);
                                 const key = `${obj.id}_jawab_${idx}`;
+                                if (text === null) return null;
                                 return (
                                   <div key={key} className="sw-answer">
                                     <div className="sw-answer__head">
@@ -766,6 +784,7 @@ function ScriptWAContent() {
                             : obj.tgjp[step.key].map((line, idx) => {
                                 const text = replacePlaceholders(line, replacements);
                                 const key = `${obj.id}_${step.key}_${idx}`;
+                                if (text === null) return null;
                                 return (
                                   <div key={key} className="sw-step__row">
                                     <p className="sw-step__text">{text}</p>

@@ -21,3 +21,12 @@ assert.strictEqual(todayWIB(new Date('2026-10-04T16:59:59Z')), '2026-10-04');
 assert.strictEqual(todayWIB(new Date('2026-12-31T17:00:00Z')), '2027-01-01');
 
 console.log('status-date: all assertions passed');
+
+// Super admin dates are WIB whatever the device timezone: 17:30Z on 4 Oct is already 5 Oct WIB.
+{
+  const { formatDateWIB, formatDayMonthWIB } = await import('../src/utils/datetime.ts');
+  const wib = new Date('2026-10-05T00:30:00+07:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' });
+  assert.strictEqual(formatDateWIB('2026-10-04T17:30:00Z'), wib);
+  assert.ok(formatDayMonthWIB('2026-10-04T17:30:00Z').startsWith('5 '));
+  assert.strictEqual(formatDayMonthWIB('nope'), '');
+}

@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { createTarget, updateTarget, type AgentTarget } from '../../services/api';
 import { Banner, Button, Field, Modal, Select, errorText } from '../../ui';
 import { METRIC_UNIT } from './targetUtil';
+import { todayWIB } from '../../utils/datetime';
 
+/** First and last day of the current month in WIB (not the device's local calendar). */
 const monthRange = () => {
-  const d = new Date();
-  const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  const iso = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
-  return [iso(start), iso(end)];
+  const [y, m] = todayWIB().split('-').map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const mm = String(m).padStart(2, '0');
+  return [`${y}-${mm}-01`, `${y}-${mm}-${String(lastDay).padStart(2, '0')}`];
 };
 
 export const TargetModal: React.FC<{ target?: AgentTarget | null; onClose: () => void; onSaved: (t: AgentTarget) => void }> = ({ target, onClose, onSaved }) => {

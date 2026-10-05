@@ -225,6 +225,9 @@ func (s *agentTargetService) GetTargetProgress(ctx context.Context, tenantID uin
 	if err != nil {
 		return nil, err
 	}
+	if rows == nil {
+		rows = []repository.AgentTargetProgressRow{} // JSON [] for a travel without active agents
+	}
 	return &TargetProgressResponse{
 		Target: *target,
 		Rows:   rows,

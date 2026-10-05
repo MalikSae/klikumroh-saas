@@ -22,19 +22,13 @@
         "Personal branding agen juga menjadi bagian penting dari trust."
     ],
     "placeholders": [
-        "{{nama}}",
-        "{{cs_name}}",
         "{{travel}}",
         "{{tahun}}",
         "{{tanggal}}",
         "{{bulan}}",
-        "{{kota}}",
-        "{{jumlah_jamaah}}",
         "{{nomor_izin}}",
         "{{alamat}}",
-        "{{nama_jamaah}}",
         "{{paket}}",
-        "{{pendamping}}",
         "{{hotel}}",
         "{{maskapai}}"
     ],
@@ -263,7 +257,7 @@
             ],
             "format": "activity",
             "title": "Hari Keberangkatan",
-            "hook": "Alhamdulillah, hari ini {{jumlah_jamaah}} jamaah memulai perjalanan umroh bersama {{travel}}.",
+            "hook": "Alhamdulillah, hari ini rombongan jamaah memulai perjalanan umroh bersama {{travel}}.",
             "body": "Semoga perjalanannya lancar, sehat, dan seluruh rangkaian ibadah dimudahkan.",
             "cta": "Mohon doanya untuk seluruh jamaah.",
             "requires_real_evidence": true,
@@ -311,7 +305,7 @@
             "format": "testimonial",
             "title": "Cerita Jamaah",
             "hook": "Salah satu bagian yang paling membuat kami senang adalah ketika jamaah pulang dan mau bercerita tentang pengalamannya.",
-            "body": "\"{{testimoni}}\"",
+            "body": "Setiap cerita dari jamaah menjadi pengingat bagi kami untuk terus menjaga amanah dalam setiap perjalanan.",
             "cta": "Terima kasih sudah mempercayakan perjalanan bersama {{travel}}.",
             "requires_real_testimonial": true,
             "tags": [
@@ -450,7 +444,7 @@
             "format": "personal_agent",
             "title": "Kenalan Dulu",
             "hook": "Kalau selama ini cuma lihat saya posting paket, kenalan dulu ya 😊",
-            "body": "Saya {{cs_name}}, bagian dari {{travel}}. Saya membantu calon jamaah mulai dari cari pilihan, menjawab pertanyaan, sampai proses pendaftaran.",
+            "body": "Saya {{agent_name}}, bagian dari {{travel}}. Saya membantu calon jamaah mulai dari cari pilihan, menjawab pertanyaan, sampai proses pendaftaran.",
             "cta": "Kalau ada rencana umroh, nggak harus langsung daftar. Ngobrol dulu juga boleh.",
             "tags": [
                 "personal_branding",

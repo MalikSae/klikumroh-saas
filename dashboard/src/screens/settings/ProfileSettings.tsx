@@ -52,6 +52,10 @@ export const ProfileSettings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // The contact endpoint is a full PUT: never show the form with empty values when the load failed,
+  // or saving would wipe PPIU, address and the rest.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     Promise.all([fetchTenantProfile(), fetchTenantContactLegal()])
@@ -61,9 +65,15 @@ export const ProfileSettings: React.FC = () => {
         setSaved(f);
         setForm(f);
       })
-      .catch((e) => setError(errorText(e, 'Gagal memuat data')))
+      .catch((e) => setLoadError(errorText(e, 'Gagal memuat data')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [attempt]);
+
+  const retryLoad = () => {
+    setLoading(true);
+    setLoadError(null);
+    setAttempt((n) => n + 1);
+  };
 
   const dirty = useMemo(() => (Object.keys(form) as Array<keyof Form>).some((k) => form[k] !== saved[k]), [form, saved]);
 
@@ -112,6 +122,12 @@ export const ProfileSettings: React.FC = () => {
   };
 
   if (loading) return <div className="st-loading" aria-busy="true" />;
+  if (loadError || !profile)
+    return (
+      <Banner tone="danger" action={<Button size="sm" onClick={retryLoad}>Coba lagi</Button>}>
+        {loadError || 'Gagal memuat data'}
+      </Banner>
+    );
 
   return (
     <form className="st-form" onSubmit={save} noValidate>

@@ -1,3 +1,4 @@
+import { formatDateWIB } from '../../../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, CheckCircle2, AlertCircle, Eye, Phone, Mail } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
@@ -55,14 +56,7 @@ export const AdminPaymentsView: React.FC = () => {
     }).format(val);
   };
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const formatDate = (dateStr?: string | null) => formatDateWIB(dateStr);
 
   const needsReview = (i: PaymentVerificationItem) =>
     i.status === 'pending' && (Boolean(i.proof_url) || (i.final_amount ?? i.amount) <= 0);

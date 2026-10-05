@@ -22,11 +22,7 @@
         "{{tanggal}}",
         "{{bulan}}",
         "{{harga}}",
-        "{{dp}}",
-        "{{seat}}",
-        "{{deadline}}",
-        "{{promo}}",
-        "{{followup_date}}"
+        "{{seat}}"
     ],
     "scripts": [
         {
@@ -495,7 +491,7 @@
             "category": "relevant_promo",
             "title": "Ada Promo Sesuai Kebutuhan",
             "use_when": "Prospek lama terkendala harga dan sekarang benar-benar ada promo yang relevan.",
-            "script": "Kak {{nama}}, saya ingat kemarin Kakak cari di kisaran budget tertentu. Sekarang ada {{promo}} yang cukup mendekati. Kalau masih ada rencana umroh, saya kirim detailnya ya.",
+            "script": "Kak {{nama}}, saya ingat kemarin Kakak cari di kisaran budget tertentu. Sekarang ada {{paket}} di harga {{harga}} yang cukup mendekati. Kalau masih ada rencana umroh, saya kirim detailnya ya.",
             "next_stage_if_yes": "offer",
             "requires_verified_data": true,
             "tags": [
@@ -584,7 +580,7 @@
             "category": "status_resolution",
             "title": "Konfirmasi Nurture",
             "use_when": "Prospek mengatakan belum sekarang tetapi masih punya rencana.",
-            "script": "Baik Kak, berarti bukan batal ya, hanya belum sekarang. Kira-kira saya boleh menyapa lagi sekitar {{followup_date}}?",
+            "script": "Baik Kak, berarti bukan batal ya, hanya belum sekarang. Kira-kira kapan waktu yang pas untuk saya menyapa lagi?",
             "next_stage": "nurture",
             "tags": [
                 "nurture",

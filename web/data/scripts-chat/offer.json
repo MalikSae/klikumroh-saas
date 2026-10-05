@@ -20,11 +20,9 @@
         "{{bulan}}",
         "{{tanggal}}",
         "{{hotel}}",
-        "{{jarak_hotel}}",
         "{{maskapai}}",
         "{{durasi}}",
         "{{fasilitas_utama}}",
-        "{{dp}}",
         "{{jumlah_jamaah}}"
     ],
     "scripts": [
@@ -117,7 +115,7 @@
             "category": "lansia",
             "title": "Fokus Hotel Dekat",
             "use_when": "Jarak hotel menjadi perhatian utama untuk jamaah lansia.",
-            "script": "Kalau untuk Ibu, saya lebih pilih paket ini, Kak. Hotelnya {{hotel}} dengan jarak sekitar {{jarak_hotel}}, jadi aktivitas jalan kakinya bisa lebih ringan.",
+            "script": "Kalau untuk Ibu, saya lebih pilih paket ini, Kak. Hotelnya {{hotel}}, nanti jarak ke masjidnya saya kirimkan supaya bisa dipastikan jalan kakinya tetap ringan untuk Ibu.",
             "next_stage": "closing",
             "tags": [
                 "lansia",
@@ -200,7 +198,7 @@
             "category": "hotel_near",
             "title": "Prioritas Hotel Dekat",
             "use_when": "Prospek memprioritaskan jarak hotel.",
-            "script": "Kalau hotel dekat jadi prioritas utama, saya lebih menyarankan {{paket}}. Hotelnya {{hotel}}, sekitar {{jarak_hotel}} dari area ibadah.",
+            "script": "Kalau hotel dekat jadi prioritas utama, saya lebih menyarankan {{paket}}. Hotelnya {{hotel}}, nanti info jarak hotel ke area ibadahnya saya kirimkan juga.",
             "next_stage": "closing",
             "tags": [
                 "hotel",
@@ -332,7 +330,7 @@
             "category": "payment",
             "title": "Fokus DP",
             "use_when": "Prospek sudah cocok paket tetapi sensitif pada pembayaran awal.",
-            "script": "Untuk paket ini, Kak, pengamanan awalnya mulai dari {{dp}}. Sisanya mengikuti ketentuan pembayaran yang berlaku.",
+            "script": "Untuk paket ini, Kak, pengamanan seat-nya diawali dengan DP sesuai ketentuan {{travel}}. Sisanya mengikuti ketentuan pembayaran yang berlaku.",
             "next_stage": "closing",
             "tags": [
                 "payment",

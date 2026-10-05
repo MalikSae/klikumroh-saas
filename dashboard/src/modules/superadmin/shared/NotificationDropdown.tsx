@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, BellOff } from 'lucide-react';
 import { API_BASE, getStoredToken } from '../../../services/api';
+import { formatDayMonthWIB } from '../../../utils/datetime';
 import { initAudioUnlock, playNotificationSound } from '../../../utils/notificationSound';
 import './NotificationDropdown.css';
 
@@ -39,10 +40,7 @@ const formatRelativeTime = (dateStr: string): string => {
     if (diffDays === 1) return 'Kemarin';
     if (diffDays < 7) return `${diffDays} hari lalu`;
 
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-    });
+    return formatDayMonthWIB(dateStr);
   } catch {
     return '';
   }

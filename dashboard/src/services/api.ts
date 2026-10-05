@@ -1456,7 +1456,8 @@ export interface AgentTargetProgressRow {
 
 export interface TargetProgressResponse {
   target: AgentTarget;
-  rows: AgentTargetProgressRow[];
+  /** Go encodes an empty slice as null when no agent is active yet. */
+  rows: AgentTargetProgressRow[] | null;
 }
 
 export interface AchievementItem {

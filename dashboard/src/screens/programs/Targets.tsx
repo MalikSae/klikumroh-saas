@@ -26,7 +26,7 @@ export const Targets: React.FC = () => {
       const reached = await Promise.all(
         list.map((t) =>
           fetchTargetProgress(t.id)
-            .then((p) => p.rows.filter((r) => r.achieved || r.achieved_value >= t.metric_value).length)
+            .then((p) => (p.rows ?? []).filter((r) => r.achieved || r.achieved_value >= t.metric_value).length)
             .catch(() => null),
         ),
       );

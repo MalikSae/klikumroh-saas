@@ -9,7 +9,15 @@ export const formatDateWIB = (value?: string | null): string => {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: WIB });
 };
 
-export const formatTimeWIB = (value?: string | null): string => {
+/** Day and short month in WIB without the year ("5 Okt"), for recent items such as notifications. */
+export const formatDayMonthWIB = (value?: string | null): string => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: WIB });
+};
+
+export const formatTimeWIB =(value?: string | null): string => {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
