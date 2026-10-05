@@ -42,6 +42,11 @@ var (
 	ErrAffiliatorWrongPassword      = errors.New("kata sandi saat ini salah")
 	// ErrAffiliatorCouponSignupOnly: affiliator coupons only discount a new travel's first payment.
 	ErrAffiliatorCouponSignupOnly = errors.New("kupon affiliator hanya berlaku untuk pendaftaran travel baru")
+
+	// Staff-initiated payout (StaffRequestPayout): messages are shown to staff as-is.
+	ErrStaffPayoutPending          = errors.New("Masih ada pencairan yang sedang diproses untuk affiliator ini.")
+	ErrStaffPayoutNothingAvailable = errors.New("Tidak ada komisi yang bisa dicairkan.")
+	ErrStaffPayoutBankMissing      = errors.New("Data rekening affiliator belum lengkap.")
 )
 
 // Platform settings keys (platform_settings), defaults inserted by migration 000059.
@@ -158,6 +163,9 @@ type AffiliatorService interface {
 	ListAllPayouts(ctx context.Context, status string) ([]repository.AffiliatorPayout, error)
 	MarkPayoutPaid(ctx context.Context, payoutID, staffUserID uint64) error
 	RejectPayout(ctx context.Context, payoutID, staffUserID uint64, reason string) error
+	// StaffRequestPayout creates a payout on the affiliator's behalf (active or inactive), for its whole
+	// available balance, to its stored bank account.
+	StaffRequestPayout(ctx context.Context, affiliatorID, staffUserID uint64) (*repository.AffiliatorPayout, error)
 }
 
 type affiliatorService struct {
@@ -447,13 +455,18 @@ func (s *affiliatorService) ListPayouts(ctx context.Context, affiliatorID uint64
 	return s.repo.ListPayouts(ctx, affiliatorID)
 }
 
+// bankComplete reports whether the affiliator has a full payout account on file.
+func bankComplete(a *repository.Affiliator) bool {
+	return a.BankName != nil && a.BankAccountNumber != nil && a.BankAccountHolder != nil &&
+		*a.BankName != "" && *a.BankAccountNumber != "" && *a.BankAccountHolder != ""
+}
+
 func (s *affiliatorService) RequestPayout(ctx context.Context, affiliatorID uint64) (*repository.AffiliatorPayout, error) {
 	a, err := s.repo.GetByID(ctx, affiliatorID)
 	if err != nil {
 		return nil, err
 	}
-	if a.BankName == nil || a.BankAccountNumber == nil || a.BankAccountHolder == nil ||
-		*a.BankName == "" || *a.BankAccountNumber == "" || *a.BankAccountHolder == "" {
+	if !bankComplete(a) {
 		return nil, ErrAffiliatorBankMissing
 	}
 	st, err := s.GetSettings(ctx)
@@ -639,7 +652,9 @@ func (s *affiliatorService) GetDetail(ctx context.Context, affiliatorID uint64) 
 }
 
 // SetStatus: an inactive affiliator cannot log in, its coupon stops working, and it earns no new
-// commissions. Commissions already recorded stay payable by staff.
+// commissions. Commissions already recorded stay payable by staff: since the affiliator can no longer
+// request a payout itself, staff request it on its behalf (StaffRequestPayout,
+// POST /api/staff/affiliators/{id}/payouts) and then mark it paid or reject it as usual.
 func (s *affiliatorService) SetStatus(ctx context.Context, affiliatorID uint64, status string) error {
 	if status != "active" && status != "inactive" {
 		return ErrAffiliatorInvalidStatus
@@ -694,4 +709,38 @@ func (s *affiliatorService) RejectPayout(ctx context.Context, payoutID, staffUse
 		return ErrRejectionReasonRequired
 	}
 	return s.repo.RejectPayout(ctx, payoutID, staffUserID, reason)
+}
+
+// StaffRequestPayout (keputusan pendiri, opsi a): an inactive affiliator cannot log in to request its own
+// payout, so staff request it on the affiliator's behalf. It works for active and inactive affiliators and
+// goes through the same repository path as RequestPayout: the affiliator row and its available commissions
+// (available_at <= now, so hold_days is respected) are locked FOR UPDATE, summed in cents, and exactly
+// those ids are linked to the new pending payout, with the stored bank details as its snapshot.
+//
+// The program minimum payout deliberately does NOT apply here: a staff-initiated payout is meant to empty
+// the balance (typically of a deactivated affiliator), so any positive available amount is paid out.
+func (s *affiliatorService) StaffRequestPayout(ctx context.Context, affiliatorID, staffUserID uint64) (*repository.AffiliatorPayout, error) {
+	a, err := s.repo.GetByID(ctx, affiliatorID)
+	if err != nil {
+		return nil, err
+	}
+	if !bankComplete(a) {
+		return nil, ErrStaffPayoutBankMissing
+	}
+	// minAmount 0: the repository then refuses only an empty (zero) available balance.
+	p, err := s.repo.RequestPayout(ctx, affiliatorID, 0, s.now(), *a.BankName, *a.BankAccountNumber, *a.BankAccountHolder)
+	switch {
+	case errors.Is(err, repository.ErrPayoutPending):
+		return nil, ErrStaffPayoutPending
+	case errors.Is(err, repository.ErrPayoutBelowMinimum):
+		return nil, ErrStaffPayoutNothingAvailable
+	case err != nil:
+		return nil, err
+	}
+	p.AffiliatorName = a.Name
+	// Audit trail, same as the other staff affiliator actions (access_logs are per travel, affiliators are
+	// platform data). The bank account number is not logged.
+	log.Printf("[Affiliator] staff %d requested payout %d (amount %.2f) on behalf of affiliator %d (status %s)",
+		staffUserID, p.ID, p.Amount, affiliatorID, a.Status)
+	return p, nil
 }

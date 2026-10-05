@@ -177,7 +177,7 @@ export const ChannelPerformance: React.FC = () => {
           rows={report?.campaigns ?? []}
           rowKey={(c) => `${c.source}|${c.campaign}`}
           loading={loading}
-          empty={<EmptyState compact title="Belum ada prospek dari iklan" description="Pasang link iklan dengan parameter UTM agar prospek tercatat per kampanye." />}
+          empty={<EmptyState compact title="Belum ada prospek dari iklan" description="Prospek dihitung sebagai Iklan bila iklan Meta memakai Parameter URL iklan Meta dari halaman Iklan & pelacakan." />}
         />
       </section>
     </div>

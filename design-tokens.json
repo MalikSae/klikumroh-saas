@@ -187,8 +187,8 @@
         "body": "'Roboto', system-ui, sans-serif"
       },
       "text": {
-        "xs": "11px",
-        "sm": "12px",
+        "xs": "13px",
+        "sm": "13px",
         "md": "13px",
         "base": "14px",
         "lg": "15px",

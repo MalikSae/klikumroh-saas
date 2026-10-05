@@ -23,6 +23,9 @@ const slug = (v: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
 
+const LINK_TIP =
+  'Link ini hanya membawa platform dan nama kampanye (utm_source, utm_campaign). Prospek baru dihitung sebagai Iklan, dan muncul di tabel Kampanye iklan, bila linknya juga membawa ad_id dari Meta. Meta mengisi ad_id otomatis lewat kolom URL parameters di setiap iklan; salin teksnya dari blok Parameter URL iklan Meta. Tanpa ad_id, prospek tercatat sebagai Website.';
+
 const LinkBuilder: React.FC = () => {
   const frame = useFrame();
   const site = publicSiteUrl(frame?.subscription?.tenant_slug);
@@ -55,7 +58,15 @@ const LinkBuilder: React.FC = () => {
       .catch(() => {});
 
   return (
-    <SettingsSection title="Link iklan" description="Pakai link ini di iklan agar prospek tercatat sebagai Iklan, per kampanye.">
+    <SettingsSection
+      title="Link iklan"
+      description={
+        <>
+          Link ini mencatat nama kampanye (UTM). Agar prospek dihitung sebagai Iklan, iklannya juga perlu Parameter URL iklan Meta di bawah.{' '}
+          <Tooltip content={LINK_TIP} />
+        </>
+      }
+    >
       {!site ? (
         <p className="ku-muted">Alamat website travel belum tersedia.</p>
       ) : (

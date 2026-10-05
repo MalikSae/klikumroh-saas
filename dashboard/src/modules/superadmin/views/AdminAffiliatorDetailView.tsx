@@ -1,12 +1,13 @@
 // Staff portal: one affiliator. Balance, specification (contact, codes, bank, effective rates), actions
 // (custom rates, deactivate), and its travels, commissions, and payouts.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, KeyRound, Percent, Power } from 'lucide-react';
+import { AlertCircle, CheckCircle2, KeyRound, Percent, Power, Wallet } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
 import { AdminDataGrid, type AdminColumn } from '../components/AdminDataGrid';
 import { FormInput, Modal } from '../shared';
 import {
+  createStaffAffiliatorPayout,
   fetchStaffAffiliatorDetail,
   resetStaffAffiliatorPassword,
   setStaffAffiliatorRates,
@@ -46,6 +47,9 @@ export const AdminAffiliatorDetailView: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [payoutOpen, setPayoutOpen] = useState(false);
+  // Guards double submit before the busy state re-renders the button as disabled.
+  const payoutSubmitting = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -130,6 +134,29 @@ export const AdminAffiliatorDetailView: React.FC = () => {
     }
   };
 
+  const available = data?.balance.available ?? 0;
+  const bankComplete = Boolean(a?.bank_name?.trim() && a?.bank_account_number?.trim() && a?.bank_account_holder?.trim());
+
+  // Staff submit a payout for the whole available balance; the server picks the commissions and the bank details.
+  const submitPayout = async () => {
+    if (payoutSubmitting.current) return;
+    payoutSubmitting.current = true;
+    setBusy(true);
+    setDialogError(null);
+    try {
+      const p = await createStaffAffiliatorPayout(affiliatorId);
+      setPayoutOpen(false);
+      setMessage(`Pencairan ${formatIDR(p.amount)} diajukan. Tandai Sudah ditransfer setelah uangnya dikirim.`);
+      setTab('payouts');
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Gagal mengajukan pencairan');
+    } finally {
+      await load();
+      payoutSubmitting.current = false;
+      setBusy(false);
+    }
+  };
+
   const tenantColumns: AdminColumn<AffiliatorTenant>[] = [
     { key: 'name', label: 'Travel', render: (t) => <span className="sa-aff-name">{t.name}</span> },
     { key: 'status', label: 'Status', render: (t) => { const s = TENANT_PILL[t.status] ?? { label: t.status, cls: 'sa-pill--neutral' }; return <span className={`sa-pill ${s.cls}`}>{s.label}</span>; } },
@@ -200,6 +227,12 @@ export const AdminAffiliatorDetailView: React.FC = () => {
       headerActions={
         a && (
           <div className="sa-aff-actions">
+            {available > 0 && (
+              <button type="button" className="sa-btn sa-btn--primary" onClick={() => { setDialogError(null); setPayoutOpen(true); }}>
+                <Wallet size={14} />
+                <span>Ajukan pencairan</span>
+              </button>
+            )}
             <button type="button" className="sa-btn sa-btn--secondary" onClick={() => { setNewPassword(''); setDialogError(null); setResetOpen(true); }}>
               <KeyRound size={14} />
               <span>Reset password</span>
@@ -320,6 +353,29 @@ export const AdminAffiliatorDetailView: React.FC = () => {
       >
         <p className="sa-aff-modal-text">Untuk affiliator yang lupa kata sandi ({a?.email}). Semua sesi affiliator ini langsung keluar. Sampaikan kata sandi baru lewat kontak yang terdaftar.</p>
         <FormInput type="text" label="Kata sandi baru" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} hint="Minimal 8 karakter." />
+        {dialogError && <div className="sa-aff-msg sa-aff-msg--error"><AlertCircle size={14} /> {dialogError}</div>}
+      </Modal>
+
+      <Modal
+        isOpen={payoutOpen}
+        onClose={() => !busy && setPayoutOpen(false)}
+        title="Ajukan pencairan"
+        footer={
+          <>
+            <button type="button" className="sa-btn sa-btn--secondary" onClick={() => setPayoutOpen(false)} disabled={busy}>Batal</button>
+            <button type="button" className="sa-btn sa-btn--primary" onClick={() => void submitPayout()} disabled={busy || available <= 0 || !bankComplete}>
+              {busy ? 'Mengajukan...' : 'Ajukan pencairan'}
+            </button>
+          </>
+        }
+      >
+        <p className="sa-aff-modal-text">
+          {available <= 0
+            ? 'Tidak ada komisi yang bisa dicairkan.'
+            : bankComplete
+              ? `Saldo ${formatIDR(available)} akan diajukan ke rekening ${a?.bank_name} ${a?.bank_account_number} a.n. ${a?.bank_account_holder}.`
+              : 'Data rekening affiliator belum lengkap. Minta affiliator melengkapi rekening di portalnya dulu.'}
+        </p>
         {dialogError && <div className="sa-aff-msg sa-aff-msg--error"><AlertCircle size={14} /> {dialogError}</div>}
       </Modal>
 

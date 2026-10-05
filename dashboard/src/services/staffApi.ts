@@ -850,7 +850,11 @@ export const setStaffAffiliatorRates = (id: number, firstRate: number | null, re
   staffRequest(`/api/staff/affiliators/${id}/rates`, { method: 'PATCH', body: JSON.stringify({ first_rate: firstRate, renewal_rate: renewalRate }) });
 export const fetchStaffAffiliatorPayouts = async (status = 'all') =>
   (await staffRequest<{ payouts: StaffAffiliatorPayout[] }>(`/api/staff/affiliator-payouts?status=${encodeURIComponent(status)}`)).payouts ?? [];
-export const markStaffAffiliatorPayoutPaid = (id: number) => staffRequest(`/api/staff/affiliator-payouts/${id}/paid`, { method: 'PATCH' });
+/** Staff submit a payout for the affiliator's whole available balance (no body). 201 returns the new payout;
+ *  404/409/400 carry a message for the staff. */
+export const createStaffAffiliatorPayout = (id: number) =>
+  staffRequest<AffiliatorPayout>(`/api/staff/affiliators/${id}/payouts`, { method: 'POST' });
+export const markStaffAffiliatorPayoutPaid =(id: number) => staffRequest(`/api/staff/affiliator-payouts/${id}/paid`, { method: 'PATCH' });
 export const rejectStaffAffiliatorPayout = (id: number, reason: string) =>
   staffRequest(`/api/staff/affiliator-payouts/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) });
 export const fetchAffiliatorSettings = () => staffRequest<AffiliatorSettings>('/api/staff/affiliator-settings');

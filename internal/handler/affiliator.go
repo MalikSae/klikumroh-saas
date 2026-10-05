@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -62,6 +63,7 @@ func (h *AffiliatorHandler) RegisterStaffRoutes(r chi.Router) {
 	r.Patch("/api/staff/affiliators/{id}/status", h.StaffSetStatus)
 	r.Patch("/api/staff/affiliators/{id}/rates", h.StaffSetRates)
 	r.Patch("/api/staff/affiliators/{id}/password", h.StaffResetPassword)
+	r.Post("/api/staff/affiliators/{id}/payouts", h.StaffRequestPayout)
 	r.Get("/api/staff/affiliator-payouts", h.StaffListPayouts)
 	r.Patch("/api/staff/affiliator-payouts/{id}/paid", h.StaffMarkPaid)
 	r.Patch("/api/staff/affiliator-payouts/{id}/reject", h.StaffRejectPayout)
@@ -436,6 +438,32 @@ func (h *AffiliatorHandler) StaffRejectPayout(w http.ResponseWriter, r *http.Req
 		return
 	}
 	respondJSON(w, http.StatusOK, map[string]string{"status": "rejected"})
+}
+
+// StaffRequestPayout creates a payout on the affiliator's behalf (active or inactive) for its whole
+// available balance, to its stored bank account. No request body. 201 with the payout.
+func (h *AffiliatorHandler) StaffRequestPayout(w http.ResponseWriter, r *http.Request) {
+	id, ok := urlID(w, r)
+	if !ok {
+		return
+	}
+	staffID, _ := middleware.GetStaffUserID(r.Context())
+	p, err := h.svc.StaffRequestPayout(r.Context(), id, staffID)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrNotFound):
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "affiliator tidak ditemukan"})
+		case errors.Is(err, service.ErrStaffPayoutPending):
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+		case errors.Is(err, service.ErrStaffPayoutNothingAvailable), errors.Is(err, service.ErrStaffPayoutBankMissing):
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		default:
+			log.Printf("[Affiliator] staff %d: payout on behalf of affiliator %d failed: %v", staffID, id, err)
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		}
+		return
+	}
+	respondJSON(w, http.StatusCreated, p)
 }
 
 func (h *AffiliatorHandler) StaffGetSettings(w http.ResponseWriter, r *http.Request) {

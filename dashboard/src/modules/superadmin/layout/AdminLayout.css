@@ -61,51 +61,47 @@
   border-bottom: 1px solid var(--sa-border-subtle);
 }
 
-.sa-org-badge {
+/* Text wordmark + role badge (AGENTS.md 3.11: no image logo in the internal sidebar). */
+.sa-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
-.sa-org-icon {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sa-org-icon-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-.sa-org-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.sa-org-title {
+.sa-brand__wordmark {
   font-family: var(--sa-font-display);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: -0.02em;
   color: var(--sa-text);
-  line-height: 1.2;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.sa-org-tag {
+/* The only weight-800 text allowed in the UI (AGENTS.md 3.4). */
+.sa-brand__klik {
+  font-weight: 800;
+}
+
+.sa-brand__role {
+  font-family: var(--sa-font-body);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--sa-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background-color: var(--sa-surface);
+  color: var(--sa-text-secondary);
+  border: 1px solid var(--sa-border);
+  white-space: nowrap;
+}
+
+.sa-brand__role--owner {
+  background-color: var(--sa-accent);
+  color: var(--sa-on-accent);
+  border-color: var(--sa-accent);
 }
 
 .sa-status-dot {

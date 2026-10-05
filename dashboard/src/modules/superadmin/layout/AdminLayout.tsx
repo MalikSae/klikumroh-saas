@@ -29,6 +29,12 @@ import {
 } from '../../../services/staffApi';
 import './AdminLayout.css';
 
+/** Sidebar role badge: owner-like staff roles read OWNER, every other staff account ADMIN. */
+const OWNER_ROLES = new Set(['owner', 'super_admin', 'superadmin', 'super-admin']);
+function staffRoleBadge(role?: string): 'OWNER' | 'ADMIN' {
+  return role && OWNER_ROLES.has(role.trim().toLowerCase()) ? 'OWNER' : 'ADMIN';
+}
+
 export interface AdminLayoutProps {
   title?: string;
   subtitle?: string;
@@ -155,6 +161,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     },
   ];
 
+  const staffRole = staffRoleBadge(user?.role);
+
   const userInitial = user?.name
     ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
     : 'KU';
@@ -172,17 +180,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       <aside className={`sa-sidebar ${isMobileMenuOpen ? 'sa-sidebar--open' : ''}`}>
         {/* Workspace Organization Switcher Header */}
         <div className="sa-sidebar__org">
-          <div className="sa-org-badge">
-            <div className="sa-org-icon">
-              <img src="/icon-klikumroh.svg" alt="KlikUmroh" className="sa-org-icon-img" />
-            </div>
-            <div className="sa-org-info">
-              <span className="sa-org-title">KlikUmroh HQ</span>
-              <span className="sa-org-tag">
-                <span className="sa-status-dot" />
-                <span>Operational</span>
-              </span>
-            </div>
+          <div className="sa-brand">
+            <span className="sa-brand__wordmark">
+              <span className="sa-brand__klik">Klik</span>Umroh
+            </span>
+            {user && (
+              <span className={`sa-brand__role${staffRole === 'OWNER' ? ' sa-brand__role--owner' : ''}`}>{staffRole}</span>
+            )}
           </div>
           <button
             type="button"
