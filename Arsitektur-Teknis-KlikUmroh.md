@@ -271,17 +271,8 @@ CREATE TABLE event_rsvps (
     UNIQUE KEY uniq_event_agent (event_id, agent_id)
 );
 
--- Tips promosi: hybrid master (tenant_id NULL) + custom per tenant
-CREATE TABLE promo_tips (
-    id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    tenant_id   BIGINT UNSIGNED NULL,                          -- NULL = konten master milik KlikUmroh
-    title       VARCHAR(255) NOT NULL,
-    content     TEXT NOT NULL,
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (tenant_id) REFERENCES tenants(id),
-    INDEX idx_promotips_tenant (tenant_id)
-);
+-- Tips promosi (promo_tips) dihapus dari lingkup produk (keputusan pendiri 5 Okt 2026);
+-- tabelnya di-drop lewat migrasi 000061.
 
 -- Audit trail akses staf KlikUmroh ke data tenant
 CREATE TABLE access_logs (
@@ -339,7 +330,7 @@ CREATE TABLE sessions (
 
 **Zona waktu:** zona bisnis platform adalah WIB. Semua koneksi database WAJIB dibuat lewat `repository.MySQLDSN` (session MySQL `time_zone='+07:00'` + driver Go `loc=Asia/Jakarta`), supaya default `CURRENT_TIMESTAMP`/`NOW()` dan timestamp yang ditulis dari Go menyatakan instant yang sama, dan query berbasis `DATE()`/`CURDATE()` mengikuti hari kerja Indonesia di server mana pun. Jangan menulis DSN manual dengan `fmt.Sprintf`.
 
-**Catatan implementasi terkait Bagian 4.1 (isolasi tenant):** Kolom `tenant_id` bertipe `NOT NULL` di semua tabel yang menyimpan data milik tenant (kecuali `promo_tips` yang sengaja `NULL`-able untuk konten master) — constraint ini sendiri sudah jadi lapisan validasi pertama di level skema, sebelum bahkan sampai ke repository layer. Index `(tenant_id, ...)` pada `prospects` dan lookup `(hostname, status)` pada `domains` dipilih spesifik untuk pola query yang sudah diketahui dari fitur MVP (dashboard funnel, ask-endpoint Caddy) — bukan index generik.
+**Catatan implementasi terkait Bagian 4.1 (isolasi tenant):** Kolom `tenant_id` bertipe `NOT NULL` di semua tabel yang menyimpan data milik tenant — constraint ini sendiri sudah jadi lapisan validasi pertama di level skema, sebelum bahkan sampai ke repository layer. Index `(tenant_id, ...)` pada `prospects` dan lookup `(hostname, status)` pada `domains` dipilih spesifik untuk pola query yang sudah diketahui dari fitur MVP (dashboard funnel, ask-endpoint Caddy) — bukan index generik.
 
 ---
 

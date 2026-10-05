@@ -48,7 +48,6 @@ func purgeTestTenant(db *sql.DB, tenantID uint64) error {
 		"UPDATE agents SET parent_agent_id = NULL WHERE tenant_id = ?",
 		"DELETE FROM agents WHERE tenant_id = ?",
 		"DELETE FROM agent_events WHERE tenant_id = ?",
-		"DELETE FROM promo_tips WHERE tenant_id = ?",
 		// Admin access and tenant settings.
 		"DELETE FROM sessions WHERE tenant_id = ?",
 		"DELETE FROM access_logs WHERE tenant_id = ?",

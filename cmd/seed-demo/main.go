@@ -204,7 +204,6 @@ func deleteDemoTenant(ctx context.Context, db *sql.DB, tenantID uint64, uploads 
 		"DELETE FROM packages WHERE tenant_id = ?",
 		"DELETE FROM sessions WHERE tenant_id = ?",
 		"DELETE FROM access_logs WHERE tenant_id = ?",
-		"DELETE FROM promo_tips WHERE tenant_id = ?",
 		"DELETE FROM admin_users WHERE tenant_id = ?",
 		"DELETE FROM domains WHERE tenant_id = ?",
 		"DELETE FROM tenants WHERE id = ? AND is_demo = 1",

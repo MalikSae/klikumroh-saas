@@ -89,8 +89,8 @@ Pasar software untuk travel umroh di Indonesia sudah cukup ramai, namun mayorita
 - Agen dapat menambahkan prospek sendiri (input manual) dengan persetujuan calon jamaah, dan menghubungi prospek lewat pintasan WhatsApp di daftar jamaah. Pintasan ini hanya membuka chat — bukan fitur CRM (tidak ada reminder, penugasan, atau otomasi).
 - Habit tracker agen: 5 kebiasaan harian tetap (bagikan link/paket, hubungi calon jamaah, posting caption/status WA, catat perkembangan jamaah, coba sumber jamaah baru) yang tercentang otomatis dari aktivitas agen di portal; hari aktif = minimal 3 dari 5, dengan streak dan kalender 30 hari. Tanpa pengingat/notifikasi otomatis (bukan fitur CRM).
 - Leaderboard performa agen (ranking, kompetisi antar-agen).
-- Jadwal event agen + fitur RSVP.
-- Tips/konten promosi jualan — model hybrid: KlikUmroh menyediakan konten master, travel bisa menggunakan langsung, mengedit, atau menambahkan kontennya sendiri.
+- Jadwal event agen + fitur RSVP. *(Pending development, dikerjakan setelah rilis pertama — keputusan pendiri 5 Okt 2026.)*
+- ~~Tips/konten promosi jualan — model hybrid: KlikUmroh menyediakan konten master, travel bisa menggunakan langsung, mengedit, atau menambahkan kontennya sendiri.~~ *Dihapus dari lingkup (keputusan pendiri 5 Okt 2026). Agen tetap punya bank caption & script WA berisi konten statis.*
 
 ### 7.3 Infrastruktur Multi-tenant (Whitelabel)
 - Setiap travel memiliki website dengan branding sendiri.
@@ -150,7 +150,7 @@ Seluruh travel di waiting list akan diaktifkan **secara bersamaan** (bukan berta
 
 **Pertanyaan terbuka terkait eksekusi:** Mengingat industri ini relatif kecil dan saling terhubung lewat asosiasi (risiko reputasi menyebar cepat jika ada masalah di awal), perlu diputuskan apakah:
 - Seluruh scope fitur (core loop + growth loop lengkap) dibangun penuh sebelum rilis ke semua design partner, **atau**
-- Core loop dirilis lebih dulu ke seluruh design partner, sementara fitur agen (referral, leaderboard, funnel, event, tips) dirilis bertahap dalam beberapa gelombang berikutnya (staged **by fitur**, bukan staged **by pelanggan**).
+- Core loop dirilis lebih dulu ke seluruh design partner, sementara fitur agen (referral, leaderboard, funnel, event) dirilis bertahap dalam beberapa gelombang berikutnya (staged **by fitur**, bukan staged **by pelanggan**).
 
 ---
 

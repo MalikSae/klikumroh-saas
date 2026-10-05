@@ -181,7 +181,7 @@ Kalau struktur aktual di project berbeda dari ini, ikuti struktur yang sudah ada
 3. **Component library & layout dasar** — Button, Card, Table, Badge, Form input, dll di dashboard (pakai token `dashboard`) dan web publik (pakai CSS var tenant). Dibangun sebelum fitur nyata supaya semua layar konsisten, bukan dirancang ulang per halaman.
 4. **Core loop**: katalog paket, form minat, status pipeline, export CSV — wajib reuse komponen dari langkah 3.
 5. **Infrastruktur multi-tenant**: subdomain routing, isolasi data teruji.
-6. **Growth loop**: referral link, funnel per agen (terintegrasi status pipeline), leaderboard, event+RSVP, tips promosi.
+6. **Growth loop**: referral link, funnel per agen (terintegrasi status pipeline), leaderboard, event+RSVP (pending development, keputusan pendiri 5 Okt 2026). Tips promosi hybrid dihapus dari lingkup (keputusan pendiri 5 Okt 2026).
 7. **Custom domain**: Caddy + ask endpoint + redirect logic.
 8. **Access log** (audit akses staf ke data tenant).
 9. **Persiapan & deploy akhir** (lihat Sprint 7 di `sprint-plan.md`) — dikerjakan SETELAH poin 1-8 semua tuntas, bukan dicicil di tengah jalan. Scope Antigravity di langkah ini terbatas pada build artifact lokal dan dokumentasi (`DEPLOY.md`) — TIDAK menyentuh VPS. Deploy sungguhan tetap manual oleh pemilik produk.

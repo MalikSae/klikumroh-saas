@@ -122,11 +122,6 @@ export async function proxy(req: NextRequest) {
       ? NextResponse.redirect(`${origin}${pathname}${req.nextUrl.search}`, 307)
       : new NextResponse(null, { status: 404 });
   }
-  // Internal component showcase: development only.
-  if (process.env.NODE_ENV === 'production' && (pathname === '/dev' || pathname.startsWith('/dev/'))) {
-    return new NextResponse(null, { status: 404 });
-  }
-
   // Check if current hostname is a default subdomain
   const isDefaultSubdomain =
     (hostname.endsWith('.klikumroh.id') && hostname !== 'klikumroh.id' && hostname !== 'cname.klikumroh.id') ||

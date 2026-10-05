@@ -56,7 +56,7 @@
 - [x] Card paket umroh
 - [x] Form input dasar untuk form minat
 
-**Verifikasi sprint:** buat satu halaman khusus di masing-masing project (misal route `/dev/components`) yang menampilkan semua komponen di atas dalam satu tempat untuk review visual cepat, sebelum dipakai di Sprint 2 dan seterusnya.
+**Verifikasi sprint:** buat satu halaman khusus di masing-masing project (misal route `/dev/components`) yang menampilkan semua komponen di atas dalam satu tempat untuk review visual cepat, sebelum dipakai di Sprint 2 dan seterusnya. *(Halaman `web/app/dev/components` dihapus 5 Okt 2026 atas keputusan pendiri, sebelum rilis.)*
 
 **Aturan mengikat untuk semua sprint berikutnya:** Sprint 2 dan seterusnya WAJIB reuse komponen dari sprint ini. Kalau butuh variasi baru, extend komponen yang ada — jangan bikin markup/style baru dari nol per halaman.
 
@@ -104,23 +104,17 @@
 
 ## Sprint 4 — Growth Loop: Sistem Agen
 
-- [ ] CRUD agen (`agents`) + generate `referral_code` unik per agen
-- [ ] Endpoint referral link: catat `referral_clicks`, teruskan ke form minat dengan `agent_id` terpasang
-- [ ] Dashboard funnel per agen — **wajib terintegrasi langsung** dengan status pipeline `prospects` yang sama (bukan pencatatan status terpisah, lihat PRD Bagian 7.2)
-- [ ] Leaderboard performa agen
-- [ ] Jadwal event (`agent_events`) + RSVP (`event_rsvps`)
-- [ ] Tips promosi hybrid: konten master (`tenant_id` NULL) tampil default, travel bisa edit/tambah versi sendiri
-- [ ] Cross-tenant test untuk seluruh endpoint baru di sprint ini
-- [x] CRUD agen (`agents`) + generate `referral_code` unik per agen
-- [x] Endpoint referral link: catat `referral_clicks`, teruskan ke form minat dengan `agent_id` terpasang
-- [x] Dashboard funnel per agen — **wajib terintegrasi langsung** dengan status pipeline `prospects` yang sama (bukan pencatatan status terpisah, lihat PRD Bagian 7.2)
-- [x] Leaderboard performa agen
-- [x] Jadwal event (`agent_events`) + RSVP (`event_rsvps`)
-- [x] Tips promosi hybrid: konten master (`tenant_id` NULL) tampil default, travel bisa edit/tambah versi sendiri
-- [x] Modul Target & Reward Agen: skema `agent_targets` & `agent_target_achievements`, API CRUD/progress/tutup periode/update status reward/export CSV, UI Admin `/agents/targets`, dan integrasi target habit tracker di web agen (`/agen/dashboard` & `/agen/daftar`)
-- [x] Cross-tenant test untuk seluruh endpoint baru di sprint ini
+> Rekonsiliasi 5 Okt 2026: daftar ini sebelumnya ganda (satu blok `[ ]`, satu blok `[x]`, sejak commit awal) dan centang event/RSVP serta tips promosi keliru. Status di bawah dicocokkan dengan kode.
 
-**Verifikasi sprint:** klik referral tercatat tepat satu kali per kunjungan (tidak double-count), funnel per agen akurat, leaderboard terurut benar.
+- [x] CRUD agen (`agents`) + generate `referral_code` unik per agen — tambah agen lewat daftar mandiri (`POST /api/public/agents/register`) + approve admin; hapus = nonaktifkan (toggle-status). Test `TestCrossTenant_Agent`, `TestAgentAdminDetail_CrossTenantIsolation`
+- [x] Endpoint referral link: catat `referral_clicks`, teruskan ke form minat dengan `agent_id` terpasang — `web/app/ref/[code]`, `POST /api/public/referral-clicks` (dedup), agen hanya dipasang bila satu tenant & aktif. Test `TestProspectHandler_ReferralClicks_CrossTenant`, `TestProspectAudit_ReferralClickDeduplicated`
+- [x] Dashboard funnel per agen — **wajib terintegrasi langsung** dengan status pipeline `prospects` yang sama (bukan pencatatan status terpisah, lihat PRD Bagian 7.2) — `repository/agent_performance.go` menghitung langsung dari `prospects`. Test `TestAgentPerformance_TenantScoped`
+- [x] Leaderboard performa agen — `GET /api/agent/leaderboard`, `web/app/agen/leaderboard`. Test `TestAgent_GetLeaderboard_CrossTenantAndPrivacy`
+- [ ] Jadwal event (`agent_events`) + RSVP (`event_rsvps`) — **pending development** (keputusan pendiri 5 Okt 2026: tidak menghalangi rilis, dikerjakan setelahnya). Saat ini hanya skema (migrasi 000007/000008), tidak ada repository/API/UI
+- ~~Tips promosi hybrid: konten master (`tenant_id` NULL) tampil default, travel bisa edit/tambah versi sendiri~~ — **dihapus dari lingkup** (keputusan pendiri 5 Okt 2026). Tabel `promo_tips` di-drop lewat migrasi `000061`. Halaman agen Bank Caption & Script WA (konten statis) tetap ada, terpisah dari fitur ini
+- [x] Modul Target & Reward Agen: skema `agent_targets` & `agent_target_achievements`, API CRUD/progress/tutup periode/update status reward/export CSV, UI Admin `/agents/targets`, dan integrasi target habit tracker di web agen (`/agen/dashboard` & `/agen/daftar`)
+- [x] Cross-tenant test untuk seluruh endpoint baru di sprint ini — ada untuk semua endpoint yang dibangun (agen, referral, funnel, leaderboard, target). Event/RSVP wajib membawa test-nya sendiri saat dikerjakan
+
 **Verifikasi sprint:** klik referral tercatat tepat satu kali per kunjungan (tidak double-count), funnel per agen akurat, leaderboard terurut benar, isolasi cross-tenant modul target & reward teruji 100% pada repository dan handler layer.
 
 ---
@@ -154,12 +148,13 @@
 
 **Konteks aaPanel (sudah dikonfirmasi):** "Go Project" dan "Node.js Project" di aaPanel hanya menjalankan/mengawasi executable yang sudah ada di disk server (field: Executable File, Project Name, Project Port, Execution Command, Run User, Domain name) — bukan alat deploy dari Git.
 
-- [ ] Pastikan repo Git sudah diinisialisasi di root project (monorepo — satu repo untuk `/cmd`, `/internal`, `/dashboard`, `/web`). Pastikan `.gitignore` mencakup semua artifact build: `dist/`, `.next/`, `node_modules/`, binary hasil cross-compile (tanpa ekstensi di Linux), `.env`
-- [ ] Buat script cross-compile Go untuk Linux (`GOOS=linux GOARCH=amd64 CGO_ENABLED=0`), hasil ke `dist/klikumroh-api` dan `dist/klikumroh-migrate`
-- [ ] Ubah konfigurasi Next.js di `/web` (`next.config.ts`) menjadi `output: 'standalone'` — cocok dengan model aaPanel Node.js Project (satu entry file + port)
-- [ ] Uji build standalone secara lokal: `npm run build`, lalu jalankan `node .next/standalone/server.js` di lokal, konfirmasi jalan benar sebelum dipakai di server
-- [ ] Tulis `DEPLOY.md` di root: langkah manual lengkap — urutan `git pull`, cara build/cross-compile di server (atau upload binary hasil build lokal), field-field persis di form aaPanel "Go Project" dan "Node.js Project", dan urutan menjalankan migrasi database di server SEBELUM start service utama
-- [ ] Tulis catatan risiko di DEPLOY.md: dua area yang belum pernah divalidasi di lingkungan nyata (Next.js standalone output, Nginx stream SNI routing) — sarankan uji ini duluan di awal sesi deploy sebelum lanjut ke langkah lain, supaya kalau ada masalah ketahuan cepat.
+- [x] Pastikan repo Git sudah diinisialisasi di root project (monorepo — satu repo untuk `/cmd`, `/internal`, `/dashboard`, `/web`). Pastikan `.gitignore` mencakup semua artifact build: `dist/`, `.next/`, `node_modules/`, binary hasil cross-compile (tanpa ekstensi di Linux), `.env` — repo GitHub `MalikSae/klikumroh-saas`; `.gitignore` root mencakup `dist/`, `bin/`, `.next/`, `node_modules/`, `.env*`, `uploads/`, `storage/` (5 Okt 2026)
+- [x] Buat script cross-compile Go untuk Linux (`GOOS=linux GOARCH=amd64 CGO_ENABLED=0`), hasil ke `dist/klikumroh-api` dan `dist/klikumroh-migrate` — `scripts/build-linux.sh` + `scripts/build-linux.ps1`, juga `dist/klikumroh-seed-demo`; hasilnya ELF Linux (dicek header). Satu-satunya `os/exec` di dependensi berasal dari `godotenv` (fungsi `Exec` yang tidak dipakai; kode hanya `godotenv.Load`), bukan shell-out ke binary eksternal (AGENTS.md 3.9)
+- [x] Ubah konfigurasi Next.js di `/web` (`next.config.ts`) menjadi `output: 'standalone'` — cocok dengan model aaPanel Node.js Project (satu entry file + port). Sekalian rewrite `/uploads` ke `127.0.0.1:8080` (bukan `localhost`, yang bisa resolve ke `::1`)
+- [x] Uji build standalone secara lokal: `npm run build`, lalu jalankan `node .next/standalone/server.js` di lokal, konfirmasi jalan benar sebelum dipakai di server — `server.js` ada di `.next/standalone/web/` (root tracing = root repo). Diuji 5 Okt 2026 di `127.0.0.1:3100`: beranda travel A & B tampil sesuai tenant, `/paket`, `/agen/login`, rewrite `/api` (200) dan `/uploads` (200 `image/webp`), `favicon.ico`, chunk `/_next/static` semua 200; host tak dikenal ke landing KlikUmroh
+- [x] Tulis `DEPLOY.md` di root: langkah manual lengkap — urutan `git pull`, cara build/cross-compile di server (atau upload binary hasil build lokal), field-field persis di form aaPanel "Go Project" dan "Node.js Project", dan urutan menjalankan migrasi database di server SEBELUM start service utama — DEPLOY.md Bagian 0 (tata letak, env produksi, build, isian form aaPanel, urutan deploy dengan backup + matikan backend + migrasi, rollback; peringatan `migrate down` = hapus semua tabel)
+- [x] Tulis catatan risiko di DEPLOY.md: dua area yang belum pernah divalidasi di lingkungan nyata (Next.js standalone output, Nginx stream SNI routing) — sarankan uji ini duluan di awal sesi deploy sebelum lanjut ke langkah lain, supaya kalau ada masalah ketahuan cepat. — DEPLOY.md 0.5
+- [ ] Pemilik produk menjalankan deploy pertama mengikuti DEPLOY.md Bagian 0, mulai dari uji risiko 0.5
 
 **Verifikasi sprint:** cross-compile Go menghasilkan binary Linux yang valid; `node .next/standalone/server.js` jalan lokal tanpa error; `DEPLOY.md` cukup lengkap untuk diikuti tanpa perlu tanya balik ke Antigravity.
 
