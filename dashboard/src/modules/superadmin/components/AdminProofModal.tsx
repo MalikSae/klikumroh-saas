@@ -91,7 +91,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   if (!isOpen || !currentItem) return null;
 
   const isPending = currentItem.status === 'pending';
-  const payableAmount = currentItem.final_amount || currentItem.amount;
+  const payableAmount = currentItem.final_amount ?? currentItem.amount;
   const missingProof = !currentItem.proof_url && payableAmount > 0;
   const hasCoupon = !!(currentItem.coupon_code && currentItem.coupon_code.trim() !== '');
   const discountAmount = hasCoupon ? Math.max(0, currentItem.amount - (currentItem.final_amount - (currentItem.unique_code || 0))) : 0;
@@ -138,7 +138,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       const updated = await updatePaymentVerificationPlan(currentItem.id, selectedPlanId);
       setCurrentItem(updated);
       setCouponInput(updated.coupon_code || '');
-      setSuccessMsg(`Paket diubah ke ${updated.plan_name || '-'}. Total tagihan: ${formatIDR(updated.final_amount || updated.amount)}.`);
+      setSuccessMsg(`Paket diubah ke ${updated.plan_name || '-'}. Total tagihan: ${formatIDR(updated.final_amount ?? updated.amount)}.`);
       setShowUpsellForm(false);
       onPlanUpdated?.(updated);
     } catch (err: any) {
@@ -160,7 +160,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       setSuccessMsg(null);
       const updated = await updatePaymentVerificationCoupon(currentItem.id, code);
       setCurrentItem(updated);
-      setSuccessMsg(`Kupon "${code}" berhasil diterapkan. Total tagihan: ${formatIDR(updated.final_amount || updated.amount)}.`);
+      setSuccessMsg(`Kupon "${code}" berhasil diterapkan. Total tagihan: ${formatIDR(updated.final_amount ?? updated.amount)}.`);
       setShowCouponForm(false);
       onPlanUpdated?.(updated);
     } catch (err: any) {
@@ -178,7 +178,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       const updated = await updatePaymentVerificationCoupon(currentItem.id, null);
       setCurrentItem(updated);
       setCouponInput('');
-      setSuccessMsg(`Kupon dihapus. Total tagihan kembali ke ${formatIDR(updated.final_amount || updated.amount)}.`);
+      setSuccessMsg(`Kupon dihapus. Total tagihan kembali ke ${formatIDR(updated.final_amount ?? updated.amount)}.`);
       setShowCouponForm(false);
       onPlanUpdated?.(updated);
     } catch (err: any) {
@@ -191,7 +191,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   const waClean = cleanWhatsApp(currentItem.tenant_whatsapp);
   const waMessage = encodeURIComponent(
     `Halo Admin ${currentItem.tenant_name || ''}, kami dari tim verifikasi KlikUmroh.id.\n\n` +
-    `Terkait konfirmasi pembayaran paket ${currentItem.plan_name || ''} sebesar ${formatIDR(currentItem.final_amount || currentItem.amount)}, ` +
+    `Terkait konfirmasi pembayaran paket ${currentItem.plan_name || ''} sebesar ${formatIDR(currentItem.final_amount ?? currentItem.amount)}, ` +
     `mohon kirimkan foto bukti transfer Anda untuk proses aktivasi. Terima kasih.`
   );
 
@@ -335,7 +335,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, borderTop: '1px solid var(--sa-border)', paddingTop: '8px', marginTop: '4px', color: 'var(--sa-text-primary)' }}>
                   <span>Total Transfer</span>
-                  <span style={{ color: 'var(--sa-primary)' }}>{formatIDR(currentItem.final_amount || currentItem.amount)}</span>
+                  <span style={{ color: 'var(--sa-primary)' }}>{formatIDR(currentItem.final_amount ?? currentItem.amount)}</span>
                 </div>
               </div>
             </div>

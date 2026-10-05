@@ -84,6 +84,14 @@ func (s *couponService) Deactivate(ctx context.Context, id uint64) error {
 	return s.repo.Deactivate(ctx, id)
 }
 
+// couponEndOfDay is the last moment a coupon is valid: 23:59:59 WIB on its expiry date. expires_at is a
+// DATE, and the business day is WIB whatever time zone the server process runs in (a UTC VPS would
+// otherwise keep a coupon valid until 06:59 WIB the next day).
+func couponEndOfDay(expiresAt time.Time) time.Time {
+	d := expiresAt.In(jakartaLocation)
+	return time.Date(d.Year(), d.Month(), d.Day(), 23, 59, 59, 0, jakartaLocation)
+}
+
 func (s *couponService) Validate(ctx context.Context, code string, planID ...uint64) (*repository.Coupon, error) {
 	trimmedCode := strings.ToUpper(strings.TrimSpace(code))
 	if trimmedCode == "" {
@@ -102,13 +110,8 @@ func (s *couponService) Validate(ctx context.Context, code string, planID ...uin
 		return nil, ErrCouponInactive
 	}
 
-	if coupon.ExpiresAt != nil {
-		now := time.Now()
-		// Compare date (end of the expiration day)
-		exp := time.Date(coupon.ExpiresAt.Year(), coupon.ExpiresAt.Month(), coupon.ExpiresAt.Day(), 23, 59, 59, 0, now.Location())
-		if now.After(exp) {
-			return nil, ErrCouponExpired
-		}
+	if coupon.ExpiresAt != nil && time.Now().After(couponEndOfDay(*coupon.ExpiresAt)) {
+		return nil, ErrCouponExpired
 	}
 
 	if coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses {

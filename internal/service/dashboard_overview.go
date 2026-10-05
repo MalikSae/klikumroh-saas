@@ -266,8 +266,10 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 		})
 	}
 
-	// Format Daily Prospect Trends (Last 30 days; the dashboard shows 7, 14 or 30)
-	now := time.Now()
+	// Format Daily Prospect Trends (Last 30 days; the dashboard shows 7, 14 or 30).
+	// The day keys must be WIB dates: the SQL buckets with DATE_FORMAT/CURDATE in the +07:00 session, and
+	// on a UTC server time.Now() would end the series at "yesterday" between 00:00 and 06:59 WIB.
+	now := time.Now().In(jakartaLocation)
 	trendsMap := make(map[string]map[string]int)
 	for _, rawTrend := range raw.ProspectTrends {
 		if _, exists := trendsMap[rawTrend.DateStr]; !exists {

@@ -10,7 +10,8 @@
     "lint:tokens": "node ../scripts/check-hardcoded-colors.js components app/agen",
     "lint:no-emoji": "node ../scripts/check-no-emoji.js",
     "test:redirect": "node --experimental-strip-types test/proxy-redirect.test.mjs",
-    "test:affiliator": "node --experimental-strip-types test/proxy-affiliator.test.mjs"
+    "test:affiliator": "node --experimental-strip-types test/proxy-affiliator.test.mjs",
+    "test:commission": "node --experimental-strip-types test/commission-summary.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

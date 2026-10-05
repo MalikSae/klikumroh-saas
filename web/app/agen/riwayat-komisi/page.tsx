@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { summarizeCommissionHistory } from '../../../lib/commissionSummary';
 import './RiwayatKomisi.css';
 
 interface CommissionHistoryItem {
@@ -157,26 +158,14 @@ export default function RiwayatKomisiPage() {
   }, []);
 
   // Released vs held commission, and what was withdrawn (rejected requests excluded).
-  const summary = useMemo(() => {
-    let cair = 0;
-    let tertahan = 0;
-    let sudahCair = 0; // withdrawals the travel has verified (approved or paid)
-    items.forEach((item) => {
-      if (item.direction === 'masuk') {
-        if (item.held) tertahan += Math.abs(item.amount);
-        else cair += Math.abs(item.amount);
-      } else if (item.direction === 'keluar' && (item.status === 'approved' || item.status === 'paid')) {
-        sudahCair += Math.abs(item.amount);
-      }
-    });
-    // Saldo bisa dicairkan: released commission not paid out yet, including requests still being processed.
-    return { tertahan, sudahCair, bisaDicairkan: Math.max(0, cair - sudahCair) };
-  }, [items]);
+  const summary = useMemo(() => summarizeCommissionHistory(items), [items]);
 
   const filtered = useMemo(
     () =>
       items.filter((item) => {
-        if (activeTab && item.direction !== activeTab) return false;
+        // "Penarikan" lists withdrawal requests only; "Masuk" lists commission entries, corrections included.
+        if (activeTab === 'masuk' && item.source !== 'ledger') return false;
+        if (activeTab === 'keluar' && item.source !== 'payout') return false;
         const q = searchQuery.trim().toLowerCase();
         if (!q) return true;
         return item.description?.toLowerCase().includes(q) || String(item.amount).includes(q);
@@ -310,8 +299,10 @@ export default function RiwayatKomisiPage() {
                   <h2 className="rk-day__label">{dayLabel(key)}</h2>
                   <ul className="rk-list">
                     {list.map((tx) => {
-                      const keluar = tx.direction === 'keluar';
-                      const rejected = keluar && tx.status === 'rejected';
+                      const payout = tx.source === 'payout';
+                      // Money going out: a withdrawal, or a negative correction (not a withdrawal).
+                      const keluar = payout || tx.amount < 0;
+                      const rejected = payout && tx.status === 'rejected';
                       const st = statusOf(tx);
                       return (
                         <li key={`${tx.source}-${tx.id}`}>
@@ -320,10 +311,10 @@ export default function RiwayatKomisiPage() {
                             {keluar ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
                           </span>
                           <span className="rk-row__text">
-                            <span className="rk-row__title">{keluar ? 'Penarikan ke rekening' : splitDescription(tx.description).title}</span>
+                            <span className="rk-row__title">{payout ? 'Penarikan ke rekening' : splitDescription(tx.description).title}</span>
                             <span className="rk-row__meta">
                               {/* Second line: jamaah count (or time) then the status; a withdrawal shows its status only. Full time is in the detail. */}
-                              {!keluar && <span>{splitDescription(tx.description).extra || timeLabel(tx.created_at)}</span>}
+                              {!payout && <span>{splitDescription(tx.description).extra || timeLabel(tx.created_at)}</span>}
                               {st.text && <span className={`rk-status rk-status--${st.tone}`}>{st.text}</span>}
                             </span>
                           </span>
@@ -352,17 +343,17 @@ export default function RiwayatKomisiPage() {
             <p className="rk-muted">{typeLabel(detail)}</p>
             <p
               id="rk-sheet-title"
-              className={`rk-sheet__amount${detail.direction === 'keluar' ? '' : ' rk-row__amount--in'}${
-                detail.direction === 'keluar' && detail.status === 'rejected' ? ' rk-row__amount--void' : ''
+              className={`rk-sheet__amount${detail.source === 'payout' || detail.amount < 0 ? '' : ' rk-row__amount--in'}${
+                detail.source === 'payout' && detail.status === 'rejected' ? ' rk-row__amount--void' : ''
               }`}
             >
-              {detail.direction === 'keluar' ? '−' : '+'}
+              {detail.source === 'payout' || detail.amount < 0 ? '−' : '+'}
               {formatRupiah(detail.amount)}
             </p>
             <dl className="rk-sheet__list">
               <div>
                 <dt>Keterangan</dt>
-                <dd>{detail.direction === 'keluar' ? 'Penarikan saldo ke rekening Anda' : detail.description}</dd>
+                <dd>{detail.source === 'payout' ? 'Penarikan saldo ke rekening Anda' : detail.description}</dd>
               </div>
               <div>
                 <dt>Status</dt>

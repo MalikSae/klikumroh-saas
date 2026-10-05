@@ -629,9 +629,8 @@ func (s *subscriptionService) couponHonoredAtApproval(ctx context.Context, pv *r
 		}
 	}
 	if coupon.ExpiresAt != nil {
-		// Same end-of-day rule as couponService.Validate.
-		exp := time.Date(coupon.ExpiresAt.Year(), coupon.ExpiresAt.Month(), coupon.ExpiresAt.Day(), 23, 59, 59, 0, time.Local)
-		if pv.CreatedAt.After(exp) {
+		// Same end-of-day rule (WIB) as couponService.Validate.
+		if pv.CreatedAt.After(couponEndOfDay(*coupon.ExpiresAt)) {
 			return ErrCouponExpired
 		}
 	}

@@ -18,6 +18,7 @@ import {
 import { Banner, Button, Checkbox, Field, errorText, fmtRupiah } from '../../ui';
 import { SettingsSection } from '../settings/Section';
 import { ImageField } from '../website/ImageField';
+import { parsePercent, parseRupiah } from './numberInput';
 import '../website/website.css';
 import './programs.css';
 
@@ -34,10 +35,8 @@ type Form = {
   terms: string;
 };
 
-const num = (v: string) => {
-  const n = Number(v.replace(/\./g, '').replace(',', '.'));
-  return v.trim() === '' || Number.isNaN(n) ? null : n;
-};
+const num = parseRupiah;
+const pctNum = parsePercent;
 
 export const Rules: React.FC = () => {
   const [saved, setSaved] = useState<Form | null>(null);
@@ -88,7 +87,7 @@ export const Rules: React.FC = () => {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: typeof fieldErrors = {};
-    const pct = num(form.overridePct);
+    const pct = pctNum(form.overridePct);
     if (form.overrideOn && (pct === null || pct <= 0 || pct > 100)) errs.overridePct = 'Isi persentase antara 0 dan 100.';
     const minPayout = num(form.minPayout);
     if (minPayout !== null && minPayout < 0) errs.minPayout = 'Tidak boleh negatif.';
@@ -133,7 +132,7 @@ export const Rules: React.FC = () => {
     }
   };
 
-  const pctPreview = num(form.overridePct);
+  const pctPreview = pctNum(form.overridePct);
 
   return (
     <form className="st-form" onSubmit={save} noValidate>

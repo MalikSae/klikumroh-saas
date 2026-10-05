@@ -65,7 +65,7 @@ export const AdminPaymentsView: React.FC = () => {
   };
 
   const needsReview = (i: PaymentVerificationItem) =>
-    i.status === 'pending' && (Boolean(i.proof_url) || (i.final_amount || i.amount) <= 0);
+    i.status === 'pending' && (Boolean(i.proof_url) || (i.final_amount ?? i.amount) <= 0);
   const awaitingTransfer = (i: PaymentVerificationItem) => i.status === 'pending' && !needsReview(i);
 
   const tabs: AdminTabOption[] = [
@@ -176,7 +176,7 @@ export const AdminPaymentsView: React.FC = () => {
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <strong style={{ color: 'var(--sa-text-primary)', fontFamily: 'var(--sa-font-heading)' }}>
-            {formatIDR(row.final_amount || row.amount)}
+            {formatIDR(row.final_amount ?? row.amount)}
           </strong>
           {row.coupon_code && (
             <span style={{ fontSize: '11px', color: '#15803D', fontWeight: 600 }}>
