@@ -326,7 +326,7 @@ Keputusan (rekomendasi disetujui pendiri untuk tahap awal, direview setelah jadi
 - [x] Implementasi V2 lama dihapus dan dibangun ulang di `/marketing-v2`, tanpa mengganti landing page utama; pesan berfokus pada owner travel, jaringan agen, alur referral sampai closing, demo, dan harga dari API.
 - [x] Landing page marketing responsif: section membentang penuh, isi desktop dibatasi ke lebar baca 1440px, hero dan fitur disusun dalam dua kolom, alur kerja dua kolom; mobile tetap satu kolom. Web publik travel tetap mobile-locked.
 - [x] Verifikasi kode: `go build ./...`, `go test ./...`, ESLint V2, TypeScript, token lint, no-emoji lint, dan validasi JSON design token lulus.
-- [ ] Pendiri memeriksa tampilan visual mobile dan desktop langsung di browser sebelum keputusan rilis.
+- [x] ~~Pendiri memeriksa tampilan visual mobile dan desktop langsung di browser sebelum keputusan rilis.~~ Tidak dipakai: pendiri memilih V3 (5 Okt 2026). Komponen V2 sudah dihapus; `/marketing-v2` redirect 308 ke `/` dengan query utuh
 
 ## Landing Page Marketing V3 (4 Oktober 2026)
 
@@ -340,7 +340,8 @@ Keputusan (rekomendasi disetujui pendiri untuk tahap awal, direview setelah jadi
 - [x] Token layout V3 ditambahkan di `design-tokens.json` dan `web/app/globals.css`. Kontainer terpusat 1280px, heading tidak dibatasi oleh kontainer `13ch`, gambar portal agen maksimal 560px lebar / 520px tinggi, mobile satu kolom.
 - [x] `go build ./...`, `go test ./...` (hasil package cached), ESLint V3, token lint, no-emoji lint, validasi JSON token, dan build Next.js beserta TypeScript lulus. Akses cache Go memakai eskalasi sandbox setelah kegagalan akses cache pada percobaan sebelumnya.
 - [x] Pengukuran DOM browser pada viewport 320, 390, 768, dan 1407px: tidak ada overflow horizontal setelah header 320px diperbaiki; pada 1407px judul hero selebar 589px dan gambar agen 560x520px. Pengukuran ini memverifikasi geometri, bukan persetujuan tampilan visual.
-- [ ] Pendiri memeriksa tampilan visual V3 desktop/mobile langsung di browser sebelum keputusan rilis.
+- [x] Keputusan rilis (pendiri, 5 Okt 2026): **landing page klikumroh.id memakai V3**. Sudah terpasang: `web/app/page.tsx` merender `MarketingV3View` untuk host platform; `/marketing`, `/marketing-v2`, `/marketing-v3` redirect 308 ke `/` dengan query utuh (dicek di dev server lokal, termasuk `?aff=`)
+- [ ] Pendiri memeriksa tampilan visual V3 desktop/mobile langsung di browser sebelum go-live.
 - [x] Footer V3 memuat alamat KlikUmroh sesuai teks pendiri, WhatsApp `089612779919` (tautan `wa.me/6289612779919`), dan `support@klikumroh.id` (mailto); desktop tiga kolom, mobile bertumpuk. Build/test Go (cached), ESLint, TypeScript, token lint, dan no-emoji lint lulus; pengukuran DOM footer pada 320px tidak menunjukkan overflow.
 - [x] Section dummy testimoni V3 untuk pratinjau: tiga kutipan singkat dengan peran pemilik travel, agen, dan tim pemasaran; tanpa nama travel, judul "Testimoni", sebelum harga. Kutipan merupakan contoh desain atas permintaan pendiri; perlu diganti dengan kutipan pelanggan terverifikasi sebelum rilis production. Desktop tiga kolom, mobile bertumpuk. Build/test Go (cached), ESLint, token lint, dan no-emoji lint lulus setelah revisi kutipan.
 - [x] CTA V3: tombol header diperkecil ke 36px desktop / 44px mobile (token marketing.v3); tombol harga menjadi hijau solid dengan label "Berlangganan 3/6/12 bulan" dan link checkout plan_id tetap sesuai API. Build/test Go (cached), ESLint, token/no-emoji lint lulus. DOM mengonfirmasi ukuran tombol, warna CTA, href masing-masing paket, dan tidak ada overflow pada 320px.
