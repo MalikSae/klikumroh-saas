@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata, ResolvingMetadata } from 'next';
 import { headers } from 'next/headers';
 import { PaketClientView } from '../../components/PaketClientView';
 import type { PublicPackage } from '../../components/publicPackage';
@@ -62,6 +63,46 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'd
 
 import { SuspendedView } from '../../components/SuspendedView';
 import { SiteUnavailableView } from '../../components/SiteUnavailableView';
+
+// Own canonical + OG url for the catalog page; otherwise it inherits the home page's from the root
+// layout. Robots (noindex for the demo travel) is left unset so the layout's value still applies.
+export async function generateMetadata(_props: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  const headerList = await headers();
+  // Same host the page body uses for its (no-store) fetches.
+  const host = headerList.get('host') || 'travela.klikumroh.local';
+  const publicHost = headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  const tenantInfo = await getTenantInfo(host);
+  if (!tenantInfo || tenantInfo === 'down' || tenantInfo.is_suspended) {
+    return {};
+  }
+
+  const parentMeta = await parent;
+  const canonicalUrl = `${publicHost ? `https://${publicHost}` : ''}/paket`;
+  const title = `Paket Umroh | ${tenantInfo.name}`;
+  const description = `Daftar paket umroh ${tenantInfo.name}${tenantInfo.city ? ` di ${tenantInfo.city}` : ''}: harga, jadwal keberangkatan, dan fasilitas.`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: tenantInfo.name,
+      locale: 'id_ID',
+      type: 'website',
+      // Keep the travel's share image from the root layout.
+      images: parentMeta.openGraph?.images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: parentMeta.twitter?.images,
+    },
+  };
+}
 
 export default async function PaketPage() {
   const headerList = await headers();

@@ -635,6 +635,10 @@ func (h *AgentHandler) UpdateDashboardAgentProfile(w http.ResponseWriter, r *htt
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "nomor whatsapp sudah terdaftar di travel ini"})
 			return
 		}
+		if errors.Is(err, service.ErrAgentPhoneRequired) || errors.Is(err, service.ErrAgentEmailRequired) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
@@ -986,7 +990,7 @@ func (h *AgentHandler) CreatePayoutRequest(w http.ResponseWriter, r *http.Reques
 		BankAccountHolder: payload.BankAccountHolder,
 	})
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondPayoutError(w, "create", err)
 		return
 	}
 
@@ -1036,7 +1040,7 @@ func (h *AgentHandler) ApprovePayoutRequest(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.agentService.ApprovePayoutRequest(r.Context(), tenantID, id, adminUserID); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondPayoutError(w, "approve", err)
 		return
 	}
 
@@ -1064,7 +1068,7 @@ func (h *AgentHandler) MarkPayoutRequestPaid(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.agentService.MarkPayoutRequestPaid(r.Context(), tenantID, id, adminUserID); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondPayoutError(w, "paid", err)
 		return
 	}
 
@@ -1105,7 +1109,7 @@ func (h *AgentHandler) RejectPayoutRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.agentService.RejectPayoutRequest(r.Context(), tenantID, id, adminUserID, payload.RejectionReason); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondPayoutError(w, "reject", err)
 		return
 	}
 
@@ -1287,4 +1291,25 @@ func (h *AgentHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "password berhasil diubah"})
+}
+
+// respondPayoutError maps payout request errors to HTTP: unknown request → 404, validation/business
+// rule → 400 and wrong status → 409 (both with the service's own message), and anything else → 500
+// with a generic message so database/driver text never reaches the client.
+func respondPayoutError(w http.ResponseWriter, action string, err error) {
+	switch {
+	case errors.Is(err, repository.ErrNotFound):
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": "pengajuan penarikan tidak ditemukan"})
+	case errors.Is(err, service.ErrAgentNotActive):
+		respondJSON(w, http.StatusForbidden, map[string]string{"error": "Akun belum aktif"})
+	case errors.Is(err, service.ErrPayoutInvalid):
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+	case errors.Is(err, service.ErrPayoutStatusConflict):
+		respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+	case errors.Is(err, repository.ErrStatusConflict):
+		respondJSON(w, http.StatusConflict, map[string]string{"error": "status pengajuan sudah berubah, muat ulang halaman lalu coba lagi"})
+	default:
+		log.Printf("[Payout] %s failed: %v", action, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
 }

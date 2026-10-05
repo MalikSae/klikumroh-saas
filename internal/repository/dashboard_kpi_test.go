@@ -37,3 +37,36 @@ func TestDashboardOverview_KPIDailyIsTenantScoped(t *testing.T) {
 		t.Fatalf("tenant B must see nothing of tenant A: got %d, %d, %d", p, c, pax)
 	}
 }
+
+// A re-closed prospect counts on its latest move into closing (like targets, leaderboard and the CSV),
+// not on its first one: a first closing 70 days ago followed by a re-closing today is today's closing.
+func TestDashboardOverview_KPIDailyUsesLatestClosing(t *testing.T) {
+	e := setupProspectAudit(t)
+	repo := repository.NewDashboardOverviewRepository(e.db)
+
+	p := e.newAgentProspect(t, "081377770011", 2)
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, p.ID, 1, "closing", nil, nil); err != nil {
+		t.Fatalf("closing: %v", err)
+	}
+	if _, err := e.db.Exec(`UPDATE prospect_status_history SET changed_at = DATE_SUB(NOW(), INTERVAL 70 DAY)
+		WHERE tenant_id = ? AND prospect_id = ? AND new_status = 'closing'`, e.tenantA.ID, p.ID); err != nil {
+		t.Fatalf("backdate first closing: %v", err)
+	}
+	if _, err := e.db.Exec(`INSERT INTO prospect_status_history (tenant_id, prospect_id, changed_by_type, changed_by_id, old_status, new_status)
+		VALUES (?, ?, 'admin', 1, 'tertarik', 'closing')`, e.tenantA.ID, p.ID); err != nil {
+		t.Fatalf("insert re-closing: %v", err)
+	}
+
+	raw, err := repo.GetOverview(e.ctx, e.tenantA.ID)
+	if err != nil {
+		t.Fatalf("overview: %v", err)
+	}
+	closings, pax := 0, 0
+	for _, d := range raw.KPIDaily {
+		closings += d.Closings
+		pax += d.ClosingPax
+	}
+	if closings != 1 || pax != 2 {
+		t.Fatalf("expected the re-closing inside the 60-day series (1 closing, 2 jamaah), got %d, %d", closings, pax)
+	}
+}

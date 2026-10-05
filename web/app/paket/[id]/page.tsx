@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata, ResolvingMetadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { PackageDetailClientView } from '../../../components/PackageDetailClientView';
@@ -59,6 +60,62 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'd
 
 import { SuspendedView } from '../../../components/SuspendedView';
 import { SiteUnavailableView } from '../../../components/SiteUnavailableView';
+
+// Package pages get their own title, description, canonical and OG tags; without this they inherit the
+// home page's canonical/OG url from the root layout. Robots (noindex for the demo travel) is left unset
+// here so the layout's value still applies.
+export async function generateMetadata(
+  { params }: { params: Promise<{ id: string }> },
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const headerList = await headers();
+  // Same host the page body uses for its (no-store) fetches.
+  const host = headerList.get('host') || 'travela.klikumroh.local';
+  const publicHost = headerList.get('x-forwarded-host') || headerList.get('host') || '';
+  const { id } = await params;
+
+  const [pkg, tenantInfo] = await Promise.all([getPackageDetail(host, id), getTenantInfo(host)]);
+  if (!pkg || !tenantInfo || tenantInfo === 'down' || tenantInfo.is_suspended) {
+    return {};
+  }
+
+  const origin = publicHost ? `https://${publicHost}` : '';
+  const canonicalUrl = `${origin}/paket/${id}`;
+  const title = `${pkg.name} | ${tenantInfo.name}`;
+  const plainDescription = (pkg.description || '').replace(/\s+/g, ' ').trim();
+  const description = plainDescription
+    ? (plainDescription.length > 155 ? `${plainDescription.slice(0, 155)}...` : plainDescription)
+    : `${pkg.name} dari ${tenantInfo.name}. Lihat harga, jadwal keberangkatan, dan fasilitas paket umroh.`;
+
+  // Same first photo the detail page shows (API order).
+  const firstPhoto = pkg.photos && pkg.photos.length > 0 ? pkg.photos[0].file_path : '';
+  const imageUrl = firstPhoto
+    ? (firstPhoto.startsWith('http') ? firstPhoto : `${origin}${firstPhoto}`)
+    : undefined;
+  // No package photo: keep the travel's share image from the root layout.
+  const parentMeta = imageUrl ? null : await parent;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: tenantInfo.name,
+      locale: 'id_ID',
+      type: 'website',
+      images: imageUrl ? [{ url: imageUrl, alt: pkg.name }] : parentMeta?.openGraph?.images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : parentMeta?.twitter?.images,
+    },
+  };
+}
 
 export default async function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const headerList = await headers();

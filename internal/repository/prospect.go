@@ -154,6 +154,9 @@ type ProspectRepository interface {
 	Delete(ctx context.Context, tenantID uint64, id uint64) error
 	GetAgentFunnelSummary(ctx context.Context, tenantID uint64, agentID uint64) (*AgentFunnelSummary, error)
 	GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]AgentClosingStat, error)
+	// GetAgentClosingJamaah sums the jamaah (pax) of one agent's prospects currently in 'closing',
+	// regardless of the agent's own status (admin detail of an inactive/pending agent).
+	GetAgentClosingJamaah(ctx context.Context, tenantID uint64, agentID uint64) (int, error)
 	// GetActiveAgentsClosingStatsSince counts only closings whose latest move into 'closing' is at or after
 	// since (a "YYYY-MM-DD HH:MM:SS" time in the business time zone). Used by the agent leaderboard periods.
 	GetActiveAgentsClosingStatsSince(ctx context.Context, tenantID uint64, since string) ([]AgentClosingStat, error)
@@ -958,6 +961,18 @@ func (r *mysqlProspectRepository) GetActiveAgentsClosingStats(ctx context.Contex
 		ORDER BY total_jamaah DESC, a.id ASC
 	`
 	return r.queryClosingStats(ctx, query, tenantID)
+}
+
+func (r *mysqlProspectRepository) GetAgentClosingJamaah(ctx context.Context, tenantID uint64, agentID uint64) (int, error) {
+	var total int
+	err := r.db.QueryRowContext(ctx, `
+		SELECT COALESCE(SUM(COALESCE(p.jumlah_jamaah, 1)), 0)
+		FROM prospects p
+		WHERE p.tenant_id = ? AND p.agent_id = ? AND p.status = 'closing'`, tenantID, agentID).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+	return total, nil
 }
 
 func (r *mysqlProspectRepository) GetActiveAgentsClosingStatsSince(ctx context.Context, tenantID uint64, since string) ([]AgentClosingStat, error) {

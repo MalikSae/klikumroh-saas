@@ -149,7 +149,8 @@ export const PackageEditor: React.FC = () => {
         return;
       }
       const updated = await updatePackage(Number(id), body);
-      const next = { ...updated, photos };
+      // Keep the known seat count if the response lacks it, so the hint never drops to "0 kursi".
+      const next = { ...updated, photos, seats_taken: updated.seats_taken ?? pkg?.seats_taken };
       setPkg(next);
       const f = toForm(next);
       setSaved(f);

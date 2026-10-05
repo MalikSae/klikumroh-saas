@@ -1,58 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// Mirroring the pure validation functions to ensure test coverage
-function validateWhatsApp(val) {
-  const trimmed = (val || '').trim();
-  if (!trimmed) {
-    return 'Nomor WhatsApp wajib diisi';
-  }
-
-  const cleaned = trimmed.replace(/[\s\-()]/g, '');
-
-  if (!/^\+?[0-9]+$/.test(cleaned)) {
-    return 'Nomor WhatsApp hanya boleh berisi angka';
-  }
-
-  if (cleaned.startsWith('0')) {
-    if (!cleaned.startsWith('08')) {
-      return 'Nomor WhatsApp harus nomor seluler (diawali 08)';
-    }
-    if (cleaned.length < 10 || cleaned.length > 14) {
-      return 'Nomor WhatsApp harus 10–14 digit (contoh: 081234567890)';
-    }
-    return undefined;
-  }
-
-  if (cleaned.startsWith('+62')) {
-    if (!cleaned.startsWith('+628')) {
-      return 'Nomor WhatsApp Indonesia harus diawali +628';
-    }
-    if (cleaned.length < 12 || cleaned.length > 16) {
-      return 'Nomor WhatsApp harus 11–15 digit (contoh: +6281234567890)';
-    }
-    return undefined;
-  }
-
-  if (cleaned.startsWith('62')) {
-    if (!cleaned.startsWith('628')) {
-      return 'Nomor WhatsApp Indonesia harus diawali 628';
-    }
-    if (cleaned.length < 11 || cleaned.length > 15) {
-      return 'Nomor WhatsApp harus 11–15 digit (contoh: 6281234567890)';
-    }
-    return undefined;
-  }
-
-  if (cleaned.startsWith('+')) {
-    if (cleaned.length < 10 || cleaned.length > 16) {
-      return 'Format nomor internasional tidak valid (minimal 10 digit)';
-    }
-    return undefined;
-  }
-
-  return 'Gunakan format 08xxxxxxxxxx atau +628xxxxxxxxxx';
-}
+// validateWhatsApp is the real helper used by CheckoutView; validateEmail below is still a mirror.
+import { validateWhatsApp } from '../lib/signupWhatsApp.ts';
 
 function validateEmail(val) {
   const trimmed = (val || '').trim().toLowerCase();

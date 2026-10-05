@@ -306,23 +306,7 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 		}
 
 		// Calculate subscription status (the demo travel has its own status: never billed)
-		if item.IsDemo {
-			item.SubscriptionStatus = "demo"
-		} else if item.Status == "pending" {
-			item.SubscriptionStatus = "pending"
-		} else if item.Status == "suspended" || item.Status == "inactive" {
-			item.SubscriptionStatus = "suspended"
-		} else if item.CurrentPlan == nil && item.PlanName == nil {
-			item.SubscriptionStatus = "no_plan"
-		} else if item.SubscriptionExpiresAt != nil && item.SubscriptionExpiresAt.Before(now) {
-			item.SubscriptionStatus = "expired"
-		} else if item.Status == "active" {
-			item.SubscriptionStatus = "active"
-		} else if item.Status != "" {
-			item.SubscriptionStatus = item.Status
-		} else {
-			item.SubscriptionStatus = "pending"
-		}
+		item.SubscriptionStatus = DeriveSubscriptionStatus(item.IsDemo, item.Status, item.CurrentPlan != nil || item.PlanName != nil, item.SubscriptionExpiresAt, now)
 
 		// Apply optional status filter
 		if filter != "" && filter != "all" {
@@ -412,4 +396,28 @@ func updateStaffUser(ctx context.Context, db staffExecer, user *StaffUser) error
 	}
 
 	return nil
+}
+
+// DeriveSubscriptionStatus is the subscription status the super admin sees for a travel: demo |
+// pending | suspended | no_plan | expired | active (or the raw tenant status as a fallback). Shared by
+// the tenant list and the tenant detail so both always agree.
+func DeriveSubscriptionStatus(isDemo bool, status string, hasPlan bool, expiresAt *time.Time, now time.Time) string {
+	switch {
+	case isDemo:
+		return "demo"
+	case status == "pending":
+		return "pending"
+	case status == "suspended" || status == "inactive":
+		return "suspended"
+	case !hasPlan:
+		return "no_plan"
+	case expiresAt != nil && expiresAt.Before(now):
+		return "expired"
+	case status == "active":
+		return "active"
+	case status != "":
+		return status
+	default:
+		return "pending"
+	}
 }

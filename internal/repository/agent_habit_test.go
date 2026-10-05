@@ -100,3 +100,54 @@ func TestAgentHabit_LogDeriveAndTenantIsolation(t *testing.T) {
 		t.Fatalf("expected no sumber after unmark, got %v", ids)
 	}
 }
+
+// Adding a jamaah manually writes a creation history row (empty old_status) by the agent. That is not a
+// contact with a prospect, so it must not tick the "contact" habit — per agent or tenant-wide.
+func TestAgentHabit_ManualJamaahIsNotContact(t *testing.T) {
+	e := setupProspectAudit(t)
+	repo := repository.NewAgentHabitRepository(e.db)
+	loc, err := time.LoadLocation(repository.BusinessTimeZone)
+	if err != nil {
+		t.Fatalf("load zone: %v", err)
+	}
+	today := time.Now().In(loc).Format("2006-01-02")
+
+	p := e.newAgentProspect(t, "081355550091", 1)
+	if _, err := e.db.Exec(`INSERT INTO prospect_status_history (tenant_id, prospect_id, changed_by_type, changed_by_id, old_status, new_status)
+		VALUES (?, ?, 'agent', ?, '', 'baru')`, e.tenantA.ID, p.ID, e.agentA.ID); err != nil {
+		t.Fatalf("insert creation history: %v", err)
+	}
+
+	days, err := repo.ListHabitDays(e.ctx, e.tenantA.ID, e.agentA.ID, today, today)
+	if err != nil {
+		t.Fatalf("list days: %v", err)
+	}
+	for _, d := range days {
+		if d.Key == "contact" {
+			t.Fatalf("creating a jamaah must not count as contact, got %+v", days)
+		}
+	}
+	all, err := repo.ListTenantHabitDays(e.ctx, e.tenantA.ID, today, today)
+	if err != nil {
+		t.Fatalf("list tenant days: %v", err)
+	}
+	for _, d := range all {
+		if d.Key == "contact" {
+			t.Fatalf("tenant overview: creating a jamaah must not count as contact, got %+v", all)
+		}
+	}
+
+	// A real status change by the agent still counts.
+	if _, err := e.db.Exec(`INSERT INTO prospect_status_history (tenant_id, prospect_id, changed_by_type, changed_by_id, old_status, new_status)
+		VALUES (?, ?, 'agent', ?, 'baru', 'dihubungi')`, e.tenantA.ID, p.ID, e.agentA.ID); err != nil {
+		t.Fatalf("insert history: %v", err)
+	}
+	days, _ = repo.ListHabitDays(e.ctx, e.tenantA.ID, e.agentA.ID, today, today)
+	found := false
+	for _, d := range days {
+		found = found || (d.Key == "contact" && d.Date == today)
+	}
+	if !found {
+		t.Fatalf("a status change must still count as contact, got %+v", days)
+	}
+}

@@ -356,7 +356,7 @@ func (r *mysqlCommissionPayoutRequestRepository) UpdateStatus(
 		return err
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("pengajuan tidak ditemukan atau status saat ini bukan '%s'", fromStatus)
+		return fmt.Errorf("%w: pengajuan tidak ditemukan atau status saat ini bukan '%s'", ErrStatusConflict, fromStatus)
 	}
 
 	return nil

@@ -68,7 +68,11 @@ func (m *mockPackageRepo) Update(ctx context.Context, tenantID uint64, pkg *repo
 		return repository.ErrNotFound
 	}
 	pkg.TenantID = tenantID
-	m.packages[pkg.ID] = pkg
+	// Like the SQL UPDATE: columns that are not part of the edit keep their stored values.
+	stored := *pkg
+	stored.CreatedAt = existing.CreatedAt
+	stored.SeatsTaken = existing.SeatsTaken
+	m.packages[pkg.ID] = &stored
 	return nil
 }
 
@@ -490,4 +494,29 @@ func TestPackageHandler_DashboardCRUD_And_CrossTenant(t *testing.T) {
 			t.Errorf("Expected commission_amount %v, got %v", commRate, updatedPkg.CommissionAmount)
 		}
 	})
+}
+
+// PUT answers with the stored package (seats_taken, created_at), not an echo of the payload.
+func TestPackageHandler_UpdateReturnsStoredPackage(t *testing.T) {
+	r, pkgRepo, _, _ := setupPackageRouter()
+	created := time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC)
+	pkg := &repository.Package{Name: "Paket Lama", Status: "draft", CreatedAt: created, SeatsTaken: 4}
+	_ = pkgRepo.Create(context.Background(), 10, pkg)
+
+	body, _ := json.Marshal(map[string]interface{}{"name": "Paket Baru", "status": "draft"})
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/dashboard/packages/%d", pkg.ID), bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer token_tenant_a")
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	var res repository.Package
+	if err := json.Unmarshal(rr.Body.Bytes(), &res); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if res.Name != "Paket Baru" || res.SeatsTaken != 4 || !res.CreatedAt.Equal(created) {
+		t.Fatalf("expected stored package (name updated, seats_taken 4, created_at kept), got name=%q seats=%d created=%v",
+			res.Name, res.SeatsTaken, res.CreatedAt)
+	}
 }

@@ -268,6 +268,20 @@ func (m *mockProspectRepo) GetActiveAgentsClosingStatsSince(ctx context.Context,
 	return m.GetActiveAgentsClosingStats(ctx, tenantID)
 }
 
+func (m *mockProspectRepo) GetAgentClosingJamaah(ctx context.Context, tenantID uint64, agentID uint64) (int, error) {
+	total := 0
+	for _, p := range m.prospects {
+		if p.TenantID == tenantID && p.AgentID != nil && *p.AgentID == agentID && p.Status == "closing" {
+			if p.JumlahJamaah != nil {
+				total += *p.JumlahJamaah
+			} else {
+				total++
+			}
+		}
+	}
+	return total, nil
+}
+
 func (m *mockProspectRepo) GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]repository.AgentClosingStat, error) {
 	agentMap := make(map[uint64]int)
 	if m.agentRepo != nil {

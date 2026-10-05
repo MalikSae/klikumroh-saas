@@ -65,7 +65,13 @@ export const Identity: React.FC = () => {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.color && !HEX.test(form.color)) {
+    // A brand color, once set, cannot be emptied (clearing it used to report success while nothing was
+    // saved). A travel that never set one (new travels have none) can still save the other fields.
+    if (!form.color.trim() && saved.color) {
+      setColorError('Warna brand wajib diisi, format #RRGGBB.');
+      return;
+    }
+    if (form.color.trim() && !HEX.test(form.color)) {
       setColorError('Tulis kode warna 6 digit diawali tanda pagar, format #RRGGBB.');
       return;
     }
@@ -76,7 +82,7 @@ export const Identity: React.FC = () => {
         // The profile endpoint also carries the name and logo: send them unchanged.
         setProfile(await updateTenantProfile({ ...profile, tagline: form.tagline.trim() || null, about_summary: form.about.trim() || null }));
       }
-      if (form.color !== saved.color && form.color) await updateTenantBranding(form.color.toUpperCase());
+      if (form.color !== saved.color && form.color.trim()) await updateTenantBranding(form.color.toUpperCase());
       if (form.rating !== saved.rating || form.alumni !== saved.alumni || form.guarantee !== saved.guarantee) {
         await updateTenantTrustMetrics({ trust_rating: form.rating.trim() || null, trust_alumni_count: form.alumni.trim() || null, trust_guarantee: form.guarantee.trim() || null });
       }

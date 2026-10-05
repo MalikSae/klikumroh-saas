@@ -322,7 +322,17 @@ func (h *PackageHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, pkg)
+	// Answer with the stored package (seats_taken, created_at, photos, ...), not the payload echo.
+	saved, err := h.packageService.GetByID(r.Context(), tenantID, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "paket tidak ditemukan"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
+	respondJSON(w, http.StatusOK, saved)
 }
 
 // Delete handles DELETE /api/dashboard/packages/{id}.

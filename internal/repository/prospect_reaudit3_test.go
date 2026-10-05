@@ -152,7 +152,7 @@ func TestReaudit3_UnpaidClosingsAndAgentPaging(t *testing.T) {
 	payoff := repository.NewTargetPayoffRepository(db)
 
 	a := e.newAgentProspect(t, "081355550009", 1)
-	b := e.newAgentProspect(t, "081355550010", 1)
+	b := e.newAgentProspect(t, "081355550010", 3) // 3 jamaah: the count is in jamaah, not prospects
 	e.newAgentProspect(t, "081355550011", 1)
 	for _, p := range []*repository.Prospect{a, b} {
 		if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, p.ID, 1, "closing", nil, nil); err != nil {
@@ -164,8 +164,8 @@ func TestReaudit3_UnpaidClosingsAndAgentPaging(t *testing.T) {
 	}
 	today := time.Now().Format("2006-01-02")
 	n, err := payoff.CountUnpaidClosings(e.ctx, e.tenantA.ID, e.agentA.ID, today, today)
-	if err != nil || n != 1 {
-		t.Fatalf("expected 1 unpaid closing, got %d (%v)", n, err)
+	if err != nil || n != 3 {
+		t.Fatalf("expected 3 unpaid jamaah (one prospect of 3), got %d (%v)", n, err)
 	}
 	if n, _ := payoff.CountUnpaidClosings(e.ctx, e.tenantB.ID, e.agentA.ID, today, today); n != 0 {
 		t.Fatalf("CRITICAL: tenant B must see 0 unpaid closings of tenant A's agent, got %d", n)

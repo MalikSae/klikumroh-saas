@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -106,6 +107,9 @@ func (m *mockDetailProspectRepo) GetActiveAgentsClosingStatsSince(ctx context.Co
 
 func (m *mockDetailProspectRepo) GetActiveAgentsClosingStats(ctx context.Context, tenantID uint64) ([]repository.AgentClosingStat, error) {
 	return nil, nil
+}
+func (m *mockDetailProspectRepo) GetAgentClosingJamaah(ctx context.Context, tenantID uint64, agentID uint64) (int, error) {
+	return 0, nil
 }
 func (m *mockDetailProspectRepo) GetAgentPendingCommissionAndCount(ctx context.Context, tenantID uint64, agentID uint64) (float64, int, error) {
 	return 0, 0, nil
@@ -755,4 +759,35 @@ func (m *mockDetailDomainRepo) ReleaseUnverifiedClaim(ctx context.Context, hostn
 
 func (m *mockDetailDomainRepo) ListActiveCustom(ctx context.Context) ([]repository.Domain, error) {
 	return nil, nil
+}
+
+// The tenant detail carries the same derived subscription_status as the tenant list (not only the raw
+// tenants.status), under exactly that JSON key.
+func TestStaffTenantDetail_SubscriptionStatus(t *testing.T) {
+	env := setupStaffTenantDetailEnv()
+	past := time.Now().Add(-24 * time.Hour)
+	env.tenantRepo.tenants[90] = &repository.Tenant{ID: 90, Name: "Expired Travel", Slug: "expired", Status: "active",
+		CurrentPlanID: env.tenantRepo.tenants[53].CurrentPlanID, SubscriptionExpiresAt: &past}
+	env.tenantRepo.tenants[91] = &repository.Tenant{ID: 91, Name: "No Plan Travel", Slug: "noplan", Status: "active"}
+	env.tenantRepo.tenants[92] = &repository.Tenant{ID: 92, Name: "Suspended Travel", Slug: "suspended", Status: "inactive"}
+
+	cases := map[uint64]string{53: "active", 78: "pending", 90: "expired", 91: "no_plan", 92: "suspended"}
+	for id, want := range cases {
+		req := httptest.NewRequest(http.MethodGet, "/api/staff/tenants/"+strconv.FormatUint(id, 10), nil)
+		req.Header.Set("Authorization", "Bearer valid-staff-token")
+		w := httptest.NewRecorder()
+		env.router.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("tenant %d: expected 200, got %d: %s", id, w.Code, w.Body.String())
+		}
+		var resp struct {
+			Tenant map[string]interface{} `json:"tenant"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if got := resp.Tenant["subscription_status"]; got != want {
+			t.Errorf("tenant %d: expected subscription_status %q, got %v", id, want, got)
+		}
+	}
 }

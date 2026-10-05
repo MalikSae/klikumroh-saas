@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 
 type mockCommissionPayoutRequestRepo struct {
 	requests map[uint64]*repository.CommissionPayoutRequest
+	getErr   error // when set, GetByID fails with it (simulates a database error)
 	nextID   uint64
 }
 
@@ -49,6 +51,9 @@ func (m *mockCommissionPayoutRequestRepo) Create(ctx context.Context, tenantID u
 }
 
 func (m *mockCommissionPayoutRequestRepo) GetByID(ctx context.Context, tenantID uint64, id uint64) (*repository.CommissionPayoutRequest, error) {
+	if m.getErr != nil {
+		return nil, m.getErr
+	}
 	req, ok := m.requests[id]
 	if !ok || req.TenantID != tenantID {
 		return nil, repository.ErrNotFound
@@ -412,8 +417,8 @@ func TestAgentPayout_EndToEnd_ValidationAndCrossTenant(t *testing.T) {
 		rec := httptest.NewRecorder()
 		adminRouter.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("expected 400 Bad Request for approving non-pending request, got %d: %s", rec.Code, rec.Body.String())
+		if rec.Code != http.StatusConflict {
+			t.Fatalf("expected 409 Conflict for approving non-pending request, got %d: %s", rec.Code, rec.Body.String())
 		}
 	})
 
@@ -424,8 +429,8 @@ func TestAgentPayout_EndToEnd_ValidationAndCrossTenant(t *testing.T) {
 		rec := httptest.NewRecorder()
 		adminRouter.ServeHTTP(rec, req)
 
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("expected 400 Bad Request for marking paid from pending, got %d: %s", rec.Code, rec.Body.String())
+		if rec.Code != http.StatusConflict {
+			t.Fatalf("expected 409 Conflict for marking paid from pending, got %d: %s", rec.Code, rec.Body.String())
 		}
 	})
 
@@ -501,8 +506,56 @@ func TestAgentPayout_EndToEnd_ValidationAndCrossTenant(t *testing.T) {
 		recApprove := httptest.NewRecorder()
 		adminRouter.ServeHTTP(recApprove, reqApprove)
 
-		if recApprove.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 Bad Request when cross-tenant approving, got %d: %s", recApprove.Code, recApprove.Body.String())
+		if recApprove.Code != http.StatusNotFound {
+			t.Errorf("expected 404 Not Found when cross-tenant approving, got %d: %s", recApprove.Code, recApprove.Body.String())
 		}
 	})
+
+	t.Run("13. Error database -> 500 tanpa membocorkan pesan driver", func(t *testing.T) {
+		payoutRepo.getErr = fmt.Errorf("Error 1205 (HY000): Lock wait timeout exceeded; try restarting transaction")
+		defer func() { payoutRepo.getErr = nil }()
+
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/dashboard/payout-requests/%d/approve", createdPayoutID), nil)
+		req.Header.Set("Authorization", "Bearer admin-tok-t1")
+		rec := httptest.NewRecorder()
+		adminRouter.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusInternalServerError {
+			t.Fatalf("expected 500, got %d: %s", rec.Code, rec.Body.String())
+		}
+		if strings.Contains(rec.Body.String(), "Lock wait") || strings.Contains(rec.Body.String(), "HY000") {
+			t.Fatalf("raw database error leaked to the client: %s", rec.Body.String())
+		}
+	})
+
+	t.Run("14. Request tidak ada -> 404", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPatch, "/api/dashboard/payout-requests/999999/paid", nil)
+		req.Header.Set("Authorization", "Bearer admin-tok-t1")
+		rec := httptest.NewRecorder()
+		adminRouter.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d: %s", rec.Code, rec.Body.String())
+		}
+	})
+}
+
+// GetDashboardSummary used to ignore the tenant lookup error and dereference a nil tenant (panic).
+func TestAgentDashboardSummary_TenantLookupErrorIsReturned(t *testing.T) {
+	_, _, agentRepo, agentSessionRepo, tenantRepo, commLedgerRepo, payoutRepo, _, _, _, _, _, _ := setupAgentPayoutTestEnv()
+	prospectRepo := newMockProspectRepo()
+	prospectRepo.agentRepo = agentRepo
+	svc := service.NewAgentService(agentRepo, agentSessionRepo, tenantRepo, commLedgerRepo, prospectRepo, payoutRepo, nil, nil, nil)
+
+	// An active agent whose tenant row cannot be loaded.
+	orphan := &repository.Agent{Name: "Agen Yatim", Status: "active", ReferralCode: "ORPHAN1"}
+	_ = agentRepo.Create(context.Background(), 9999, orphan)
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("GetDashboardSummary panicked on a tenant lookup error: %v", r)
+		}
+	}()
+	if _, err := svc.GetDashboardSummary(context.Background(), 9999, orphan.ID, "travel.klikumroh.id"); err == nil {
+		t.Fatalf("expected the tenant lookup error to be returned")
+	}
 }

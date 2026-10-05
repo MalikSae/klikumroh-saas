@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
 import { publicSiteUrl } from '../../../app/AppFrame';
+import { subscriptionStatusView } from '../shared/subscriptionStatus';
 import {
   fetchStaffTenants,
   type StaffTenantItem,
@@ -386,28 +387,17 @@ export const AdminTenantsView: React.FC = () => {
                       </td>
 
                       <td>
-                        {status === 'active' && (
-                          <span className="sa-pill sa-pill--green">
-                            <span className="sa-status-dot" style={{ backgroundColor: 'var(--sa-green)' }} />
-                            <span>Aktif</span>
-                          </span>
-                        )}
-                        {status === 'pending' && (
-                          <span className="sa-pill sa-pill--amber">
-                            <span className="sa-status-dot" style={{ backgroundColor: 'var(--sa-amber)' }} />
-                            <span>Pending</span>
-                          </span>
-                        )}
-                        {status === 'expired' && (
-                          <span className="sa-pill sa-pill--red">
-                            <span className="sa-status-dot" style={{ backgroundColor: 'var(--sa-red)' }} />
-                            <span>Kedaluwarsa</span>
-                          </span>
-                        )}
-                        {status === 'demo' && <span className="sa-pill sa-pill--neutral">Demo</span>}
-                        {status !== 'active' && status !== 'pending' && status !== 'expired' && status !== 'demo' && (
-                          <span className="sa-pill sa-pill--neutral">{status}</span>
-                        )}
+                        {(() => {
+                          const sv = subscriptionStatusView(status);
+                          return (
+                            <span className={`sa-pill sa-pill--${sv.tone}`}>
+                              {sv.tone !== 'neutral' && (
+                                <span className="sa-status-dot" style={{ backgroundColor: `var(--sa-${sv.tone})` }} />
+                              )}
+                              <span>{sv.label}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       <td style={{ fontSize: '12px', color: 'var(--sa-text-muted)' }}>

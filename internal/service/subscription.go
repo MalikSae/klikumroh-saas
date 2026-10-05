@@ -513,7 +513,7 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 	if tenant.SubscriptionExpiresAt != nil && tenant.SubscriptionExpiresAt.After(baseTime) {
 		baseTime = *tenant.SubscriptionExpiresAt
 	}
-	newExpiry := baseTime.AddDate(0, plan.PeriodMonths, 0)
+	newExpiry := addMonthsClamped(baseTime, plan.PeriodMonths)
 
 	// Update tenant subscription and set status to active
 	if err := s.tenantRepo.UpdateSubscription(ctx, pv.TenantID, pv.PlanID, newExpiry, "active"); err != nil {

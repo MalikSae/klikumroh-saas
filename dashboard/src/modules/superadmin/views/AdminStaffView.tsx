@@ -13,6 +13,7 @@ import {
   User,
 } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
+import { CustomDropdown } from '../shared/CustomDropdown';
 import { AdminDataGrid, type AdminColumn } from '../components/AdminDataGrid';
 import {
   fetchStaffUsers,
@@ -598,26 +599,15 @@ export const AdminStaffView: React.FC = () => {
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
                   Status Akun:
                 </label>
-                <select
+                <CustomDropdown
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, status: String(e.target.value) })}
                   disabled={Boolean(editingStaff && currentUser && currentUser.id === editingStaff.id)}
-                  style={{
-                    width: '100%',
-                    height: '38px',
-                    padding: '0 10px',
-                    fontSize: '13px',
-                    border: '1px solid var(--sa-border)',
-                    borderRadius: 'var(--sa-radius-sm)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    backgroundColor: 'var(--sa-card)',
-                    color: 'var(--sa-text)',
-                  }}
-                >
-                  <option value="active">Aktif (Dapat Login)</option>
-                  <option value="inactive">Nonaktif (Akses Ditangguhkan)</option>
-                </select>
+                  options={[
+                    { value: 'active', label: 'Aktif (Dapat Login)' },
+                    { value: 'inactive', label: 'Nonaktif (Akses Ditangguhkan)' },
+                  ]}
+                />
                 {editingStaff && currentUser && currentUser.id === editingStaff.id && (
                   <span style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: 'var(--sa-text-muted)' }}>
                     Akun yang sedang Anda gunakan tidak dapat diubah statusnya menjadi nonaktif.

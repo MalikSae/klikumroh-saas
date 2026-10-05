@@ -28,6 +28,9 @@ interface ProspectData {
   paid_off_at?: string | null;
   /** Personal data removed on the jamaah's request (UU PDP): no contact, no status change, no notes. */
   anonymized_at?: string | null;
+  /** Free-text and fixed reason for 'tidak_lanjut' (the status history items carry no reason). */
+  lost_reason?: string | null;
+  lost_reason_category?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,7 +60,6 @@ interface StatusHistoryItem {
   new_status: string;
   changed_by_type: string; // "agent" or "admin"
   changed_by_id: number;
-  lost_reason?: string | null;
   changed_at: string;
 }
 
@@ -374,6 +376,15 @@ export default function AgenJamaahDetailPage() {
   const isReadOnly = isAnonymized || travelSuspended;
   const statusText =
     (STATUS_LABEL[prospect.status] || prospect.status) + (isClosing ? (prospect.paid_off_at ? ' · Lunas' : ' · Belum lunas') : '');
+  // Why the jamaah did not continue: fixed category label plus the optional free-text note.
+  const lostCategoryLabel = prospect.lost_reason_category
+    ? LOST_REASON_OPTIONS.find((o) => o.value === prospect.lost_reason_category)?.label ||
+      (prospect.lost_reason_category === 'batal_setelah_dp' ? 'Batal setelah DP' : prospect.lost_reason_category)
+    : '';
+  const lostReasonText =
+    prospect.status === 'tidak_lanjut'
+      ? [lostCategoryLabel, prospect.lost_reason?.trim() || ''].filter(Boolean).join(' · ')
+      : '';
   const pax = prospect.jumlah_jamaah || 1;
   // Commission state: potential (before closing), held (DP paid), withdrawable (paid off).
   const komisiState = !isClosing
@@ -460,6 +471,7 @@ export default function AgenJamaahDetailPage() {
             )}
           </div>
           <p className={`jd-status jd-status--${prospect.status} jd-status--lg`}>{statusText}</p>
+          {lostReasonText && <p className="jd-muted">Alasan: {lostReasonText}</p>}
           <p className="jd-muted">
             {isAnonymized
               ? 'Data pribadi jamaah ini sudah dihapus atas permintaannya (UU PDP). Riwayat dan komisi tetap tersimpan.'
@@ -476,7 +488,6 @@ export default function AgenJamaahDetailPage() {
                   <span className="jd-history__what">{STATUS_LABEL[hist.new_status] || hist.new_status}</span>
                   <span className="jd-muted">
                     {formatDateTime(hist.changed_at)} · {hist.changed_by_type === 'agent' ? 'oleh Anda' : 'oleh admin travel'}
-                    {hist.lost_reason && ` · ${hist.lost_reason}`}
                   </span>
                 </li>
               ))}

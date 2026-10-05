@@ -442,7 +442,7 @@ export default function AgenDaftarPage() {
                   onChange={(e) => {
                     const val = e.target.value;
                     setDomisiliQuery(val);
-                    setDomisili(val);
+                    setDomisili(''); // Typing clears the pick: only an option from the list counts.
                     setDomisiliOpen(true);
                     if (errors.domisili) setErrors((prev) => ({ ...prev, domisili: '' }));
                   }}

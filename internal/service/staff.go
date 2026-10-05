@@ -113,6 +113,7 @@ type StaffTenantDetail struct {
 	CurrentPlan           *StaffTenantPlanInfo   `json:"current_plan"`
 	CurrentPlanName       *string                `json:"current_plan_name,omitempty"`
 	SubscriptionExpiresAt *time.Time             `json:"subscription_expires_at"`
+	SubscriptionStatus    string                 `json:"subscription_status"`
 	Usage                 StaffTenantUsageStats  `json:"usage"`
 	RingkasanPenggunaan   StaffTenantUsageStats  `json:"ringkasan_penggunaan"`
 	TotalPackages         int                    `json:"total_packages"`
@@ -387,6 +388,10 @@ func (s *staffService) GetTenantDetail(ctx context.Context, tenantID uint64, sta
 		}
 	}
 
+	// Same derived subscription status as the tenant list (repository.DeriveSubscriptionStatus).
+	hasPlan := detail.CurrentPlan != nil || (s.planRepo == nil && tenant.CurrentPlanID != nil)
+	detail.SubscriptionStatus = repository.DeriveSubscriptionStatus(tenant.IsDemo, tenant.Status, hasPlan, tenant.SubscriptionExpiresAt, time.Now())
+
 	// 3. Usage Stats
 	if s.packageRepo != nil {
 		detail.Usage.TotalPackages, _ = s.packageRepo.CountByTenant(ctx, tenantID)
@@ -644,7 +649,7 @@ func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID ui
 	if tenant.SubscriptionExpiresAt != nil && tenant.SubscriptionExpiresAt.After(baseTime) {
 		baseTime = *tenant.SubscriptionExpiresAt
 	}
-	expiresAt := baseTime.AddDate(0, months, 0)
+	expiresAt := addMonthsClamped(baseTime, months)
 
 	if err := s.logTenantAccess(ctx, tenantID, staffUserID, repository.AccessActionUpdateSubscription,
 		fmt.Sprintf("Mengubah langganan ke paket %s (%d bulan)", plan.Name, months), nil); err != nil {

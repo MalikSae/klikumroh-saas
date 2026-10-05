@@ -10,7 +10,8 @@
     "lint:tokens": "node ../scripts/check-hardcoded-colors.js src/ui src/app src/screens && node ../scripts/build-ui-tokens.js --check",
     "lint:no-emoji": "node ../scripts/check-no-emoji.js",
     "preview": "vite preview",
-    "test:number": "node --experimental-strip-types test/number-input.test.mjs"
+    "test:number": "node --experimental-strip-types test/number-input.test.mjs",
+    "test:status-date": "node --experimental-strip-types test/status-date.test.mjs"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

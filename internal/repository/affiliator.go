@@ -386,6 +386,33 @@ func (r *mysqlAffiliatorRepository) ReplaceCoupon(ctx context.Context, affiliato
 		return nil, err
 	}
 	code = strings.ToUpper(strings.TrimSpace(code))
+
+	// The affiliator's own earlier coupon with this code (e.g. deactivated with the affiliator) is
+	// reactivated instead of inserted again, which the unique code would refuse. A code owned by another
+	// affiliator or by the platform is not touched and still ends in ErrDuplicate below.
+	var ownID uint64
+	var usedCount int
+	var createdAt time.Time
+	err = tx.QueryRowContext(ctx,
+		`SELECT id, used_count, created_at FROM coupons WHERE code = ? AND affiliator_id = ? FOR UPDATE`, code, affiliatorID).
+		Scan(&ownID, &usedCount, &createdAt)
+	switch {
+	case err == nil:
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE coupons SET status = 'active', discount_percentage = ? WHERE id = ? AND affiliator_id = ?`,
+			discount, ownID, affiliatorID); err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		aid := affiliatorID
+		return &Coupon{ID: ownID, Code: code, DiscountPercentage: discount, UsedCount: usedCount, Status: "active",
+			AffiliatorID: &aid, CreatedAt: createdAt}, nil
+	case !errors.Is(err, sql.ErrNoRows):
+		return nil, err
+	}
+
 	res, err := tx.ExecContext(ctx, `
 		INSERT INTO coupons (code, discount_percentage, plan_id, max_uses, used_count, expires_at, status, affiliator_id)
 		VALUES (?, ?, NULL, NULL, 0, NULL, 'active', ?)`, code, discount, affiliatorID)

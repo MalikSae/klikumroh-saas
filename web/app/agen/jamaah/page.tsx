@@ -227,7 +227,7 @@ export default function AgenJamaahListPage() {
     setFormData({
       name: '',
       phone: '',
-      package_id: packages.length > 0 ? String(packages[0].id) : '',
+      package_id: '', // Package is optional: start with none picked.
       jumlah_jamaah: 1,
       departure_plan: '',
       domicile: '',

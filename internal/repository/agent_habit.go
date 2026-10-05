@@ -61,7 +61,7 @@ func (r *mysqlAgentHabitRepository) ListHabitDays(ctx context.Context, tenantID,
 		UNION
 		SELECT DATE_FORMAT(h.changed_at, '%Y-%m-%d') AS d, 'contact'
 		FROM prospect_status_history h
-		WHERE h.tenant_id = ? AND h.changed_by_type = 'agent' AND h.changed_by_id = ?
+		WHERE h.tenant_id = ? AND h.changed_by_type = 'agent' AND h.changed_by_id = ? AND h.old_status <> ''
 		  AND h.changed_at >= ? AND h.changed_at < DATE_ADD(?, INTERVAL 1 DAY)
 		UNION
 		SELECT DATE_FORMAT(n.created_at, '%Y-%m-%d') AS d, 'note'
@@ -208,7 +208,7 @@ func (r *mysqlAgentHabitRepository) ListTenantHabitDays(ctx context.Context, ten
 		UNION
 		SELECT h.changed_by_id, DATE_FORMAT(h.changed_at, '%Y-%m-%d') AS d, 'contact'
 		FROM prospect_status_history h
-		WHERE h.tenant_id = ? AND h.changed_by_type = 'agent'
+		WHERE h.tenant_id = ? AND h.changed_by_type = 'agent' AND h.old_status <> ''
 		  AND h.changed_at >= ? AND h.changed_at < DATE_ADD(?, INTERVAL 1 DAY)
 		UNION
 		SELECT n.author_id, DATE_FORMAT(n.created_at, '%Y-%m-%d') AS d, 'note'

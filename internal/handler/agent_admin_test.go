@@ -564,3 +564,44 @@ func TestAgentAdminDetail_GetDashboardAgentCommissions(t *testing.T) {
 		t.Errorf("expected prospect_id direct=501 override=502 payout=0, got %v", ids)
 	}
 }
+
+// A blank WhatsApp number or a blank email in the admin agent edit is refused with 400 (it used to be
+// reported saved but ignored). The email is the agent's login, so it is never cleared; omitting it keeps it.
+func TestAgentAdminDetail_PutBlankEmailAndPhoneRefused(t *testing.T) {
+	adminRouter, _, _, agentRepo, _, _, _, _, adminSessionRepo, t1, _, ag1, _, _ := setupAgentAdminDetailTestEnv()
+	adminSessionRepo.sessions["admin-tok-t1"] = &repository.Session{ID: 1, Token: "admin-tok-t1", TenantID: t1.ID,
+		AdminUserID: 99, ExpiresAt: time.Now().Add(24 * time.Hour)}
+	phone := "081211112222"
+	ag1.Phone = &phone
+
+	put := func(body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/dashboard/agents/%d", ag1.ID), bytes.NewReader([]byte(body)))
+		req.Header.Set("Authorization", "Bearer admin-tok-t1")
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		adminRouter.ServeHTTP(rec, req)
+		return rec
+	}
+
+	if rec := put(`{"name":"Agen Fulan"}`); rec.Code != http.StatusOK {
+		t.Fatalf("update without email: expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if a, _ := agentRepo.GetByID(context.Background(), t1.ID, ag1.ID); a.Email == nil {
+		t.Fatalf("email not sent must be kept, got nil")
+	}
+
+	if rec := put(`{"phone":"   "}`); rec.Code != http.StatusBadRequest {
+		t.Fatalf("blank phone: expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if a, _ := agentRepo.GetByID(context.Background(), t1.ID, ag1.ID); a.Phone == nil || *a.Phone != phone {
+		t.Fatalf("blank phone must not change the stored phone, got %v", a.Phone)
+	}
+
+	before, _ := agentRepo.GetByID(context.Background(), t1.ID, ag1.ID)
+	if rec := put(`{"email":"  "}`); rec.Code != http.StatusBadRequest {
+		t.Fatalf("blank email: expected 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if a, _ := agentRepo.GetByID(context.Background(), t1.ID, ag1.ID); a.Email == nil || before.Email == nil || *a.Email != *before.Email {
+		t.Fatalf("blank email must not change the stored email (agent login), got %v", a.Email)
+	}
+}

@@ -11,7 +11,9 @@
     "lint:no-emoji": "node ../scripts/check-no-emoji.js",
     "test:redirect": "node --experimental-strip-types test/proxy-redirect.test.mjs",
     "test:affiliator": "node --experimental-strip-types test/proxy-affiliator.test.mjs",
-    "test:commission": "node --experimental-strip-types test/commission-summary.test.mjs"
+    "test:commission": "node --experimental-strip-types test/commission-summary.test.mjs",
+    "test:checkout": "node --experimental-strip-types test/checkout-validation.test.mjs",
+    "test:web-fixes": "node --experimental-strip-types test/web-fixes.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

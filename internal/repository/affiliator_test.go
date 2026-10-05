@@ -587,3 +587,74 @@ func TestAffiliator_ChangeOwnPassword(t *testing.T) {
 		t.Fatalf("expected the new password to work, got %v", err)
 	}
 }
+
+// Reactivating an affiliator does not bring its coupon back by itself (the affiliator sets it again
+// deliberately), but setting its own old code again must work: the inactive row of that same
+// affiliator is reactivated instead of colliding with the unique code. Another affiliator still
+// cannot take that code.
+func TestAffiliator_ReactivatedAffiliatorReusesOwnCoupon(t *testing.T) {
+	db := setupTestDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	ctx := context.Background()
+	affRepo := repository.NewAffiliatorRepository(db)
+	svc := service.NewAffiliatorService(affRepo, repository.NewCouponRepository(db),
+		repository.NewPaymentVerificationRepository(db), repository.NewPlatformSettingsRepository(db))
+
+	var ids []uint64
+	t.Cleanup(func() {
+		for _, id := range ids {
+			_, _ = db.Exec("DELETE FROM coupons WHERE affiliator_id = ?", id)
+			_, _ = db.Exec("DELETE FROM affiliators WHERE id = ?", id)
+		}
+	})
+	register := func(label string) uint64 {
+		t.Helper()
+		res, err := svc.Register(ctx, service.AffiliatorRegisterRequest{Name: "Affiliator " + label,
+			Email: fmt.Sprintf("aff-%s-%d@klikumroh.test", label, time.Now().UnixNano()), Password: "rahasia-test-123"})
+		if err != nil {
+			t.Fatalf("register %s: %v", label, err)
+		}
+		ids = append(ids, res.Affiliator.ID)
+		return res.Affiliator.ID
+	}
+	affA := register("reuse-a")
+	affB := register("reuse-b")
+
+	code := fmt.Sprintf("REUSE%d", time.Now().UnixNano()%1000000)
+	first, err := svc.SetCoupon(ctx, affA, code)
+	if err != nil {
+		t.Fatalf("SetCoupon: %v", err)
+	}
+
+	if err := svc.SetStatus(ctx, affA, "inactive"); err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+	if err := svc.SetStatus(ctx, affA, "active"); err != nil {
+		t.Fatalf("reactivate: %v", err)
+	}
+	if _, err := affRepo.ActiveCoupon(ctx, affA); !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("reactivation must not bring the coupon back by itself, got %v", err)
+	}
+
+	// Another affiliator cannot take A's (inactive) code.
+	if _, err := svc.SetCoupon(ctx, affB, code); !errors.Is(err, service.ErrAffiliatorCouponTaken) {
+		t.Fatalf("affiliator B must not take A's code, got %v", err)
+	}
+
+	again, err := svc.SetCoupon(ctx, affA, code)
+	if err != nil {
+		t.Fatalf("SetCoupon with own old code after reactivation: %v", err)
+	}
+	if again.ID != first.ID || again.Status != "active" {
+		t.Fatalf("expected the same coupon row %d reactivated, got %+v", first.ID, again)
+	}
+	active, err := affRepo.ActiveCoupon(ctx, affA)
+	if err != nil || active.Code != code {
+		t.Fatalf("expected active coupon %s, got %+v err=%v", code, active, err)
+	}
+	var n int
+	if err := db.QueryRow("SELECT COUNT(*) FROM coupons WHERE code = ?", code).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("expected exactly one row for the code, got %d (%v)", n, err)
+	}
+}

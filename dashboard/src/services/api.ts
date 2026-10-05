@@ -1,4 +1,5 @@
 // API Client for KlikUmroh Dashboard
+import { todayWIB } from '../utils/datetime';
 
 export interface AdminUser {
   id: number;
@@ -675,7 +676,7 @@ export const downloadProspectsCSV = async (params?: FetchProspectsParams): Promi
   const downloadUrl = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = downloadUrl;
-  a.download = `prospek-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `prospek-${todayWIB()}.csv`;
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(downloadUrl);

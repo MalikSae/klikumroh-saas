@@ -160,13 +160,16 @@ export default function AgenStatusPage() {
   // The transfer proof is a private file: downloaded with the agent's own token, not from /uploads.
   const proofRef = data?.agent.payment_proof_url || null;
   const [proofSrc, setProofSrc] = useState<string | null>(null);
+  // A re-upload keeps the same file path, so bump this after each successful upload to re-download it.
+  const [proofVersion, setProofVersion] = useState<number>(0);
   useEffect(() => {
     const token = localStorage.getItem('agent_token');
     if (!proofRef || !token) return;
     const controller = new AbortController();
     let objectUrl: string | null = null;
-    fetch(`/api/agent/files?path=${encodeURIComponent(proofRef)}`, {
+    fetch(`/api/agent/files?path=${encodeURIComponent(proofRef)}&v=${proofVersion}`, {
       headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
       signal: controller.signal,
     })
       .then(async (res) => {
@@ -179,7 +182,7 @@ export default function AgenStatusPage() {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [proofRef]);
+  }, [proofRef, proofVersion]);
 
   // Footer: the travel's public contact data.
   useEffect(() => {
@@ -327,6 +330,7 @@ export default function AgenStatusPage() {
       }
 
       setUploadSuccess('Bukti transfer terkirim. Admin travel akan memverifikasinya.');
+      setProofVersion((v) => v + 1);
       setSelectedFile(null);
       setPreviewUrl(null);
       await refresh();
@@ -419,6 +423,7 @@ export default function AgenStatusPage() {
 
   const { agent, tenant } = data;
   const paid = agent.payment_status !== 'not_applicable';
+  const registrationFeeApplies = (data.agent_registration_fee ?? 0) > 0;
   const awaitingProof = agent.status === 'pending' && agent.payment_status === 'awaiting_proof';
   const verifying = agent.status === 'pending' && !awaitingProof;
 
@@ -555,18 +560,21 @@ export default function AgenStatusPage() {
             {contactButtons}
           </section>
 
-          <section className="tw-st-section">
-            <h2 className="tw-st-subtitle">Kirim ulang bukti transfer</h2>
-            <p className="tw-st-desc">Jika penolakan karena bukti transfer, kirim foto bukti yang baru. Admin akan meninjaunya kembali.</p>
-            <ProofUpload
-              submitLabel="Kirim ulang bukti transfer"
-              uploading={uploading}
-              previewUrl={previewUrl}
-              error={uploadError}
-              onPick={pickFile}
-              onSubmit={handleUploadPaymentProof}
-            />
-          </section>
+          {/* Only a paid sign-up has a transfer proof to resend; a free travel just keeps the contact above. */}
+          {registrationFeeApplies && (
+            <section className="tw-st-section">
+              <h2 className="tw-st-subtitle">Kirim ulang bukti transfer</h2>
+              <p className="tw-st-desc">Jika penolakan karena bukti transfer, kirim foto bukti yang baru. Admin akan meninjaunya kembali.</p>
+              <ProofUpload
+                submitLabel="Kirim ulang bukti transfer"
+                uploading={uploading}
+                previewUrl={previewUrl}
+                error={uploadError}
+                onPick={pickFile}
+                onSubmit={handleUploadPaymentProof}
+              />
+            </section>
+          )}
         </>
       )}
 

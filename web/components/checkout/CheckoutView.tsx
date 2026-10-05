@@ -21,6 +21,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSettings';
 import { toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
+import { validateWhatsApp } from '@/lib/signupWhatsApp';
+import { discountedPrice } from '@/lib/checkoutPricing';
 import {
   dashboardUrl,
   openDashboard,
@@ -68,63 +70,7 @@ const INCLUDED_FEATURES = [
 
 // ─── Format Validations ───────────────────────────────────────────────────
 
-export function validateWhatsApp(val: string): string | undefined {
-  const trimmed = val.trim();
-  if (!trimmed) {
-    return 'Nomor WhatsApp wajib diisi';
-  }
-
-  // Bersihkan karakter pemisah umum
-  const cleaned = trimmed.replace(/[\s\-()]/g, '');
-
-  // Cek karakter angka dan leading +
-  if (!/^\+?[0-9]+$/.test(cleaned)) {
-    return 'Nomor WhatsApp hanya boleh berisi angka';
-  }
-
-  // Format Indonesia yang diawali 0: harus nomor seluler 08 (bukan telepon rumah 02x)
-  if (cleaned.startsWith('0')) {
-    if (!cleaned.startsWith('08')) {
-      return 'Nomor WhatsApp harus nomor seluler (diawali 08)';
-    }
-    if (cleaned.length < 10 || cleaned.length > 14) {
-      return 'Nomor WhatsApp harus 10–14 digit (contoh: 081234567890)';
-    }
-    return undefined;
-  }
-
-  // Format Indonesia yang diawali +62: harus +628
-  if (cleaned.startsWith('+62')) {
-    if (!cleaned.startsWith('+628')) {
-      return 'Nomor WhatsApp Indonesia harus diawali +628';
-    }
-    if (cleaned.length < 12 || cleaned.length > 16) {
-      return 'Nomor WhatsApp harus 11–15 digit (contoh: +6281234567890)';
-    }
-    return undefined;
-  }
-
-  // Format Indonesia yang diawali 62: harus 628
-  if (cleaned.startsWith('62')) {
-    if (!cleaned.startsWith('628')) {
-      return 'Nomor WhatsApp Indonesia harus diawali 628';
-    }
-    if (cleaned.length < 11 || cleaned.length > 15) {
-      return 'Nomor WhatsApp harus 11–15 digit (contoh: 6281234567890)';
-    }
-    return undefined;
-  }
-
-  // Format internasional diawali +
-  if (cleaned.startsWith('+')) {
-    if (cleaned.length < 10 || cleaned.length > 16) {
-      return 'Format nomor internasional tidak valid (minimal 10 digit)';
-    }
-    return undefined;
-  }
-
-  return 'Gunakan format 08xxxxxxxxxx atau +628xxxxxxxxxx';
-}
+export { validateWhatsApp };
 
 export function validateEmail(val: string): string | undefined {
   const trimmed = val.trim().toLowerCase();
@@ -216,10 +162,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   couponError,
 }) => {
   const [isPlanAccordionOpen, setIsPlanAccordionOpen] = useState(false);
-  const discount = coupon
-    ? Math.round((selectedPlan.price * coupon.discount_percentage) / 100)
-    : 0;
-  const finalAmount = Math.round(selectedPlan.price - discount);
+  // Same rounding as the backend invoice.
+  const { discount, finalAmount } = discountedPrice(selectedPlan.price, coupon ? coupon.discount_percentage : 0);
 
   return (
     <aside className={styles.summaryColumn} aria-label="Ringkasan Pesanan">
@@ -404,6 +348,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               Rp{finalAmount.toLocaleString('id-ID')}
             </span>
           </div>
+          {finalAmount > 0 && (
+            <p className={styles.uniqueCodeNote}>Tagihan ditambah kode unik beberapa ratus rupiah untuk verifikasi transfer.</p>
+          )}
         </div>
       </div>
 
@@ -695,6 +642,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     }
 
     setSubmitting(true);
+    // Set once the browser is navigating away after a successful signup: the button stays disabled.
+    let leavingPage = false;
 
     try {
       const cleanedWA = adminWhatsApp.trim().replace(/[\s\-()]/g, '');
@@ -729,10 +678,12 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         const login = await loginRes.json().catch(() => null);
         if (!loginRes.ok || !login?.token) {
           // The account exists; let the travel sign in manually.
+          leavingPage = true;
           router.push('/login');
           return;
         }
         storeDashboardSession(login);
+        leavingPage = true;
         openDashboard(dashboardUrl(login, `/settings/subscription/payment/${data.payment_verification_id}`));
         return;
       } else {
@@ -743,7 +694,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     } catch {
       setSubmitError('Gagal terhubung ke server. Silakan periksa koneksi Anda.');
     } finally {
-      setSubmitting(false);
+      if (!leavingPage) setSubmitting(false);
     }
   };
 

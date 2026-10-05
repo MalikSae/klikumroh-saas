@@ -11,6 +11,7 @@ import {
   updatePaymentVerificationCoupon,
 } from '../../../services/staffApi';
 import { usePrivateFileURL } from '../../../hooks/usePrivateFile';
+import { CustomDropdown } from '../shared/CustomDropdown';
 
 const cleanWhatsApp = (num?: string | null) => {
   if (!num) return null;
@@ -231,7 +232,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
     >
       <div
         style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--sa-card)',
           borderRadius: 'var(--sa-radius-md)',
           maxWidth: '580px',
           width: '100%',
@@ -297,12 +298,12 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
 
           {/* Global Alert Messages */}
           {error && (
-            <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '10px 14px', borderRadius: 'var(--sa-radius-sm)', fontSize: '13px', marginBottom: '14px' }}>
+            <div style={{ backgroundColor: 'var(--sa-red-bg)', border: '1px solid var(--sa-red-border)', color: 'var(--sa-red-text)', padding: '10px 14px', borderRadius: 'var(--sa-radius-sm)', fontSize: '13px', marginBottom: '14px' }}>
               {error}
             </div>
           )}
           {successMsg && (
-            <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', color: '#15803D', padding: '10px 14px', borderRadius: 'var(--sa-radius-sm)', fontSize: '13px', marginBottom: '14px' }}>
+            <div style={{ backgroundColor: 'var(--sa-green-bg)', border: '1px solid var(--sa-green-border)', color: 'var(--sa-green-text)', padding: '10px 14px', borderRadius: 'var(--sa-radius-sm)', fontSize: '13px', marginBottom: '14px' }}>
               {successMsg}
             </div>
           )}
@@ -322,7 +323,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   <span>{formatIDR(currentItem.amount)}</span>
                 </div>
                 {hasCoupon && discountAmount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#15803D', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--sa-green-text)', marginBottom: '4px' }}>
                     <span>Diskon Kupon ({currentItem.coupon_code})</span>
                     <span>-{formatIDR(discountAmount)}</span>
                   </div>
@@ -380,21 +381,14 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   Memuat daftar paket...
                 </div>
               ) : (
-                <select
-                  value={selectedPlanId}
-                  onChange={(e) => setSelectedPlanId(Number(e.target.value))}
-                  disabled={updatingPlan}
-                  style={{
-                    width: '100%', padding: '8px 10px', fontSize: '13px', borderRadius: 'var(--sa-radius-sm)',
-                    border: '1px solid var(--sa-border)', backgroundColor: '#FFF', marginBottom: '10px', boxSizing: 'border-box',
-                  }}
-                >
-                  {plans.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {formatIDR(p.price)}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ marginBottom: '10px' }}>
+                  <CustomDropdown
+                    value={selectedPlanId}
+                    onChange={(e) => setSelectedPlanId(Number(e.target.value))}
+                    disabled={updatingPlan}
+                    options={plans.map((p) => ({ value: p.id, label: `${p.name} — ${formatIDR(p.price)}` }))}
+                  />
+                </div>
               )}
 
               {targetPlan && selectedPlanId !== currentItem.plan_id && (
@@ -432,8 +426,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             <div style={{ border: '1px solid var(--sa-border)', borderRadius: 'var(--sa-radius-sm)', padding: '14px', marginBottom: '12px' }}>
               <span style={labelStyle}>Kode Kupon Diskon</span>
               {hasCoupon && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 'var(--sa-radius-sm)', padding: '8px 12px', marginBottom: '10px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#15803D', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--sa-green-bg)', border: '1px solid var(--sa-green-border)', borderRadius: 'var(--sa-radius-sm)', padding: '8px 12px', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--sa-green-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Tag size={13} />
                     Kupon aktif: <strong>{currentItem.coupon_code}</strong>
                   </div>
@@ -441,7 +435,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     type="button"
                     onClick={handleRemoveCoupon}
                     disabled={updatingCoupon}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sa-red-text)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600 }}
                   >
                     <XCircle size={14} />
                     Hapus

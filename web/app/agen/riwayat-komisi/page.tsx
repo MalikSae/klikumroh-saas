@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { summarizeCommissionHistory } from '../../../lib/commissionSummary';
+import { jakartaDayKey, jakartaDayLabel, jakartaTimeLabel, jakartaDateLabel } from '../../../lib/jakartaTime';
 import './RiwayatKomisi.css';
 
 interface CommissionHistoryItem {
@@ -34,24 +35,10 @@ const SEARCH_FROM = 10;
 const formatRupiah = (val: number): string =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Math.abs(val));
 
-const dayKey = (iso: string) => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA');
-};
-
-const dayLabel = (key: string) => {
-  if (!key) return 'Tanpa tanggal';
-  const today = new Date().toLocaleDateString('en-CA');
-  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-  if (key === today) return 'Hari ini';
-  if (key === yesterday) return 'Kemarin';
-  return new Date(key + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-};
-
-const timeLabel = (iso: string) => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
-};
+// Times are labelled WIB, so days and clock times are all computed in Asia/Jakarta.
+const dayKey = (iso: string) => jakartaDayKey(iso);
+const dayLabel = (key: string) => jakartaDayLabel(key);
+const timeLabel = (iso: string) => jakartaTimeLabel(iso);
 
 // Status shown under the title: what the agent needs to know about this entry, in words.
 const statusOf = (item: CommissionHistoryItem): { text: string; tone: 'ok' | 'wait' | 'muted' | 'info' } => {
@@ -85,7 +72,7 @@ const typeLabel = (item: CommissionHistoryItem) => {
 const fullDateTime = (iso: string) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '-';
-  return `${d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${timeLabel(iso)}`;
+  return `${jakartaDateLabel(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${timeLabel(iso)}`;
 };
 
 const splitDescription = (text: string): { title: string; extra: string } => {

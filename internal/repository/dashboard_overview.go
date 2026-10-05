@@ -494,9 +494,9 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		return nil, err
 	}
 	closeRows, err := r.db.QueryContext(ctx, `
-		SELECT DATE_FORMAT(first_close, '%Y-%m-%d') AS d, COUNT(*), COALESCE(SUM(pax), 0), COALESCE(SUM(pax * price), 0)
+		SELECT DATE_FORMAT(last_close, '%Y-%m-%d') AS d, COUNT(*), COALESCE(SUM(pax), 0), COALESCE(SUM(pax * price), 0)
 		FROM (
-			SELECT h.prospect_id, MIN(h.changed_at) AS first_close, COALESCE(MAX(p.jumlah_jamaah), 1) AS pax,
+			SELECT h.prospect_id, MAX(h.changed_at) AS last_close, COALESCE(MAX(p.jumlah_jamaah), 1) AS pax,
 			       COALESCE(MAX(pkg.price), 0) AS price
 			FROM prospect_status_history h
 			JOIN prospects p ON p.id = h.prospect_id AND p.tenant_id = h.tenant_id
@@ -504,7 +504,7 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 			WHERE h.tenant_id = ? AND h.new_status = 'closing' AND p.status = 'closing'
 			GROUP BY h.prospect_id
 		) c
-		WHERE first_close >= DATE_SUB(CURDATE(), INTERVAL 59 DAY)
+		WHERE last_close >= DATE_SUB(CURDATE(), INTERVAL 59 DAY)
 		GROUP BY d`, tenantID)
 	if err != nil {
 		return nil, err

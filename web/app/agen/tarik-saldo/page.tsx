@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Building2, Clock, CheckCircle2, AlertCircle, RefreshCw, ReceiptText } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { BankField } from '../../../components/BankField';
+import { jakartaDateLabel, jakartaTimeLabel } from '../../../lib/jakartaTime';
 import './TarikSaldo.css';
 
 interface PendingRequest {
@@ -36,21 +37,10 @@ const formatRupiah = (val: number): string => {
 
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    const datePart = d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    const timePart = d.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    return `${datePart} • ${timePart} WIB`;
-  } catch {
-    return dateStr;
-  }
+  // Labelled WIB: format in Asia/Jakarta, not the device time zone.
+  const datePart = jakartaDateLabel(dateStr, { day: 'numeric', month: 'short', year: 'numeric' });
+  if (!datePart) return dateStr;
+  return `${datePart} • ${jakartaTimeLabel(dateStr)}`;
 };
 
 export default function TarikSaldoPage() {

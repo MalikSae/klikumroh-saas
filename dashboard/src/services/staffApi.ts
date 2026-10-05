@@ -488,6 +488,8 @@ export interface StaffTenantDetail {
   current_plan: string | null | { id?: number; name?: string; period_months?: number };
   current_plan_name?: string | null;
   subscription_expires_at: string | null;
+  /** Derived like the tenants list: active | pending | expired | suspended | no_plan | demo. */
+  subscription_status?: string | null;
   ringkasan_penggunaan?: StaffTenantUsageStats;
   usage?: StaffTenantUsageStats;
   total_packages?: number;

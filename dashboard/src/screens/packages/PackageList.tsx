@@ -5,6 +5,7 @@ import { Armchair, Banknote, CalendarDays, ImageOff, Package, Plus } from 'lucid
 import { fetchPackages, getFullImageUrl, type PackageItem } from '../../services/api';
 import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, KpiCard, Pill, SearchField, Select, Toolbar, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
 import { PACKAGE_STATUS } from './packageUtil';
+import { todayWIB } from '../../utils/datetime';
 
 type View = 'current' | 'published' | 'draft' | 'archived' | 'all';
 
@@ -55,7 +56,7 @@ export const PackageList: React.FC = () => {
 
   // KPIs over the packages on sale: published and not departed yet (seats only where a quota is set).
   const kpi = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayWIB();
     const live = items.filter((p) => p.status === 'published' && (!p.departure_date || p.departure_date.slice(0, 10) >= today));
     let quota = 0;
     let taken = 0;

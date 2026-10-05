@@ -23,6 +23,10 @@ var (
 	ErrInvalidPaymentState = errors.New("hanya agen dengan status menunggu bukti transfer yang dapat mengunggah bukti pembayaran")
 	ErrMissingBankInfo     = errors.New("informasi rekening bank (nama bank, nomor rekening, nama pemilik) wajib diisi untuk mode pendaftaran berbayar")
 	ErrAgentNotActive      = errors.New("Akun belum aktif")
+	// ErrAgentPhoneRequired: the agent's WhatsApp number cannot be emptied from the admin edit.
+	ErrAgentPhoneRequired = errors.New("nomor WhatsApp agen wajib diisi")
+	// ErrAgentEmailRequired: the agent's email (its login) cannot be emptied from the admin edit.
+	ErrAgentEmailRequired = errors.New("email agen wajib diisi (dipakai agen untuk login)")
 	// ErrAgentRegistrationClosed: the travel's subscription is pending or suspended.
 	ErrAgentRegistrationClosed = errors.New("pendaftaran agen sementara tidak dibuka karena layanan travel belum aktif atau sedang ditangguhkan")
 	// ErrAgentPasswordTooShort: one rule for sign-up, password change and admin reset.
@@ -603,6 +607,9 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 	}
 
 	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
 	saldoSiapCair, saldoTertunda, countTertunda, err := s.calculateAgentBalances(ctx, tenantID, agentID)
 	if err != nil {
 		return nil, err
@@ -1140,11 +1147,11 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 	accountHolder := strings.TrimSpace(input.BankAccountHolder)
 
 	if bankName == "" || accountNumber == "" || accountHolder == "" {
-		return nil, errors.New("nama bank, nomor rekening, dan nama pemilik rekening wajib diisi")
+		return nil, ErrPayoutBankInfoRequired
 	}
 
 	if input.AmountRequested <= 0 {
-		return nil, errors.New("jumlah penarikan harus lebih besar dari 0")
+		return nil, ErrPayoutAmountNotPositive
 	}
 	if s.payoutRepo == nil {
 		return nil, errors.New("payout repository not initialized")
@@ -1158,7 +1165,7 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 	// TOLAK kalau amount_requested < minimum_payout_amount
 	if tenant.MinimumPayoutAmount != nil && *tenant.MinimumPayoutAmount > 0 {
 		if input.AmountRequested < *tenant.MinimumPayoutAmount {
-			return nil, fmt.Errorf("jumlah penarikan minimal Rp %.0f", *tenant.MinimumPayoutAmount)
+			return nil, payoutInvalid(fmt.Sprintf("jumlah penarikan minimal Rp %.0f", *tenant.MinimumPayoutAmount))
 		}
 	}
 
@@ -1178,7 +1185,7 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 		// TOLAK kalau agent masih punya request berstatus 'pending' ATAU 'approved'
 		active, err := s.payoutRepo.GetActiveRequestByAgent(ctx, tenantID, agentID)
 		if err == nil && active != nil {
-			return errors.New("Anda masih punya pengajuan yang sedang diproses")
+			return ErrPayoutActiveRequestExists
 		}
 
 		// TOLAK kalau amount_requested > saldo_tersedia (hitung ulang di server)
@@ -1195,11 +1202,15 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 			saldoTersedia = 0
 		}
 		if input.AmountRequested > saldoTersedia {
-			return errors.New("jumlah penarikan melebihi saldo siap cair yang tersedia")
+			return ErrPayoutExceedsBalance
 		}
 
 		// Simpan/update bank details ke agents table
-		_ = s.agentRepo.UpdateBankInfo(ctx, tenantID, agentID, bankName, accountNumber, accountHolder)
+		// Best effort: the request keeps its own bank snapshot, so a failed profile update must not
+		// block the payout — but it is logged instead of silently dropped.
+		if err := s.agentRepo.UpdateBankInfo(ctx, tenantID, agentID, bankName, accountNumber, accountHolder); err != nil {
+			log.Printf("[Payout] failed to save bank info for agent %d (tenant %d): %v", agentID, tenantID, err)
+		}
 
 		// Insert commission_payout_requests dengan snapshot rekening dari body request
 		return s.payoutRepo.Create(ctx, tenantID, payoutReq)
@@ -1255,7 +1266,7 @@ func (s *agentService) ApprovePayoutRequest(ctx context.Context, tenantID uint64
 		return err
 	}
 	if req.Status != "pending" {
-		return fmt.Errorf("pengajuan tidak dapat disetujui karena status saat ini adalah '%s' (harus 'pending')", req.Status)
+		return payoutStatusConflict(fmt.Sprintf("pengajuan tidak dapat disetujui karena status saat ini adalah '%s' (harus 'pending')", req.Status))
 	}
 	now := time.Now().UTC()
 	if err := s.payoutRepo.UpdateStatus(ctx, tenantID, id, "pending", "approved", &adminUserID, &now, nil); err != nil {
@@ -1292,7 +1303,7 @@ func (s *agentService) MarkPayoutRequestPaid(ctx context.Context, tenantID uint6
 		return err
 	}
 	if req.Status != "approved" {
-		return fmt.Errorf("pengajuan tidak dapat ditandai dibayar karena status saat ini adalah '%s' (harus 'approved')", req.Status)
+		return payoutStatusConflict(fmt.Sprintf("pengajuan tidak dapat ditandai dibayar karena status saat ini adalah '%s' (harus 'approved')", req.Status))
 	}
 	now := time.Now().UTC()
 	return s.payoutRepo.UpdateStatus(ctx, tenantID, id, "approved", "paid", &adminUserID, &now, nil)
@@ -1304,14 +1315,14 @@ func (s *agentService) RejectPayoutRequest(ctx context.Context, tenantID uint64,
 	}
 	trimmedReason := strings.TrimSpace(reason)
 	if trimmedReason == "" {
-		return errors.New("alasan penolakan wajib diisi")
+		return ErrPayoutRejectReasonRequired
 	}
 	req, err := s.payoutRepo.GetByID(ctx, tenantID, id)
 	if err != nil {
 		return err
 	}
 	if req.Status != "pending" {
-		return fmt.Errorf("pengajuan tidak dapat ditolak karena status saat ini adalah '%s' (harus 'pending')", req.Status)
+		return payoutStatusConflict(fmt.Sprintf("pengajuan tidak dapat ditolak karena status saat ini adalah '%s' (harus 'pending')", req.Status))
 	}
 	now := time.Now().UTC()
 	if err := s.payoutRepo.UpdateStatus(ctx, tenantID, id, "pending", "rejected", &adminUserID, &now, &trimmedReason); err != nil {
@@ -1629,15 +1640,11 @@ func (s *agentService) GetDashboardAgentDetail(ctx context.Context, tenantID uin
 		return nil, err
 	}
 
-	stats, err := s.prospectRepo.GetActiveAgentsClosingStats(ctx, tenantID)
-	var totalClosing int
-	if err == nil {
-		for _, st := range stats {
-			if st.AgentID == agentID {
-				totalClosing = st.TotalJamaah
-				break
-			}
-		}
+	// Per-agent pax without the active-agent filter of the leaderboard stats: an inactive or pending
+	// agent's closings still belong in its admin detail.
+	totalClosing, err := s.prospectRepo.GetAgentClosingJamaah(ctx, tenantID, agentID)
+	if err != nil {
+		return nil, err
 	}
 
 	saldoSiapCair, saldoTertunda, _, err := s.calculateAgentBalances(ctx, tenantID, agentID)
@@ -1704,6 +1711,14 @@ func (s *agentService) GetDashboardAgentDetail(ctx context.Context, tenantID uin
 }
 
 func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateDashboardAgentRequest) (*AgentDashboardDetail, error) {
+	// WhatsApp number and email are both required: the agent logs in with its email, so clearing it would
+	// lock the agent out. A blank value is refused (400) instead of being silently kept.
+	if req.Phone != nil && strings.TrimSpace(*req.Phone) == "" {
+		return nil, ErrAgentPhoneRequired
+	}
+	if req.Email != nil && strings.TrimSpace(*req.Email) == "" {
+		return nil, ErrAgentEmailRequired
+	}
 	params := repository.UpdateAgentProfileParams{
 		Name:     req.Name,
 		Phone:    req.Phone,

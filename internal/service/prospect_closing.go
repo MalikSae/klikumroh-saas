@@ -70,14 +70,17 @@ func (s *prospectService) MarkPaidOff(ctx context.Context, tenantID uint64, id u
 	if prospect.Status != "closing" {
 		return ErrProspectNotClosing
 	}
-	if prospect.PaidOffAt != nil {
-		return ErrProspectAlreadyPaidOff
-	}
-	if err := s.prospectRepo.MarkPaidOff(ctx, tenantID, id); err != nil {
-		if errors.Is(err, repository.ErrStatusConflict) {
-			return ErrProspectAlreadyPaidOff
+	// The lunas mark and the commission release are two separate writes. When an earlier attempt set
+	// paid_off_at but failed to release, a retry must still release the held commission instead of
+	// stopping at "already paid off" (which would leave it held forever).
+	alreadyPaidOff := prospect.PaidOffAt != nil
+	if !alreadyPaidOff {
+		if err := s.prospectRepo.MarkPaidOff(ctx, tenantID, id); err != nil {
+			if !errors.Is(err, repository.ErrStatusConflict) {
+				return err
+			}
+			alreadyPaidOff = true
 		}
-		return err
 	}
 
 	var released int64
@@ -85,6 +88,9 @@ func (s *prospectService) MarkPaidOff(ctx context.Context, tenantID uint64, id u
 		if released, err = s.commissionLedgerRepo.ReleaseByProspect(ctx, tenantID, id); err != nil {
 			return err
 		}
+	}
+	if alreadyPaidOff && released == 0 {
+		return ErrProspectAlreadyPaidOff
 	}
 
 	s.addSystemNote(ctx, tenantID, id, "Jamaah ditandai lunas oleh admin. Komisi agen dapat dicairkan.")

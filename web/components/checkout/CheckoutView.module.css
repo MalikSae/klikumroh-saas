@@ -81,6 +81,7 @@
 .grandTotalRow { border-top: var(--km-v2-border-width) solid var(--km-line); padding-top: var(--km-v2-space-4); }
 .grandTotalLabel { font-weight: 500; }
 .grandTotalValue { font: 700 var(--km-v2-type-subhead) var(--font-heading); font-variant-numeric: tabular-nums; }
+.uniqueCodeNote { margin: 0; color: var(--km-muted); font-size: var(--km-v2-type-label); }
 .securityNote { display: flex; gap: var(--km-v2-space-2); align-items: start; padding: var(--km-v2-space-4); color: var(--km-muted); font-size: var(--km-v2-type-label); }
 .page button:focus-visible, .page a:focus-visible, .termsCheckbox:focus-visible { outline: var(--km-v2-border-width) solid var(--km-ink); outline-offset: var(--km-v2-space-1); }
 .spinner { animation: spin var(--km-checkout-spinner-duration) linear infinite; }

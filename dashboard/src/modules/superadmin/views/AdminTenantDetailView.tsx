@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
 import { Modal, FormInput, Button } from '../shared';
+import { CustomDropdown } from '../shared/CustomDropdown';
+import { subscriptionStatusView } from '../shared/subscriptionStatus';
 import {
   fetchStaffTenantDetail,
   fetchPricingPlans,
@@ -230,10 +232,10 @@ export const AdminTenantDetailView: React.FC = () => {
         <div
           style={{
             padding: '16px',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FECACA',
+            backgroundColor: 'var(--sa-red-bg)',
+            border: '1px solid var(--sa-red-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#DC2626',
+            color: 'var(--sa-red-text)',
             fontSize: '13px',
           }}
         >
@@ -319,34 +321,17 @@ export const AdminTenantDetailView: React.FC = () => {
           <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--sa-border-subtle)', paddingBottom: '10px' }}>
               <span style={{ color: 'var(--sa-text-muted)' }}>Status Akun</span>
-              <span
-                className={`sa-pill ${
-                  tenant.status === 'active'
-                    ? 'sa-pill--green'
-                    : tenant.status === 'expired'
-                    ? 'sa-pill--red'
-                    : 'sa-pill--amber'
-                }`}
-              >
-                <span
-                  className="sa-status-dot"
-                  style={{
-                    backgroundColor:
-                      tenant.status === 'active'
-                        ? 'var(--sa-green)'
-                        : tenant.status === 'expired'
-                        ? 'var(--sa-red)'
-                        : 'var(--sa-amber)',
-                  }}
-                />
-                <span>
-                  {tenant.status === 'active'
-                    ? 'Aktif'
-                    : tenant.status === 'expired'
-                    ? 'Kedaluwarsa'
-                    : tenant.status || 'Trial'}
-                </span>
-              </span>
+              {(() => {
+                const sv = subscriptionStatusView(tenant.subscription_status, tenant.status);
+                return (
+                  <span className={`sa-pill sa-pill--${sv.tone}`}>
+                    {sv.tone !== 'neutral' && (
+                      <span className="sa-status-dot" style={{ backgroundColor: `var(--sa-${sv.tone})` }} />
+                    )}
+                    <span>{sv.label}</span>
+                  </span>
+                );
+              })()}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--sa-border-subtle)', paddingBottom: '10px' }}>
@@ -610,7 +595,7 @@ export const AdminTenantDetailView: React.FC = () => {
         >
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--sa-card)',
               borderRadius: 'var(--sa-radius-md)',
               maxWidth: '440px',
               width: '100%',
@@ -632,26 +617,14 @@ export const AdminTenantDetailView: React.FC = () => {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--sa-text)' }}>
                   Paket Langganan:
                 </label>
-                <select
+                <CustomDropdown
                   value={selectedPlanId}
                   onChange={(e) => handlePlanChange(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    height: '38px',
-                    padding: '0 12px',
-                    fontSize: '13px',
-                    border: '1px solid var(--sa-border)',
-                    borderRadius: 'var(--sa-radius-sm)',
-                    backgroundColor: '#FFFFFF',
-                    outline: 'none',
-                  }}
-                >
-                  {plans.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {p.period_months} Bulan {p.price > 0 ? `(Rp ${Math.round(p.price).toLocaleString('id-ID')})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  options={plans.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} — ${p.period_months} Bulan${p.price > 0 ? ` (Rp ${Math.round(p.price).toLocaleString('id-ID')})` : ''}`,
+                  }))}
+                />
               </div>
 
               {/* Pilihan Durasi Perpanjangan */}
@@ -659,36 +632,20 @@ export const AdminTenantDetailView: React.FC = () => {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--sa-text)' }}>
                   Durasi Tambahan:
                 </label>
-                <select
+                <CustomDropdown
                   value={selectedMonths}
                   onChange={(e) => setSelectedMonths(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    height: '38px',
-                    padding: '0 12px',
-                    fontSize: '13px',
-                    border: '1px solid var(--sa-border)',
-                    borderRadius: 'var(--sa-radius-sm)',
-                    backgroundColor: '#FFFFFF',
-                    outline: 'none',
-                  }}
-                >
-                  {(() => {
+                  options={(() => {
                     const currentPlan = plans.find((p) => p.id === selectedPlanId);
                     const planMonths = currentPlan ? currentPlan.period_months : 1;
-                    return (
-                      <>
-                        <option value={planMonths}>
-                          Sesuai Durasi Paket (+{planMonths} Bulan)
-                        </option>
-                        {planMonths !== 1 && <option value={1}>Kustom +1 Bulan</option>}
-                        {planMonths !== 3 && <option value={3}>Kustom +3 Bulan</option>}
-                        {planMonths !== 6 && <option value={6}>Kustom +6 Bulan</option>}
-                        {planMonths !== 12 && <option value={12}>Kustom +12 Bulan (1 Tahun)</option>}
-                      </>
-                    );
+                    const opts = [{ value: planMonths, label: `Sesuai Durasi Paket (+${planMonths} Bulan)` }];
+                    if (planMonths !== 1) opts.push({ value: 1, label: 'Kustom +1 Bulan' });
+                    if (planMonths !== 3) opts.push({ value: 3, label: 'Kustom +3 Bulan' });
+                    if (planMonths !== 6) opts.push({ value: 6, label: 'Kustom +6 Bulan' });
+                    if (planMonths !== 12) opts.push({ value: 12, label: 'Kustom +12 Bulan (1 Tahun)' });
+                    return opts;
                   })()}
-                </select>
+                />
               </div>
 
               {/* Preview Kalkulasi Akumulatif Masa Aktif */}
@@ -789,7 +746,7 @@ export const AdminTenantDetailView: React.FC = () => {
         >
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--sa-card)',
               borderRadius: 'var(--sa-radius-md)',
               maxWidth: '420px',
               width: '100%',

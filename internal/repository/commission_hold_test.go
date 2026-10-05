@@ -53,6 +53,35 @@ func TestCommissionHold_DefaultHoldsUntilPaidOff(t *testing.T) {
 	}
 }
 
+// A previous "Tandai Lunas" that set paid_off_at but failed before releasing the commission must be
+// retryable: the retry releases the held commission instead of answering "already paid off".
+func TestCommissionHold_MarkPaidOffRetryReleasesHeld(t *testing.T) {
+	e := setupProspectAudit(t)
+	p := e.newAgentProspect(t, "081322220011", 2)
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, p.ID, 1, "closing", nil, nil); err != nil {
+		t.Fatalf("closing: %v", err)
+	}
+	// Simulate the half-done first attempt: lunas mark written, release never ran.
+	if err := e.prospectRepo.MarkPaidOff(e.ctx, e.tenantA.ID, p.ID); err != nil {
+		t.Fatalf("repo mark paid off: %v", err)
+	}
+	if released, held := sums(t, e); released != 0 || held != 2000000 {
+		t.Fatalf("precondition: expected released 0 / held 2.000.000, got %.0f / %.0f", released, held)
+	}
+	if err := e.svc.MarkPaidOff(e.ctx, e.tenantB.ID, p.ID, 1); !errors.Is(err, repository.ErrNotFound) {
+		t.Fatalf("CRITICAL: tenant B must not retry tenant A's lunas, got %v", err)
+	}
+	if err := e.svc.MarkPaidOff(e.ctx, e.tenantA.ID, p.ID, 1); err != nil {
+		t.Fatalf("retry mark paid off: expected success, got %v", err)
+	}
+	if released, held := sums(t, e); released != 2000000 || held != 0 {
+		t.Fatalf("after retry: expected released 2.000.000 / held 0, got %.0f / %.0f", released, held)
+	}
+	if err := e.svc.MarkPaidOff(e.ctx, e.tenantA.ID, p.ID, 1); !errors.Is(err, service.ErrProspectAlreadyPaidOff) {
+		t.Fatalf("third call: expected ErrProspectAlreadyPaidOff, got %v", err)
+	}
+}
+
 func TestCommissionHold_ReleaseAtDPPolicy(t *testing.T) {
 	e := setupProspectAudit(t)
 	if err := e.svc.SetCommissionReleaseOn(e.ctx, e.tenantA.ID, "dp"); err != nil {

@@ -22,3 +22,10 @@ export const formatDateTimeWIB = (value?: string | null): string => {
   const time = formatTimeWIB(value);
   return time ? `${date}, ${time}` : date;
 };
+
+/** Calendar date (YYYY-MM-DD) in WIB. toISOString() is UTC and still gives yesterday until 07:00 WIB. */
+export const todayWIB = (now: Date = new Date()): string => {
+  const parts = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: WIB }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};

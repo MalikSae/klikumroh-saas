@@ -1,5 +1,6 @@
 import type { AgentTarget } from '../../services/api';
 import type { PillTone } from '../../ui';
+import { todayWIB } from '../../utils/datetime';
 
 export const METRIC_LABEL: Record<AgentTarget['metric_type'], string> = {
   closing_pax: 'Jamaah closing',
@@ -11,11 +12,8 @@ export const METRIC_UNIT: Record<AgentTarget['metric_type'], string> = {
   mitra_baru_count: 'agen',
 };
 
-// Local calendar date (WIB for travels): toISOString() is UTC and still shows yesterday until 07:00 WIB.
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+// WIB calendar date: toISOString() is UTC and still shows yesterday until 07:00 WIB.
+const today = () => todayWIB();
 
 export function targetState(t: AgentTarget): { key: 'upcoming' | 'running' | 'ended' | 'closed'; label: string; tone: PillTone } {
   if (t.status === 'closed') return { key: 'closed', label: 'Ditutup', tone: 'gray' };

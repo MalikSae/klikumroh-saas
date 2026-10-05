@@ -27,6 +27,8 @@ const EditAgentModal: React.FC<{ agent: AgentDashboardDetail; onClose: () => voi
   const [email, setEmail] = useState(agent.email || '');
   const [domisili, setDomisili] = useState(agent.domisili || '');
   const [error, setError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const save = async (e: React.FormEvent) => {
@@ -35,10 +37,28 @@ const EditAgentModal: React.FC<{ agent: AgentDashboardDetail; onClose: () => voi
       setError('Nama agen wajib diisi.');
       return;
     }
+    // The WhatsApp number is how the travel reaches the agent: never submit it blank.
+    if (!phone.trim()) {
+      setPhoneError('Nomor WhatsApp wajib diisi.');
+      return;
+    }
+    setPhoneError(null);
+    // The email is the agent's login: it can be changed but never emptied (the server refuses it too).
+    // An older agent without an email can still be saved without one: the field is then not sent.
+    if (!email.trim() && agent.email) {
+      setEmailError('Email wajib diisi, dipakai agen untuk login.');
+      return;
+    }
+    setEmailError(null);
     setSaving(true);
     setError(null);
     try {
-      await updateDashboardAgentProfile(agent.id, { name: name.trim(), phone: phone.trim(), email: email.trim(), domisili: domisili.trim() });
+      await updateDashboardAgentProfile(agent.id, {
+        name: name.trim(),
+        phone: phone.trim(),
+        ...(email.trim() ? { email: email.trim() } : {}),
+        domisili: domisili.trim(),
+      });
       onSaved();
     } catch (err) {
       setError(errorText(err, 'Gagal menyimpan profil agen'));
@@ -65,8 +85,36 @@ const EditAgentModal: React.FC<{ agent: AgentDashboardDetail; onClose: () => voi
       <form id="ag-edit" className="ag-form" onSubmit={save} noValidate>
         {error && <Banner tone="danger">{error}</Banner>}
         <Field label="Nama">{(id) => <input id={id} className="ku-input" value={name} onChange={(e) => setName(e.target.value)} />}</Field>
-        <Field label="Nomor WhatsApp">{(id) => <input id={id} className="ku-input" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />}</Field>
-        <Field label="Email" optional>{(id) => <input id={id} className="ku-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
+        <Field label="Nomor WhatsApp" error={phoneError}>
+          {(id) => (
+            <input
+              id={id}
+              className="ku-input"
+              inputMode="tel"
+              value={phone}
+              aria-invalid={Boolean(phoneError)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setPhoneError(null);
+              }}
+            />
+          )}
+        </Field>
+        <Field label="Email" error={emailError}>
+          {(id) => (
+            <input
+              id={id}
+              className="ku-input"
+              type="email"
+              value={email}
+              aria-invalid={Boolean(emailError)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError(null);
+              }}
+            />
+          )}
+        </Field>
         <Field label="Domisili" optional>{(id) => <CityInput id={id} value={domisili} onChange={setDomisili} />}</Field>
       </form>
     </Modal>
