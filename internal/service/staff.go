@@ -252,12 +252,14 @@ func (s *staffService) Login(ctx context.Context, email, password string) (*Staf
 		return nil, err
 	}
 
-	if user.Status != "active" {
-		return nil, ErrStaffInactive
-	}
-
+	// Password first, then status: checking status first would reveal which emails belong to a
+	// deactivated staff account to anyone, without the password.
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, ErrStaffInvalidCredentials
+	}
+
+	if user.Status != "active" {
+		return nil, ErrStaffInactive
 	}
 
 	// Generate a secure 32-byte (64-char hex) session token
@@ -645,7 +647,7 @@ func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID ui
 	}
 
 	// Non-greedy expiry calculation: akumulatif jika masih aktif, dari time.Now() jika sudah kedaluwarsa
-	baseTime := time.Now()
+	baseTime := time.Now().In(jakartaLocation) // month arithmetic is in WIB (see addMonthsClamped)
 	if tenant.SubscriptionExpiresAt != nil && tenant.SubscriptionExpiresAt.After(baseTime) {
 		baseTime = *tenant.SubscriptionExpiresAt
 	}

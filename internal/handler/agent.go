@@ -182,8 +182,10 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fallback to cookie 'ref_code' if referral_code is not passed in request body
-	if req.ReferralCode == nil || strings.TrimSpace(*req.ReferralCode) == "" {
+	// Referral contract: referral_code ABSENT (or null) falls back to the ref_code cookie set by the agent
+	// link; referral_code PRESENT but empty means the person cleared the field on purpose and registers
+	// without an upline, so the cookie is NOT used.
+	if req.ReferralCode == nil {
 		if cookie, err := r.Cookie("ref_code"); err == nil && cookie.Value != "" {
 			val := strings.TrimSpace(cookie.Value)
 			req.ReferralCode = &val
@@ -446,7 +448,7 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 
 	if err := util.ConvertAndSaveWebP(fileBytes, tmpPath, 1600, 80); err != nil {
 		_ = os.Remove(tmpPath)
-		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
+		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -655,18 +657,20 @@ func (h *AgentHandler) UpdateDashboardAgentProfile(w http.ResponseWriter, r *htt
 			return
 		}
 		if errors.Is(err, repository.ErrDuplicateAgentEmail) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "email sudah terdaftar di travel ini"})
+			respondJSON(w, http.StatusConflict, map[string]string{"error": "email sudah terdaftar di travel ini"})
 			return
 		}
 		if errors.Is(err, repository.ErrDuplicateAgentPhone) {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "nomor whatsapp sudah terdaftar di travel ini"})
+			respondJSON(w, http.StatusConflict, map[string]string{"error": "nomor whatsapp sudah terdaftar di travel ini"})
 			return
 		}
-		if errors.Is(err, service.ErrAgentPhoneRequired) || errors.Is(err, service.ErrAgentEmailRequired) || errors.Is(err, service.ErrInvalidAgentPhone) {
+		if errors.Is(err, service.ErrAgentPhoneRequired) || errors.Is(err, service.ErrAgentEmailRequired) || errors.Is(err, service.ErrInvalidAgentPhone) ||
+			errors.Is(err, service.ErrAgentDomisiliTooLong) || errors.Is(err, service.ErrAgentNameTooLong) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		log.Printf("update agent profile (tenant %d, agent %d): %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 
@@ -701,7 +705,12 @@ func (h *AgentHandler) ResetAgentPassword(w http.ResponseWriter, r *http.Request
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, service.ErrAgentPasswordTooShort) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("reset agent password (tenant %d, agent %d): %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 
@@ -736,7 +745,12 @@ func (h *AgentHandler) ToggleAgentStatus(w http.ResponseWriter, r *http.Request)
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, service.ErrAgentDeactivateState) || errors.Is(err, service.ErrAgentActivateState) || errors.Is(err, service.ErrInvalidAgentAction) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("toggle agent status (tenant %d, agent %d): %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 
@@ -835,7 +849,7 @@ func (h *AgentHandler) UploadAgentPoster(w http.ResponseWriter, r *http.Request)
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "agent", "poster.webp")
 
 	if err := util.ConvertAndSaveSquareWebP(fileBytes, absPath, 1000, 85); err != nil {
-		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
+		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -911,7 +925,7 @@ func (h *AgentHandler) UpdateTargetSettings(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := h.agentService.UpdateTargetSettings(r.Context(), tenantID, &payload); err != nil {
-		if errors.Is(err, service.ErrInvalidPeriodRange) {
+		if errors.Is(err, service.ErrInvalidPeriodRange) || errors.Is(err, service.ErrInvalidTargetDateForm) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -919,7 +933,8 @@ func (h *AgentHandler) UpdateTargetSettings(w http.ResponseWriter, r *http.Reque
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant not found"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		log.Printf("update target settings (tenant %d): %v", tenantID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 
@@ -1164,7 +1179,8 @@ func (h *AgentHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 
 	profile, err := h.agentService.UpdateProfile(r.Context(), tenantID, agentID, &req)
 	if err != nil {
-		if errors.Is(err, repository.ErrDuplicateAgentEmail) || errors.Is(err, repository.ErrDuplicateAgentPhone) || errors.Is(err, service.ErrInvalidAgentPhone) {
+		if errors.Is(err, repository.ErrDuplicateAgentEmail) || errors.Is(err, repository.ErrDuplicateAgentPhone) || errors.Is(err, service.ErrInvalidAgentPhone) ||
+			errors.Is(err, service.ErrAgentDomisiliTooLong) || errors.Is(err, service.ErrAgentNameTooLong) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -1192,7 +1208,9 @@ func (h *AgentHandler) UploadProfilePhoto(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Max 5 MB
+	// Max 5 MB. MaxBytesReader caps the whole body (file + a small multipart envelope): ParseMultipartForm
+	// alone only caps memory and spills the rest of an oversized upload to disk.
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20+64<<10)
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ukuran file maksimal 5MB"})
 		return
@@ -1224,7 +1242,7 @@ func (h *AgentHandler) UploadProfilePhoto(w http.ResponseWriter, r *http.Request
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "agents", fmt.Sprintf("%d", agentID), "photo.webp")
 
 	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 800, 80); err != nil {
-		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
+		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

@@ -22,6 +22,7 @@ import { subscriptionNotice } from './subscriptionNotice';
 import { NAV_GROUPS, SETTINGS_ITEM, itemActive, titleForPath, type BadgeKey, type NavItem } from './nav';
 import { NotificationMenu } from './NotificationMenu';
 import { MobileNav } from './MobileNav';
+import { SessionSwitchedNotice } from './SessionSwitchedNotice';
 import brandIcon from '../assets/icon-klikumroh.svg';
 import './app.css';
 
@@ -32,6 +33,9 @@ interface FrameCtx {
   /** Reloads the travel name and icon shown in the header (after they change in Pengaturan or Website). */
   refreshTravel: () => void;
   subscription: TenantSubscriptionInfo | null;
+  /** Reloads the subscription from the server (after an invoice is created or a proof is uploaded), so the
+   *  banner and the pending-travel redirect never point to a replaced or cancelled invoice. */
+  refreshSubscription: () => Promise<TenantSubscriptionInfo | null>;
 }
 const FrameContext = createContext<FrameCtx | null>(null);
 
@@ -162,6 +166,15 @@ export const AppFrame: React.FC = () => {
   useEffect(() => {
     fetchTenantSubscription().then(setSub).catch(() => {});
   }, []);
+  const refreshSubscription = React.useCallback(async () => {
+    try {
+      const fresh = await fetchTenantSubscription(true);
+      setSub(fresh);
+      return fresh;
+    } catch {
+      return null;
+    }
+  }, []);
   useEffect(() => {
     refreshBadges();
     setMobileNav(false);
@@ -169,10 +182,25 @@ export const AppFrame: React.FC = () => {
 
   // A travel that has not paid its activation can sign in, but only its billing pages work (the API
   // answers 402 elsewhere), so every other route sends it to the invoice.
+  // The target is taken from a fresh load, never from the state loaded when the frame mounted: the travel
+  // may have replaced its invoice since (the old one is then cancelled and has no upload).
+  const pendingStatus = sub?.status === 'pending';
   useEffect(() => {
-    if (sub?.status !== 'pending' || location.pathname.startsWith('/settings/subscription')) return;
-    navigate(subscriptionNotice(sub)?.to || '/settings/subscription', { replace: true });
-  }, [sub, location.pathname, navigate]);
+    if (!pendingStatus || location.pathname.startsWith('/settings/subscription')) return;
+    let alive = true;
+    fetchTenantSubscription(true)
+      .then((fresh) => {
+        if (!alive) return;
+        setSub(fresh);
+        if (fresh.status === 'pending') navigate(subscriptionNotice(fresh)?.to || '/settings/subscription', { replace: true });
+      })
+      .catch(() => {
+        if (alive) navigate('/settings/subscription', { replace: true });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [pendingStatus, location.pathname, navigate]);
 
   const siteUrl = publicSiteUrl(sub?.tenant_slug);
   const heading = title ?? titleForPath(location.pathname);
@@ -198,7 +226,7 @@ export const AppFrame: React.FC = () => {
   ) : null;
 
   return (
-    <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub }}>
+    <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub, refreshSubscription }}>
       {invoiceRoute ? (
         <div className="ku ap-invoice-frame">
           <header className="ap-invoice-header">
@@ -293,6 +321,7 @@ export const AppFrame: React.FC = () => {
         <MobileNav badges={badges} siteUrl={siteUrl} />
       </div>
       )}
+      <SessionSwitchedNotice />
     </FrameContext.Provider>
   );
 };

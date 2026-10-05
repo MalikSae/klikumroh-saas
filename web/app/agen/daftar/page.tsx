@@ -12,6 +12,7 @@ import { Button } from '../../../components/Button';
 import regenciesData from '../../../data/indonesia-regencies.json';
 import designTokens from '../../../../design-tokens.json';
 import { newPasswordError } from '../../../lib/passwordRules';
+import { agentPhoneError } from '../../../lib/agentPhone';
 import './AgenDaftar.css';
 
 interface RegistrationInfo {
@@ -162,9 +163,10 @@ export default function AgenDaftarPage() {
       errs.name = 'Nama lengkap minimal 2 karakter';
     }
 
-    const cleanPhone = phone.replace(/[^\d]/g, '');
-    if (!cleanPhone || cleanPhone.length < 8) {
-      errs.phone = 'Nomor WhatsApp minimal 8 digit angka';
+    // Same rule as the backend (validateAgentPhone): 08xx / 62xx / +62xx, normalized to 62 + 8-13 digits.
+    const phoneErr = agentPhoneError(phone);
+    if (phoneErr) {
+      errs.phone = phoneErr;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -203,7 +205,9 @@ export default function AgenDaftarPage() {
           password,
           domisili,
           terms_accepted: true,
-          referral_code: referralCode.trim() ? referralCode.trim().toUpperCase() : undefined,
+          // Always sent: "" means "no upline" (the backend falls back to the ref_code cookie only when the
+          // key is absent). The field is prefilled from that cookie, so an empty field is the applicant's choice.
+          referral_code: referralCode.trim().toUpperCase(),
         }),
       });
 
@@ -388,13 +392,12 @@ export default function AgenDaftarPage() {
                 <input
                   id="agent-phone"
                   type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9+]*"
-                  maxLength={16}
+                  inputMode="tel"
+                  maxLength={24}
                   value={phone}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/[^\d+]/g, '');
-                    setPhone(val);
+                    // Kept as typed: validate() refuses letters with a clear message instead of silently dropping them.
+                    setPhone(e.target.value);
                     if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
                   }}
                   placeholder="081234567890"
@@ -535,7 +538,7 @@ export default function AgenDaftarPage() {
                 />
               </div>
               <span className="tw-agen-daftar-hint-text">
-                Kosongkan jika mendaftar mandiri tanpa rekomendasi mitra agen lain
+                Terisi otomatis bila Anda datang dari link agen pengajak. Kosongkan jika mendaftar mandiri: akun Anda tidak akan terhubung ke agen mana pun.
               </span>
             </div>
 

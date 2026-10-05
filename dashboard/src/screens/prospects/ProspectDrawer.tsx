@@ -10,6 +10,7 @@ import {
   anonymizeProspect,
   cancelProspectClosing,
   deleteProspect,
+  fetchCommissionReleasePolicy,
   fetchProspectDetail,
   formatDeparturePlan,
   lostReasonCategoryLabel,
@@ -20,6 +21,7 @@ import {
 } from '../../services/api';
 import { formatDateTimeWIB } from '../../utils/datetime';
 import { closingSeatsWarning } from '../../utils/packageSeats';
+import { closingCommissionNote, closingPayoffNote, lostReasonNote, paidOffDialogNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
   Banner,
   Button,
@@ -64,6 +66,16 @@ export const ProspectDrawer: React.FC<{
   const [lostCategory, setLostCategory] = useState('');
   const [lostReason, setLostReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  // The travel's commission release rule (Program agen > Aturan), for the closing confirmation text.
+  const [releasePolicy, setReleasePolicy] = useState<ReleasePolicy | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCommissionReleasePolicy()
+      .then((v) => { if (alive) setReleasePolicy(v); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -112,12 +124,17 @@ export const ProspectDrawer: React.FC<{
   const commissionGap = !data?.agent ? null : !data.package ? 'Prospek ini belum punya paket' : !data.package.commission_amount || data.package.commission_amount <= 0 ? `Komisi paket ${data.package.name} belum diatur` : null;
   const seatsWarning = closingSeatsWarning(data?.package, p?.jumlah_jamaah);
 
+  const lostLabel = lostReasonCategoryLabel(p?.lost_reason_category);
+  // Typed note behind the category; a legacy row without a category has only free text.
+  const lostNote = !p ? '' : lostLabel ? lostReasonNote(p.lost_reason_category, lostLabel, p.lost_reason) : (p.lost_reason || '').trim();
+
   const pickStatus = (s: Step) => {
     if (!p || statusLocked || busy) return;
     if (s === 'closing') return openDialog('closing');
     if (s === 'tidak_lanjut') {
       setLostCategory(p.lost_reason_category && p.lost_reason_category !== 'batal_setelah_dp' ? p.lost_reason_category : '');
-      setLostReason(p.lost_reason_category === 'lainnya' ? p.lost_reason || '' : '');
+      // Prefilled for every category, so saving again (for example to fix the category) keeps the note.
+      setLostReason(lostNote);
       return openDialog('lost');
     }
     if (s === p.status) return;
@@ -189,8 +206,8 @@ export const ProspectDrawer: React.FC<{
             </div>
             {p.status === 'tidak_lanjut' && (p.lost_reason_category || p.lost_reason) && (
               <p className="pr-hint">
-                Alasan: {lostReasonCategoryLabel(p.lost_reason_category) || p.lost_reason}
-                {p.lost_reason_category === 'lainnya' && p.lost_reason ? ` — ${p.lost_reason}` : ''}
+                Alasan: {lostLabel || p.lost_reason}
+                {lostLabel && lostNote ? ` — ${lostNote}` : ''}
               </p>
             )}
             {isClosing && (
@@ -198,7 +215,7 @@ export const ProspectDrawer: React.FC<{
                 <div>
                   <div className="ku-strong">{p.paid_off_at ? 'Lunas' : 'Sudah DP, menunggu lunas'}</div>
                   <div className="ku-muted ku-small">
-                    {p.paid_off_at ? `Ditandai lunas ${fmtDate(p.paid_off_at)}` : data?.agent ? 'Komisi agen tertahan sampai jamaah ditandai lunas.' : 'Tandai lunas setelah jamaah melunasi.'}
+                    {p.paid_off_at ? `Ditandai lunas ${fmtDate(p.paid_off_at)}` : closingPayoffNote(!!data?.agent, komisi)}
                   </div>
                 </div>
                 <div className="ku-row">
@@ -364,7 +381,7 @@ export const ProspectDrawer: React.FC<{
               <b>{commissionGap}</b>, jadi komisi agen tidak dibukukan. Isi paket lewat Edit data dulu jika agen berhak komisi.
             </Banner>
           ) : data?.agent ? (
-            <p className="pr-dialog-text">Komisi agen {data.agent.name} langsung dibukukan dan tertahan sampai jamaah ditandai lunas.</p>
+            <p className="pr-dialog-text">{closingCommissionNote(data.agent.name, releasePolicy)}</p>
           ) : null}
           {seatsWarning && (
             <Banner tone="warning" icon={<AlertTriangle className="ku-icon--sm" />}>
@@ -410,7 +427,7 @@ export const ProspectDrawer: React.FC<{
         <div className="ku-stack">
           {actionError && <Banner tone="danger">{actionError}</Banner>}
           <p className="pr-dialog-text">
-            Tandai <b>{p?.name}</b> sudah melunasi pembayaran.{data?.agent ? ' Komisi agen yang tertahan menjadi siap dicairkan.' : ''}
+            Tandai <b>{p?.name}</b> sudah melunasi pembayaran.{paidOffDialogNote(!!data?.agent, komisi)}
           </p>
         </div>
       </Modal>

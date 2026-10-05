@@ -135,14 +135,8 @@ export const Domains: React.FC = () => {
       setWithAlias(true);
       await load();
     } catch (err) {
-      // Until the backend can attach an alias to an existing main domain it answers "sudah terdaftar: www.X";
-      // explain the way that works today instead of that message.
-      const msg = errorText(err, 'Gagal menambahkan domain');
-      setHostError(
-        reAliasOf && msg.includes(reAliasOf.hostname)
-          ?`${typed} belum bisa diarahkan ulang ke ${reAliasOf.hostname}. Hapus ${reAliasOf.hostname}, lalu tambahkan lagi dengan pilihan "Juga arahkan ${typed}" dicentang.`
-          : msg,
-      );
+      // The backend can attach the alias to an existing main domain, so its message is shown as is.
+      setHostError(errorText(err, 'Gagal menambahkan domain'));
     } finally {
       setBusy(null);
     }

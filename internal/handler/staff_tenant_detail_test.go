@@ -770,8 +770,12 @@ func TestStaffTenantDetail_SubscriptionStatus(t *testing.T) {
 		CurrentPlanID: env.tenantRepo.tenants[53].CurrentPlanID, SubscriptionExpiresAt: &past}
 	env.tenantRepo.tenants[91] = &repository.Tenant{ID: 91, Name: "No Plan Travel", Slug: "noplan", Status: "active"}
 	env.tenantRepo.tenants[92] = &repository.Tenant{ID: 92, Name: "Suspended Travel", Slug: "suspended", Status: "inactive"}
+	// Expired 30 days ago: past the 7-day grace period, so the site is off: suspended, not expired.
+	longPast := time.Now().AddDate(0, 0, -30)
+	env.tenantRepo.tenants[93] = &repository.Tenant{ID: 93, Name: "Past Grace Travel", Slug: "pastgrace", Status: "active",
+		CurrentPlanID: env.tenantRepo.tenants[53].CurrentPlanID, SubscriptionExpiresAt: &longPast}
 
-	cases := map[uint64]string{53: "active", 78: "pending", 90: "expired", 91: "no_plan", 92: "suspended"}
+	cases := map[uint64]string{53: "active", 78: "pending", 90: "expired", 91: "no_plan", 92: "suspended", 93: "suspended"}
 	for id, want := range cases {
 		req := httptest.NewRequest(http.MethodGet, "/api/staff/tenants/"+strconv.FormatUint(id, 10), nil)
 		req.Header.Set("Authorization", "Bearer valid-staff-token")

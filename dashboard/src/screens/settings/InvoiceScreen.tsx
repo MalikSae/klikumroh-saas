@@ -108,7 +108,9 @@ export const InvoiceScreen: React.FC = () => {
       const next = await fetchPaymentVerificationDetail(pv.id);
       setPv(next);
       setJustUploaded(true);
-      await fetchTenantSubscription(true).catch(() => null);
+      // Through the frame, so its banner and redirect use the new state too.
+      if (frame) await frame.refreshSubscription();
+      else await fetchTenantSubscription(true).catch(() => null);
       frame?.refreshBadges();
     } catch (e) {
       setUploadError(errorText(e, 'Gagal mengunggah bukti transfer'));

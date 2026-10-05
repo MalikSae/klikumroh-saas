@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -1090,9 +1091,15 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 		return err
 	}
 
+	// Only the rows of the current closing count. A cancelled closing ("Batalkan Closing") was fully
+	// reversed and must not feed the share below: its override row would otherwise give the upline a
+	// share the current closing never had (e.g. upline deactivated before the prospect was re-closed).
+	ledgers = currentClosingLedgers(ledgers)
+
 	// Net totals (original rows + corrections) say what is booked now; the original rows alone, which are
 	// never edited, say what override share the prospect was closed with.
 	var directTotal, overrideTotal, origDirect, origOverride float64
+	var hasOverrideRow bool
 	var overrideAgentID *uint64
 	for i := range ledgers {
 		l := ledgers[i]
@@ -1101,6 +1108,7 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 			origDirect += l.Amount
 		case "override":
 			origOverride += l.Amount
+			hasOverrideRow = true
 		}
 		switch {
 		case l.Type == "direct" || (l.Type == "correction" && l.AgentID == agentID):
@@ -1129,9 +1137,15 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 	// totals: after an edit to a zero-commission package the net direct is 0, and deriving the share from
 	// it would drop the upline's override for good when the package is changed back. If the closing had
 	// no commission to take a share from, use the tenant's current override setting.
+	//
+	// A closing booked with a direct commission but no override row had no upline override at closing
+	// time (upline inactive, or override switched off). The founder rule is that such a closing never earns
+	// override, also not after the upline is reactivated or override is switched on: no upline correction.
 	var targetOverride float64
 	switch {
-	case overrideAgentID != nil && origDirect > 0:
+	case origDirect > 0 && !hasOverrideRow:
+		overrideAgentID = nil
+	case hasOverrideRow && origDirect > 0:
 		targetOverride = targetDirect * (origOverride / origDirect)
 	case overrideAgentID != nil && directTotal > 0:
 		targetOverride = targetDirect * (overrideTotal / directTotal)
@@ -1161,6 +1175,38 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 		}
 	}
 	return s.createLedgers(ctx, tenantID, entries)
+}
+
+// cancelClosingNotePrefix starts the note of every reversal row written by CancelClosing; it marks where
+// a cancelled closing ends in a prospect's ledger.
+const cancelClosingNotePrefix = "Pembatalan closing: "
+
+// currentClosingLedgers returns the ledger rows of the prospect's current closing: the rows after the
+// last CancelClosing reversal (rows are ordered oldest first). A cancellation reverses everything booked
+// before it, so the earlier rows net to zero and say nothing about the current closing.
+func currentClosingLedgers(ledgers []repository.CommissionLedger) []repository.CommissionLedger {
+	last := -1
+	net := map[uint64]float64{}
+	for i := range ledgers {
+		l := ledgers[i]
+		net[l.AgentID] += l.Amount
+		if l.Type != "correction" || l.Notes == nil || !strings.HasPrefix(*l.Notes, cancelClosingNotePrefix) {
+			continue
+		}
+		// The note alone could be typed by an admin as a correction reason; a real cancellation also
+		// leaves every agent's running total at zero once its last reversal row is written.
+		allZero := true
+		for _, v := range net {
+			if math.Round(v*100) != 0 {
+				allZero = false
+				break
+			}
+		}
+		if allZero {
+			last = i
+		}
+	}
+	return ledgers[last+1:]
 }
 
 func sameUint64Ptr(a, b *uint64) bool {

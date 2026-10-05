@@ -14,7 +14,8 @@
     "test:commission": "node --experimental-strip-types test/commission-summary.test.mjs",
     "test:checkout": "node --experimental-strip-types test/checkout-validation.test.mjs",
     "test:web-fixes": "node --experimental-strip-types test/web-fixes.test.mjs",
-    "test:placeholders": "node --experimental-strip-types test/placeholder-fill.test.mjs"
+    "test:placeholders": "node --experimental-strip-types test/placeholder-fill.test.mjs",
+    "test:agent-phone": "node --experimental-strip-types test/agent-phone.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

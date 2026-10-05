@@ -425,8 +425,9 @@ func TestAffiliator_ApprovalHookAndRenewalCoupon(t *testing.T) {
 	tenant := createDummyTenant(t, ctx, tenantRepo, "aff-hook")
 	affSvc.AttributeSignup(ctx, tenant.ID, coupon.Code, "", "travel-hook@klikumroh.test", "", "")
 
+	proofURL := "/uploads/test/proof.webp"
 	pv := &repository.PaymentVerification{TenantID: tenant.ID, PlanID: plan.ID, Amount: plan.Price,
-		FinalAmount: 1200000 + 250, UniqueCode: 250, Status: "pending", CouponCode: &coupon.Code}
+		FinalAmount: 1200000 + 250, UniqueCode: 250, Status: "pending", CouponCode: &coupon.Code, ProofURL: &proofURL}
 	if err := pvRepo.Create(ctx, pv); err != nil {
 		t.Fatalf("create pv: %v", err)
 	}

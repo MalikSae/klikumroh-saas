@@ -1,5 +1,6 @@
 /* Prospek screen. Tokens only. */
 .pr-cell { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.pr-cell__note { max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-reasons { display: flex; flex-wrap: wrap; gap: var(--ku-space-2) var(--ku-space-4); font-size: var(--ku-text-md); }
 .pr-reasons__item b { font-weight: var(--ku-weight-semibold); }
 .pr-loading { height: 240px; }

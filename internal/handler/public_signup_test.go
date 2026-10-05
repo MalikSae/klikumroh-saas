@@ -405,6 +405,7 @@ func TestPublicSignup_MasterAdminApproval(t *testing.T) {
 		Amount:      1400000,
 		FinalAmount: 1400000,
 		Status:      "pending",
+		ProofURL:    testProofURL(),
 	}
 
 	req := httptest.NewRequest(http.MethodPatch, "/api/staff/payment-verifications/25/approve", nil)

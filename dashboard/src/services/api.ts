@@ -1,5 +1,6 @@
 // API Client for KlikUmroh Dashboard
 import { todayWIB } from '../utils/datetime';
+import { createTabSession, SessionSwitchedError } from './tabSession';
 
 export interface AdminUser {
   id: number;
@@ -200,8 +201,32 @@ const TOKEN_KEY = 'klikumroh_token';
 const USER_KEY = 'klikumroh_user';
 const TRAVEL_NAME_KEY = 'klikumroh_travel_name';
 
+const readSharedToken = (): string | null => {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+
+// The token this tab started with; see tabSession.ts. Another tab replacing the shared token (login to
+// another account, staff impersonating another travel, logout) marks this tab as switched.
+export const tabSession = createTabSession(readSharedToken);
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    // key is null when the whole store was cleared.
+    if (e.key === TOKEN_KEY || e.key === null) tabSession.check();
+  });
+}
+
+export { SessionSwitchedError };
+
+// Token of this tab. After a switch elsewhere it keeps returning this tab's own token (never the other
+// tab's), and every request through getAuthHeaders is refused until the page is reloaded.
 export const getStoredToken = (): string | null => {
-  return localStorage.getItem(TOKEN_KEY);
+  tabSession.check();
+  return tabSession.pinned();
 };
 
 export const getStoredUser = (): AdminUser | null => {
@@ -229,6 +254,9 @@ export const setStoredTravelName = (name: string) => {
 };
 
 export const setAuthSession = (token: string, user: AdminUser) => {
+  // A tab whose session was switched elsewhere must not overwrite the other tab's session.
+  if (tabSession.check()) return;
+  tabSession.adopt(token);
   // A new session must never show the previous travel's subscription state (banner, billing).
   invalidateSubscriptionCache();
   localStorage.setItem(TOKEN_KEY, token);
@@ -256,6 +284,9 @@ export const isImpersonatedSession = (): boolean => {
 };
 
 export const clearAuthSession = () => {
+  // A switched tab (for example after a 401 for its old token) must not log the other tab out.
+  if (tabSession.check()) return;
+  tabSession.adopt(null);
   invalidateSubscriptionCache();
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
@@ -322,6 +353,8 @@ const redirectToLogin = () => {
 };
 
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  // Refuse before anything else: the screen still shows the old account or travel.
+  if (tabSession.check()) throw new SessionSwitchedError();
   const token = getStoredToken();
   if (!token) {
     redirectToLogin();

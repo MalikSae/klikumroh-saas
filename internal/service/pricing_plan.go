@@ -12,6 +12,9 @@ var (
 	ErrInvalidPlanName   = errors.New("nama plan tidak boleh kosong")
 	ErrInvalidPlanPeriod = errors.New("periode plan harus lebih dari 0 bulan")
 	ErrInvalidPlanPrice  = errors.New("harga plan tidak boleh negatif")
+	// ErrPlanPeriodLocked: the period of a plan cannot change while invoices for it wait for approval
+	// (approval reads the period from the plan, so the change would alter what those invoices deliver).
+	ErrPlanPeriodLocked = errors.New("durasi paket tidak bisa diubah karena masih ada tagihan paket ini yang menunggu verifikasi; setujui atau tolak tagihan tersebut dulu, atau buat paket baru")
 )
 
 // PricingPlanService defines business logic for managing subscription plans.
@@ -23,13 +26,24 @@ type PricingPlanService interface {
 	Delete(ctx context.Context, id uint64) error
 }
 
-type pricingPlanService struct {
-	repo repository.PricingPlanRepository
+// pendingInvoiceLister is the part of the payment verification repository the plan service needs.
+type pendingInvoiceLister interface {
+	ListAll(ctx context.Context, statusFilter string) ([]repository.PaymentVerification, error)
 }
 
-// NewPricingPlanService creates a new PricingPlanService instance.
-func NewPricingPlanService(repo repository.PricingPlanRepository) PricingPlanService {
-	return &pricingPlanService{repo: repo}
+type pricingPlanService struct {
+	repo     repository.PricingPlanRepository
+	invoices pendingInvoiceLister
+}
+
+// NewPricingPlanService creates a new PricingPlanService instance. invoices (optional) enables the
+// guard that refuses a period change on a plan with pending invoices.
+func NewPricingPlanService(repo repository.PricingPlanRepository, invoices ...pendingInvoiceLister) PricingPlanService {
+	s := &pricingPlanService{repo: repo}
+	if len(invoices) > 0 {
+		s.invoices = invoices[0]
+	}
+	return s
 }
 
 func (s *pricingPlanService) List(ctx context.Context) ([]repository.PricingPlan, error) {
@@ -75,6 +89,26 @@ func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string,
 	}
 	if price < 0 {
 		return nil, ErrInvalidPlanPrice
+	}
+
+	// Name and price may change at any time (an open invoice keeps its own amount), but the period is
+	// read from the plan at approval, so it is locked while invoices for this plan are pending.
+	if s.invoices != nil {
+		current, err := s.repo.GetByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if current.PeriodMonths != periodMonths {
+			pending, err := s.invoices.ListAll(ctx, "pending")
+			if err != nil {
+				return nil, err
+			}
+			for i := range pending {
+				if pending[i].PlanID == id {
+					return nil, ErrPlanPeriodLocked
+				}
+			}
+		}
 	}
 
 	plan := &repository.PricingPlan{

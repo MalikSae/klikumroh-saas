@@ -7,6 +7,7 @@ import { AdminProofModal } from '../components/AdminProofModal';
 import {
   fetchStaffPaymentVerifications,
   approvePaymentVerification,
+  PaymentApproveError,
   rejectPaymentVerification,
   type PaymentVerificationItem,
 } from '../../../services/staffApi';
@@ -31,14 +32,16 @@ export const AdminPaymentsView: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<PaymentVerificationItem | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (): Promise<PaymentVerificationItem[] | null> => {
     try {
       setLoading(true);
       setError(null);
       const data = await fetchStaffPaymentVerifications();
       setItems(data);
+      return data;
     } catch (err: any) {
       setError(err.message || 'Gagal memuat antrean pembayaran');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -77,8 +80,23 @@ export const AdminPaymentsView: React.FC = () => {
     return item.status === activeTab;
   });
 
-  const handleApprove = async (id: number) => {
-    await approvePaymentVerification(id);
+  // Sends the plan and total shown in the modal. On a conflict (the travel changed the invoice, or it was
+  // already processed) the list and the open modal are reloaded, then the server message is shown there.
+  const handleApprove = async (shown: PaymentVerificationItem) => {
+    const id = shown.id;
+    try {
+      await approvePaymentVerification(id, {
+        planId: shown.plan_id,
+        finalAmount: shown.final_amount ?? shown.amount,
+      });
+    } catch (err) {
+      if (err instanceof PaymentApproveError && err.status === 409) {
+        const fresh = await loadData();
+        const updated = fresh?.find((i) => i.id === id);
+        if (updated) setSelectedItem(updated);
+      }
+      throw err;
+    }
     setSuccessMessage(`Pembayaran #${id} berhasil disetujui. Paket travel telah aktif.`);
     loadData();
   };

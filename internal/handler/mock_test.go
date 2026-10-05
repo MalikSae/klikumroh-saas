@@ -512,7 +512,7 @@ func (m *mockAgentTargetRepo) GetAgentProgress(ctx context.Context, tenantID uin
 				hasClosing := false
 				for _, h := range m.prospectRepo.history {
 					if h.TenantID == tenantID && h.NewStatus == "closing" && !h.ChangedAt.Before(start) && h.ChangedAt.Before(endExclusive) {
-						if p, ok := m.prospectRepo.prospects[h.ProspectID]; ok && p.AgentID != nil && *p.AgentID == ag.ID {
+						if p, ok := m.prospectRepo.prospects[h.ProspectID]; ok && p.AgentID != nil && *p.AgentID == ag.ID && p.Status == "closing" {
 							hasClosing = true
 							break
 						}
@@ -530,7 +530,7 @@ func (m *mockAgentTargetRepo) GetAgentProgress(ctx context.Context, tenantID uin
 	sum := 0
 	for _, h := range m.prospectRepo.history {
 		if h.TenantID == tenantID && h.NewStatus == "closing" && !h.ChangedAt.Before(start) && h.ChangedAt.Before(endExclusive) {
-			if p, ok := m.prospectRepo.prospects[h.ProspectID]; ok && p.AgentID != nil && *p.AgentID == agentID {
+			if p, ok := m.prospectRepo.prospects[h.ProspectID]; ok && p.AgentID != nil && *p.AgentID == agentID && p.Status == "closing" {
 				jj := 1
 				if p.JumlahJamaah != nil && *p.JumlahJamaah > 0 {
 					jj = *p.JumlahJamaah

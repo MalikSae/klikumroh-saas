@@ -24,6 +24,8 @@ var (
 	ErrVerificationAlreadyDone = errors.New("permohonan verifikasi ini sudah diproses sebelumnya")
 	ErrRejectionReasonRequired = errors.New("alasan penolakan wajib diisi")
 	ErrAnotherInvoiceOpen      = errors.New("masih ada tagihan lain yang menunggu pembayaran; unggah bukti transfer pada tagihan tersebut")
+	// ErrVerificationChanged: the invoice plan/amount differ from what the staff member reviewed.
+	ErrVerificationChanged = errors.New("Tagihan sudah diubah oleh travel. Muat ulang lalu periksa lagi.")
 )
 
 // TenantSubscriptionInfo encapsulates current subscription details and history.
@@ -56,6 +58,7 @@ type SubscriptionService interface {
 	UploadRenewalProof(ctx context.Context, tenantID uint64, verificationID uint64, fileBytes []byte) (string, error)
 	ListStaffVerifications(ctx context.Context, statusFilter string, tenantID ...uint64) ([]repository.PaymentVerification, error)
 	ApproveVerification(ctx context.Context, id uint64, staffUserID uint64) error
+	ApproveVerificationExpecting(ctx context.Context, id uint64, staffUserID uint64, expect ApprovalExpectation) error
 	RejectVerification(ctx context.Context, id uint64, reason string, staffUserID uint64) error
 	UpdateVerificationPlan(ctx context.Context, verificationID uint64, newPlanID uint64, staffUserID uint64) (*repository.PaymentVerification, error)
 	UpdateVerificationCoupon(ctx context.Context, verificationID uint64, couponCode *string, staffUserID uint64) (*repository.PaymentVerification, error)
@@ -446,7 +449,36 @@ func (s *subscriptionService) ListStaffVerifications(ctx context.Context, status
 	return s.pvRepo.ListAll(ctx, statusFilter)
 }
 
+// ApprovalExpectation is what the staff member saw when clicking approve. A nil field is not checked.
+type ApprovalExpectation struct {
+	PlanID      *uint64
+	FinalAmount *float64
+}
+
+// checkApprovable refuses an invoice that cannot be approved as it stands: no transfer proof while money
+// is owed, or a plan/amount that no longer matches what the staff member reviewed (the travel can change
+// an open invoice with CreateRenewalRequest at any time).
+func checkApprovable(pv *repository.PaymentVerification, expect ApprovalExpectation) error {
+	if expect.PlanID != nil && *expect.PlanID != pv.PlanID {
+		return ErrVerificationChanged
+	}
+	// Amounts are DECIMAL(15,2): compare in whole cents.
+	if expect.FinalAmount != nil && math.Round(*expect.FinalAmount*100) != math.Round(pv.FinalAmount*100) {
+		return ErrVerificationChanged
+	}
+	if pv.FinalAmount > 0 && (pv.ProofURL == nil || strings.TrimSpace(*pv.ProofURL) == "") {
+		return ErrProofRequired
+	}
+	return nil
+}
+
 func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64, staffUserID uint64) error {
+	return s.ApproveVerificationExpecting(ctx, id, staffUserID, ApprovalExpectation{})
+}
+
+// ApproveVerificationExpecting approves a pending invoice, refusing it when it has no proof while money is
+// owed (ErrProofRequired) or when its plan/amount differ from expect (ErrVerificationChanged).
+func (s *subscriptionService) ApproveVerificationExpecting(ctx context.Context, id uint64, staffUserID uint64, expect ApprovalExpectation) error {
 	pv, err := s.pvRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -454,11 +486,11 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 	if pv.Status != "pending" {
 		return ErrVerificationAlreadyDone
 	}
-
-	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
-	if err != nil {
+	if err := checkApprovable(pv, expect); err != nil {
 		return err
 	}
+	// Values (not the pointer) the checks above passed on, compared again after the claim.
+	seenPlanID, seenFinalAmount := pv.PlanID, pv.FinalAmount
 
 	// Claim the verification FIRST with a single conditional UPDATE (pending -> approved). Only one of
 	// several concurrent approve requests can win, so the subscription is extended and the coupon is
@@ -468,6 +500,30 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 		if errors.Is(err, repository.ErrStatusConflict) {
 			return ErrVerificationAlreadyDone
 		}
+		return err
+	}
+
+	// Re-read the row now that it is claimed: the travel may have replaced the plan/amount/proof between
+	// the read above and the claim (ReplaceDetails only touches pending rows, so after the claim the row
+	// is frozen). Everything below (period, coupon, commission) uses this final row.
+	claimed, err := s.pvRepo.GetByID(ctx, pv.ID)
+	if err != nil {
+		s.releaseApprovalClaim(ctx, pv.ID)
+		return err
+	}
+	if claimed.PlanID != seenPlanID || math.Round(claimed.FinalAmount*100) != math.Round(seenFinalAmount*100) {
+		s.releaseApprovalClaim(ctx, pv.ID)
+		return ErrVerificationChanged
+	}
+	if err := checkApprovable(claimed, expect); err != nil {
+		s.releaseApprovalClaim(ctx, pv.ID)
+		return err
+	}
+	pv = claimed
+
+	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
+	if err != nil {
+		s.releaseApprovalClaim(ctx, pv.ID)
 		return err
 	}
 
@@ -509,7 +565,7 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 	wasPending := tenant.Status == "pending"
 
 	// Non-greedy expiry calculation
-	baseTime := time.Now()
+	baseTime := time.Now().In(jakartaLocation) // month arithmetic is in WIB (see addMonthsClamped)
 	if tenant.SubscriptionExpiresAt != nil && tenant.SubscriptionExpiresAt.After(baseTime) {
 		baseTime = *tenant.SubscriptionExpiresAt
 	}

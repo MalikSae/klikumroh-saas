@@ -553,4 +553,24 @@ func TestAgentTarget_Close_And_Achievements_CrossTenant(t *testing.T) {
 			t.Errorf("Expected Notes=%s, got %v", note, updated.Notes)
 		}
 	})
+
+	// M7: a second "given" is refused at the database (status guard) and keeps the audit fields.
+	t.Run("Second given is refused and keeps the audit trail", func(t *testing.T) {
+		before, err := targetRepo.GetAchievementByID(ctx, tenantA.ID, achID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		other := "Ditimpa"
+		err = targetRepo.UpdateRewardStatus(ctx, tenantA.ID, achID, adminA.ID+1, "given", &other)
+		if !errors.Is(err, repository.ErrStatusConflict) {
+			t.Fatalf("expected ErrStatusConflict, got %v", err)
+		}
+		after, err := targetRepo.GetAchievementByID(ctx, tenantA.ID, achID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if *after.RewardGivenBy != *before.RewardGivenBy || !after.RewardGivenAt.Equal(*before.RewardGivenAt) || *after.Notes != *before.Notes {
+			t.Fatalf("audit fields changed: before %+v after %+v", before, after)
+		}
+	})
 }

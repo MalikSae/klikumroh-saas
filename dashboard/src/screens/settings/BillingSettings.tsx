@@ -1,6 +1,7 @@
 // Langganan: current plan, open invoice, plan picker to renew or activate, invoice history.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useFrame } from '../../app/AppFrame';
 import { ArrowRight, ReceiptText } from 'lucide-react';
 import {
   createRenewalInvoice,
@@ -50,6 +51,7 @@ function planState(sub: TenantSubscriptionInfo): { label: string; tone: PillTone
 
 export const BillingSettings: React.FC = () => {
   const navigate = useNavigate();
+  const frame = useFrame();
   const [sub, setSub] = useState<TenantSubscriptionInfo | null>(null);
   const [plans, setPlans] = useState<SubscriptionPricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,6 +150,8 @@ export const BillingSettings: React.FC = () => {
     setCreating(true);
     try {
       const r = await createRenewalInvoice(planId, code);
+      // The previous open invoice is cancelled now: the frame must not keep pointing to it.
+      await frame?.refreshSubscription();
       navigate(`/settings/subscription/payment/${r.payment_verification.id}`);
     } catch (e) {
       setError(errorText(e, 'Gagal membuat tagihan'));

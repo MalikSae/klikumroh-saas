@@ -226,15 +226,15 @@ func TestAgentAdminDetail_PutProfileValidation(t *testing.T) {
 	}
 	adminSessionRepo.sessions[adminSess1.Token] = adminSess1
 
-	// Case 1: Update ag1 with agOther's email -> Expect 400 Duplicate Email
+	// Case 1: Update ag1 with agOther's email -> Expect 409 Duplicate Email
 	dupEmailBody := []byte(`{"email":"existing@amanah.com"}`)
 	reqDup := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/api/dashboard/agents/%d", ag1.ID), bytes.NewReader(dupEmailBody))
 	reqDup.Header.Set("Authorization", "Bearer "+adminSess1.Token)
 	reqDup.Header.Set("Content-Type", "application/json")
 	recDup := httptest.NewRecorder()
 	adminRouter.ServeHTTP(recDup, reqDup)
-	if recDup.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 when updating with duplicate email, got %d: %s", recDup.Code, recDup.Body.String())
+	if recDup.Code != http.StatusConflict {
+		t.Fatalf("expected 409 when updating with duplicate email, got %d: %s", recDup.Code, recDup.Body.String())
 	}
 
 	// Case 2: Update ag1 keeping same email and updating name/domisili -> Expect 200 Success

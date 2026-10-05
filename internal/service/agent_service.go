@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"klikumroh/internal/repository"
 	"klikumroh/internal/util"
@@ -39,7 +40,42 @@ var (
 	// ErrAgentApproveState / ErrAgentRejectState: approve/reject only apply to a registration under review.
 	ErrAgentApproveState = errors.New("hanya pendaftaran agen yang menunggu persetujuan atau pernah ditolak yang dapat disetujui")
 	ErrAgentRejectState  = errors.New("hanya pendaftaran agen yang menunggu persetujuan yang dapat ditolak; agen aktif dinonaktifkan lewat tombol Nonaktifkan")
+	// ErrAgentDomisiliTooLong / ErrAgentNameTooLong: column limits (agents.domisili VARCHAR(150),
+	// agents.name VARCHAR(255)), refused with a readable message instead of a raw MySQL error.
+	ErrAgentDomisiliTooLong = fmt.Errorf("domisili maksimal %d karakter", maxAgentDomisiliLength)
+	ErrAgentNameTooLong     = fmt.Errorf("nama agen maksimal %d karakter", maxAgentNameLength)
+	// Admin actions on an agent (ToggleAgentStatus, UpdateTargetSettings): client errors answered 400.
+	ErrAgentDeactivateState  = errors.New("hanya agen dengan status aktif yang dapat dinonaktifkan")
+	ErrAgentActivateState    = errors.New("hanya agen dengan status nonaktif yang dapat diaktifkan kembali")
+	ErrInvalidAgentAction    = errors.New("aksi tidak valid, gunakan 'activate' atau 'deactivate'")
+	ErrInvalidTargetDateForm = errors.New("format tanggal harus YYYY-MM-DD")
 )
+
+const (
+	maxAgentDomisiliLength = 150
+	maxAgentNameLength     = 255
+)
+
+// validateAgentProfileLengths refuses values longer than their column.
+func validateAgentProfileLengths(name, domisili *string) error {
+	if name != nil && utf8.RuneCountInString(strings.TrimSpace(*name)) > maxAgentNameLength {
+		return ErrAgentNameTooLong
+	}
+	if domisili != nil && utf8.RuneCountInString(strings.TrimSpace(*domisili)) > maxAgentDomisiliLength {
+		return ErrAgentDomisiliTooLong
+	}
+	return nil
+}
+
+// phoneChanged reports whether a submitted phone differs from the stored one after normalization. Only a
+// changed number is validated, so a legacy agent whose stored number fails today's rule can still have
+// the other fields edited (the clients always resend the phone).
+func phoneChanged(submitted string, stored *string) bool {
+	if stored == nil {
+		return true
+	}
+	return util.NormalizePhoneToWhatsApp(submitted) != util.NormalizePhoneToWhatsApp(*stored)
+}
 
 // PublicConsultant is what a visitor who arrived through an agent's referral link sees of that agent
 // (called "konsultan" on public pages). Only public-facing fields: no phone, email, bank or status. The
@@ -955,7 +991,7 @@ func (s *agentService) UpdateTargetSettings(ctx context.Context, tenantID uint64
 		startDate, err1 := time.Parse("2006-01-02", *settings.TargetPeriodStart)
 		endDate, err2 := time.Parse("2006-01-02", *settings.TargetPeriodEnd)
 		if err1 != nil || err2 != nil {
-			return errors.New("format tanggal harus YYYY-MM-DD")
+			return ErrInvalidTargetDateForm
 		}
 		if !endDate.After(startDate) {
 			return ErrInvalidPeriodRange
@@ -1492,9 +1528,18 @@ func validateAgentPhone(raw string) error {
 }
 
 func (s *agentService) UpdateProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateProfileRequest) (*AgentProfileResult, error) {
+	if err := validateAgentProfileLengths(req.Name, req.Domisili); err != nil {
+		return nil, err
+	}
 	if req.Phone != nil && strings.TrimSpace(*req.Phone) != "" {
-		if err := validateAgentPhone(*req.Phone); err != nil {
+		current, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+		if err != nil {
 			return nil, err
+		}
+		if phoneChanged(*req.Phone, current.Phone) {
+			if err := validateAgentPhone(*req.Phone); err != nil {
+				return nil, err
+			}
 		}
 	}
 	params := repository.UpdateAgentProfileParams{
@@ -1735,13 +1780,23 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 	if req.Phone != nil && strings.TrimSpace(*req.Phone) == "" {
 		return nil, ErrAgentPhoneRequired
 	}
-	if req.Phone != nil {
-		if err := validateAgentPhone(*req.Phone); err != nil {
-			return nil, err
-		}
-	}
 	if req.Email != nil && strings.TrimSpace(*req.Email) == "" {
 		return nil, ErrAgentEmailRequired
+	}
+	if err := validateAgentProfileLengths(req.Name, req.Domisili); err != nil {
+		return nil, err
+	}
+	if req.Phone != nil {
+		current, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+		if err != nil {
+			return nil, err
+		}
+		// Only a changed number is validated (legacy agents keep an old number while other fields change).
+		if phoneChanged(*req.Phone, current.Phone) {
+			if err := validateAgentPhone(*req.Phone); err != nil {
+				return nil, err
+			}
+		}
 	}
 	params := repository.UpdateAgentProfileParams{
 		Name:     req.Name,
@@ -1760,7 +1815,7 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 
 func (s *agentService) ResetAgentPassword(ctx context.Context, tenantID uint64, agentID uint64, newPassword string) error {
 	if !passwordLongEnough(newPassword) {
-		return errors.New("password baru minimal 8 karakter")
+		return ErrAgentPasswordTooShort
 	}
 
 	// Verify agent exists and belongs to tenant
@@ -1791,7 +1846,7 @@ func (s *agentService) ToggleAgentStatus(ctx context.Context, tenantID uint64, a
 	switch action {
 	case "deactivate":
 		if agent.Status != "active" {
-			return errors.New("hanya agen dengan status aktif yang dapat dinonaktifkan")
+			return ErrAgentDeactivateState
 		}
 		if err := s.agentRepo.UpdateStatus(ctx, tenantID, agentID, "inactive"); err != nil {
 			return err
@@ -1800,10 +1855,10 @@ func (s *agentService) ToggleAgentStatus(ctx context.Context, tenantID uint64, a
 		return nil
 	case "activate":
 		if agent.Status != "inactive" {
-			return errors.New("hanya agen dengan status nonaktif yang dapat diaktifkan kembali")
+			return ErrAgentActivateState
 		}
 		return s.agentRepo.UpdateStatus(ctx, tenantID, agentID, "active")
 	default:
-		return errors.New("aksi tidak valid, gunakan 'activate' atau 'deactivate'")
+		return ErrInvalidAgentAction
 	}
 }

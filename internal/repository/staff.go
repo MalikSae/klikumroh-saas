@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"klikumroh/internal/util"
 )
 
 // StaffUser represents an internal ClickUmroh platform staff member.
@@ -411,7 +413,8 @@ func updateStaffUser(ctx context.Context, db staffExecer, user *StaffUser) error
 }
 
 // DeriveSubscriptionStatus is the subscription status the super admin sees for a travel: demo |
-// pending | suspended | no_plan | expired | active (or the raw tenant status as a fallback). Shared by
+// pending | suspended | no_plan | expired | active (or the raw tenant status as a fallback). "expired" is
+// only the grace period (util.SubscriptionGraceDays); after it the travel is "suspended". Shared by
 // the tenant list and the tenant detail so both always agree.
 func DeriveSubscriptionStatus(isDemo bool, status string, hasPlan bool, expiresAt *time.Time, now time.Time) string {
 	switch {
@@ -420,6 +423,10 @@ func DeriveSubscriptionStatus(isDemo bool, status string, hasPlan bool, expiresA
 	case status == "pending":
 		return "pending"
 	case status == "suspended" || status == "inactive":
+		return "suspended"
+	case util.IsTravelSuspended(status, expiresAt, now):
+		// Past expiry + grace period: the public site is off and the dashboard read-only (same rule as
+		// the enforcement middleware), so it is suspended, not merely expired.
 		return "suspended"
 	case !hasPlan:
 		return "no_plan"

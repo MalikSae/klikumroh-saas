@@ -78,7 +78,9 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Parse multipart form up to 10MB
+	// Parse multipart form up to 10MB. MaxBytesReader caps the whole body (file + a small multipart
+	// envelope): ParseMultipartForm alone only caps memory and spills the rest to disk.
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20+64<<10)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Ukuran payload terlalu besar"})
 		return
@@ -121,7 +123,7 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 		absPath := util.PrivateUploadAbsPath(relPath)
 
 		if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
-			if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
+			if util.IsImageClientError(err) {
 				respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 				return
 			}
@@ -225,8 +227,7 @@ func (h *SubscriptionHandler) UploadRenewalProof(w http.ResponseWriter, r *http.
 		}
 		if errors.Is(err, service.ErrVerificationNotPending) ||
 			errors.Is(err, service.ErrEmptyProofFile) ||
-			errors.Is(err, util.ErrInvalidImageFormat) ||
-			errors.Is(err, util.ErrCorruptImage) {
+			util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

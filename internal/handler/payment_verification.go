@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +18,13 @@ import (
 type rejectVerificationRequest struct {
 	RejectionReason string `json:"rejection_reason"`
 }
+
+type approveVerificationRequest struct {
+	ExpectedPlanID      *uint64  `json:"expected_plan_id"`
+	ExpectedFinalAmount *float64 `json:"expected_final_amount"`
+}
+
+const approveProofRequiredMessage = "Bukti transfer belum diunggah. Tagihan di atas Rp 0 hanya bisa disetujui setelah ada bukti transfer."
 
 // PaymentVerificationHandler handles staff payment verification approval and rejection endpoints.
 type PaymentVerificationHandler struct {
@@ -70,8 +78,29 @@ func (h *PaymentVerificationHandler) Approve(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = h.subscriptionService.ApproveVerification(r.Context(), id, staffUserID)
+	// Optional body {"expected_plan_id": N, "expected_final_amount": X}: what the staff member reviewed.
+	// When given and the invoice no longer matches, the approval is refused with 409.
+	var body approveVerificationRequest
+	if r.Body != nil {
+		if err := json.NewDecoder(io.LimitReader(r.Body, 4<<10)).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Format request tidak valid"})
+			return
+		}
+	}
+
+	err = h.subscriptionService.ApproveVerificationExpecting(r.Context(), id, staffUserID, service.ApprovalExpectation{
+		PlanID:      body.ExpectedPlanID,
+		FinalAmount: body.ExpectedFinalAmount,
+	})
 	if err != nil {
+		if errors.Is(err, service.ErrVerificationChanged) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": service.ErrVerificationChanged.Error()})
+			return
+		}
+		if errors.Is(err, service.ErrProofRequired) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": approveProofRequiredMessage})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data verifikasi tidak ditemukan"})
 			return

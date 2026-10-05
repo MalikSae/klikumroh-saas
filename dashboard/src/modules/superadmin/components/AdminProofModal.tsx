@@ -11,6 +11,7 @@ import {
   fetchStaffCoupons,
   updatePaymentVerificationPlan,
   updatePaymentVerificationCoupon,
+  PaymentApproveError,
 } from '../../../services/staffApi';
 import { usePrivateFileURL } from '../../../hooks/usePrivateFile';
 import { CustomDropdown } from '../shared/CustomDropdown';
@@ -34,7 +35,8 @@ export interface AdminProofModalProps {
   item: PaymentVerificationItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onApprove: (id: number) => Promise<void>;
+  // Receives the invoice as shown, so the plan and total the staff member checked go along with the approval.
+  onApprove: (item: PaymentVerificationItem) => Promise<void>;
   onReject: (id: number, reason: string) => Promise<void>;
   onPlanUpdated?: (updatedItem: PaymentVerificationItem) => void;
 }
@@ -120,9 +122,14 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
     try {
       setProcessing(true);
       setError(null);
-      await onApprove(currentItem.id);
+      await onApprove(currentItem);
       onClose();
     } catch (err: any) {
+      // A 409 means the invoice changed (the parent has already reloaded it): close the confirmation so
+      // the staff member checks the fresh plan and total before approving again.
+      if (err instanceof PaymentApproveError && err.status === 409) {
+        setShowApproveConfirm(false);
+      }
       setError(err.message || 'Gagal menyetujui verifikasi');
     } finally {
       setProcessing(false);
@@ -574,25 +581,20 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           </div>
 
           {/* Approve confirmation (inline, above footer) */}
-          {showApproveConfirm && isPending && (
+          {/* A paid invoice without a transfer proof cannot be approved (the backend refuses it too). */}
+          {showApproveConfirm && isPending && !missingProof && (
             <div
               style={{
                 marginTop: '14px',
                 padding: '12px 14px',
                 borderRadius: 'var(--sa-radius-sm)',
-                backgroundColor: missingProof ? 'var(--sa-amber-bg)' : 'var(--sa-surface)',
-                border: `1px solid ${missingProof ? 'var(--sa-amber-border)' : 'var(--sa-border)'}`,
-                color: missingProof ? 'var(--sa-amber-text)' : 'var(--sa-text-secondary)',
+                backgroundColor: 'var(--sa-surface)',
+                border: '1px solid var(--sa-border)',
+                color: 'var(--sa-text-secondary)',
                 fontSize: '13px',
                 lineHeight: 1.5,
               }}
             >
-              {missingProof && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '6px' }}>
-                  <AlertTriangle size={14} />
-                  <span>Belum ada bukti transfer untuk tagihan ini.</span>
-                </div>
-              )}
               Setujui pembayaran <strong>{formatIDR(payableAmount)}</strong> dari <strong>{currentItem.tenant_name}</strong> untuk paket{' '}
               <strong>{currentItem.plan_name}</strong>? Travel langsung aktif dan masa langganan diperpanjang. Tindakan ini tidak bisa dibatalkan.
             </div>
@@ -651,7 +653,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 </button>
               )}
 
-              {!showApproveConfirm ? (
+              {missingProof ? null : !showApproveConfirm ? (
                 <button
                   type="button" className="sa-btn sa-btn--primary"
                   onClick={() => { setShowApproveConfirm(true); setShowRejectForm(false); setError(null); }}

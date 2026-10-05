@@ -49,7 +49,7 @@ func TestApprove_ConcurrentRequestsWinOnce(t *testing.T) {
 		code := "HEMAT10"
 		pv := &repository.PaymentVerification{
 			TenantID: 600, PlanID: 1, CouponCode: &code,
-			Amount: 1500000, FinalAmount: 1350123, UniqueCode: 123, Status: "pending",
+			Amount: 1500000, FinalAmount: 1350123, UniqueCode: 123, Status: "pending", ProofURL: testProofURL(),
 		}
 		_ = pvRepo.Create(ctx, pv)
 

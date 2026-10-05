@@ -97,6 +97,14 @@ type agentTargetService struct {
 // have only paid DP. Wraps a message with the count.
 var ErrRewardHasUnpaidJamaah = errors.New("reward belum bisa diberikan: masih ada jamaah yang dihitung untuk target ini tetapi belum lunas")
 
+// ErrRewardAlreadyGiven: the reward was already marked given; marking it again would overwrite who gave it
+// and when (audit trail).
+var ErrRewardAlreadyGiven = errors.New("reward ini sudah ditandai diberikan sebelumnya")
+
+// ErrRewardBelowTarget: the agent no longer reaches the target (closings cancelled after the period was
+// closed), so the reward cannot be given. Wrapped with the current value and the target.
+var ErrRewardBelowTarget = errors.New("reward belum bisa diberikan: capaian agen saat ini di bawah target karena ada closing yang dibatalkan")
+
 // SetPayoffGuard enables the "reward only after lunas" rule (keputusan pendiri 29 Sep 2026): targets
 // count closings (DP), but a closing_pax reward can be marked given only when those jamaah are lunas,
 // unless the travel releases commission at DP.
@@ -336,11 +344,29 @@ func (s *agentTargetService) MarkRewardGiven(ctx context.Context, tenantID uint6
 	if target.Status != "closed" {
 		return ErrTargetNotClosed
 	}
+	if ach.RewardStatus == "given" {
+		return ErrRewardAlreadyGiven
+	}
+	// The achievement froze the value at period close; closings cancelled since then no longer count.
+	// Recompute from the live pipeline (only prospects still in Closing) before handing out the reward.
+	current, err := s.targetRepo.GetAgentProgress(ctx, tenantID, ach.AgentID, target.MetricType, target.PeriodStart, target.PeriodEnd)
+	if err != nil {
+		return err
+	}
+	if current < target.MetricValue {
+		return fmt.Errorf("%w (sekarang %d dari target %d)", ErrRewardBelowTarget, current, target.MetricValue)
+	}
 	if n := s.unpaidClosings(ctx, tenantID, target, ach.AgentID); n > 0 {
 		return fmt.Errorf("%w (%d jamaah masih DP; tandai lunas atau batalkan closing-nya dulu)", ErrRewardHasUnpaidJamaah, n)
 	}
 
-	return s.targetRepo.UpdateRewardStatus(ctx, tenantID, achievementID, adminUserID, "given", notes)
+	if err := s.targetRepo.UpdateRewardStatus(ctx, tenantID, achievementID, adminUserID, "given", notes); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return ErrRewardAlreadyGiven // given meanwhile by a concurrent request
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *agentTargetService) ExportAchievementsCSV(ctx context.Context, tenantID uint64, targetID uint64) ([]byte, error) {

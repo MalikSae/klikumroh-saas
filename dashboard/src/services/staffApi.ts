@@ -361,20 +361,41 @@ export const fetchStaffPaymentVerifications = async (status?: string, tenantId?:
   return json.payment_verifications || [];
 };
 
-export const approvePaymentVerification = async (id: number): Promise<void> => {
+// Error from the approve call that keeps the HTTP status, so a 409 (for example the travel changed the
+// invoice after the staff member opened it) can trigger a reload instead of only a message.
+export class PaymentApproveError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'PaymentApproveError';
+    this.status = status;
+  }
+}
+
+// The plan and total the staff member saw are sent along. The backend refuses the approval when the travel
+// changed the invoice in the meantime, so an approval never activates a plan or amount nobody checked.
+export const approvePaymentVerification = async (
+  id: number,
+  expected: { planId: number; finalAmount: number },
+): Promise<void> => {
   const res = await fetch(`${API_BASE}/api/staff/payment-verifications/${id}/approve`, {
     method: 'PATCH',
     headers: {
+      'Content-Type': 'application/json',
       ...getStaffAuthHeader(),
     },
+    body: JSON.stringify({
+      expected_plan_id: expected.planId,
+      expected_final_amount: expected.finalAmount,
+    }),
   });
 
-  const json = await res.json();
+  const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
     }
-    throw new Error(json.error || 'Gagal menyetujui verifikasi');
+    throw new PaymentApproveError(json.error || 'Gagal menyetujui verifikasi', res.status);
   }
 };
 

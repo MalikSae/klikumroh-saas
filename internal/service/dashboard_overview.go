@@ -211,8 +211,13 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 		if totalLost > 0 {
 			pct = roundToTwoDecimals(float64(lr.Count) / float64(totalLost) * 100)
 		}
+		// lr.Reason is the category key; show the same label as the Prospek tab.
+		label, ok := LostReasonCategories[lr.Reason]
+		if !ok {
+			label = LostReasonCategories["lainnya"]
+		}
 		lostReasonsDTO = append(lostReasonsDTO, LostReasonDTO{
-			Reason:     lr.Reason,
+			Reason:     label,
 			Count:      lr.Count,
 			Percentage: pct,
 		})

@@ -5,6 +5,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Banknote, Clock, Download, Handshake, Inbox, Percent, RotateCcw, SearchX, Users, Wallet } from 'lucide-react';
 import {
   downloadProspectsCSV,
+  fetchCommissionReleasePolicy,
   fetchDashboardAgents,
   fetchDashboardOverview,
   type DashboardOverviewData,
@@ -22,6 +23,7 @@ import {
 } from '../../services/api';
 import { formatDateWIB, formatTimeWIB } from '../../utils/datetime';
 import { rememberProspectListQuery } from '../../utils/prospectListQuery';
+import { awaitingPayoffAgentNote, lostReasonNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
   Banner,
   Button,
@@ -54,6 +56,18 @@ type StatusTab = 'all' | 'baru' | 'dihubungi' | 'tertarik' | 'closing' | 'tidak_
 
 const agentLabel = (p: ProspectItem) => (p.agent_name && p.agent_name.trim() && p.agent_name !== '-' ? p.agent_name : null);
 
+// Lost reason in the list: the category, plus the typed note when there is one (one line, full text on hover).
+const LostReasonCell: React.FC<{ category?: string | null; reason?: string | null }> = ({ category, reason }) => {
+  const label = lostReasonCategoryLabel(category);
+  const note = label ? lostReasonNote(category, label, reason) : '';
+  return (
+    <>
+      <span className="ku-muted ku-small">{label || reason}</span>
+      {note && <span className="ku-muted ku-small pr-cell__note" title={note}>{note}</span>}
+    </>
+  );
+};
+
 export const ProspectsScreen: React.FC = () => {
   const navigate = useNavigate();
   const frame = useFrame();
@@ -82,6 +96,16 @@ export const ProspectsScreen: React.FC = () => {
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const seq = useRef(0);
+  // Commission release rule, so the DP banner does not call commissions "held" when they are paid at DP.
+  const [releasePolicy, setReleasePolicy] = useState<ReleasePolicy | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCommissionReleasePolicy()
+      .then((v) => { if (alive) setReleasePolicy(v); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   // A search from the header (?q=) while this screen is open.
   useEffect(() => {
@@ -221,7 +245,7 @@ export const ProspectsScreen: React.FC = () => {
       {summary && summary.awaiting_payoff > 0 && status === 'closing' && payoff !== 'pending' && (
         <Banner tone="info" icon={<Wallet className="ku-icon--sm" />} action={<Button size="sm" onClick={() => change(setPayoff)('pending')}>Tampilkan</Button>}>
           <b>{fmtNumber(summary.awaiting_payoff)} jamaah</b> sudah DP dan menunggu ditandai lunas
-          {summary.awaiting_payoff_with_agent > 0 ? `; komisi agen untuk ${fmtNumber(summary.awaiting_payoff_with_agent)} di antaranya masih tertahan.` : '.'}
+          {awaitingPayoffAgentNote(summary.awaiting_payoff_with_agent, releasePolicy, fmtNumber)}
         </Banner>
       )}
       {status === 'tidak_lanjut' && lostReasons.length > 0 && (
@@ -367,7 +391,7 @@ export const ProspectsScreen: React.FC = () => {
                   <StatusPill status={p.status} />
                   {p.status === 'closing' && <span className={`ku-small ${p.paid_off_at ? 'ku-up' : 'ku-muted'}`}>{p.paid_off_at ? 'Lunas' : 'DP, menunggu lunas'}</span>}
                   {p.status === 'tidak_lanjut' && (p.lost_reason_category || p.lost_reason) && (
-                    <span className="ku-muted ku-small">{lostReasonCategoryLabel(p.lost_reason_category) || p.lost_reason}</span>
+                    <LostReasonCell category={p.lost_reason_category} reason={p.lost_reason} />
                   )}
                 </div>
               ),

@@ -319,7 +319,8 @@ func (h *AgentTargetHandler) MarkReward(w http.ResponseWriter, r *http.Request) 
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, service.ErrRewardHasUnpaidJamaah) {
+		if errors.Is(err, service.ErrRewardHasUnpaidJamaah) || errors.Is(err, service.ErrRewardBelowTarget) ||
+			errors.Is(err, service.ErrRewardAlreadyGiven) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}

@@ -38,7 +38,8 @@ type FunnelCountsData struct {
 	TidakLanjut int `json:"tidak_lanjut"`
 }
 
-// LostReasonItem holds count for a lost reason.
+// LostReasonItem holds the count of 'tidak_lanjut' prospects for one lost reason category; Reason is the
+// category key (service.LostReasonCategories), translated to its label by the overview service.
 type LostReasonItem struct {
 	Reason string `json:"reason"`
 	Count  int    `json:"count"`
@@ -250,12 +251,15 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 	}
 
 	// 5. Top Lost Reasons
+	// Grouped by reason CATEGORY, the same basis as the Prospek tab (ProspectStatusSummary.LostReasons):
+	// lost_reason is free text (a typed note, or "Batal setelah DP: <reason>"), so grouping by it split
+	// one category into many one-count rows. Reason carries the category key; the service shows its label.
 	lostQuery := `
-		SELECT lost_reason, COUNT(*) as cnt
+		SELECT COALESCE(lost_reason_category, 'lainnya') AS category, COUNT(*) as cnt
 		FROM prospects
-		WHERE tenant_id = ? AND status = 'tidak_lanjut' AND lost_reason IS NOT NULL AND TRIM(lost_reason) != ''
-		GROUP BY lost_reason
-		ORDER BY cnt DESC
+		WHERE tenant_id = ? AND status = 'tidak_lanjut'
+		GROUP BY COALESCE(lost_reason_category, 'lainnya')
+		ORDER BY cnt DESC, category ASC
 		LIMIT 5
 	`
 	lostRows, err := r.db.QueryContext(ctx, lostQuery, tenantID)

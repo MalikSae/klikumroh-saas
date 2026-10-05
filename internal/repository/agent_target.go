@@ -649,8 +649,9 @@ func (r *mysqlAgentTargetRepository) UpdateRewardStatus(ctx context.Context, ten
 			    reward_given_by = ?,
 			    notes = COALESCE(?, notes),
 			    updated_at = NOW()
-			WHERE tenant_id = ? AND id = ?
+			WHERE tenant_id = ? AND id = ? AND reward_status <> 'given'
 		`
+		// The status guard keeps a second "given" from overwriting reward_given_at/by (audit trail).
 		args = []interface{}{status, adminUserID, notes, tenantID, achievementID}
 	} else {
 		query = `
@@ -681,6 +682,9 @@ func (r *mysqlAgentTargetRepository) UpdateRewardStatus(ctx context.Context, ten
 				return ErrNotFound
 			}
 			return checkErr
+		}
+		if status == "given" {
+			return ErrStatusConflict // already given (status guard above)
 		}
 	}
 	return nil

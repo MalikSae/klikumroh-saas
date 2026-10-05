@@ -468,3 +468,31 @@ Tidak ada regresi dari perbaikan putaran 1. Temuan: 8 MEDIUM (kelompok A, dikerj
   - Keputusan pendiri 5 Okt 2026: lead untuk paket yang sudah dihapus (atau id paket travel lain) disimpan tanpa paket (201), tidak ditolak. Test CRITICAL cross-tenant diganti: lead milik tenant A dan `package_id` kosong, paket tenant B tidak pernah tertaut atau bocor di respons
   - Tidak dikerjakan: biaya pendaftaran saat agen mendaftar tidak tersimpan (butuh migrasi)
 - [ ] Pendiri cek visual kelompok B: pratinjau Ubah Paket + pesan sukses, perpanjangan tanggal 31, modal reset password, tab Daftar Travel, invoice ditolak, alias domain, chip jumlah bank caption & skrip WA, opsi bulan pertama, profil agen, Tarik saldo setelah gagal
+
+### Bug Hunt Putaran 3 (5 Oktober 2026)
+
+Lima agen baca-saja (regresi, backend prospek/komisi, backend langganan/affiliator/domain/staf, dashboard, web). Tidak ada regresi berat dari putaran 2, isolasi tenant bersih. Temuan: 2 HIGH, 15 MEDIUM, sekitar 50 LOW.
+
+- [x] Kelompok A, 5 Okt 2026 (tiga agen paralel + verifikasi menyeluruh):
+  - H1 Login staf: rate limit per IP dan lockout 5 gagal / 15 menit seperti login lain; akun staf nonaktif tidak lagi terbongkar sebelum cek password
+  - H2 Unggahan: batas body di perpanjangan langganan dan foto profil agen; semua gambar dicek resolusinya sebelum di-decode (maks 12.000 px per sisi, 40 MP), PNG "bom piksel" ditolak 400
+  - M1 Approve invoice: wajib ada bukti bila total > 0; dashboard mengirim paket dan total yang dilihat staf, ditolak 409 bila travel mengubah tagihan; baris dibaca ulang setelah klaim
+  - M3 Durasi paket tidak bisa diubah selama ada tagihan paket itu yang menunggu verifikasi (nama dan harga tetap bisa)
+  - M4 Hitungan bulan langganan dalam WIB (sama dengan pratinjau dashboard)
+  - M5 Status "Ditangguhkan" di super admin untuk travel yang lewat masa tenggang
+  - M6 Koreksi komisi tidak membukukan override upline secara retroaktif dan hanya memakai baris closing yang aktif
+  - M7 Reward target dicek ulang terhadap capaian saat ini; tidak bisa ditandai diberikan dua kali
+  - M8 Error endpoint admin agen tanpa teks database mentah; duplikat 409; batas panjang domisili/nama
+  - M9 Teks komisi tertahan/cair di drawer dan daftar prospek mengikuti kebijakan travel dan komisi yang dibukukan
+  - M10 Kartu "Alasan tidak lanjut" di beranda dikelompokkan per kategori
+  - M11 Catatan alasan tidak lanjut ditampilkan dan tidak hilang saat disimpan ulang
+  - M12 Sesi berganti di tab lain: tab lama dikunci dengan dialog "Muat ulang", tidak bisa menulis ke travel lain
+  - M13 Status langganan di dashboard dimuat ulang (travel pending tidak diarahkan ke invoice yang dibatalkan)
+  - M14 Daftar agen dengan kode referral dikosongkan = tanpa upline (cookie hanya dipakai bila field tidak dikirim)
+  - M15 Notifikasi agen tidak berkedip setiap 5 detik; gagal tandai dibaca dikembalikan
+  - Regresi kecil: agen lama dengan nomor tidak valid tetap bisa diedit (nomor hanya dicek bila diubah); validasi nomor WA di form web sama dengan backend; cek panjang password di halaman Akun sama dengan backend; saran lama "hapus domain utama" di halaman Domain dihapus
+  - Catatan: approve tanpa bukti transfer tidak bisa lagi; bila staf mengonfirmasi dari mutasi bank saja, bukti harus diunggah dulu
+- [ ] M2 Kupon platform dipakai ulang di setiap perpanjangan: menunggu keputusan pendiri (sekali per travel, atau boleh berulang sampai kedaluwarsa)
+- [ ] Keputusan pendiri: tombol wa.me di halaman travel ditangguhkan; fbclid organik terhitung paid; pembersihan desain super admin (warna hardcoded, font < 13px, lint:tokens belum memindai src/modules)
+- [ ] Kelompok B (LOW, sekitar 50 item): menunggu permintaan pendiri
+- [ ] Pendiri cek visual kelompok A: Pembayaran (tanpa tombol Setujui bila belum ada bukti, pesan 409), teks komisi di drawer prospek per kebijakan, catatan alasan, dialog sesi berganti, travel pending setelah ganti paket, notifikasi agen, form daftar agen (hint referral, pesan nomor)

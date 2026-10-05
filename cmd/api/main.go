@@ -140,7 +140,7 @@ func main() {
 		accessLogRepo,
 	)
 	accessLogService := service.NewAccessLogService(accessLogRepo)
-	pricingPlanService := service.NewPricingPlanService(pricingPlanRepo)
+	pricingPlanService := service.NewPricingPlanService(pricingPlanRepo, pvRepo)
 	couponService := service.NewCouponService(couponRepo)
 	subscriptionService := service.NewSubscriptionService(pvRepo, couponRepo, couponService, pricingPlanRepo, tenantRepo, domainRepo)
 	subscriptionService.SetContentRepos(packageRepo, faqRepo)
@@ -260,7 +260,7 @@ func main() {
 
 	// Public Auth Routes (Tenant Admin & Staff)
 	authHandler.RegisterRoutes(r)
-	r.Post("/api/staff/login", staffHandler.Login)
+	staffHandler.RegisterPublicRoutes(r)
 
 	// Public Domain Routes (Caddy ask-endpoint & Next.js custom domain target lookup)
 	domainHandler.RegisterPublicRoutes(r)

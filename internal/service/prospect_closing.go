@@ -155,7 +155,7 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 				pkgID = l.PackageID
 			}
 		}
-		note := "Pembatalan closing: " + reason
+		note := cancelClosingNotePrefix + reason
 		now := time.Now()
 		var entries []*repository.CommissionLedger
 		for _, agentID := range order {

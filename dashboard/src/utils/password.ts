@@ -9,3 +9,8 @@ export const resetPasswordProblem = (password: string): string | null => {
   if (password.length < MIN_PASSWORD_LENGTH) return `Kata sandi baru minimal ${MIN_PASSWORD_LENGTH} karakter.`;
   return null;
 };
+
+// Same rule as passwordLongEnough (internal/service/password_policy.go): the length is counted without
+// leading/trailing spaces, in UTF-8 bytes like Go's len(), but the password itself is never trimmed.
+export const passwordLongEnough = (password: string): boolean =>
+  new TextEncoder().encode(password.trim()).length >= MIN_PASSWORD_LENGTH;

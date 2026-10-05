@@ -741,6 +741,7 @@ func TestNonGreedyExpiryCalculation(t *testing.T) {
 		Amount:           1000000,
 		FinalAmount:      1000000,
 		Status:           "pending",
+		ProofURL:         testProofURL(),
 	}
 	_ = pvRepo.Create(context.Background(), pvA)
 
@@ -770,6 +771,7 @@ func TestNonGreedyExpiryCalculation(t *testing.T) {
 		Amount:           1000000,
 		FinalAmount:      1000000,
 		Status:           "pending",
+		ProofURL:         testProofURL(),
 	}
 	_ = pvRepo.Create(context.Background(), pvB)
 
@@ -818,6 +820,7 @@ func TestCouponAuditCountOnApprove(t *testing.T) {
 		Amount:      2000000,
 		FinalAmount: 1600000,
 		Status:      "pending",
+		ProofURL:    testProofURL(),
 	}
 	_ = pvRepo.Create(context.Background(), pv)
 
@@ -852,8 +855,8 @@ func TestCouponMaxUsesEnforcedAtApprove(t *testing.T) {
 		Code: "SEKALI", DiscountPercentage: 100, MaxUses: &maxUses, Status: "active",
 	})
 	code := "SEKALI"
-	pvA := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: &code, Amount: 1500000, FinalAmount: 0, Status: "pending"}
-	pvB := &repository.PaymentVerification{TenantID: 78, PlanID: 1, CouponCode: &code, Amount: 1500000, FinalAmount: 0, Status: "pending"}
+	pvA := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: &code, Amount: 1500000, FinalAmount: 0, Status: "pending", ProofURL: testProofURL()}
+	pvB := &repository.PaymentVerification{TenantID: 78, PlanID: 1, CouponCode: &code, Amount: 1500000, FinalAmount: 0, Status: "pending", ProofURL: testProofURL()}
 	_ = pvRepo.Create(context.Background(), pvA)
 	_ = pvRepo.Create(context.Background(), pvB)
 
@@ -993,7 +996,7 @@ func TestCouponStatusAtApprove(t *testing.T) {
 			_ = couponRepo.Create(ctx, &coupon)
 			code := coupon.Code
 			pv := &repository.PaymentVerification{TenantID: 53, PlanID: 1, CouponCode: &code, Amount: 1500000,
-				FinalAmount: 1200000, Status: "pending", CreatedAt: c.createdAt}
+				FinalAmount: 1200000, Status: "pending", ProofURL: testProofURL(), CreatedAt: c.createdAt}
 			_ = pvRepo.Create(ctx, pv)
 
 			svc := service.NewSubscriptionService(pvRepo, couponRepo, service.NewCouponService(couponRepo), planRepo, tenantRepo)
@@ -1475,6 +1478,7 @@ func TestUpdateVerificationPlan_StaffUpsell(t *testing.T) {
 		FinalAmount: 1500321,
 		UniqueCode:  321,
 		Status:      "pending",
+		ProofURL:    testProofURL(),
 	}
 	if err := pvRepo.Create(context.Background(), pv); err != nil {
 		t.Fatalf("failed to create pv: %v", err)

@@ -21,20 +21,66 @@ import (
 var (
 	ErrInvalidImageFormat = errors.New("hanya menerima format JPG, PNG, atau WEBP")
 	ErrCorruptImage       = errors.New("format gambar tidak valid atau rusak")
+	// ErrImageTooLarge: the image declares more pixels than the server will decode. Handlers answer 400
+	// with this message.
+	ErrImageTooLarge = errors.New("resolusi gambar terlalu besar (maksimal 12.000 piksel per sisi dan 40 megapiksel), perkecil gambar lalu unggah lagi")
 )
+
+// Pixel limits checked from the image header before decoding. A small compressed file (e.g. a ~200 KB
+// PNG declaring 40000x40000) would otherwise decode into gigabytes of RAM and take the API down for
+// every tenant. 40 MP is far above any phone camera photo (~12-50 MP sensors are downscaled by apps).
+const (
+	MaxImageSide   = 12000
+	MaxImagePixels = 40_000_000
+)
+
+// checkImageDimensions reads only the image header (image.DecodeConfig) and refuses images whose
+// declared size exceeds MaxImageSide or MaxImagePixels.
+func checkImageDimensions(fileBytes []byte) error {
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(fileBytes))
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrCorruptImage, err)
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 {
+		return ErrCorruptImage
+	}
+	if cfg.Width > MaxImageSide || cfg.Height > MaxImageSide ||
+		int64(cfg.Width)*int64(cfg.Height) > MaxImagePixels {
+		return ErrImageTooLarge
+	}
+	return nil
+}
+
+// decodeUpload validates the format (JPEG/PNG/WebP), checks the declared pixel size before allocating
+// anything, then decodes with EXIF auto-orientation.
+func decodeUpload(fileBytes []byte) (image.Image, error) {
+	contentType := http.DetectContentType(fileBytes)
+	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
+		return nil, ErrInvalidImageFormat
+	}
+	if err := checkImageDimensions(fileBytes); err != nil {
+		return nil, err
+	}
+	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrCorruptImage, err)
+	}
+	return img, nil
+}
+
+// IsImageClientError reports whether an image conversion error is the uploader's fault (wrong format,
+// corrupt file, too many pixels) and should be answered 400 with err.Error().
+func IsImageClientError(err error) bool {
+	return errors.Is(err, ErrInvalidImageFormat) || errors.Is(err, ErrCorruptImage) || errors.Is(err, ErrImageTooLarge)
+}
 
 // ConvertAndSaveWebP validates image format (JPEG/PNG/WebP), auto-orients,
 // resizes if wider than maxWidth (default 1600), converts to RGBA,
 // and encodes to WebP at destinationPath with the specified quality (default 80).
 func ConvertAndSaveWebP(fileBytes []byte, destinationPath string, maxWidth int, quality float32) error {
-	contentType := http.DetectContentType(fileBytes)
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return ErrInvalidImageFormat
-	}
-
-	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
+	img, err := decodeUpload(fileBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCorruptImage, err)
+		return err
 	}
 
 	if maxWidth <= 0 {
@@ -63,14 +109,9 @@ func ConvertAndSaveWebP(fileBytes []byte, destinationPath string, maxWidth int, 
 // crops/resizes into a 1:1 square of size x size (default 1000x1000) using center anchor,
 // converts to RGBA, and encodes to WebP at destinationPath.
 func ConvertAndSaveSquareWebP(fileBytes []byte, destinationPath string, size int, quality float32) error {
-	contentType := http.DetectContentType(fileBytes)
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return ErrInvalidImageFormat
-	}
-
-	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
+	img, err := decodeUpload(fileBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCorruptImage, err)
+		return err
 	}
 
 	if size <= 0 {
@@ -98,14 +139,9 @@ func ConvertAndSaveSquareWebP(fileBytes []byte, destinationPath string, size int
 // center-crops to a 1:1 square of size x size (default 256x256),
 // and encodes to PNG with BestCompression to serve as a crisp, lightweight favicon/icon.
 func ConvertAndSavePNGIcon(fileBytes []byte, destinationPath string, size int) error {
-	contentType := http.DetectContentType(fileBytes)
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return ErrInvalidImageFormat
-	}
-
-	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
+	img, err := decodeUpload(fileBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCorruptImage, err)
+		return err
 	}
 
 	if size <= 0 {
@@ -131,14 +167,9 @@ func ConvertAndSavePNGIcon(fileBytes []byte, destinationPath string, size int) e
 // resizes proportionally if wider than maxWidth (default 600px),
 // and encodes to PNG with BestCompression to preserve crisp alpha transparency for headers.
 func ConvertAndSavePNGLogo(fileBytes []byte, destinationPath string, maxWidth int) error {
-	contentType := http.DetectContentType(fileBytes)
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return ErrInvalidImageFormat
-	}
-
-	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
+	img, err := decodeUpload(fileBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCorruptImage, err)
+		return err
 	}
 
 	if maxWidth <= 0 {
@@ -169,14 +200,9 @@ const OGImageJPEGQuality = 85
 // resizes proportionally to fit within maxWidth x maxHeight (default 1200x630, standard 1.91:1 OG image),
 // flattens any transparency onto white, and encodes to JPEG for the WhatsApp & social share preview card.
 func ConvertAndSaveJPEGOGImage(fileBytes []byte, destinationPath string, maxWidth, maxHeight int) error {
-	contentType := http.DetectContentType(fileBytes)
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return ErrInvalidImageFormat
-	}
-
-	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
+	img, err := decodeUpload(fileBytes)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrCorruptImage, err)
+		return err
 	}
 
 	if maxWidth <= 0 {

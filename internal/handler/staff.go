@@ -32,11 +32,24 @@ type impersonateTenantRequest struct {
 // StaffHandler handles staff authentication and cross-tenant platform queries.
 type StaffHandler struct {
 	staffService service.StaffService
+	// Brute-force protection, same as admin/agent/affiliator login: failed logins per email, plus a
+	// per-IP cap on login calls.
+	loginFailures *middleware.LoginFailureLimiter
+	loginLimiter  func(http.Handler) http.Handler
 }
 
 // NewStaffHandler creates a new StaffHandler instance.
 func NewStaffHandler(staffService service.StaffService) *StaffHandler {
-	return &StaffHandler{staffService: staffService}
+	return &StaffHandler{
+		staffService:  staffService,
+		loginFailures: middleware.NewLoginFailureLimiter(5, 15*time.Minute),
+		loginLimiter:  middleware.NewIPRateLimiter(20, time.Minute),
+	}
+}
+
+// RegisterPublicRoutes mounts the unauthenticated staff routes (login) behind the per-IP limiter.
+func (h *StaffHandler) RegisterPublicRoutes(r chi.Router) {
+	r.With(h.loginLimiter).Post("/api/staff/login", h.Login)
 }
 
 // Login handles POST /api/staff/login.
@@ -53,13 +66,23 @@ func (h *StaffHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	key := middleware.LoginKey("staff", req.Email)
+	if h.loginFailures != nil && h.loginFailures.Blocked(key) {
+		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": middleware.LoginLockedMessage})
+		return
+	}
+
 	res, err := h.staffService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrStaffInvalidCredentials) {
+			if h.loginFailures != nil {
+				h.loginFailures.Fail(key)
+			}
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Email atau password salah"})
 			return
 		}
 		if errors.Is(err, service.ErrStaffInactive) {
+			// Only reachable with the correct password: the service checks the password first.
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": "Akun staf tidak aktif"})
 			return
 		}
@@ -67,6 +90,9 @@ func (h *StaffHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.loginFailures != nil {
+		h.loginFailures.Reset(key)
+	}
 	respondJSON(w, http.StatusOK, res)
 }
 

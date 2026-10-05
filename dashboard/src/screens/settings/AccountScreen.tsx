@@ -5,8 +5,9 @@ import { fetchMyProfile, getStoredToken, getStoredUser, setAuthSession, updateMy
 import { Banner, Button, Field, errorText } from '../../ui';
 import { SettingsSection } from './Section';
 import './settings.css';
+import { MIN_PASSWORD_LENGTH, passwordLongEnough } from '../../utils/password';
 
-const MIN_PASSWORD = 8;
+const MIN_PASSWORD = MIN_PASSWORD_LENGTH;
 
 const Saved: React.FC<{ text: string }> = ({ text }) => (
   <span className="st-savebar__done" role="status">
@@ -71,7 +72,8 @@ export const AccountScreen: React.FC = () => {
     e.preventDefault();
     const errs: typeof pwErrors = {};
     if (!current) errs.current = 'Masukkan password saat ini.';
-    if (next.length < MIN_PASSWORD) errs.next = `Password baru minimal ${MIN_PASSWORD} karakter.`;
+    // Same rule as the backend: spaces at the start or end do not count, the password is sent as typed.
+    if (!passwordLongEnough(next)) errs.next = `Password baru minimal ${MIN_PASSWORD} karakter, tanpa menghitung spasi di awal atau akhir.`;
     if (confirm !== next) errs.confirm = 'Konfirmasi tidak sama dengan password baru.';
     setPwErrors(errs);
     if (Object.keys(errs).length) return;

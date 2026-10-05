@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, BellOff, CheckCheck, ChevronRight } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Bell, BellOff, CheckCheck, ChevronRight } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { jakartaDateLabel } from '../../../lib/jakartaTime';
@@ -41,12 +41,25 @@ const formatRelativeTime = (dateStr: string): string => {
   }
 };
 
+const POLL_FAILED_NOTICE = 'Gagal memperbarui notifikasi. Daftar di bawah mungkin belum terbaru.';
+const MARK_READ_FAILED_NOTICE = 'Gagal menandai notifikasi sebagai dibaca. Coba lagi.';
+
 export default function AgenNotifikasiPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  // Only the first load shows the loading state; background polls (interval/focus/visibility) update the
+  // list in place so it never blanks out and the scroll position stays put.
   const [loading, setLoading] = useState<boolean>(true);
+  // Full error panel: only when the first load failed and there is no list to show yet.
   const [error, setError] = useState<string | null>(null);
+  // Small non-blocking notice: a background poll or a mark-as-read failed; the existing list stays.
+  const [notice, setNotice] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const inFlightRef = useRef(false);
+  // Items marked read locally whose read state the server has not reported yet. A poll that started
+  // before the PATCH landed would otherwise flip them back to unread.
+  const pendingReadRef = useRef<Map<number, string>>(new Map());
 
   const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem('agent_token');
@@ -54,10 +67,11 @@ export default function AgenNotifikasiPage() {
       router.push('/agen/login');
       return;
     }
+    // focus + visibilitychange fire together; skip a poll while one is still running.
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
 
     try {
-      setLoading(true);
-      setError(null);
       const res = await fetch('/api/agent/notifications?limit=50', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -75,11 +89,32 @@ export default function AgenNotifikasiPage() {
       }
 
       const data = await res.json();
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unread_count || 0);
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan');
+      const pending = pendingReadRef.current;
+      let unread: number = data.unread_count || 0;
+      const list: NotificationItem[] = (data.notifications || []).map((n: NotificationItem) => {
+        const localReadAt = pending.get(n.id);
+        if (localReadAt === undefined) return n;
+        if (n.read_at) {
+          pending.delete(n.id); // server confirmed
+          return n;
+        }
+        unread -= 1;
+        return { ...n, read_at: localReadAt };
+      });
+      setNotifications(list);
+      setUnreadCount(Math.max(0, unread));
+      setError(null);
+      setNotice((prev) => (prev === POLL_FAILED_NOTICE ? null : prev));
+      hasLoadedRef.current = true;
+    } catch (err: unknown) {
+      const message = (err instanceof Error && err.message) || 'Terjadi kesalahan';
+      if (hasLoadedRef.current) {
+        setNotice(POLL_FAILED_NOTICE);
+      } else {
+        setError(message);
+      }
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [router]);
@@ -103,20 +138,36 @@ export default function AgenNotifikasiPage() {
     if (!item.read_at) {
       const token = localStorage.getItem('agent_token');
       if (token) {
+        // Optimistic: mark read now, roll back if the server refuses or the request fails.
+        const nowStr = new Date().toISOString();
+        pendingReadRef.current.set(item.id, nowStr);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, read_at: nowStr } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+
+        let ok = false;
         try {
-          await fetch(`/api/agent/notifications/${item.id}/read`, {
+          const res = await fetch(`/api/agent/notifications/${item.id}/read`, {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
-          const nowStr = new Date().toISOString();
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === item.id ? { ...n, read_at: nowStr } : n))
-          );
-          setUnreadCount((prev) => Math.max(0, prev - 1));
+          ok = res.ok;
         } catch {
-          // ignore
+          ok = false;
+        }
+
+        if (!ok) {
+          pendingReadRef.current.delete(item.id);
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === item.id && n.read_at === nowStr ? { ...n, read_at: null } : n))
+          );
+          setUnreadCount((prev) => prev + 1);
+          setNotice(MARK_READ_FAILED_NOTICE);
+        } else {
+          setNotice((prev) => (prev === MARK_READ_FAILED_NOTICE ? null : prev));
         }
       }
     }
@@ -233,6 +284,22 @@ export default function AgenNotifikasiPage() {
           gap: '10px',
         }}
       >
+        {notice && !loading && !error && (
+          <div
+            role="status"
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              fontSize: '13px',
+              lineHeight: 1.5,
+              color: 'var(--tw-text-secondary)',
+            }}
+          >
+            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <span>{notice}</span>
+          </div>
+        )}
         {loading ? (
           <div
             style={{

@@ -131,6 +131,10 @@ func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	plan, err := h.service.Update(r.Context(), id, req.Name, req.PeriodMonths, req.Price)
 	if err != nil {
+		if errors.Is(err, service.ErrPlanPeriodLocked) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": "Durasi paket tidak bisa diubah karena masih ada tagihan paket ini yang menunggu verifikasi. Setujui atau tolak tagihan tersebut dulu, atau buat paket baru. Nama dan harga tetap bisa diubah."})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Plan harga tidak ditemukan"})
 			return

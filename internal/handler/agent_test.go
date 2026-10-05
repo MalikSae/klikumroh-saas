@@ -1017,6 +1017,52 @@ func TestAgentHandler_Register_CrossTenantReferralCookie(t *testing.T) {
 			t.Errorf("expected parent_agent_id %d, got %d", agentA.ID, *createdAgent.ParentAgentID)
 		}
 	})
+
+	// M14 contract: referral_code present but empty = registering without an upline on purpose (the
+	// person cleared the prefilled field); the ref_code cookie must NOT be used.
+	registerWithCookie := func(t *testing.T, body map[string]interface{}) *repository.Agent {
+		t.Helper()
+		raw, _ := json.Marshal(body)
+		req := httptest.NewRequest(http.MethodPost, "/api/public/agents/register", bytes.NewReader(raw))
+		req.Host = "travela.klikumroh.local"
+		req.AddCookie(&http.Cookie{Name: "ref_code", Value: refCodeA})
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", w.Code, w.Body.String())
+		}
+		var resp struct {
+			Agent struct {
+				ID uint64 `json:"id"`
+			} `json:"agent"`
+		}
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
+		created, err := agentRepo.GetByID(context.Background(), tA.ID, resp.Agent.ID)
+		if err != nil {
+			t.Fatalf("failed to retrieve created agent: %v", err)
+		}
+		return created
+	}
+
+	t.Run("Empty referral_code with ref_code cookie registers without an upline", func(t *testing.T) {
+		created := registerWithCookie(t, map[string]interface{}{
+			"name": "Agen Mandiri", "phone": "0844444444", "email": "mandiri@travela.com",
+			"password": "passwordA123", "domisili": "Kota Bandung", "referral_code": "",
+		})
+		if created.ParentAgentID != nil {
+			t.Fatalf("referral_code \"\" must ignore the cookie, got parent_agent_id %d", *created.ParentAgentID)
+		}
+	})
+
+	t.Run("Absent referral_code with ref_code cookie uses the cookie", func(t *testing.T) {
+		created := registerWithCookie(t, map[string]interface{}{
+			"name": "Agen Dari Link", "phone": "0855555555", "email": "darilink@travela.com",
+			"password": "passwordA123", "domisili": "Kota Bandung",
+		})
+		if created.ParentAgentID == nil || *created.ParentAgentID != agentA.ID {
+			t.Fatalf("absent referral_code must fall back to the cookie (parent %d), got %v", agentA.ID, created.ParentAgentID)
+		}
+	})
 }
 
 func TestAgentHandler_UploadPoster_And_Delete(t *testing.T) {
@@ -1603,25 +1649,25 @@ func TestAgentHandler_DashboardSummary(t *testing.T) {
 
 		// Prospect 1: Closing inside window (2026-09-10), 4 jamaah -> COUNTED
 		jj4 := 4
-		p1 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj4, Status: "baru"}
+		p1 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj4, Status: "closing"}
 		_ = prospectRepo.Create(context.Background(), t1.ID, p1)
 		prospectRepo.RecordCustomStatusHistory(t1.ID, p1.ID, agent.ID, "closing", time.Date(2026, 9, 10, 10, 0, 0, 0, time.UTC))
 
 		// Prospect 2: Closing inside window (2026-09-25), 3 jamaah -> COUNTED
 		jj3 := 3
-		p2 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj3, Status: "baru"}
+		p2 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj3, Status: "closing"}
 		_ = prospectRepo.Create(context.Background(), t1.ID, p2)
 		prospectRepo.RecordCustomStatusHistory(t1.ID, p2.ID, agent.ID, "closing", time.Date(2026, 9, 25, 15, 0, 0, 0, time.UTC))
 
 		// Prospect 3: Closing BEFORE window (2026-08-20), 5 jamaah -> NOT COUNTED
 		jj5 := 5
-		p3 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj5, Status: "baru"}
+		p3 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj5, Status: "closing"}
 		_ = prospectRepo.Create(context.Background(), t1.ID, p3)
 		prospectRepo.RecordCustomStatusHistory(t1.ID, p3.ID, agent.ID, "closing", time.Date(2026, 8, 20, 10, 0, 0, 0, time.UTC))
 
 		// Prospect 4: Closing AFTER window (2026-10-05), 6 jamaah -> NOT COUNTED
 		jj6 := 6
-		p4 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj6, Status: "baru"}
+		p4 := &repository.Prospect{TenantID: t1.ID, AgentID: &agent.ID, JumlahJamaah: &jj6, Status: "closing"}
 		_ = prospectRepo.Create(context.Background(), t1.ID, p4)
 		prospectRepo.RecordCustomStatusHistory(t1.ID, p4.ID, agent.ID, "closing", time.Date(2026, 10, 5, 10, 0, 0, 0, time.UTC))
 

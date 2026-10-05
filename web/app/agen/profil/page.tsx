@@ -12,6 +12,7 @@ import { HabitBadge } from '../../../components/HabitBadge';
 import { fetchHabitSummary } from '../../../lib/agentHabits';
 import { jakartaDateLabel } from '../../../lib/jakartaTime';
 import { isBlankPassword, newPasswordError } from '../../../lib/passwordRules';
+import { agentPhoneError } from '../../../lib/agentPhone';
 import './AgenProfil.css';
 
 interface AgentProfileData {
@@ -214,9 +215,19 @@ export default function AgenProfilPage() {
       return;
     }
 
-    if (!phone.trim() || phone.trim().length < 8) {
-      setProfileMsg({ type: 'error', text: 'Nomor WhatsApp minimal 8 digit' });
+    // The backend re-validates the phone whenever it is sent. Check (and send) it only when the agent changed
+    // it, so a legacy number that fails today's rule does not block editing the name, email or domicile.
+    const phoneChanged = phone.trim() !== (agent?.phone ?? '').trim();
+    if (!phone.trim()) {
+      setProfileMsg({ type: 'error', text: 'Nomor WhatsApp wajib diisi' });
       return;
+    }
+    if (phoneChanged) {
+      const phoneErr = agentPhoneError(phone);
+      if (phoneErr) {
+        setProfileMsg({ type: 'error', text: phoneErr });
+        return;
+      }
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -246,7 +257,8 @@ export default function AgenProfilPage() {
         },
         body: jsonBody({
           name: name.trim(),
-          phone: phone.trim(),
+          // Omitted (undefined) when unchanged: the backend treats a missing phone as "keep the stored one".
+          phone: phoneChanged ? phone.trim() : undefined,
           email: email.trim(),
           // An empty string clears the domicile (null would mean unchanged and silently keep the old one).
           domisili: domisili.trim(),
