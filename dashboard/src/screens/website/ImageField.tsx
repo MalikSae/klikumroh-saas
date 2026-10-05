@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { getFullImageUrl } from '../../services/api';
 import { errorText } from '../../ui';
+import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 
 export const ImageField: React.FC<{
   label: string;
@@ -22,7 +23,7 @@ export const ImageField: React.FC<{
   const upload = async (f: File) => {
     setError(null);
     if (!f.type.startsWith('image/')) return setError('Pilih file gambar.');
-    if (f.size > maxMB * 1024 * 1024) return setError(`Ukuran maksimal ${maxMB} MB.`);
+    if (!fitsUploadLimit(f, 'og_image', maxMB * MB)) return setError(`Ukuran maksimal ${maxMB} MB.`);
     setBusy('upload');
     try {
       onChange(await onUpload(f));

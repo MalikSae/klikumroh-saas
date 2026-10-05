@@ -5,6 +5,7 @@ import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { createBanner, deleteBanner, fetchBanners, getFullImageUrl, updateBanner, uploadBannerImage, type BannerItem } from '../../services/api';
 import { Banner, Button, Checkbox, Field, Modal, errorText, type Column } from '../../ui';
 import { ContentList, sortOrdered } from './ContentList';
+import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 
 const toPayload = (b: BannerItem): Partial<BannerItem> => ({ title: b.title, image_url: b.image_url, subtitle: b.subtitle ?? null, cta_url: b.cta_url ?? null, display_order: b.display_order, is_active: b.is_active });
 
@@ -21,7 +22,7 @@ const BannerModal: React.FC<{ banner: BannerItem | null; nextOrder: number; onCl
 
   const upload = async (f: File) => {
     if (!f.type.startsWith('image/')) return setErrors({ ...errors, image: 'Pilih file gambar.' });
-    if (f.size > 8 * 1024 * 1024) return setErrors({ ...errors, image: 'Ukuran maksimal 8 MB.' });
+    if (!fitsUploadLimit(f, 'image', 8 * MB)) return setErrors({ ...errors, image: 'Ukuran maksimal 8 MB.' });
     setUploading(true);
     setErrors({ ...errors, image: undefined });
     try {

@@ -1557,8 +1557,7 @@ func (s *agentService) RemovePhoto(ctx context.Context, tenantID uint64, agentID
 }
 
 func (s *agentService) UpdatePassword(ctx context.Context, tenantID uint64, agentID uint64, req *UpdatePasswordRequest) error {
-	trimmedNew := strings.TrimSpace(req.NewPassword)
-	if len(trimmedNew) < MinAgentPasswordLength {
+	if !passwordLongEnough(req.NewPassword) {
 		return errors.New("password baru minimal 8 karakter")
 	}
 
@@ -1571,7 +1570,7 @@ func (s *agentService) UpdatePassword(ctx context.Context, tenantID uint64, agen
 		return ErrInvalidCredentials
 	}
 
-	hashed, err := util.HashPassword(trimmedNew)
+	hashed, err := util.HashPassword(req.NewPassword)
 	if err != nil {
 		return err
 	}
@@ -1760,8 +1759,7 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 }
 
 func (s *agentService) ResetAgentPassword(ctx context.Context, tenantID uint64, agentID uint64, newPassword string) error {
-	trimmed := strings.TrimSpace(newPassword)
-	if len(trimmed) < MinAgentPasswordLength {
+	if !passwordLongEnough(newPassword) {
 		return errors.New("password baru minimal 8 karakter")
 	}
 
@@ -1771,7 +1769,7 @@ func (s *agentService) ResetAgentPassword(ctx context.Context, tenantID uint64, 
 		return err
 	}
 
-	hashed, err := util.HashPassword(trimmed)
+	hashed, err := util.HashPassword(newPassword)
 	if err != nil {
 		return err
 	}

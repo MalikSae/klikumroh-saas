@@ -5,6 +5,7 @@ import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { FormInput } from './FormInput';
 import { CityField } from './CityField';
 import { Button } from './Button';
+import { jakartaMonthOptions } from '../lib/jakartaTime';
 import { getMetaBrowserContext, isMetaPixelActive, trackMetaEvent } from '../lib/metaPixel';
 import './ProspectModal.css';
 
@@ -30,19 +31,9 @@ export interface ProspectModalProps {
   tenantName?: string;
 }
 
-// Next 24 months as "YYYY-MM" options for the planned departure. Empty = not chosen ("Pilih Bulan").
-const departureOptions = (): { value: string; label: string }[] => {
-  const opts: { value: string; label: string }[] = [];
-  const d = new Date();
-  d.setDate(1);
-  for (let i = 0; i < 24; i++) {
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-    opts.push({ value, label });
-    d.setMonth(d.getMonth() + 1);
-  }
-  return opts;
-};
+// Next 24 months as "YYYY-MM" options for the planned departure, starting at the WIB month (the
+// backend rejects months before it). Empty = not chosen ("Pilih Bulan").
+const departureOptions = (): { value: string; label: string }[] => jakartaMonthOptions(24);
 
 export const ProspectModal: React.FC<ProspectModalProps> = ({
   isOpen,

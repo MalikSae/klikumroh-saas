@@ -17,6 +17,7 @@ import {
 import type { AffiliatorCommission, AffiliatorTenant } from '../../../services/affiliatorApi';
 import { PayoutDialogs } from './AdminAffiliatorsView';
 import { PAYOUT_PILL, formatDateID, formatIDR } from './affiliatorFormat';
+import { resetPasswordProblem } from '../../../utils/password';
 import './AdminAffiliators.css';
 
 const TENANT_PILL: Record<string, { label: string; cls: string }> = {
@@ -90,8 +91,10 @@ export const AdminAffiliatorDetailView: React.FC = () => {
   };
 
   const resetPassword = async () => {
-    if (newPassword.length < 8) {
-      setDialogError('Kata sandi baru minimal 8 karakter.');
+    // Sent exactly as typed (login does not trim); blank or space-padded passwords are refused.
+    const problem = resetPasswordProblem(newPassword);
+    if (problem) {
+      setDialogError(problem);
       return;
     }
     setBusy(true);
@@ -309,7 +312,7 @@ export const AdminAffiliatorDetailView: React.FC = () => {
         footer={
           <>
             <button type="button" className="sa-btn sa-btn--secondary" onClick={() => setResetOpen(false)} disabled={busy}>Batal</button>
-            <button type="button" className="sa-btn sa-btn--primary" onClick={() => void resetPassword()} disabled={busy || newPassword.length < 8}>{busy ? 'Menyimpan...' : 'Reset password'}</button>
+            <button type="button" className="sa-btn sa-btn--primary" onClick={() => void resetPassword()} disabled={busy || newPassword.trim() === ''}>{busy ? 'Menyimpan...' : 'Reset password'}</button>
           </>
         }
       >

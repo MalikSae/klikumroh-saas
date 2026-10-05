@@ -312,11 +312,22 @@ func (s *seeder) run() error {
 	return s.people()
 }
 
+// wib is the business time zone; dates the demo shows are WIB calendar dates.
+var wib = func() *time.Location {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		return time.FixedZone("WIB", 7*60*60)
+	}
+	return loc
+}()
+
 func (s *seeder) content() error {
 	for _, p := range s.fx.Packages {
 		var dep interface{}
 		if p.DepartureOffset != nil {
-			dep = time.Now().AddDate(0, 0, *p.DepartureOffset).Format("2006-01-02")
+			// Counted from today's WIB date: the server has no TZ set, and a reset before 07:00 WIB
+			// would otherwise start from yesterday's (UTC) date.
+			dep = time.Now().In(wib).AddDate(0, 0, *p.DepartureOffset).Format("2006-01-02")
 		}
 		pid, err := s.exec(`INSERT INTO packages (tenant_id, name, description, price, departure_date, quota, status, itinerary,
 				facilities_included, facilities_excluded, hotel_info, flight_info, terms_conditions, commission_amount)

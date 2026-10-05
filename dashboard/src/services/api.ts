@@ -628,12 +628,13 @@ export const formatDeparturePlan = (value?: string | null): string => {
 // Next 24 months as "YYYY-MM" options (plus "belum tahu").
 export const departurePlanOptions = (current?: string | null): { value: string; label: string }[] => {
   const opts = [{ value: '', label: 'Belum tahu' }];
-  const d = new Date();
-  d.setDate(1);
+  // Start at the current WIB month: the backend rejects months before it, whatever the device timezone.
+  const [y0, m0] = todayWIB().split('-').map(Number);
   for (let i = 0; i < 24; i++) {
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const y = y0 + Math.floor((m0 - 1 + i) / 12);
+    const m = ((m0 - 1 + i) % 12) + 1;
+    const value = `${y}-${String(m).padStart(2, '0')}`;
     opts.push({ value, label: formatDeparturePlan(value) });
-    d.setMonth(d.getMonth() + 1);
   }
   if (current && !opts.some((o) => o.value === current)) {
     opts.push({ value: current, label: formatDeparturePlan(current) });

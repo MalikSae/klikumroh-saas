@@ -31,7 +31,7 @@ const ProofImage: React.FC<{ path: string }> = ({ path }) => {
   );
 };
 
-const RegistrationDrawer: React.FC<{ agent: AgentItem; parentName: string | null; onClose: () => void; onDone: (approved: boolean) => void }> = ({ agent, parentName, onClose, onDone }) => {
+const RegistrationDrawer: React.FC<{ agent: AgentItem; parentName: string | null; onClose: () => void; onDone: (approved: boolean) => void; onFailed: () => void }> = ({ agent, parentName, onClose, onDone, onFailed }) => {
   const [dialog, setDialog] = useState<null | 'approve' | 'reject'>(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -48,6 +48,8 @@ const RegistrationDrawer: React.FC<{ agent: AgentItem; parentName: string | null
       onDone(approved);
     } catch (e) {
       setError(errorText(e, 'Gagal memproses pendaftaran'));
+      // A 409 means another admin already decided: reload so the drawer and list show the real status.
+      onFailed();
       setDialog(null);
     } finally {
       setBusy(false);
@@ -285,6 +287,10 @@ export const Registrations: React.FC<{ onChanged: () => void }> = ({ onChanged }
           agent={open}
           parentName={open.parent_agent_id ? names.get(open.parent_agent_id) || null : null}
           onClose={() => setOpenId(null)}
+          onFailed={() => {
+            load();
+            onChanged();
+          }}
           onDone={(approved) => {
             setNotice(approved ? `${open.name} sekarang agen aktif.` : `Pendaftaran ${open.name} ditolak.`);
             setOpenId(null);

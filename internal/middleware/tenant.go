@@ -31,7 +31,9 @@ func TenantResolutionMiddleware(domainRepo repository.DomainRepository, tenantRe
 			if h, _, err := net.SplitHostPort(host); err == nil {
 				host = h
 			}
-			host = strings.TrimSpace(strings.ToLower(host))
+			// A fully qualified name with its root dot ("travel.klikumroh.id.") is the same host;
+			// domains are stored without it.
+			host = strings.TrimSuffix(strings.TrimSpace(strings.ToLower(host)), ".")
 
 			if host == "" {
 				respondTenantNotFound(w)

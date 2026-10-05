@@ -209,3 +209,64 @@ func TestDomainAlias_DeletePrimaryRemovesAlias(t *testing.T) {
 		t.Fatal("deleting the primary must remove its alias")
 	}
 }
+
+// Bug hunt 2 (5 Oct 2026): a travel removes the alias (namatravel.com) of its primary
+// (www.namatravel.com) and later adds it back by typing the bare domain with include_alias=true.
+// Only the alias is created, pointing at the existing primary; another travel cannot attach an
+// alias to that primary.
+func TestDomainAlias_ReAddRemovedAlias(t *testing.T) {
+	ctx := context.Background()
+	e := newAliasEnv(t, 1)
+	res, err := e.svc.RegisterCustomDomain(ctx, 1, "www.namatravel.com", true)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	primaryID := res.Domain.ID
+	// The pair is live (an unverified primary may be taken over by another travel by design).
+	e.pointPair(1, "namatravel.com", aliasPlatformIP)
+	if _, err := e.svc.VerifyDomain(ctx, 1, primaryID); err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	if err := e.svc.DeleteDomain(ctx, 1, res.AliasDomain.ID); err != nil {
+		t.Fatalf("delete alias: %v", err)
+	}
+	if e.byHost("namatravel.com") != nil || e.byHost("www.namatravel.com") == nil {
+		t.Fatal("deleting the alias must keep the primary")
+	}
+
+	// Tenant B cannot hang an alias on tenant A's primary (it is A's row, so it blocks).
+	if _, err := e.svc.RegisterCustomDomain(ctx, 2, "namatravel.com", true); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+		t.Fatalf("tenant B re-adding A's alias: expected ErrDomainAlreadyUsed, got %v", err)
+	}
+	if e.byHost("namatravel.com") != nil {
+		t.Fatal("tenant B's failed attempt must not create the alias")
+	}
+
+	res2, err := e.svc.RegisterCustomDomain(ctx, 1, "namatravel.com", true)
+	if err != nil {
+		t.Fatalf("re-add alias: %v", err)
+	}
+	if res2.Domain.ID != primaryID || res2.AliasDomain == nil {
+		t.Fatalf("expected the existing primary %d plus a new alias, got %+v", primaryID, res2)
+	}
+	alias := e.byHost("namatravel.com")
+	if alias == nil || alias.TenantID != 1 || alias.Status != "pending" || alias.RedirectToDomainID == nil || *alias.RedirectToDomainID != primaryID {
+		t.Fatalf("alias must be tenant 1's, pending, and point to the primary: %+v", alias)
+	}
+
+	// Registering the primary again (no alias missing) is still refused.
+	if _, err := e.svc.RegisterCustomDomain(ctx, 1, "www.namatravel.com", false); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+		t.Fatalf("registering own primary again: expected ErrDomainAlreadyUsed, got %v", err)
+	}
+	if _, err := e.svc.RegisterCustomDomain(ctx, 1, "namatravel.com", true); !errors.Is(err, service.ErrDomainAlreadyUsed) {
+		t.Fatalf("re-adding an alias that exists: expected ErrDomainAlreadyUsed, got %v", err)
+	}
+
+	// The re-added alias is verified through the primary like any new alias.
+	if _, err := e.svc.VerifyDomain(ctx, 1, primaryID); err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	if a := e.byHost("namatravel.com"); a.Status != "active" {
+		t.Fatalf("re-added alias should activate with its primary, got %s", a.Status)
+	}
+}

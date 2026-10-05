@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bell, BellOff, CheckCheck, ChevronRight } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import { jakartaDateLabel } from '../../../lib/jakartaTime';
 
 interface NotificationItem {
   id: number;
@@ -34,11 +35,7 @@ const formatRelativeTime = (dateStr: string): string => {
     if (diffDays === 1) return 'Kemarin';
     if (diffDays < 7) return `${diffDays} hari lalu`;
 
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return jakartaDateLabel(d, { day: 'numeric', month: 'short', year: 'numeric' });
   } catch {
     return '';
   }

@@ -407,7 +407,7 @@ func (h *ProspectHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := fmt.Sprintf("prospek-%s.csv", time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("prospek-%s.csv", service.TodayWIB())
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 	w.WriteHeader(http.StatusOK)

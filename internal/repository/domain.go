@@ -98,6 +98,9 @@ func (r *mysqlDomainRepository) Create(ctx context.Context, tenantID uint64, dom
 		domain.LastCheckAt,
 	)
 	if err != nil {
+		if isDuplicateKey(err) {
+			return ErrDuplicate
+		}
 		return err
 	}
 

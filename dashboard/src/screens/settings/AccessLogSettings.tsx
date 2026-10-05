@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchAccessLogs, type AccessLogItem } from '../../services/api';
 import { Banner, DataTable, EmptyState, Toolbar, type Column, errorText } from '../../ui';
+import { formatDateTimeWIB } from '../../utils/datetime';
 
 const ACTION_LABEL: Record<string, string> = {
   lihat_detail_travel: 'Melihat detail travel',
@@ -11,8 +12,6 @@ const ACTION_LABEL: Record<string, string> = {
   ubah_langganan: 'Mengubah langganan',
 };
 
-const fmtDateTime = (iso: string) =>
-  new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 export const AccessLogSettings: React.FC = () => {
   const [rows, setRows] = useState<AccessLogItem[]>([]);
@@ -27,7 +26,7 @@ export const AccessLogSettings: React.FC = () => {
   }, []);
 
   const columns: Column<AccessLogItem>[] = [
-    { key: 'when', header: 'Waktu', cell: (r) => fmtDateTime(r.accessed_at) },
+    { key: 'when', header: 'Waktu', cell: (r) => formatDateTimeWIB(r.accessed_at) },
     { key: 'staff', header: 'Staf KlikUmroh', cell: (r) => r.staff_name || `Staf #${r.staff_id}` },
     { key: 'action', header: 'Aktivitas', cell: (r) => ACTION_LABEL[r.action] || r.action },
     {

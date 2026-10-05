@@ -12,6 +12,10 @@ import {
   parseFlightInfo,
   hotelLabel,
   itineraryDays,
+  matchesQuery,
+  fillCaption,
+  shownCaptions,
+  shownCaptionCounts,
 } from '../lib/placeholderFill.ts';
 
 const dataDir = (sub) => fileURLToPath(new URL(`../data/${sub}/`, import.meta.url));
@@ -164,4 +168,74 @@ test('packageFacts: real values only, seat is a number, date in WIB', () => {
     assert.equal(bare[key], '', key);
   }
   assert.deepEqual(packageFacts(null), {});
+});
+
+// Bank caption: the chip counts must equal the captions the page actually shows (founder decision, 5 Oct 2026).
+const allCaptions = captionFiles.flatMap(({ json }) => json.copies || []);
+const captionValueSets = {
+  nothing: {},
+  bare: { travel: 'Travel Amanah', agent_name: 'Rina', ...packageFacts({ id: 2, name: 'Paket B', price: null }) },
+  full: {
+    travel: 'Travel Amanah',
+    agent_name: 'Rina',
+    nomor_izin: 'PPIU 123/2020',
+    alamat: 'Jl. Merdeka 1, Bandung',
+    ...packageFacts({
+      id: 1,
+      name: 'Umroh Hemat',
+      price: 28500000,
+      departure_date: '2027-01-12T00:00:00+07:00',
+      quota: 45,
+      seats_taken: 41,
+      hotel_info: '[{"city":"Makkah","name":"Hilton Makkah","stars":5}]',
+      flight_info: '{"airline":"Saudia","route":"CGK - JED"}',
+      itinerary: 'Hari 1: A\nHari 9: B',
+      facilities_included: '- Visa\n- Tiket PP',
+    }),
+  },
+};
+
+test('caption counts equal the captions shown per category, for every package data set and search', () => {
+  const goals = [...new Set(allCaptions.map((c) => c.goal))];
+  const favorites = allCaptions.filter((_, i) => i % 7 === 0).map((c) => c.id).concat(['id-yang-sudah-dihapus']);
+  for (const [label, values] of Object.entries(captionValueSets)) {
+    for (const query of ['', 'hotel', 'ORANG TUA', 'tidak-ada-kata-ini']) {
+      const shown = shownCaptions(allCaptions, values, query);
+      const counts = shownCaptionCounts(shown, favorites);
+      for (const goal of goals) {
+        // What the page lists for this chip, computed independently from the raw data.
+        const listed = allCaptions.filter((c) => {
+          if (c.goal !== goal) return false;
+          const parts = fillCaption(c, values);
+          return parts !== null && matchesQuery(query, [c.title, parts.hook, parts.body, parts.cta, c.tags]);
+        });
+        assert.equal(counts.byGoal[goal] || 0, listed.length, `${label} / "${query}" / ${goal}`);
+      }
+      const listedFavorites = shown.filter(({ copy }) => favorites.includes(copy.id)).length;
+      assert.equal(counts.favorites, listedFavorites, `${label} / "${query}" / favorites`);
+      const sum = Object.values(counts.byGoal).reduce((a, b) => a + b, 0);
+      assert.equal(sum, shown.length, `${label} / "${query}" / total`);
+      for (const { parts } of shown) assert.doesNotMatch(`${parts.hook}${parts.body}${parts.cta}`, /\{\{|\}\}/);
+    }
+  }
+});
+
+test('caption counts drop below the static JSON totals when package data is missing', () => {
+  const staticTotal = allCaptions.length;
+  const bareShown = shownCaptions(allCaptions, captionValueSets.bare, '').length;
+  const fullShown = shownCaptions(allCaptions, captionValueSets.full, '').length;
+  assert.ok(bareShown < staticTotal, `bare ${bareShown} < ${staticTotal}`);
+  assert.ok(fullShown >= bareShown, `full ${fullShown} >= bare ${bareShown}`);
+  // A saved caption that cannot be shown for this package is not counted under "Tersimpan".
+  const hiddenForBare = allCaptions.find((c) => fillCaption(c, captionValueSets.bare) === null);
+  assert.ok(hiddenForBare);
+  assert.equal(shownCaptionCounts(shownCaptions(allCaptions, captionValueSets.bare, ''), [hiddenForBare.id]).favorites, 0);
+});
+
+test('matchesQuery: case-insensitive over strings and string lists, empty query matches all', () => {
+  assert.equal(matchesQuery('', ['x']), true);
+  assert.equal(matchesQuery('  ', [null]), true);
+  assert.equal(matchesQuery('DP', ['Bayar dp sekarang']), true);
+  assert.equal(matchesQuery('lansia', [undefined, ['umum', 'Lansia']]), true);
+  assert.equal(matchesQuery('mahal', ['murah', ['hemat']]), false);
 });

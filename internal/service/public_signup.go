@@ -221,7 +221,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		return nil, ErrAdminEmailAlreadyInUse
 	}
 
-	if len(req.AdminPassword) < 8 {
+	if !passwordLongEnough(req.AdminPassword) {
 		return nil, ErrPasswordTooShort
 	}
 

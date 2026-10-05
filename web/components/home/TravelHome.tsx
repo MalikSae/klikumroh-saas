@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, MessageCircle, ShieldCheck, Star, Users } from 'lucide-react';
 import { MobileContainer } from '../MobileContainer';
 import { PublicFooter } from '../PublicFooter';
+import { jakartaDayKey } from '../../lib/jakartaTime';
 import { ProspectModal } from '../ProspectModal';
 import type { PublicPackage } from '../publicPackage';
 import type { PublicTenantInfo } from '../../app/page';
@@ -35,7 +36,8 @@ const ppiuOf = (t: PublicTenantInfo) => t.ppiu_number?.trim().replace(/^PPIU\s*/
 
 /** Upcoming packages first (soonest departure), then the ones without a date. */
 const nearest = (list: PublicPackage[]) => {
-  const today = new Date().toISOString().slice(0, 10);
+  // Today in WIB: departure dates are WIB calendar days (the server renders in UTC).
+  const today = jakartaDayKey(new Date());
   const time = (p: PublicPackage) => (p.departure_date ? p.departure_date.slice(0, 10) : '9999');
   return [...list].filter((p) => !p.departure_date || p.departure_date.slice(0, 10) >= today).sort((a, b) => time(a).localeCompare(time(b)));
 };

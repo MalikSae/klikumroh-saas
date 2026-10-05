@@ -99,7 +99,10 @@ type TenantRepository interface {
 	GetSEOGeo(ctx context.Context, tenantID uint64) (*TenantSEOGeoSettings, error)
 	UpdateSEOGeo(ctx context.Context, tenantID uint64, settings *TenantSEOGeoSettings) error
 	UpdateOGImage(ctx context.Context, tenantID uint64, ogImageURL *string) error
-	UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL *string, tagline *string, aboutSummary *string) error
+	// UpdateProfile saves name, tagline and about text. The logo is not part of it: it only changes
+	// through UpdateBrandLogo (upload/delete), so saving the profile form never overwrites a logo
+	// uploaded after the form was loaded.
+	UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline *string, aboutSummary *string) error
 	UpdateContactAndLegal(ctx context.Context, tenantID uint64, ppiuNumber *string, address *string, phone *string, email *string, whatsapp *string, instagram *string, facebook *string, youtube *string) error
 	UpdateTrustMetrics(ctx context.Context, tenantID uint64, rating *string, alumniCount *string, guarantee *string) error
 	UpdateWhatsAppNumber(ctx context.Context, tenantID uint64, whatsappNumber string) error
@@ -286,13 +289,13 @@ func (r *mysqlTenantRepository) Update(ctx context.Context, tenant *Tenant) erro
 	return nil
 }
 
-func (r *mysqlTenantRepository) UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL *string, tagline *string, aboutSummary *string) error {
+func (r *mysqlTenantRepository) UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline *string, aboutSummary *string) error {
 	query := `
 		UPDATE tenants
-		SET name = ?, brand_logo_url = ?, tagline = ?, about_summary = ?
+		SET name = ?, tagline = ?, about_summary = ?
 		WHERE id = ?
 	`
-	res, err := r.db.ExecContext(ctx, query, name, logoURL, tagline, aboutSummary, tenantID)
+	res, err := r.db.ExecContext(ctx, query, name, tagline, aboutSummary, tenantID)
 	if err != nil {
 		return err
 	}

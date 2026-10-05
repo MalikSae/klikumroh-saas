@@ -279,6 +279,28 @@ func TestTenantResolutionMiddleware(t *testing.T) {
 		}
 	})
 
+	t.Run("Trailing-dot hostname resolves like the plain one", func(t *testing.T) {
+		for _, host := range []string{"travela.klikumroh.id.", "TRAVELA.klikumroh.id.:443"} {
+			capturedTenantID = 0
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Host = host
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+			if rr.Code != http.StatusOK || capturedTenantID != 50 {
+				t.Errorf("host %q: expected 200 for tenant 50, got %d / tenant %d", host, rr.Code, capturedTenantID)
+			}
+		}
+		// The forwarded host from Next.js gets the same normalization.
+		capturedTenantID = 0
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("X-Forwarded-Host", "travela.klikumroh.id.")
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK || capturedTenantID != 50 {
+			t.Errorf("X-Forwarded-Host with trailing dot: got %d / tenant %d", rr.Code, capturedTenantID)
+		}
+	})
+
 	t.Run("Unknown hostname returns 404", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Host = "unknown.klikumroh.id"
@@ -555,7 +577,7 @@ func (m *mockTenantRepoForMiddleware) UpdateSEOGeo(ctx context.Context, tenantID
 func (m *mockTenantRepoForMiddleware) UpdateOGImage(ctx context.Context, tenantID uint64, ogImageURL *string) error {
 	return nil
 }
-func (m *mockTenantRepoForMiddleware) UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL *string, tagline *string, aboutSummary *string) error {
+func (m *mockTenantRepoForMiddleware) UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline *string, aboutSummary *string) error {
 	return nil
 }
 func (m *mockTenantRepoForMiddleware) UpdateContactAndLegal(ctx context.Context, tenantID uint64, ppiuNumber *string, address *string, phone *string, email *string, whatsapp *string, instagram *string, facebook *string, youtube *string) error {

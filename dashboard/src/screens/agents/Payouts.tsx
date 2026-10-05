@@ -4,6 +4,7 @@ import { approvePayoutRequest, fetchPayoutRequests, markPayoutRequestPaid, rejec
 import { CheckCircle2, Clock, Send, Wallet } from 'lucide-react';
 import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, KpiCard, Modal, Pill, SearchField, Select, Toolbar, errorText, fmtAgo, fmtNumber, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
 import { CopyText, PAYOUT_STATUS } from './shared';
+import { todayWIB } from '../../utils/datetime';
 
 type View = 'todo' | 'pending' | 'approved' | 'paid' | 'rejected' | 'all';
 type Dialog = null | { kind: 'approve' | 'paid' | 'reject'; item: PayoutRequestItem };
@@ -39,7 +40,7 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
 
   // Totals per step. "Bulan ini" uses the last update of a paid request (the moment it was marked transferred).
   const sum = useMemo(() => {
-    const now = new Date();
+    const thisMonth = todayWIB().slice(0, 7);
     const add = (acc: { amount: number; count: number }, p: PayoutRequestItem) => ({ amount: acc.amount + p.amount_requested, count: acc.count + 1 });
     const zero = { amount: 0, count: 0 };
     const of = (pred: (p: PayoutRequestItem) => boolean) => items.filter(pred).reduce(add, zero);
@@ -49,8 +50,9 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
       paid: of((p) => p.status === 'paid'),
       paidMonth: of((p) => {
         if (p.status !== 'paid') return false;
+        // Compare WIB year-month: a payout paid on the 1st at 06:00 WIB is still the previous month in UTC.
         const d = new Date(p.updated_at);
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        return !Number.isNaN(d.getTime()) && todayWIB(d).slice(0, 7) === thisMonth;
       }),
     };
   }, [items]);
@@ -80,6 +82,9 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
     } catch (e) {
       setError(errorText(e, 'Gagal memproses pencairan'));
       setDialog(null);
+      // A 409/404 means another admin already changed this request: reload so the row shows its real status.
+      await load();
+      onChanged();
     } finally {
       setBusy(false);
     }

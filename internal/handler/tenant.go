@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path/filepath"
 
@@ -247,13 +248,19 @@ func (h *TenantHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile, err := h.tenantService.UpdateProfile(r.Context(), tenantID, payload.Name, payload.BrandLogoURL, payload.Tagline, payload.AboutSummary)
+	// payload.BrandLogoURL is ignored: the logo only changes through its upload/delete endpoints.
+	profile, err := h.tenantService.UpdateProfile(r.Context(), tenantID, payload.Name, payload.Tagline, payload.AboutSummary)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, service.ErrTenantNameRequired) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("update tenant profile %d: %v", tenantID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 

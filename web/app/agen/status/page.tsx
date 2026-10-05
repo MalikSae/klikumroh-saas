@@ -427,7 +427,6 @@ export default function AgenStatusPage() {
 
   const { agent, tenant } = data;
   const paid = agent.payment_status !== 'not_applicable';
-  const registrationFeeApplies = (data.agent_registration_fee ?? 0) > 0;
   const awaitingProof = agent.status === 'pending' && agent.payment_status === 'awaiting_proof';
   const verifying = agent.status === 'pending' && !awaitingProof;
 
@@ -564,8 +563,9 @@ export default function AgenStatusPage() {
             {contactButtons}
           </section>
 
-          {/* Only a paid sign-up has a transfer proof to resend; a free travel just keeps the contact above. */}
-          {registrationFeeApplies && (
+          {/* Only an agent who registered with a fee has a proof to resend. Gate on the agent's own
+              payment_status, not the travel's current fee (it may have changed since sign-up). */}
+          {paid && (
             <section className="tw-st-section">
               <h2 className="tw-st-subtitle">Kirim ulang bukti transfer</h2>
               <p className="tw-st-desc">Jika penolakan karena bukti transfer, kirim foto bukti yang baru. Admin akan meninjaunya kembali.</p>

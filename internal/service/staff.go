@@ -431,8 +431,7 @@ func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID ui
 		return errors.New("admin user or session repository not configured")
 	}
 
-	trimmed := strings.TrimSpace(newPassword)
-	if len(trimmed) < 8 {
+	if !passwordLongEnough(newPassword) {
 		return errors.New("password baru minimal 8 karakter")
 	}
 
@@ -447,7 +446,7 @@ func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID ui
 		return err
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(trimmed), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
@@ -467,11 +466,12 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 		return nil, err
 	}
 
-	plansMap := make(map[string]repository.PricingPlan)
+	// Keyed by plan id: plan names are not unique (e.g. "Premium" for 1 and 12 months).
+	plansMap := make(map[uint64]repository.PricingPlan)
 	if s.planRepo != nil {
 		if plans, pErr := s.planRepo.List(ctx); pErr == nil {
 			for _, p := range plans {
-				plansMap[p.Name] = p
+				plansMap[p.ID] = p
 			}
 		}
 	}
@@ -488,8 +488,8 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 		switch t.SubscriptionStatus {
 		case "active":
 			metrics.ActiveTenants++
-			if t.CurrentPlan != nil {
-				if p, ok := plansMap[*t.CurrentPlan]; ok && p.PeriodMonths > 0 {
+			if t.CurrentPlanID != nil {
+				if p, ok := plansMap[*t.CurrentPlanID]; ok && p.PeriodMonths > 0 {
 					monthly := p.Price / float64(p.PeriodMonths)
 					metrics.EstimatedMRR += monthly
 				}
@@ -701,7 +701,6 @@ func (s *staffService) ListStaffUsers(ctx context.Context) ([]StaffUserInfo, err
 func (s *staffService) CreateStaffUser(ctx context.Context, name, email, password, status string) (*StaffUserInfo, error) {
 	name = strings.TrimSpace(name)
 	email = strings.ToLower(strings.TrimSpace(email))
-	password = strings.TrimSpace(password)
 	status = strings.ToLower(strings.TrimSpace(status))
 
 	if name == "" {
@@ -710,7 +709,7 @@ func (s *staffService) CreateStaffUser(ctx context.Context, name, email, passwor
 	if email == "" || !strings.Contains(email, "@") {
 		return nil, errors.New("format email tidak valid")
 	}
-	if len(password) < 8 {
+	if !passwordLongEnough(password) {
 		return nil, errors.New("password minimal 8 karakter")
 	}
 	if status != "active" && status != "inactive" {
@@ -793,8 +792,8 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 
 	passwordChanged := false
 	if password != nil && strings.TrimSpace(*password) != "" {
-		pwd := strings.TrimSpace(*password)
-		if len(pwd) < 8 {
+		pwd := *password
+		if !passwordLongEnough(pwd) {
 			return nil, errors.New("password baru minimal 8 karakter")
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)

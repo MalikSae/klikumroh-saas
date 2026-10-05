@@ -80,6 +80,8 @@ export const BillingSettings: React.FC = () => {
   }, []);
 
   const plan = plans.find((p) => p.id === planId) || null;
+  const carriedCoupon = sub?.pending_verification?.coupon_code?.trim().toUpperCase() || '';
+  const isCarriedCoupon = carriedCoupon !== '' && coupon.trim().toUpperCase() === carriedCoupon;
   const total = useMemo(() => {
     if (!plan) return 0;
     return discount ? Math.max(0, Math.round(plan.price - (discount.pct / 100) * plan.price)) : plan.price;
@@ -132,8 +134,16 @@ export const BillingSettings: React.FC = () => {
     let code = discount?.code;
     if (coupon.trim() && (!discount || discount.code.toUpperCase() !== coupon.trim().toUpperCase())) {
       const d = await checkCoupon(coupon, planId);
-      if (!d) return;
-      code = d.code;
+      if (d) {
+        code = d.code;
+      } else if (isCarriedCoupon) {
+        // The open invoice's own coupon no longer validates on its own (e.g. the affiliator replaced its
+        // code). Send none: the backend then applies its carry-over rule for the signup affiliator coupon
+        // (judged at the invoice date) instead of the plan change being blocked.
+        code = undefined;
+      } else {
+        return;
+      }
     }
     setCreating(true);
     try {
@@ -268,6 +278,7 @@ export const BillingSettings: React.FC = () => {
                 </div>
               </dl>
               <p className="st-muted">
+                {isCarriedCoupon && couponError ? 'Kupon dari tagihan sebelumnya tetap dipakai bila masih berlaku; total akhir tampil di halaman pembayaran. ' : ''}
                 {open ? "Tagihan sebelumnya yang belum dibayar akan diganti. " : ""}Total transfer ditambah kode unik 3 digit agar pembayaran Anda mudah dicocokkan.
               </p>
               <div className="st-checkout__actions">

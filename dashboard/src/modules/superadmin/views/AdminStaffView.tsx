@@ -1,4 +1,5 @@
 import { formatDateWIB } from '../../../utils/datetime';
+import { resetPasswordProblem } from '../../../utils/password';
 import React, { useState, useEffect } from 'react';
 import {
   Plus,
@@ -121,7 +122,8 @@ export const AdminStaffView: React.FC = () => {
 
     const trimmedName = formData.name.trim();
     const trimmedEmail = formData.email.trim();
-    const pwd = formData.password?.trim();
+    // Sent exactly as typed: staff login compares the password untrimmed.
+    const pwd = formData.password ?? '';
 
     if (!trimmedName) {
       setFormError('Nama lengkap wajib diisi');
@@ -133,13 +135,15 @@ export const AdminStaffView: React.FC = () => {
     }
 
     if (!editingStaff) {
-      if (!pwd || pwd.length < 8) {
-        setFormError('Kata sandi wajib diisi minimal 8 karakter');
+      const problem = resetPasswordProblem(pwd);
+      if (problem) {
+        setFormError(problem);
         return;
       }
     } else {
-      if (pwd && pwd.length < 8) {
-        setFormError('Kata sandi baru minimal 8 karakter');
+      const problem = pwd ? resetPasswordProblem(pwd) : null;
+      if (problem) {
+        setFormError(problem);
         return;
       }
     }

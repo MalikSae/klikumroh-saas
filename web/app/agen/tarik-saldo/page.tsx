@@ -62,7 +62,8 @@ export default function TarikSaldoPage() {
   // Saved bank account is shown as one line; the form opens when it is missing or the agent taps Ubah.
   const [editBank, setEditBank] = useState<boolean>(false);
 
-  const loadPayoutInfo = async () => {
+  // keepBankForm: refresh only the balance and saved data, without overwriting what the agent typed.
+  const loadPayoutInfo = async (keepBankForm = false) => {
     const token = localStorage.getItem('agent_token');
     if (!token) {
       router.push('/agen/login');
@@ -93,6 +94,7 @@ export default function TarikSaldoPage() {
       setInfo(data);
 
       // Pre-fill bank details if available
+      if (keepBankForm) return;
       if (data.bank_name) setBankName(data.bank_name);
       if (data.bank_account_number) setAccountNumber(data.bank_account_number);
       if (data.bank_account_holder) setAccountHolder(data.bank_account_holder);
@@ -171,6 +173,8 @@ export default function TarikSaldoPage() {
 
       const resJson = await res.json();
       if (!res.ok) {
+        // The balance or a pending request may have changed elsewhere (409/400): show the current numbers.
+        if (res.status !== 401) void loadPayoutInfo(true);
         throw new Error(resJson.error || 'Gagal mengajukan pencairan');
       }
 

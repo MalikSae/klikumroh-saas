@@ -86,7 +86,9 @@ export const ProspectsScreen: React.FC = () => {
   // A search from the header (?q=) while this screen is open.
   useEffect(() => {
     const q = params.get('q') || '';
-    if (q !== search) {
+    // The URL keeps the trimmed text: compare trimmed, or a pause after "siti " would reset the box to
+    // "siti" and the next word would be glued on ("sitiaminah").
+    if (q !== search.trim()) {
       setSearchInput(q);
       setSearch(q);
       setPage(1);

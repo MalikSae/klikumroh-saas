@@ -31,14 +31,18 @@ type StaffSession struct {
 
 // StaffTenantItem represents a tenant overview specifically formatted for Master Admin / Staff.
 type StaffTenantItem struct {
-	ID                    uint64     `json:"id"`
-	Name                  string     `json:"name"`
-	Slug                  string     `json:"slug"`
-	Status                string     `json:"status"`
-	WhatsAppNumber        *string    `json:"whatsapp_number,omitempty"`
-	SubscriptionStatus    string     `json:"subscription_status"`
-	CurrentPlan           *string    `json:"current_plan"`
-	PlanName              *string    `json:"plan_name"`
+	ID                 uint64  `json:"id"`
+	Name               string  `json:"name"`
+	Slug               string  `json:"slug"`
+	Status             string  `json:"status"`
+	WhatsAppNumber     *string `json:"whatsapp_number,omitempty"`
+	SubscriptionStatus string  `json:"subscription_status"`
+	CurrentPlan        *string `json:"current_plan"`
+	// CurrentPlanID identifies the plan exactly (plan names are not unique).
+	CurrentPlanID *uint64 `json:"current_plan_id"`
+	PlanName      *string `json:"plan_name"`
+	// CustomDomain is the travel's verified (active) custom domain, never a pending/failed claim
+	// or a redirecting alias.
 	CustomDomain          *string    `json:"custom_domain"`
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at"`
 	CreatedAt             time.Time  `json:"created_at"`
@@ -247,9 +251,11 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 			t.status,
 			t.whatsapp_number,
 			p.name AS current_plan, 
+			t.current_plan_id,
 			t.subscription_expires_at, 
 			t.created_at,
-			(SELECT hostname FROM domains WHERE tenant_id = t.id AND type = 'custom' LIMIT 1) AS custom_domain,
+			(SELECT hostname FROM domains WHERE tenant_id = t.id AND type = 'custom' AND status = 'active'
+				AND redirect_to_domain_id IS NULL ORDER BY id LIMIT 1) AS custom_domain,
 			t.is_demo
 		FROM tenants t
 		LEFT JOIN pricing_plans p ON t.current_plan_id = p.id
@@ -271,6 +277,7 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 	for rows.Next() {
 		var item StaffTenantItem
 		var currentPlan sql.NullString
+		var currentPlanID sql.NullInt64
 		var subExpires sql.NullTime
 		var customDomain sql.NullString
 		var whatsappNum sql.NullString
@@ -282,6 +289,7 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 			&item.Status,
 			&whatsappNum,
 			&currentPlan,
+			&currentPlanID,
 			&subExpires,
 			&item.CreatedAt,
 			&customDomain,
@@ -297,6 +305,10 @@ func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter 
 		if currentPlan.Valid {
 			item.CurrentPlan = &currentPlan.String
 			item.PlanName = &currentPlan.String
+		}
+		if currentPlanID.Valid && currentPlanID.Int64 > 0 {
+			id := uint64(currentPlanID.Int64)
+			item.CurrentPlanID = &id
 		}
 		if subExpires.Valid {
 			item.SubscriptionExpiresAt = &subExpires.Time

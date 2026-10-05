@@ -132,6 +132,74 @@ export const fillTemplate = (text: string, values: PlaceholderValues, options: F
 };
 
 // ---------------------------------------------------------------------------------------------------------
+// Lists and counts of what is actually shown (bank caption, script chat)
+
+/** Case-insensitive search over text fields; an empty query matches everything. */
+export const matchesQuery = (query: string, fields: ReadonlyArray<string | ReadonlyArray<string> | null | undefined>): boolean => {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return true;
+  return fields.some((field) => {
+    if (!field) return false;
+    if (typeof field === 'string') return field.toLowerCase().includes(q);
+    return field.some((item) => typeof item === 'string' && item.toLowerCase().includes(q));
+  });
+};
+
+export interface CaptionSource {
+  id: string;
+  goal: string;
+  title?: string;
+  hook?: string;
+  body?: string;
+  cta?: string;
+  tags?: string[];
+}
+
+export interface CaptionParts {
+  hook: string;
+  body: string;
+  cta: string;
+}
+
+/** Hook, body and CTA filled for one caption, or null when any non-empty part cannot be shown. */
+export const fillCaption = (copy: Pick<CaptionSource, 'hook' | 'body' | 'cta'>, values: PlaceholderValues): CaptionParts | null => {
+  const fill = (text: string) => fillTemplate(text, values, { allowed: CAPTION_PLACEHOLDERS });
+  const hook = copy.hook ? fill(copy.hook) : '';
+  const body = copy.body ? fill(copy.body) : '';
+  const cta = copy.cta ? fill(copy.cta) : '';
+  if (hook === null || body === null || cta === null) return null;
+  return { hook, body, cta };
+};
+
+/**
+ * Captions that can be shown for these values and match the search (title, filled text, tags), each with
+ * its filled parts. Every list and count on the bank caption page derives from this one list, so a count
+ * never includes a caption that is hidden because its data is missing.
+ */
+export const shownCaptions = <T extends CaptionSource>(copies: readonly T[], values: PlaceholderValues, query: string): Array<{ copy: T; parts: CaptionParts }> => {
+  const result: Array<{ copy: T; parts: CaptionParts }> = [];
+  for (const copy of copies) {
+    const parts = fillCaption(copy, values);
+    if (!parts) continue;
+    if (!matchesQuery(query, [copy.title, parts.hook, parts.body, parts.cta, copy.tags])) continue;
+    result.push({ copy, parts });
+  }
+  return result;
+};
+
+/** Per-goal and saved counts of the shown captions (the numbers on the category chips). */
+export const shownCaptionCounts = (shown: ReadonlyArray<{ copy: CaptionSource }>, favorites: readonly string[]): { byGoal: Record<string, number>; favorites: number } => {
+  const favSet = new Set(favorites);
+  const byGoal: Record<string, number> = {};
+  let fav = 0;
+  for (const { copy } of shown) {
+    byGoal[copy.goal] = (byGoal[copy.goal] || 0) + 1;
+    if (favSet.has(copy.id)) fav += 1;
+  }
+  return { byGoal, favorites: fav };
+};
+
+// ---------------------------------------------------------------------------------------------------------
 // Package facts from the public package API (GET /api/public/packages)
 
 export interface PackageLike {

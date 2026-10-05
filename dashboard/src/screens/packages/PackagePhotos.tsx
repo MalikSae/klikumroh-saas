@@ -3,9 +3,11 @@ import React, { useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ImagePlus, Trash2 } from 'lucide-react';
 import { deletePackagePhoto, getFullImageUrl, movePackagePhoto, uploadPackagePhoto, type PackagePhoto } from '../../services/api';
 import { errorText } from '../../ui';
+import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 
 const MAX_PHOTOS = 10;
-const MAX_BYTES = 8 * 1024 * 1024;
+// Same 8 MB cap as the server, counted on the whole multipart body (see utils/uploadLimit).
+const MAX_BYTES = 8 * MB;
 
 export const PackagePhotos: React.FC<{ packageId: number; photos: PackagePhoto[]; onChange: (p: PackagePhoto[]) => void }> = ({ packageId, photos, onChange }) => {
   const [busy, setBusy] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export const PackagePhotos: React.FC<{ packageId: number; photos: PackagePhoto[]
         setError(`${f.name} bukan gambar.`);
         continue;
       }
-      if (f.size > MAX_BYTES) {
+      if (!fitsUploadLimit(f, 'photo', MAX_BYTES)) {
         setError(`${f.name} lebih dari 8 MB.`);
         continue;
       }
@@ -121,7 +123,7 @@ export const PendingPhotos: React.FC<{ files: File[]; onChange: (f: File[]) => v
     const picked: File[] = [];
     for (const f of Array.from(list)) {
       if (!f.type.startsWith('image/')) setError(`${f.name} bukan gambar.`);
-      else if (f.size > MAX_BYTES) setError(`${f.name} lebih dari 8 MB.`);
+      else if (!fitsUploadLimit(f, 'photo', MAX_BYTES)) setError(`${f.name} lebih dari 8 MB.`);
       else if (picked.length < room) picked.push(f);
       else setError(`Maksimal ${MAX_PHOTOS} foto per paket.`);
     }

@@ -96,7 +96,7 @@ func (s *teamService) AddTeamMember(ctx context.Context, tenantID uint64, name, 
 	if email == "" || !strings.Contains(email, "@") {
 		return nil, ErrEmailRequired
 	}
-	if len(password) < 8 {
+	if !passwordLongEnough(password) {
 		return nil, ErrPasswordTooShort
 	}
 
@@ -247,7 +247,7 @@ func (s *teamService) UpdateMyProfile(ctx context.Context, tenantID uint64, admi
 }
 
 func (s *teamService) UpdateMyPassword(ctx context.Context, tenantID uint64, adminUserID uint64, currentPassword, newPassword, currentToken string) error {
-	if len(newPassword) < 8 {
+	if !passwordLongEnough(newPassword) {
 		return ErrPasswordTooShort
 	}
 

@@ -230,7 +230,7 @@ func (r *mysqlAgentTargetRepository) Update(ctx context.Context, tenantID uint64
 		UPDATE agent_targets
 		SET title = ?, metric_value = ?, reward_description = ?,
 		    period_start = ?, period_end = ?, updated_at = NOW()
-		WHERE tenant_id = ? AND id = ?
+		WHERE tenant_id = ? AND id = ? AND status <> 'closed'
 	`
 	res, err := r.db.ExecContext(ctx, query,
 		target.Title,
@@ -249,13 +249,18 @@ func (r *mysqlAgentTargetRepository) Update(ctx context.Context, tenantID uint64
 		return err
 	}
 	if affected == 0 {
-		var exists int
-		checkErr := r.db.QueryRowContext(ctx, "SELECT 1 FROM agent_targets WHERE tenant_id = ? AND id = ?", tenantID, target.ID).Scan(&exists)
+		var status string
+		checkErr := r.db.QueryRowContext(ctx, "SELECT status FROM agent_targets WHERE tenant_id = ? AND id = ?", tenantID, target.ID).Scan(&status)
 		if checkErr != nil {
 			if errors.Is(checkErr, sql.ErrNoRows) {
 				return ErrNotFound
 			}
 			return checkErr
+		}
+		// A closed target is final (its achievements are already recorded); it was closed between
+		// the caller's read and this update.
+		if status == "closed" {
+			return ErrStatusConflict
 		}
 	}
 	return nil

@@ -3,7 +3,7 @@ import educationData from '../data/copywriting/education.json';
 import desireData from '../data/copywriting/desire.json';
 import trustData from '../data/copywriting/trust.json';
 import offerData from '../data/copywriting/offer.json';
-import { fillTemplate, CAPTION_PLACEHOLDERS } from './placeholderFill';
+import { fillTemplate, fillCaption, CAPTION_PLACEHOLDERS } from './placeholderFill';
 
 export interface CopyItem {
   id: string;
@@ -28,7 +28,6 @@ export interface CopyGoalCategory {
   key: string;
   name: string;
   shortName: string;
-  count: number;
   badgeLabel: string;
   desc: string;
   funnelStage: string;
@@ -58,19 +57,13 @@ export const getAllCopies = (): CopyItem[] => {
 };
 
 export const getCopywritingCategories = (): CopyGoalCategory[] => {
-  const attractionCount = (attractionData.copies || []).length;
-  const educationCount = (educationData.copies || []).length;
-  const desireCount = (desireData.copies || []).length;
-  const trustCount = (trustData.copies || []).length;
-  const offerCount = (offerData.copies || []).length;
-
+  // No static counts here: the page counts the captions it can actually show (shownCaptionCounts).
   return [
     {
       id: 'attraction',
       key: 'attraction',
       name: 'Tarik Perhatian (Attraction)',
       shortName: 'Attraction',
-      count: attractionCount,
       badgeLabel: 'Attraction',
       desc: 'Materi pembuka untuk menarik audiens cold yang belum siap menerima penawaran langsung.',
       funnelStage: 'Cold Funnel',
@@ -80,7 +73,6 @@ export const getCopywritingCategories = (): CopyGoalCategory[] => {
       key: 'education',
       name: 'Edukasi Jamaah (Education)',
       shortName: 'Edukasi',
-      count: educationCount,
       badgeLabel: 'Edukasi',
       desc: 'Tips memilih paket, jarak hotel, perbandingan harga, dan persiapan ibadah.',
       funnelStage: 'Cold / Warm',
@@ -90,7 +82,6 @@ export const getCopywritingCategories = (): CopyGoalCategory[] => {
       key: 'desire',
       name: 'Sentuh Kerinduan (Desire)',
       shortName: 'Kerinduan',
-      count: desireCount,
       badgeLabel: 'Desire',
       desc: 'Membangkitkan hasrat emosional dan spiritual untuk segera ke Tanah Suci.',
       funnelStage: 'Warm Funnel',
@@ -100,7 +91,6 @@ export const getCopywritingCategories = (): CopyGoalCategory[] => {
       key: 'trust',
       name: 'Bukti & Amanah (Trust)',
       shortName: 'Kepercayaan',
-      count: trustCount,
       badgeLabel: 'Trust',
       desc: 'Membangun keyakinan calon jamaah lewat legalitas resmi, transparansi, dan rekam jejak travel.',
       funnelStage: 'Warm Funnel',
@@ -110,7 +100,6 @@ export const getCopywritingCategories = (): CopyGoalCategory[] => {
       key: 'offer',
       name: 'Penawaran Paket (Offer)',
       shortName: 'Penawaran',
-      count: offerCount,
       badgeLabel: 'Offer',
       desc: 'Penawaran paket konkrit, slot kursi terbatas, dan ajakan booking konsultasi.',
       funnelStage: 'Hot Funnel',
@@ -129,13 +118,7 @@ export const replaceCopyPlaceholders = (text: string, values: CopyPlaceholderRep
 export const fillCaptionParts = (
   copy: Pick<CopyItem, 'hook' | 'body' | 'cta'>,
   replacements: CopyPlaceholderReplacements
-): { hook: string; body: string; cta: string } | null => {
-  const hook = copy.hook ? replaceCopyPlaceholders(copy.hook, replacements) : '';
-  const body = copy.body ? replaceCopyPlaceholders(copy.body, replacements) : '';
-  const cta = copy.cta ? replaceCopyPlaceholders(copy.cta, replacements) : '';
-  if (hook === null || body === null || cta === null) return null;
-  return { hook, body, cta };
-};
+): { hook: string; body: string; cta: string } | null => fillCaption(copy, replacements);
 
 export const assembleFullCaption = (copy: CopyItem, replacements: CopyPlaceholderReplacements): string | null => {
   const filled = fillCaptionParts(copy, replacements);

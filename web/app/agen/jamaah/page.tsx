@@ -11,23 +11,13 @@ import { CityField } from '../../../components/CityField';
 import styles from './page.module.css';
 import './Jamaah.css';
 import { logHabit } from '../../../lib/agentHabits';
+import { jakartaDateLabel, jakartaDayKey, jakartaMonthOptions } from '../../../lib/jakartaTime';
 
 const PAGE_SIZE = 20;
 
-// Next 24 months as "YYYY-MM" for the planned departure (plus "belum tahu").
-const departureOptions = (): { value: string; label: string }[] => {
-  const opts = [{ value: '', label: 'Belum tahu' }];
-  const d = new Date();
-  d.setDate(1);
-  for (let i = 0; i < 24; i++) {
-    opts.push({
-      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
-    });
-    d.setMonth(d.getMonth() + 1);
-  }
-  return opts;
-};
+// Next 24 months as "YYYY-MM" for the planned departure (plus "belum tahu"), starting at the WIB month:
+// the backend rejects months before it.
+const departureOptions = (): { value: string; label: string }[] => [{ value: '', label: 'Belum tahu' }, ...jakartaMonthOptions(24)];
 
 interface AgentProspectItem {
   id: number;
@@ -330,9 +320,9 @@ export default function AgenJamaahListPage() {
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '-';
     try {
-      const d = new Date(dateStr);
-      const sameYear = d.getFullYear() === new Date().getFullYear();
-      return d.toLocaleDateString('id-ID', sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+      // Calendar date in WIB (the travel's time), not the device zone.
+      const sameYear = jakartaDayKey(dateStr).slice(0, 4) === jakartaDayKey(new Date()).slice(0, 4);
+      return jakartaDateLabel(dateStr, sameYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' }) || dateStr;
     } catch {
       return dateStr;
     }

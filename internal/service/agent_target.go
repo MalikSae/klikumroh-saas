@@ -187,6 +187,11 @@ func (s *agentTargetService) UpdateTarget(ctx context.Context, tenantID uint64, 
 	if err != nil {
 		return nil, err
 	}
+	// Achievements of a closed target are already recorded against its value and period; editing
+	// it afterwards would make the target disagree with who was rewarded.
+	if existing.Status == "closed" {
+		return nil, ErrTargetAlreadyClosed
+	}
 
 	existing.Title = input.Title
 	existing.MetricValue = input.MetricValue
@@ -195,6 +200,9 @@ func (s *agentTargetService) UpdateTarget(ctx context.Context, tenantID uint64, 
 	existing.PeriodEnd = input.PeriodEnd
 
 	if err := s.targetRepo.Update(ctx, tenantID, existing); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			return nil, ErrTargetAlreadyClosed
+		}
 		return nil, err
 	}
 

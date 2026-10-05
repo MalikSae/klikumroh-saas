@@ -105,13 +105,12 @@ func (m *mockTenantRepo) UpdateCommissionSettings(ctx context.Context, tenantID 
 	return nil
 }
 
-func (m *mockTenantRepo) UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL *string, tagline *string, aboutSummary *string) error {
+func (m *mockTenantRepo) UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline *string, aboutSummary *string) error {
 	t, ok := m.tenants[tenantID]
 	if !ok {
 		return repository.ErrNotFound
 	}
 	t.Name = name
-	t.BrandLogoURL = logoURL
 	t.Tagline = tagline
 	t.AboutSummary = aboutSummary
 	return nil

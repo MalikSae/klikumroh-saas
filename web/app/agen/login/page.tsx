@@ -11,6 +11,7 @@ import { BrandMark } from '../../../components/BrandMark';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import designTokens from '../../../../design-tokens.json';
+import { isBlankPassword } from '../../../lib/passwordRules';
 import './AgenLogin.css';
 
 interface TenantInfo {
@@ -108,7 +109,8 @@ export default function AgenLoginPage() {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!email.trim() || !password) {
+    // The password is sent as typed (never trimmed); only spaces counts as empty.
+    if (!email.trim() || isBlankPassword(password)) {
       setErrorMessage('Silakan isi alamat email dan password Anda');
       return;
     }

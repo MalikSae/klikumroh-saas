@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -63,7 +64,7 @@ func (h *DomainHandler) RegisterCustomDomain(w http.ResponseWriter, r *http.Requ
 
 	resp, err := h.domainService.RegisterCustomDomain(r.Context(), tenantID, payload.Hostname, payload.IncludeAlias)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidHostname) || errors.Is(err, service.ErrAliasNotPossible) {
+		if errors.Is(err, service.ErrInvalidHostname) || errors.Is(err, service.ErrAliasNotPossible) || errors.Is(err, service.ErrPlatformHostname) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -71,7 +72,12 @@ func (h *DomainHandler) RegisterCustomDomain(w http.ResponseWriter, r *http.Requ
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, repository.ErrDuplicate) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": service.ErrDomainAlreadyUsed.Error()})
+			return
+		}
+		log.Printf("register custom domain (tenant %d): %v", tenantID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 

@@ -124,7 +124,7 @@ type TenantService interface {
 	UpdateWhatsApp(ctx context.Context, tenantID uint64, rawNumber string) (*TenantWhatsApp, error)
 	GetWhatsApp(ctx context.Context, tenantID uint64) (*TenantWhatsApp, error)
 	GetProfile(ctx context.Context, tenantID uint64) (*TenantProfile, error)
-	UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL, tagline, aboutSummary *string) (*TenantProfile, error)
+	UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline, aboutSummary *string) (*TenantProfile, error)
 	UpdateBrandIcon(ctx context.Context, tenantID uint64, iconURL *string) error
 	UpdateBrandLogo(ctx context.Context, tenantID uint64, logoURL *string) error
 	GetContactLegal(ctx context.Context, tenantID uint64) (*TenantContactLegal, error)
@@ -240,13 +240,19 @@ func (s *tenantService) GetProfile(ctx context.Context, tenantID uint64) (*Tenan
 	}, nil
 }
 
-func (s *tenantService) UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL, tagline, aboutSummary *string) (*TenantProfile, error) {
+// ErrTenantNameRequired: the travel name cannot be blank.
+var ErrTenantNameRequired = errors.New("nama travel tidak boleh kosong")
+
+// UpdateProfile saves name, tagline and about text. brand_logo_url in the request is ignored on
+// purpose: the logo has its own upload/delete endpoints, and the dashboard sends back the logo path
+// it loaded, which would overwrite a logo uploaded in the meantime.
+func (s *tenantService) UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline, aboutSummary *string) (*TenantProfile, error) {
 	trimmedName := strings.TrimSpace(name)
 	if trimmedName == "" {
-		return nil, errors.New("nama travel tidak boleh kosong")
+		return nil, ErrTenantNameRequired
 	}
 
-	if err := s.tenantRepo.UpdateProfile(ctx, tenantID, trimmedName, logoURL, tagline, aboutSummary); err != nil {
+	if err := s.tenantRepo.UpdateProfile(ctx, tenantID, trimmedName, tagline, aboutSummary); err != nil {
 		return nil, err
 	}
 

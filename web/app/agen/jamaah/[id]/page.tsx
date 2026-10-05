@@ -9,6 +9,7 @@ import styles from './page.module.css';
 import './JamaahDetail.css';
 import { logHabit } from '../../../../lib/agentHabits';
 import { LOST_REASON_OPTIONS, formatDeparturePlan } from '../../../../lib/lostReasons';
+import { jakartaDateLabel, jakartaTimeLabel } from '../../../../lib/jakartaTime';
 
 interface ProspectData {
   id: number;
@@ -299,12 +300,8 @@ export default function AgenJamaahDetailPage() {
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '-';
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+      // WIB calendar date: departure dates are midnight WIB, timestamps follow the travel's time.
+      return jakartaDateLabel(dateStr, { day: 'numeric', month: 'short', year: 'numeric' }) || dateStr;
     } catch {
       return dateStr;
     }
@@ -313,14 +310,8 @@ export default function AgenJamaahDetailPage() {
   const formatDateTime = (dateStr: string): string => {
     if (!dateStr) return '-';
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const date = jakartaDateLabel(dateStr, { day: 'numeric', month: 'short', year: 'numeric' });
+      return date ? `${date} ${jakartaTimeLabel(dateStr)}` : dateStr;
     } catch {
       return dateStr;
     }

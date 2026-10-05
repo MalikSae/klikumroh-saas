@@ -1,6 +1,6 @@
 // Tagihan: how much to transfer, where, and the transfer proof upload.
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Copy, ExternalLink, ImagePlus } from 'lucide-react';
 import {
   fetchPaymentVerificationDetail,
@@ -16,8 +16,9 @@ import { Banner, Button, Pill, fmtDate, fmtRupiah, errorText } from '../../ui';
 import { useFrame } from '../../app/AppFrame';
 import { invoiceStatus, planTitle } from './BillingSettings';
 import './InvoiceScreen.css';
+import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 
-const MAX_PROOF_BYTES = 10 * 1024 * 1024;
+const MAX_PROOF_BYTES = 10 * MB; // server body limit (MaxBytesReader 10<<20)
 
 const CopyValue: React.FC<{ value: string; label: string; children: React.ReactNode }> = ({ value, label, children }) => {
   const [copied, setCopied] = useState(false);
@@ -53,6 +54,9 @@ export const InvoiceScreen: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [justUploaded, setJustUploaded] = useState(false);
+  // The travel's open (pending) invoice, if any. A rejected invoice cannot take a new proof while another
+  // invoice is open (the backend answers 409), so its transfer details are not shown then.
+  const [openInvoice, setOpenInvoice] = useState<PaymentVerification | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -62,10 +66,11 @@ export const InvoiceScreen: React.FC = () => {
       setLoading(false);
       return;
     }
-    Promise.all([fetchPaymentVerificationDetail(vid), fetchPlatformSettings()])
-      .then(([p, s]) => {
+    Promise.all([fetchPaymentVerificationDetail(vid), fetchPlatformSettings(), fetchTenantSubscription(true).catch(() => null)])
+      .then(([p, s, sub]) => {
         setPv(p);
         setPlatform(s);
+        setOpenInvoice(sub?.pending_verification ?? null);
       })
       .catch((e) => setError(errorText(e, 'Gagal memuat data')))
       .finally(() => setLoading(false));
@@ -93,7 +98,7 @@ export const InvoiceScreen: React.FC = () => {
       setUploadError('Unggah foto atau tangkapan layar (JPG, PNG, atau WebP).');
       return;
     }
-    if (file.size > MAX_PROOF_BYTES) {
+    if (!fitsUploadLimit(file, 'proof_file', MAX_PROOF_BYTES)) {
       setUploadError('Ukuran berkas maksimal 10 MB.');
       return;
     }
@@ -126,7 +131,8 @@ export const InvoiceScreen: React.FC = () => {
   }
 
   const status = invoiceStatus(pv);
-  const canUpload = pv.status === 'pending' || pv.status === 'rejected';
+  const otherOpen = pv.status === 'rejected' && openInvoice && openInvoice.id !== pv.id ? openInvoice : null;
+  const canUpload = pv.status === 'pending' || (pv.status === 'rejected' && !otherOpen);
   const needsTransfer = canUpload && pv.final_amount > 0;
   const bank = platform && hasPlatformBankDetails(platform) ? platform : null;
   const planText = planTitle(pv.plan_name, pv.plan_period_months);
@@ -147,7 +153,13 @@ export const InvoiceScreen: React.FC = () => {
         <span className="st-muted">Ditagihkan kepada</span>
         <strong>{pv.tenant_name || frame?.subscription?.tenant_name || 'Travel Anda'}</strong>
       </div>
-      {pv.status === 'rejected' && <Banner tone="danger"><b>Bukti transfer ditolak.</b> {pv.rejection_reason || 'Bukti belum sesuai dengan tagihan.'} Unggah ulang bukti yang benar.</Banner>}
+      {pv.status === 'rejected' && !otherOpen && <Banner tone="danger"><b>Bukti transfer ditolak.</b> {pv.rejection_reason || 'Bukti belum sesuai dengan tagihan.'} Unggah ulang bukti yang benar.</Banner>}
+      {otherOpen && (
+        <Banner tone="info">
+          <b>Tagihan ini sudah tidak berlaku.</b> Bukti transfernya ditolak dan sekarang ada tagihan #{otherOpen.id} yang masih terbuka. Lakukan pembayaran lewat tagihan tersebut.{' '}
+          <Link to={`/settings/subscription/payment/${otherOpen.id}`}>Buka tagihan #{otherOpen.id}</Link>
+        </Banner>
+      )}
       {pv.status === 'pending' && pv.proof_url && <Banner tone={justUploaded ? 'success' : 'info'}><b>{justUploaded ? 'Bukti transfer terkirim.' : 'Pembayaran sedang diverifikasi.'}</b> Tim KlikUmroh akan memberi notifikasi setelah pemeriksaan selesai.</Banner>}
       {pv.status === 'approved' && <Banner tone="success"><b>Pembayaran diterima</b>{pv.reviewed_at ? ' pada ' + fmtDate(pv.reviewed_at) : ''}. Langganan Anda sudah diperbarui.</Banner>}
       <section aria-label="Rincian tagihan">

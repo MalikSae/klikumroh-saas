@@ -10,6 +10,8 @@ import { CityField } from '../../../components/CityField';
 import { QrCode } from '../../../components/QrCode';
 import { HabitBadge } from '../../../components/HabitBadge';
 import { fetchHabitSummary } from '../../../lib/agentHabits';
+import { jakartaDateLabel } from '../../../lib/jakartaTime';
+import { isBlankPassword, newPasswordError } from '../../../lib/passwordRules';
 import './AgenProfil.css';
 
 interface AgentProfileData {
@@ -28,19 +30,10 @@ interface AgentProfileData {
   created_at: string;
 }
 
-const MONTH_NAMES_ID = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-];
-
+/** "5 Oktober 2026" in WIB (the travel's calendar), '' for an empty or invalid date. */
 function formatIndonesianDate(dateStr: string): string {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  const day = d.getDate();
-  const month = MONTH_NAMES_ID[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
+  return jakartaDateLabel(dateStr, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export default function AgenProfilPage() {
@@ -227,7 +220,12 @@ export default function AgenProfilPage() {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (email.trim() && !emailRegex.test(email.trim())) {
+    // Email is the login: the backend keeps the old one when it is sent empty, so clearing is blocked here.
+    if (!email.trim()) {
+      setProfileMsg({ type: 'error', text: 'Email wajib diisi, dipakai untuk masuk ke portal' });
+      return;
+    }
+    if (!emailRegex.test(email.trim())) {
       setProfileMsg({ type: 'error', text: 'Format email tidak valid' });
       return;
     }
@@ -249,8 +247,9 @@ export default function AgenProfilPage() {
         body: jsonBody({
           name: name.trim(),
           phone: phone.trim(),
-          email: email.trim() || null,
-          domisili: domisili.trim() || null,
+          email: email.trim(),
+          // An empty string clears the domicile (null would mean unchanged and silently keep the old one).
+          domisili: domisili.trim(),
         }),
       });
 
@@ -330,11 +329,12 @@ export default function AgenProfilPage() {
     e.preventDefault();
     setPasswordMsg(null);
 
-    if (!currentPassword) {
+    if (isBlankPassword(currentPassword)) {
       setPasswordMsg({ type: 'error', text: 'Password saat ini wajib diisi' });
       return;
     }
-    if (!newPassword || newPassword.length < 8) {
+    // Sent as typed (never trimmed); spaces at the ends do not count towards the minimum.
+    if (newPasswordError(newPassword)) {
       setPasswordMsg({ type: 'error', text: 'Password baru minimal 8 karakter' });
       return;
     }

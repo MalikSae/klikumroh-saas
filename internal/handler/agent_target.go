@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -129,6 +128,10 @@ func (h *AgentTargetHandler) UpdateTarget(w http.ResponseWriter, r *http.Request
 			errors.Is(err, service.ErrInvalidPeriod) ||
 			errors.Is(err, service.ErrInvalidDateFormat) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, service.ErrTargetAlreadyClosed) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": "target sudah ditutup dan tidak bisa diubah"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal memperbarui target"})
@@ -354,7 +357,7 @@ func (h *AgentTargetHandler) ExportAchievementsCSV(w http.ResponseWriter, r *htt
 		return
 	}
 
-	filename := fmt.Sprintf("pencapaian-target-%d-%s.csv", targetID, time.Now().Format("2006-01-02"))
+	filename := fmt.Sprintf("pencapaian-target-%d-%s.csv", targetID, service.TodayWIB())
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.WriteHeader(http.StatusOK)

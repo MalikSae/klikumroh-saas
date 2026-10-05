@@ -38,6 +38,7 @@ var (
 	ErrCannotDeleteSubdomain = errors.New("subdomain default tidak dapat dihapus")
 	ErrDomainNotCustom       = errors.New("hanya custom domain yang dapat diverifikasi")
 	ErrAliasNotPossible      = errors.New("alias tanpa www hanya bisa untuk domain seperti www.namatravel.com")
+	ErrPlatformHostname      = errors.New("domain dengan suffix klikumroh.id adalah domain bawaan sistem, bukan custom domain")
 )
 
 var hostnameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$`)
@@ -124,7 +125,7 @@ func cleanCustomHostname(raw string) (string, error) {
 	}
 	// klikumroh.id and *.klikumroh.id are platform addresses, not custom domains.
 	if cleaned == "klikumroh.id" || strings.HasSuffix(cleaned, ".klikumroh.id") {
-		return "", errors.New("domain dengan suffix klikumroh.id adalah domain bawaan sistem, bukan custom domain")
+		return "", ErrPlatformHostname
 	}
 	return cleaned, nil
 }
@@ -174,9 +175,24 @@ func (s *domainService) RegisterCustomDomain(ctx context.Context, tenantID uint6
 		}
 	}
 
+	// Re-adding the alias of a primary this travel already has (the alias was removed on its own):
+	// keep the existing primary and only create the alias pointing at it.
+	var existingPrimary *repository.Domain
+	if aliasHost != "" {
+		d, err := s.domainRepo.FindByHostname(ctx, primaryHost)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+		if err == nil && d != nil && d.Hostname == primaryHost && d.TenantID == tenantID && d.Type == "custom" && d.RedirectToDomainID == nil {
+			existingPrimary = d
+		}
+	}
+
 	// Check every hostname before creating anything, so a blocked alias does not leave half a pair.
-	if err := s.claimable(ctx, tenantID, primaryHost); err != nil {
-		return nil, err
+	if existingPrimary == nil {
+		if err := s.claimable(ctx, tenantID, primaryHost); err != nil {
+			return nil, err
+		}
 	}
 	if aliasHost != "" {
 		if err := s.claimable(ctx, tenantID, aliasHost); err != nil {
@@ -184,15 +200,20 @@ func (s *domainService) RegisterCustomDomain(ctx context.Context, tenantID uint6
 		}
 	}
 
-	primary := &repository.Domain{TenantID: tenantID, Hostname: primaryHost, Type: "custom", Status: "pending"}
-	if err := s.domainRepo.Create(ctx, tenantID, primary); err != nil {
-		return nil, err
+	primary := existingPrimary
+	if primary == nil {
+		primary = &repository.Domain{TenantID: tenantID, Hostname: primaryHost, Type: "custom", Status: "pending"}
+		if err := s.domainRepo.Create(ctx, tenantID, primary); err != nil {
+			return nil, err
+		}
 	}
 	var alias *repository.Domain
 	if aliasHost != "" {
 		alias = &repository.Domain{TenantID: tenantID, Hostname: aliasHost, Type: "custom", Status: "pending", RedirectToDomainID: &primary.ID}
 		if err := s.domainRepo.Create(ctx, tenantID, alias); err != nil {
-			_ = s.domainRepo.Delete(ctx, tenantID, primary.ID)
+			if existingPrimary == nil {
+				_ = s.domainRepo.Delete(ctx, tenantID, primary.ID)
+			}
 			return nil, err
 		}
 	}
@@ -490,7 +511,8 @@ func (s *domainService) GetActiveCustomDomainByHost(ctx context.Context, host st
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
-	host = strings.TrimSpace(strings.ToLower(host))
+	// "travel.klikumroh.id." (with the root dot) is the same host as "travel.klikumroh.id".
+	host = strings.TrimSuffix(strings.TrimSpace(strings.ToLower(host)), ".")
 	if host == "" {
 		return nil, repository.ErrNotFound
 	}

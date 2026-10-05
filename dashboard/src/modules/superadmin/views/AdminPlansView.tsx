@@ -84,7 +84,8 @@ export const AdminPlansView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || formData.price <= 0 || formData.period_months <= 0) {
+    // Price 0 is a valid free plan (the backend only rejects a negative price), so it must stay editable.
+    if (!formData.name.trim() || !Number.isFinite(formData.price) || formData.price < 0 || formData.period_months <= 0) {
       alert('Mohon lengkapi semua field dengan benar');
       return;
     }

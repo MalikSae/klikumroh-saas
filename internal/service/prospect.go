@@ -1408,6 +1408,12 @@ var jakartaLocation = func() *time.Location {
 	return loc
 }()
 
+// TodayWIB returns today's date (YYYY-MM-DD) in WIB. The server process has no TZ set, so a bare
+// time.Now().Format would give the UTC date between 00:00 and 07:00 WIB.
+func TodayWIB() string {
+	return time.Now().In(jakartaLocation).Format("2006-01-02")
+}
+
 func formatWIB(t time.Time) string {
 	return t.In(jakartaLocation).Format("2006-01-02 15:04")
 }

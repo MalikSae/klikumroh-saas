@@ -36,3 +36,23 @@ export const jakartaDateLabel = (value: string | number | Date, options: Intl.Da
   const d = toDate(value);
   return d ? d.toLocaleDateString('id-ID', { ...options, timeZone: JAKARTA_TZ }) : '';
 };
+
+/**
+ * The current Jakarta month and the following ones as { value: 'YYYY-MM', label: 'Oktober 2026' }. The
+ * backend checks month plans against the WIB month, so the first option must be the WIB month even when
+ * the device clock is in another zone.
+ */
+export const jakartaMonthOptions = (count: number, now: Date = new Date()): { value: string; label: string }[] => {
+  const [year, month] = jakartaDayKey(now).split('-').map(Number);
+  const opts: { value: string; label: string }[] = [];
+  for (let i = 0; i < count; i++) {
+    const total = month - 1 + i;
+    const y = year + Math.floor(total / 12);
+    const m = (total % 12) + 1;
+    const value = `${y}-${String(m).padStart(2, '0')}`;
+    // Mid-month noon in Jakarta: the label cannot slip into a neighbouring month in any zone.
+    const label = jakartaDateLabel(`${value}-15T12:00:00+07:00`, { month: 'long', year: 'numeric' });
+    opts.push({ value, label });
+  }
+  return opts;
+};

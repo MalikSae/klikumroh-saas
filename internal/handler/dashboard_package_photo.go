@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,7 +30,7 @@ func (h *PackageHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	packageID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid package id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ID paket tidak valid"})
 		return
 	}
 
@@ -43,20 +44,26 @@ func (h *PackageHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Limit request to 8MB
-	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)
+	// The photo itself may be up to MaxPackagePhotoBytes; the request gets a little headroom on top
+	// for the multipart boundary and headers, so a file the dashboard accepts (<= 8 MB) is not
+	// rejected only because of the envelope around it.
+	r.Body = http.MaxBytesReader(w, r.Body, MaxPackagePhotoBytes+multipartOverheadBytes)
 
-	if err := r.ParseMultipartForm(8 << 20); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "file too large (max 8MB) or invalid format"})
+	if err := r.ParseMultipartForm(MaxPackagePhotoBytes); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ukuran foto maksimal 8 MB atau format kiriman tidak valid"})
 		return
 	}
 
-	file, _, err := r.FormFile("photo")
+	file, header, err := r.FormFile("photo")
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "missing 'photo' field"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "file foto wajib diunggah (field: photo)"})
 		return
 	}
 	defer file.Close()
+	if header.Size > MaxPackagePhotoBytes {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ukuran foto maksimal 8 MB"})
+		return
+	}
 
 	// Read bytes to detect content type and process
 	fileBytes, err := io.ReadAll(file)
@@ -75,7 +82,8 @@ func (h *PackageHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to encode webp"})
+		log.Printf("package photo (tenant %d, package %d): save: %v", tenantID, packageID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan foto"})
 		return
 	}
 
@@ -113,14 +121,14 @@ func (h *PackageHandler) DeletePhoto(w http.ResponseWriter, r *http.Request) {
 	photoIdStr := chi.URLParam(r, "photoId")
 	photoID, err := strconv.ParseUint(photoIdStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid photo id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ID foto tidak valid"})
 		return
 	}
 
 	photo, err := h.photoService.Delete(r.Context(), tenantID, photoID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "photo not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "foto tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -144,7 +152,7 @@ func (h *PackageHandler) MovePhoto(w http.ResponseWriter, r *http.Request) {
 	photoIdStr := chi.URLParam(r, "photoId")
 	photoID, err := strconv.ParseUint(photoIdStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid photo id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ID foto tidak valid"})
 		return
 	}
 
@@ -158,12 +166,25 @@ func (h *PackageHandler) MovePhoto(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.photoService.Move(r.Context(), tenantID, photoID, payload.Direction); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "photo not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "foto tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if errors.Is(err, service.ErrInvalidPhotoDirection) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("move package photo (tenant %d, photo %d): %v", tenantID, photoID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "urutannya berhasil diubah"})
 }
+
+// MaxPackagePhotoBytes is the largest package photo accepted: 8 MB (8,388,608 bytes), the same
+// limit the dashboard checks before uploading.
+const MaxPackagePhotoBytes = 8 << 20
+
+// multipartOverheadBytes is the room allowed on top of a file limit for the multipart envelope
+// (boundary, part headers, file name).
+const multipartOverheadBytes = 64 << 10

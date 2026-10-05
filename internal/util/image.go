@@ -8,6 +8,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -47,24 +48,15 @@ func ConvertAndSaveWebP(fileBytes []byte, destinationPath string, maxWidth int, 
 	rgbaImg := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Src)
 
-	if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
-		return fmt.Errorf("gagal membuat direktori: %w", err)
-	}
-
-	out, err := os.Create(destinationPath)
-	if err != nil {
-		return fmt.Errorf("gagal menyimpan file: %w", err)
-	}
-	defer out.Close()
-
 	if quality <= 0 {
 		quality = 80
 	}
-	if err := webp.Encode(out, rgbaImg, &webp.Options{Lossy: true, Quality: quality}); err != nil {
-		return fmt.Errorf("gagal mengkonversi ke WebP: %w", err)
-	}
-
-	return nil
+	return saveAtomically(destinationPath, func(out io.Writer) error {
+		if err := webp.Encode(out, rgbaImg, &webp.Options{Lossy: true, Quality: quality}); err != nil {
+			return fmt.Errorf("gagal mengkonversi ke WebP: %w", err)
+		}
+		return nil
+	})
 }
 
 // ConvertAndSaveSquareWebP validates image format (JPEG/PNG/WebP), auto-orients,
@@ -91,24 +83,15 @@ func ConvertAndSaveSquareWebP(fileBytes []byte, destinationPath string, size int
 	rgbaImg := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Src)
 
-	if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
-		return fmt.Errorf("gagal membuat direktori: %w", err)
-	}
-
-	out, err := os.Create(destinationPath)
-	if err != nil {
-		return fmt.Errorf("gagal menyimpan file: %w", err)
-	}
-	defer out.Close()
-
 	if quality <= 0 {
 		quality = 85
 	}
-	if err := webp.Encode(out, rgbaImg, &webp.Options{Lossy: true, Quality: quality}); err != nil {
-		return fmt.Errorf("gagal mengkonversi ke WebP: %w", err)
-	}
-
-	return nil
+	return saveAtomically(destinationPath, func(out io.Writer) error {
+		if err := webp.Encode(out, rgbaImg, &webp.Options{Lossy: true, Quality: quality}); err != nil {
+			return fmt.Errorf("gagal mengkonversi ke WebP: %w", err)
+		}
+		return nil
+	})
 }
 
 // ConvertAndSavePNGIcon validates image format (JPEG/PNG/WebP), auto-orients,
@@ -135,22 +118,13 @@ func ConvertAndSavePNGIcon(fileBytes []byte, destinationPath string, size int) e
 	rgbaImg := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Src)
 
-	if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
-		return fmt.Errorf("gagal membuat direktori: %w", err)
-	}
-
-	out, err := os.Create(destinationPath)
-	if err != nil {
-		return fmt.Errorf("gagal menyimpan file: %w", err)
-	}
-	defer out.Close()
-
 	encoder := &png.Encoder{CompressionLevel: png.BestCompression}
-	if err := encoder.Encode(out, rgbaImg); err != nil {
-		return fmt.Errorf("gagal mengkonversi ke PNG: %w", err)
-	}
-
-	return nil
+	return saveAtomically(destinationPath, func(out io.Writer) error {
+		if err := encoder.Encode(out, rgbaImg); err != nil {
+			return fmt.Errorf("gagal mengkonversi ke PNG: %w", err)
+		}
+		return nil
+	})
 }
 
 // ConvertAndSavePNGLogo validates image format (JPEG/PNG/WebP), auto-orients,
@@ -178,22 +152,13 @@ func ConvertAndSavePNGLogo(fileBytes []byte, destinationPath string, maxWidth in
 	rgbaImg := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
 	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Src)
 
-	if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
-		return fmt.Errorf("gagal membuat direktori: %w", err)
-	}
-
-	out, err := os.Create(destinationPath)
-	if err != nil {
-		return fmt.Errorf("gagal menyimpan file: %w", err)
-	}
-	defer out.Close()
-
 	encoder := &png.Encoder{CompressionLevel: png.BestCompression}
-	if err := encoder.Encode(out, rgbaImg); err != nil {
-		return fmt.Errorf("gagal mengkonversi ke PNG: %w", err)
-	}
-
-	return nil
+	return saveAtomically(destinationPath, func(out io.Writer) error {
+		if err := encoder.Encode(out, rgbaImg); err != nil {
+			return fmt.Errorf("gagal mengkonversi ke PNG: %w", err)
+		}
+		return nil
+	})
 }
 
 // OGImageJPEGQuality is the JPEG quality of the share image. A share image is usually a photo: as JPEG it
@@ -232,19 +197,43 @@ func ConvertAndSaveJPEGOGImage(fileBytes []byte, destinationPath string, maxWidt
 	draw.Draw(rgbaImg, rgbaImg.Bounds(), image.White, image.Point{}, draw.Src)
 	draw.Draw(rgbaImg, rgbaImg.Bounds(), img, b.Min, draw.Over)
 
-	if err := os.MkdirAll(filepath.Dir(destinationPath), 0755); err != nil {
+	return saveAtomically(destinationPath, func(out io.Writer) error {
+		if err := jpeg.Encode(out, rgbaImg, &jpeg.Options{Quality: OGImageJPEGQuality}); err != nil {
+			return fmt.Errorf("gagal mengkonversi ke JPEG: %w", err)
+		}
+		return nil
+	})
+}
+
+// saveAtomically writes an encoded image next to destinationPath under a temporary name and only
+// renames it over destinationPath once encoding fully succeeded. A failed upload (bad image, encoder
+// error, full disk) therefore never truncates or half-overwrites the file already stored there,
+// which matters for fixed-path files such as an agent's transfer proof or a travel's logo.
+func saveAtomically(destinationPath string, encode func(io.Writer) error) error {
+	dir := filepath.Dir(destinationPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("gagal membuat direktori: %w", err)
 	}
-
-	out, err := os.Create(destinationPath)
+	tmp, err := os.CreateTemp(dir, ".upload-*.tmp")
 	if err != nil {
 		return fmt.Errorf("gagal menyimpan file: %w", err)
 	}
-	defer out.Close()
-
-	if err := jpeg.Encode(out, rgbaImg, &jpeg.Options{Quality: OGImageJPEGQuality}); err != nil {
-		return fmt.Errorf("gagal mengkonversi ke JPEG: %w", err)
+	tmpPath := tmp.Name()
+	if err := encode(tmp); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpPath)
+		return err
 	}
-
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("gagal menyimpan file: %w", err)
+	}
+	// os.CreateTemp creates the file 0600; uploads are served by the web server, so use the
+	// permissions os.Create would have given.
+	_ = os.Chmod(tmpPath, 0644)
+	if err := os.Rename(tmpPath, destinationPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("gagal menyimpan file: %w", err)
+	}
 	return nil
 }

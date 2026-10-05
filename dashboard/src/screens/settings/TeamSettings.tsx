@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { MoreHorizontal, UserPlus } from 'lucide-react';
 import { addTeamMember, fetchTeamMembers, getStoredUser, toggleTeamMemberStatus, type TeamMemberItem } from '../../services/api';
 import { Avatar, Banner, Button, DataTable, EmptyState, Field, Menu, Modal, Pill, Toolbar, fmtDate, type Column, errorText } from '../../ui';
+import { resetPasswordProblem } from '../../utils/password';
 
 const MIN_PASSWORD = 8;
 
@@ -28,7 +29,9 @@ const AddMemberModal: React.FC<{ open: boolean; onClose: () => void; onAdded: (m
     const next: typeof errors = {};
     if (!name.trim()) next.name = 'Nama wajib diisi.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = 'Masukkan email yang valid.';
-    if (password.length < MIN_PASSWORD) next.password = `Password minimal ${MIN_PASSWORD} karakter.`;
+    // The admin hands this password to the new member: sent as typed, blank or space-padded refused.
+    const pwProblem = resetPasswordProblem(password);
+    if (pwProblem) next.password = pwProblem;
     setErrors(next);
     if (Object.keys(next).length) return;
     setSaving(true);

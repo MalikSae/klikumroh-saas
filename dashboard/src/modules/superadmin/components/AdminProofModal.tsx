@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, Check, AlertTriangle, ExternalLink, Phone, Mail,
   SlidersHorizontal, Tag, XCircle, ChevronRight,
@@ -6,12 +6,15 @@ import {
 import {
   type PaymentVerificationItem,
   type PricingPlan,
+  type Coupon,
   fetchPricingPlans,
+  fetchStaffCoupons,
   updatePaymentVerificationPlan,
   updatePaymentVerificationCoupon,
 } from '../../../services/staffApi';
 import { usePrivateFileURL } from '../../../hooks/usePrivateFile';
 import { CustomDropdown } from '../shared/CustomDropdown';
+import { discountedPrice, impliedDiscountPercentage, planChangeTotal } from '../../../utils/billingMath';
 
 const cleanWhatsApp = (num?: string | null) => {
   if (!num) return null;
@@ -69,12 +72,20 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   // Transfer proofs are private files: downloaded with the staff token, not from /uploads.
   const proofFile = usePrivateFileURL(isOpen ? currentItem?.proof_url : null, 'staff');
 
+  // The parent hands back a new item object after every plan/coupon change (onPlanUpdated). Only a different
+  // invoice or reopening resets the forms and messages, so the "Paket diubah ..." confirmation stays visible
+  // and a rejection reason typed for one payment never carries over to the next.
+  const lastResetKey = useRef<string | null>(null);
   useEffect(() => {
     if (item) {
       setCurrentItem(item);
       setSelectedPlanId(item.plan_id);
       setCouponInput(item.coupon_code || '');
     }
+    const key = isOpen && item ? String(item.id) : null;
+    if (key === lastResetKey.current) return;
+    lastResetKey.current = key;
+    setRejectReason('');
     setShowRejectForm(false);
     setShowApproveConfirm(false);
     setShowUpsellForm(false);
@@ -82,6 +93,14 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
     setError(null);
     setSuccessMsg(null);
   }, [item, isOpen]);
+
+  // Discount of a staff coupon on the invoice, so the "Ubah Paket" preview re-applies it like the backend.
+  const [staffCoupons, setStaffCoupons] = useState<Coupon[]>([]);
+  useEffect(() => {
+    if (isOpen) {
+      fetchStaffCoupons().then(setStaffCoupons).catch(() => setStaffCoupons([]));
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -197,7 +216,17 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   );
 
   const targetPlan = plans.find((p) => p.id === selectedPlanId);
-  const previewTotal = targetPlan ? targetPlan.price + (currentItem.unique_code || 0) : 0;
+  // The backend keeps the invoice's coupon on a plan change and re-applies it (UpdateVerificationPlan).
+  // Staff coupons give the exact percentage; an affiliator coupon is not in the staff list, so its
+  // percentage is read back from the invoice amounts.
+  const invoiceCoupon = hasCoupon
+    ? staffCoupons.find((c) => c.code.toUpperCase() === currentItem.coupon_code!.trim().toUpperCase())
+    : undefined;
+  const couponPercentage = hasCoupon
+    ? invoiceCoupon?.discount_percentage ?? impliedDiscountPercentage(currentItem.amount, currentItem.final_amount, currentItem.unique_code)
+    : null;
+  const couponPlanMismatch = !!(targetPlan && invoiceCoupon?.plan_id && invoiceCoupon.plan_id !== targetPlan.id);
+  const previewTotal = targetPlan ? planChangeTotal(targetPlan.price, couponPercentage, currentItem.unique_code) : 0;
 
   const labelStyle: React.CSSProperties = {
     fontSize: '11px',
@@ -396,7 +425,18 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
                     <span>Harga Paket Baru</span><span>{formatIDR(targetPlan.price)}</span>
                   </div>
-                  {(currentItem.unique_code || 0) > 0 && (
+                  {hasCoupon && couponPercentage !== null && couponPercentage > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
+                      <span>Kupon {currentItem.coupon_code} (tetap dipakai)</span>
+                      <span>-{formatIDR(targetPlan.price - discountedPrice(targetPlan.price, couponPercentage))}</span>
+                    </div>
+                  )}
+                  {couponPlanMismatch && (
+                    <div style={{ marginBottom: '4px', color: 'var(--sa-red-text)' }}>
+                      Kupon {currentItem.coupon_code} hanya berlaku untuk paket {invoiceCoupon?.plan_name || 'lain'}. Hapus kupon dulu sebelum mengganti paket.
+                    </div>
+                  )}
+                  {(currentItem.unique_code || 0) > 0 && previewTotal > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
                       <span>Kode Unik (tetap)</span><span>+Rp {currentItem.unique_code}</span>
                     </div>

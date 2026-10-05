@@ -74,7 +74,7 @@ func (m *mockTenantRepoEnforce) UpdateSEOGeo(ctx context.Context, tenantID uint6
 func (m *mockTenantRepoEnforce) UpdateOGImage(ctx context.Context, tenantID uint64, ogImageURL *string) error {
 	return nil
 }
-func (m *mockTenantRepoEnforce) UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL *string, tagline *string, aboutSummary *string) error {
+func (m *mockTenantRepoEnforce) UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline *string, aboutSummary *string) error {
 	return nil
 }
 func (m *mockTenantRepoEnforce) UpdateContactAndLegal(ctx context.Context, tenantID uint64, ppiuNumber *string, address *string, phone *string, email *string, whatsapp *string, instagram *string, facebook *string, youtube *string) error {

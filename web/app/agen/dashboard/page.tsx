@@ -31,6 +31,7 @@ import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspe
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { initAudioUnlock, playNotificationSound } from '../../../lib/notificationSound';
 import { HABITS, fetchHabitSummary, habitHeadline, logHabit, type HabitSummary } from '../../../lib/agentHabits';
+import { jakartaDayKey } from '../../../lib/jakartaTime';
 import { canShareFiles, packagePhotoFile, packageShareText, sharePackage } from '../../../lib/packageShare';
 import './AgenDashboard.css';
 
@@ -402,7 +403,8 @@ export default function AgenDashboardPage() {
   const money = (v: number | null | undefined) => (showBalance ? formatRupiah(v) : 'Rp ••••••');
 
   // Only targets whose period is still running (an "active" target whose end date passed is history).
-  const today = new Date().toLocaleDateString('en-CA');
+  // Today in WIB, like the period dates and departure dates it is compared with.
+  const today = jakartaDayKey(new Date());
   const targets = (summary.targets || []).filter((t) => !t.period_end || t.period_end.slice(0, 10) >= today);
 
   const sharePackages = packages

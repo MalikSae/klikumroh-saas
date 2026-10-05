@@ -1,4 +1,6 @@
 import { formatDateWIB } from '../../../utils/datetime';
+import { addMonthsClampedWIB } from '../../../utils/billingMath';
+import { resetPasswordProblem } from '../../../utils/password';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -161,8 +163,8 @@ export const AdminTenantDetailView: React.FC = () => {
       }
     }
 
-    const newDate = new Date(baseDate);
-    newDate.setMonth(newDate.getMonth() + selectedMonths);
+    // Clamp to the month end like the backend (addMonthsClamped): 31 Aug + 6 months = 28 Feb, not 3 Mar.
+    const newDate = addMonthsClampedWIB(baseDate, selectedMonths);
     return { newDate, isCurrentlyActive, baseDate };
   };
 
@@ -182,11 +184,19 @@ export const AdminTenantDetailView: React.FC = () => {
     }
   };
 
+  // Closing (Batal or backdrop) clears the typed password so it is never pre-filled for the next admin.
+  const closeResetModal = () => {
+    setShowResetModal(false);
+    setNewPassword('');
+  };
+
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tenant || !selectedAdminId) return;
-    if (newPassword.length < 8) {
-      alert('Password baru minimal 8 karakter');
+    // Sent exactly as typed (login does not trim); blank or space-padded passwords are refused here.
+    const problem = resetPasswordProblem(newPassword);
+    if (problem) {
+      alert(problem);
       return;
     }
     try {
@@ -508,6 +518,7 @@ export const AdminTenantDetailView: React.FC = () => {
                         className="sa-action-btn"
                         onClick={() => {
                           setSelectedAdminId(admin.id);
+                          setNewPassword('');
                           setShowResetModal(true);
                         }}
                       >
@@ -730,7 +741,7 @@ export const AdminTenantDetailView: React.FC = () => {
             justifyContent: 'center',
             padding: '20px',
           }}
-          onClick={() => setShowResetModal(false)}
+          onClick={closeResetModal}
         >
           <div
             style={{
@@ -772,13 +783,18 @@ export const AdminTenantDetailView: React.FC = () => {
                     boxSizing: 'border-box',
                   }}
                 />
+                {newPassword !== '' && resetPasswordProblem(newPassword) && (
+                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--sa-red-text)' }}>
+                    {resetPasswordProblem(newPassword)}
+                  </p>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                 <button
                   type="button"
                   className="sa-btn sa-btn--secondary"
-                  onClick={() => setShowResetModal(false)}
+                  onClick={closeResetModal}
                   disabled={resetting}
                 >
                   Batal
@@ -786,7 +802,7 @@ export const AdminTenantDetailView: React.FC = () => {
                 <button
                   type="submit"
                   className="sa-btn sa-btn--primary"
-                  disabled={resetting || newPassword.length < 8}
+                  disabled={resetting || resetPasswordProblem(newPassword) !== null}
                 >
                   {resetting ? 'Mereset...' : 'Simpan Sandi Baru'}
                 </button>

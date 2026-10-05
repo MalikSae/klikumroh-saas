@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -117,7 +118,7 @@ func (h *ContentHandler) CreateBanner(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.contentService.CreateBanner(r.Context(), tenantID, b); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondContentError(w, err)
 		return
 	}
 
@@ -242,7 +243,7 @@ func (h *ContentHandler) UpdateBanner(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "banner tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondContentError(w, err)
 		return
 	}
 
@@ -365,7 +366,7 @@ func (h *ContentHandler) CreateTestimonial(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.contentService.CreateTestimonial(r.Context(), tenantID, t); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondContentError(w, err)
 		return
 	}
 
@@ -444,7 +445,7 @@ func (h *ContentHandler) UpdateTestimonial(w http.ResponseWriter, r *http.Reques
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "testimoni tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondContentError(w, err)
 		return
 	}
 
@@ -555,7 +556,7 @@ func (h *ContentHandler) CreateFAQ(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.contentService.CreateFAQ(r.Context(), tenantID, f); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondContentError(w, err)
 		return
 	}
 
@@ -623,7 +624,7 @@ func (h *ContentHandler) UpdateFAQ(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "FAQ tidak ditemukan"})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		respondContentError(w, err)
 		return
 	}
 
@@ -752,4 +753,22 @@ func (h *ContentHandler) UploadTestimonialPhoto(w http.ResponseWriter, r *http.R
 	}
 
 	respondJSON(w, http.StatusOK, map[string]string{"avatar_url": relPath})
+}
+
+// respondContentError answers a failed banner/testimonial/FAQ save: a validation error is the
+// user's to fix (400 with its Indonesian message); anything else is a server fault, logged and
+// answered with a generic 500 so database or file-system details never reach the dashboard.
+func respondContentError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, service.ErrEmptyBannerTitle), errors.Is(err, service.ErrEmptyBannerImage),
+		errors.Is(err, service.ErrEmptyTestimonialName), errors.Is(err, service.ErrEmptyTestimonialQuote),
+		errors.Is(err, service.ErrInvalidRating), errors.Is(err, service.ErrEmptyFAQQuestion),
+		errors.Is(err, service.ErrEmptyFAQAnswer):
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+	case errors.Is(err, repository.ErrNotFound):
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": "data tidak ditemukan"})
+	default:
+		log.Printf("save website content: %v", err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+	}
 }

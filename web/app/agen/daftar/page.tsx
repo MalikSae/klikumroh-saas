@@ -11,6 +11,7 @@ import { BrandMark } from '../../../components/BrandMark';
 import { Button } from '../../../components/Button';
 import regenciesData from '../../../data/indonesia-regencies.json';
 import designTokens from '../../../../design-tokens.json';
+import { newPasswordError } from '../../../lib/passwordRules';
 import './AgenDaftar.css';
 
 interface RegistrationInfo {
@@ -175,7 +176,8 @@ export default function AgenDaftarPage() {
       errs.domisili = 'Silakan pilih kabupaten/kota domisili dari daftar';
     }
 
-    if (!password || password.length < 8) {
+    // Sent as typed (never trimmed); spaces at the ends do not count towards the minimum.
+    if (newPasswordError(password)) {
       errs.password = 'Password minimal 8 karakter';
     }
 

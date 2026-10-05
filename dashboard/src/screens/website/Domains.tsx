@@ -116,6 +116,9 @@ export const Domains: React.FC = () => {
 
   const typed = host.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
   const pair = pairOf(typed);
+  // Typing the removed alias of one of the travel's own main domains (namatravel.com for www.namatravel.com)
+  // means "point it at that domain again", never a second independent domain.
+  const reAliasOf = pair && typed === pair.alias ? primaries.find((p) => p.hostname === pair.primary && !aliasOf(p)) : undefined;
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,12 +130,19 @@ export const Domains: React.FC = () => {
     setHostError(null);
     setError(null);
     try {
-      await registerCustomDomain(typed, Boolean(pair && withAlias));
+      await registerCustomDomain(typed, Boolean(reAliasOf || (pair && withAlias)));
       setHost('');
       setWithAlias(true);
       await load();
     } catch (err) {
-      setHostError(errorText(err, 'Gagal menambahkan domain'));
+      // Until the backend can attach an alias to an existing main domain it answers "sudah terdaftar: www.X";
+      // explain the way that works today instead of that message.
+      const msg = errorText(err, 'Gagal menambahkan domain');
+      setHostError(
+        reAliasOf && msg.includes(reAliasOf.hostname)
+          ?`${typed} belum bisa diarahkan ulang ke ${reAliasOf.hostname}. Hapus ${reAliasOf.hostname}, lalu tambahkan lagi dengan pilihan "Juga arahkan ${typed}" dicentang.`
+          : msg,
+      );
     } finally {
       setBusy(null);
     }
@@ -253,7 +263,11 @@ export const Domains: React.FC = () => {
               {busy === 'add' ? 'Menambahkan...' : 'Tambah domain'}
             </Button>
           </div>
-          {pair && (
+          {reAliasOf ? (
+            <p className="ku-muted">
+              <b>{typed}</b> akan diarahkan ke <b>{reAliasOf.hostname}</b>.
+            </p>
+          ) : pair && (
             <Checkbox
               checked={withAlias}
               onChange={setWithAlias}

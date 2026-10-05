@@ -28,6 +28,7 @@ import {
   openDashboard,
   storeDashboardSession,
 } from '@/lib/dashboardSession';
+import { newPasswordError } from '../../lib/passwordRules';
 import styles from './CheckoutView.module.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -126,9 +127,9 @@ function validateForm(
   const emailErr = validateEmail(adminEmail);
   if (emailErr) errs.admin_email = emailErr;
 
-  if (!adminPassword) errs.admin_password = 'Password wajib diisi';
-  else if (adminPassword.length < 8)
-    errs.admin_password = 'Password minimal 8 karakter';
+  // Sent as typed (never trimmed); spaces at the ends do not count towards the minimum.
+  const pwErr = newPasswordError(adminPassword);
+  if (pwErr) errs.admin_password = pwErr;
 
   if (!agreeTerms)
     errs.agree_terms = 'Anda harus menyetujui Syarat & Ketentuan';

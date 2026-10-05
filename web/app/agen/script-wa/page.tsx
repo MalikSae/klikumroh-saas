@@ -21,7 +21,7 @@ import {
   type CycleStage,
   type PlaceholderReplacements,
 } from '../../../lib/scriptData';
-import { packageFacts, type PackageLike } from '../../../lib/placeholderFill';
+import { matchesQuery, packageFacts, type PackageLike } from '../../../lib/placeholderFill';
 
 const FAVORITES_STORAGE_KEY = 'klikumroh_agent_script_favorites';
 const PROSPECT_NAME_STORAGE_KEY = 'klikumroh_agent_script_prospect_name';
@@ -401,65 +401,60 @@ function ScriptWAContent() {
     return stages.find((s) => s.id === activeTab) || null;
   }, [stages, activeTab]);
 
+  // Scripts per phase after the search. The tab numbers and the lists both come from these, so a tab
+  // count is always the number of scripts that tab shows (hidden scripts and search misses excluded).
+  const searched = useMemo(() => {
+    const standard = (list: StandardScriptItem[]) =>
+      list.filter((item) => matchesQuery(searchQuery, [item.title, item.script, item.use_when, item.tags]));
+    return {
+      greeting: standard(greetings),
+      identification: standard(identifications),
+      offer: standard(offers),
+      closing: standard(closings),
+      followup: standard(followups),
+      objection: objections.filter((item) =>
+        matchesQuery(searchQuery, [item.title, item.category, item.prospect_examples, (item.tgjp.jawab || []).map((j) => j.script)])
+      ),
+    };
+  }, [searchQuery, greetings, identifications, offers, closings, followups, objections]);
+
+  // Saved scripts that are shown: a saved script hidden for this jamaah (missing data) is not counted.
+  const favoriteStandard = useMemo(
+    () =>
+      [...searched.greeting, ...searched.identification, ...searched.offer, ...searched.closing, ...searched.followup].filter((item) =>
+        favoriteKeys.includes(item.id)
+      ),
+    [searched, favoriteKeys]
+  );
+  const favoriteObjections = useMemo(() => searched.objection.filter((item) => favoriteKeys.includes(item.id)), [searched, favoriteKeys]);
+
   // Tab definitions
-  const tabs: Array<{ id: TabType; label: string; count: number }> = useMemo(() => {
-    const favCount = favoriteKeys.length;
-    return [
-      { id: 'greeting', label: '1. Sapaan', count: greetings.length },
-      { id: 'identification', label: '2. Gali Minat', count: identifications.length },
-      { id: 'offer', label: '3. Penawaran', count: offers.length },
-      { id: 'closing', label: '4. Closing', count: closings.length },
-      { id: 'objection', label: '5. Hadapi Ragu', count: objections.length },
-      { id: 'followup', label: '6. Follow-up', count: followups.length },
-      { id: 'favorites', label: 'Tersimpan', count: favCount },
-    ];
-  }, [greetings, identifications, offers, closings, objections, followups, favoriteKeys]);
+  const tabs: Array<{ id: TabType; label: string; count: number }> = useMemo(
+    () => [
+      { id: 'greeting', label: '1. Sapaan', count: searched.greeting.length },
+      { id: 'identification', label: '2. Gali Minat', count: searched.identification.length },
+      { id: 'offer', label: '3. Penawaran', count: searched.offer.length },
+      { id: 'closing', label: '4. Closing', count: searched.closing.length },
+      { id: 'objection', label: '5. Hadapi Ragu', count: searched.objection.length },
+      { id: 'followup', label: '6. Follow-up', count: searched.followup.length },
+      { id: 'favorites', label: 'Tersimpan', count: favoriteStandard.length + favoriteObjections.length },
+    ],
+    [searched, favoriteStandard, favoriteObjections]
+  );
 
   // Filtered standard scripts
-  const filteredStandardScripts = useMemo(() => {
-    let source: StandardScriptItem[] = [];
-    if (activeTab === 'greeting') source = greetings;
-    else if (activeTab === 'identification') source = identifications;
-    else if (activeTab === 'offer') source = offers;
-    else if (activeTab === 'closing') source = closings;
-    else if (activeTab === 'followup') source = followups;
-    else if (activeTab === 'favorites') {
-      const allStandard = [...greetings, ...identifications, ...offers, ...closings, ...followups];
-      source = allStandard.filter((item) => favoriteKeys.includes(item.id));
-    }
-
-    if (!searchQuery.trim()) return source;
-
-    const q = searchQuery.toLowerCase();
-    return source.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.script.toLowerCase().includes(q) ||
-        (item.use_when && item.use_when.toLowerCase().includes(q)) ||
-        (item.tags && item.tags.some((t) => t.toLowerCase().includes(q)))
-    );
-  }, [activeTab, searchQuery, greetings, identifications, offers, closings, followups, favoriteKeys]);
+  const filteredStandardScripts = useMemo<StandardScriptItem[]>(() => {
+    if (activeTab === 'favorites') return favoriteStandard;
+    if (activeTab === 'objection') return [];
+    return searched[activeTab];
+  }, [activeTab, searched, favoriteStandard]);
 
   // Filtered objection scripts
-  const filteredObjections = useMemo(() => {
-    if (activeTab !== 'objection' && activeTab !== 'favorites') return [];
-
-    let source = objections;
-    if (activeTab === 'favorites') {
-      source = objections.filter((item) => favoriteKeys.includes(item.id));
-    }
-
-    if (!searchQuery.trim()) return source;
-
-    const q = searchQuery.toLowerCase();
-    return source.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q) ||
-        (item.prospect_examples && item.prospect_examples.some((ex) => ex.toLowerCase().includes(q))) ||
-        (item.tgjp.jawab && item.tgjp.jawab.some((j) => j.script.toLowerCase().includes(q)))
-    );
-  }, [activeTab, searchQuery, objections, favoriteKeys]);
+  const filteredObjections = useMemo<ObjectionTGJPItem[]>(() => {
+    if (activeTab === 'objection') return searched.objection;
+    if (activeTab === 'favorites') return favoriteObjections;
+    return [];
+  }, [activeTab, searched, favoriteObjections]);
 
   // Infinite scroll pagination state (8 items per load)
   const PAGE_SIZE = 8;
@@ -824,9 +819,11 @@ function ScriptWAContent() {
             <MessageSquare size={32} aria-hidden="true" />
             <h2 className="sw-card__title">Tidak ada script</h2>
             <p className="sw-muted">
-              {activeTab === 'favorites'
+              {searchQuery.trim()
+                ? `Tidak ada script yang cocok dengan "${searchQuery}".`
+                : activeTab === 'favorites' && favoriteKeys.length === 0
                 ? 'Ketuk ikon bintang di kartu script untuk menyimpannya di sini.'
-                : `Tidak ada script yang cocok dengan "${searchQuery}".`}
+                : 'Script di sini butuh data calon jamaah dan paketnya. Pilih calon jamaah yang sudah memilih paket.'}
             </p>
             {searchQuery && (
               <button type="button" onClick={() => setSearchQuery('')} className="sw-btn">

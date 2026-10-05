@@ -327,7 +327,7 @@ func (m *mockTenantRepoSub) UpdateSEOGeo(ctx context.Context, tenantID uint64, s
 func (m *mockTenantRepoSub) UpdateOGImage(ctx context.Context, tenantID uint64, ogImageURL *string) error {
 	return nil
 }
-func (m *mockTenantRepoSub) UpdateProfile(ctx context.Context, tenantID uint64, name string, logoURL *string, tagline *string, aboutSummary *string) error {
+func (m *mockTenantRepoSub) UpdateProfile(ctx context.Context, tenantID uint64, name string, tagline *string, aboutSummary *string) error {
 	return nil
 }
 func (m *mockTenantRepoSub) UpdateContactAndLegal(ctx context.Context, tenantID uint64, ppiuNumber *string, address *string, phone *string, email *string, whatsapp *string, instagram *string, facebook *string, youtube *string) error {

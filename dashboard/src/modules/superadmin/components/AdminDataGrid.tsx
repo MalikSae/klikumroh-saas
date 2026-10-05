@@ -47,7 +47,7 @@ export function AdminDataGrid<T extends Record<string, any>, K = string>({
   pageSize = 10,
 }: AdminDataGridProps<T, K>) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [requestedPage, setCurrentPage] = useState(1);
 
   // Search filtering
   const filteredData = useMemo(() => {
@@ -70,6 +70,8 @@ export function AdminDataGrid<T extends Record<string, any>, K = string>({
   // Pagination calculation
   const totalItems = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  // Clamp when the list shrinks (e.g. approving the last row on the last page) so the grid never shows an empty page "2 / 1".
+  const currentPage = Math.min(requestedPage, totalPages);
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;

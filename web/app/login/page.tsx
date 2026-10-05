@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { clearDashboardSession, dashboardUrl, openDashboard, storeDashboardSession } from '@/lib/dashboardSession';
+import { isBlankPassword } from '@/lib/passwordRules';
 import styles from './login.module.css';
 
 function LoginForm() {
@@ -45,7 +46,8 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
+    // The password is sent as typed (never trimmed); only spaces counts as empty.
+    if (!email.trim() || isBlankPassword(password)) {
       setError('Email dan kata sandi wajib diisi');
       return;
     }

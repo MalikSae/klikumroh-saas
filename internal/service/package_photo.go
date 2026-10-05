@@ -26,6 +26,9 @@ func NewPackagePhotoService(photoRepo repository.PackagePhotoRepository, package
 const MaxPackagePhotos = 10
 
 // ErrTooManyPackagePhotos is returned when the package already has MaxPackagePhotos photos.
+// ErrInvalidPhotoDirection: a photo can only be moved "up" or "down".
+var ErrInvalidPhotoDirection = errors.New("arah pindah foto harus 'up' atau 'down'")
+
 var ErrTooManyPackagePhotos = errors.New("maksimal 10 foto per paket; hapus foto lama sebelum menambah yang baru")
 
 func (s *packagePhotoService) Create(ctx context.Context, tenantID uint64, photo *repository.PackagePhoto) error {
@@ -103,7 +106,7 @@ func (s *packagePhotoService) Move(ctx context.Context, tenantID uint64, photoID
 	}
 
 	if idx == -1 {
-		return errors.New("photo not found in list")
+		return repository.ErrNotFound
 	}
 
 	var swapWith *repository.PackagePhoto
@@ -117,7 +120,7 @@ func (s *packagePhotoService) Move(ctx context.Context, tenantID uint64, photoID
 			swapWith = &photos[idx+1]
 		}
 	} else {
-		return errors.New("invalid direction")
+		return ErrInvalidPhotoDirection
 	}
 
 	if swapWith != nil {

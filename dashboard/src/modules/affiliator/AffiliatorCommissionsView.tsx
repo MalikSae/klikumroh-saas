@@ -97,6 +97,8 @@ export const AffiliatorCommissionsView: React.FC = () => {
       load();
     } catch (err) {
       setRequestError(errorText(err, 'Gagal mengajukan pencairan'));
+      // A 409/400 (already pending, below minimum) means the balance shown is out of date: refresh it.
+      load();
     } finally {
       setRequesting(false);
     }

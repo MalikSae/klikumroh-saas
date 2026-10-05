@@ -17,6 +17,7 @@ import {
 import { Avatar, Banner, Button, Card, CardBody, CityInput, Field, Menu, Modal, Pill, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
 import { AGENT_STATUS, CopyText, PAYOUT_STATUS, waHref } from './shared';
 import { AgentHabits } from './AgentHabits';
+import { resetPasswordProblem } from '../../utils/password';
 
 type Dialog = null | 'edit' | 'password' | 'deactivate';
 const MIN_PASSWORD = 8;
@@ -129,8 +130,10 @@ const ResetPasswordModal: React.FC<{ agent: AgentDashboardDetail; onClose: () =>
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < MIN_PASSWORD) {
-      setError(`Password minimal ${MIN_PASSWORD} karakter.`);
+    // Sent exactly as typed (agent login does not trim); blank or space-padded passwords are refused.
+    const problem = resetPasswordProblem(password);
+    if (problem) {
+      setError(problem);
       return;
     }
     setSaving(true);

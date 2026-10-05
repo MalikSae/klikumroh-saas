@@ -439,19 +439,42 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 	relPath := fmt.Sprintf("/uploads/%d/agents/%d/bukti-transfer.webp", tenantID, agentID)
 	// Private: contains the agent's name, bank and amount (served by /api/*/files, never /uploads).
 	absPath := util.PrivateUploadAbsPath(relPath)
+	// The new proof is written under a temporary name and only moved over the stored proof once the
+	// agent's record accepted it, so a failed conversion or a refused state change never replaces
+	// the proof the admin may already be looking at.
+	tmpPath := fmt.Sprintf("%s.%d.new", absPath, time.Now().UnixNano())
 
-	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
+	if err := util.ConvertAndSaveWebP(fileBytes, tmpPath, 1600, 80); err != nil {
+		_ = os.Remove(tmpPath)
 		if errors.Is(err, util.ErrInvalidImageFormat) || errors.Is(err, util.ErrCorruptImage) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
+		log.Printf("agent payment proof (tenant %d, agent %d): save: %v", tenantID, agentID, err)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan bukti pembayaran"})
 		return
 	}
 
 	updated, err := h.agentService.UpdatePaymentProof(r.Context(), tenantID, agentID, relPath)
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		_ = os.Remove(tmpPath)
+		switch {
+		case errors.Is(err, service.ErrInvalidPaymentState):
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+		case errors.Is(err, repository.ErrStatusConflict):
+			respondJSON(w, http.StatusConflict, map[string]string{"error": "status pendaftaran sudah berubah, muat ulang halaman lalu coba lagi"})
+		case errors.Is(err, repository.ErrNotFound):
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
+		default:
+			log.Printf("agent payment proof (tenant %d, agent %d): update: %v", tenantID, agentID, err)
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		}
+		return
+	}
+	if err := os.Rename(tmpPath, absPath); err != nil {
+		_ = os.Remove(tmpPath)
+		log.Printf("agent payment proof (tenant %d, agent %d): replace file: %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan bukti pembayaran"})
 		return
 	}
 
@@ -1211,7 +1234,8 @@ func (h *AgentHandler) UploadProfilePhoto(w http.ResponseWriter, r *http.Request
 
 	updated, err := h.agentService.UpdatePhoto(r.Context(), tenantID, agentID, relPath)
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		log.Printf("agent profile photo (tenant %d, agent %d): %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 

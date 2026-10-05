@@ -9,7 +9,7 @@ export interface SubscriptionNotice {
 }
 
 const fmt = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  iso ? new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }) : '';
 
 /**
  * The single most urgent subscription message, or null when nothing needs the admin: unpaid activation,

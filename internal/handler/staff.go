@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -176,13 +177,14 @@ func (h *StaffHandler) ResetTenantAdminPassword(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	trimmedPassword := strings.TrimSpace(req.NewPassword)
-	if len(trimmedPassword) < 8 {
+	// Length is checked without surrounding spaces, but the password is stored exactly as typed
+	// because login compares the raw value.
+	if len(strings.TrimSpace(req.NewPassword)) < service.MinPasswordLength {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Password baru minimal 8 karakter"})
 		return
 	}
 
-	if err := h.staffService.ResetTenantAdminPassword(r.Context(), tenantID, adminUserID, trimmedPassword, staffUserID); err != nil {
+	if err := h.staffService.ResetTenantAdminPassword(r.Context(), tenantID, adminUserID, req.NewPassword, staffUserID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Admin user tidak ditemukan pada tenant ini"})
 			return
@@ -251,7 +253,8 @@ func (h *StaffHandler) ImpersonateTenant(w http.ResponseWriter, r *http.Request)
 			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		log.Printf("staff impersonation (tenant %d): %v", tenantID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 		return
 	}
 

@@ -68,17 +68,12 @@ export const AdminTenantsView: React.FC = () => {
   const totalTenants = customers.length;
   const activeTenants = customers.filter((t) => (t.subscription_status || t.status) === 'active').length;
   const pendingTenants = customers.filter((t) => (t.subscription_status || t.status) === 'pending').length;
-  const expiredTenants = customers.filter((t) => (t.subscription_status || t.status) === 'expired').length;
   const customDomainTenants = customers.filter((t) => Boolean(t.custom_domain)).length;
 
   // Filter & Search
   const filteredTenants = allTenants.filter((t) => {
     const status = t.subscription_status || t.status || 'trial';
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'active' && status !== 'active') return false;
-      if (statusFilter === 'pending' && status !== 'pending') return false;
-      if (statusFilter === 'expired' && status !== 'expired') return false;
-    }
+    if (statusFilter !== 'all' && status !== statusFilter) return false;
 
     if (!searchTerm.trim()) return true;
     const q = searchTerm.toLowerCase();
@@ -90,12 +85,17 @@ export const AdminTenantsView: React.FC = () => {
     );
   });
 
+  // Tab counts match the rows each tab lists: "Semua" includes the demo travel (the KPI cards above do not),
+  // and suspended / no-plan travels get their own tab (shown when there are any) instead of only "Semua".
+  const countStatus = (key: string) => allTenants.filter((t) => (t.subscription_status || t.status || 'trial') === key).length;
   const filterTabs = [
-    { key: 'all', label: 'Semua Status', count: totalTenants },
-    { key: 'active', label: 'Aktif', count: activeTenants },
-    { key: 'pending', label: 'Pending', count: pendingTenants },
-    { key: 'expired', label: 'Kedaluwarsa', count: expiredTenants },
-  ];
+    { key: 'all', label: 'Semua Status', count: allTenants.length },
+    { key: 'active', label: 'Aktif', count: countStatus('active') },
+    { key: 'pending', label: 'Pending', count: countStatus('pending') },
+    { key: 'expired', label: 'Kedaluwarsa', count: countStatus('expired') },
+    { key: 'suspended', label: 'Ditangguhkan', count: countStatus('suspended') },
+    { key: 'no_plan', label: 'Tanpa Paket', count: countStatus('no_plan') },
+  ].filter((tab) => ['all', 'active', 'pending', 'expired'].includes(tab.key) || tab.count > 0 || tab.key === statusFilter);
 
   const handleTabClick = (key: string) => {
     setStatusFilter(key);

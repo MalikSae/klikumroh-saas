@@ -9,12 +9,11 @@ import { logHabit } from '../../../lib/agentHabits';
 import {
   getAllCopies,
   getCopywritingCategories,
-  fillCaptionParts,
   assembleFullCaption,
   type CopyItem,
   type CopyPlaceholderReplacements,
 } from '../../../lib/copywritingData';
-import { packageFacts, type PackageLike } from '../../../lib/placeholderFill';
+import { packageFacts, shownCaptions, shownCaptionCounts, type PackageLike } from '../../../lib/placeholderFill';
 
 const FAVORITES_STORAGE_KEY = 'klikumroh_agent_caption_favorites';
 
@@ -167,32 +166,16 @@ export default function BankCaptionPage() {
     [tenantName, agentName, ppiuNumber, tenantAddress, selectedPackage, includeReferralLink, referralLink]
   );
 
-  // Filtered copies
+  // Every caption that can be shown for the selected package and matches the search. The list of the
+  // active category and the numbers on the chips both come from this one list, so they always agree.
+  const shown = useMemo(() => shownCaptions(allCopies, replacements, searchQuery), [allCopies, replacements, searchQuery]);
+  const shownCounts = useMemo(() => shownCaptionCounts(shown, favorites), [shown, favorites]);
+
+  // Copies of the active category (or the saved ones)
   const filteredCopies = useMemo(() => {
-    return allCopies.filter((copy) => {
-      // Favorites tab
-      if (activeGoal === 'favorites') {
-        if (!favorites.includes(copy.id)) return false;
-      } else if (activeGoal) {
-        if (copy.goal !== activeGoal) return false;
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const titleMatch = copy.title?.toLowerCase().includes(q);
-        const hookMatch = copy.hook?.toLowerCase().includes(q);
-        const bodyMatch = copy.body?.toLowerCase().includes(q);
-        const ctaMatch = copy.cta?.toLowerCase().includes(q);
-        const tagsMatch = copy.tags?.some((t) => t.toLowerCase().includes(q));
-        return titleMatch || hookMatch || bodyMatch || ctaMatch || tagsMatch;
-      }
-
-      return true;
-    })
-      .map((copy) => ({ copy, parts: fillCaptionParts(copy, replacements) }))
-      .filter((item): item is { copy: CopyItem; parts: { hook: string; body: string; cta: string } } => item.parts !== null);
-  }, [allCopies, activeGoal, searchQuery, favorites, replacements]);
+    if (activeGoal === 'favorites') return shown.filter(({ copy }) => favorites.includes(copy.id));
+    return shown.filter(({ copy }) => copy.goal === activeGoal);
+  }, [shown, activeGoal, favorites]);
 
   // Infinite scroll pagination state (8 items per load)
   const PAGE_SIZE = 8;
@@ -312,8 +295,8 @@ export default function BankCaptionPage() {
   const formatPrice = (v?: number) => (v ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v) : '');
 
   const chips = [
-    ...categories.map((c) => ({ id: c.key, label: c.shortName, count: c.count })),
-    { id: 'favorites', label: 'Tersimpan', count: favorites.length },
+    ...categories.map((c) => ({ id: c.key, label: c.shortName, count: shownCounts.byGoal[c.key] || 0 })),
+    { id: 'favorites', label: 'Tersimpan', count: shownCounts.favorites },
   ];
 
   return (
@@ -468,11 +451,13 @@ export default function BankCaptionPage() {
         {totalActiveItemsCount === 0 && (
           <div className="bc-empty">
             <Star size={28} aria-hidden="true" />
-            <h2 className="bc-card__title">{activeGoal === 'favorites' && !searchQuery ? 'Belum ada caption tersimpan' : 'Tidak ada caption'}</h2>
+            <h2 className="bc-card__title">{activeGoal === 'favorites' && !searchQuery && favorites.length === 0 ? 'Belum ada caption tersimpan' : 'Tidak ada caption'}</h2>
             <p className="bc-muted">
-              {activeGoal === 'favorites' && !searchQuery
+              {searchQuery.trim()
+                ? `Tidak ada caption yang cocok dengan "${searchQuery}".`
+                : activeGoal === 'favorites' && favorites.length === 0
                 ? 'Ketuk ikon bintang di kartu caption untuk menyimpannya di sini.'
-                : `Tidak ada caption yang cocok dengan "${searchQuery}".`}
+                : 'Data paket yang dipilih belum cukup untuk caption di sini. Coba pilih paket lain.'}
             </p>
             {searchQuery && (
               <button type="button" onClick={() => setSearchQuery('')} className="bc-btn">

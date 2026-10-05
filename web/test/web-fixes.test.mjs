@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWhatsApp } from '../lib/signupWhatsApp.ts';
+import { newPasswordError, isBlankPassword } from '../lib/passwordRules.ts';
 import { discountedPrice } from '../lib/checkoutPricing.ts';
-import { jakartaDayKey, jakartaDayLabel, jakartaTimeLabel, jakartaDateLabel } from '../lib/jakartaTime.ts';
+import { jakartaDayKey, jakartaDayLabel, jakartaTimeLabel, jakartaDateLabel, jakartaMonthOptions } from '../lib/jakartaTime.ts';
 
 // Checkout WhatsApp: the backend only accepts numbers that normalize to 62..., so foreign numbers fail here too.
 test('checkout WhatsApp: Indonesian numbers only', () => {
@@ -46,4 +47,27 @@ test('Jakarta time helpers', () => {
   assert.equal(jakartaDayLabel('2026-10-04', now), 'Kemarin');
   assert.equal(jakartaDayLabel('2026-10-01', now), 'Kamis, 1 Oktober 2026');
   assert.equal(jakartaDayLabel('', now), 'Tanpa tanggal');
+});
+
+// Interest-form months: the first option is the WIB month (the backend rejects earlier months).
+test('jakartaMonthOptions starts at the WIB month, not the device or UTC month', () => {
+  // 31 Oct 2026 18:00 UTC = 1 Nov 2026 01:00 WIB.
+  const opts = jakartaMonthOptions(3, new Date('2026-10-31T18:00:00Z'));
+  assert.deepEqual(opts.map((o) => o.value), ['2026-11', '2026-12', '2027-01']);
+  assert.deepEqual(opts.map((o) => o.label), ['November 2026', 'Desember 2026', 'Januari 2027']);
+  // Still October in Jakarta at 31 Oct 16:59 UTC (23:59 WIB).
+  assert.equal(jakartaMonthOptions(1, new Date('2026-10-31T16:59:00Z'))[0].value, '2026-10');
+  assert.equal(jakartaMonthOptions(24, new Date('2026-10-05T00:00:00Z')).length, 24);
+  assert.equal(jakartaMonthOptions(24, new Date('2026-10-05T00:00:00Z'))[23].value, '2028-09');
+});
+
+// Passwords are never trimmed; only spaces is blank and end spaces do not count towards the minimum.
+test('password rules: blank rejected, end spaces do not count, value never trimmed', () => {
+  assert.equal(newPasswordError(''), 'Password wajib diisi');
+  assert.equal(newPasswordError('        '), 'Password wajib diisi');
+  assert.equal(newPasswordError('abc     '), 'Password minimal 8 karakter');
+  assert.equal(newPasswordError('rahasia1'), undefined);
+  assert.equal(newPasswordError(' rahasia1 '), undefined);
+  assert.equal(isBlankPassword('   '), true);
+  assert.equal(isBlankPassword(' x '), false);
 });

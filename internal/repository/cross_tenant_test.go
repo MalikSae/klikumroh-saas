@@ -1146,8 +1146,11 @@ func TestCrossTenant_ProfileAndTrust(t *testing.T) {
 	taglineA := "Bimbingan Sesuai Sunnah"
 	aboutA := "Profil singkat Travel A"
 	logoA := "https://example.com/logo-a.png"
-	if err := tenantRepo.UpdateProfile(ctx, tenantA.ID, "Travel A Super", &logoA, &taglineA, &aboutA); err != nil {
+	if err := tenantRepo.UpdateProfile(ctx, tenantA.ID, "Travel A Super", &taglineA, &aboutA); err != nil {
 		t.Fatalf("Failed to update Tenant A profile: %v", err)
+	}
+	if err := tenantRepo.UpdateBrandLogo(ctx, tenantA.ID, &logoA); err != nil {
+		t.Fatalf("Failed to set Tenant A logo: %v", err)
 	}
 
 	ppiuA := "SK/U.123/2024"
