@@ -48,5 +48,6 @@ func isProspectConflictError(err error) bool {
 		errors.Is(err, service.ErrProspectNotClosing) ||
 		errors.Is(err, service.ErrProspectAlreadyPaidOff) ||
 		errors.Is(err, service.ErrPhoneUsedByOpenProspect) ||
-		errors.Is(err, service.ErrProspectAnonymized)
+		errors.Is(err, service.ErrProspectAnonymized) ||
+		errors.Is(err, service.ErrLostReasonSystemCategory)
 }

@@ -278,11 +278,13 @@ func (s *agentHabitService) SetSumberDone(ctx context.Context, tenantID, agentID
 	if err := s.requireActive(ctx, tenantID, agentID); err != nil {
 		return err
 	}
-	if err := s.habitRepo.SetSumberDone(ctx, tenantID, agentID, sumberID, done); err != nil {
+	added, err := s.habitRepo.SetSumberDone(ctx, tenantID, agentID, sumberID, done)
+	if err != nil {
 		return err
 	}
-	if done {
-		// Trying a new source is today's "sumber" habit (unmarking later keeps the day as it was).
+	if added {
+		// Trying a new source is today's "sumber" habit (unmarking later keeps the day as it was). Marking
+		// a source that is already marked (e.g. the page replaying its old local list) earns nothing.
 		if err := s.habitRepo.LogHabit(ctx, tenantID, agentID, "sumber", businessToday(s.now()).Format("2006-01-02")); err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ import { formatDateWIB } from '../../../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import { Plus, PowerOff, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
+import { couponState } from '../shared/statusLabels';
 import { AdminDataGrid, type AdminColumn } from '../components/AdminDataGrid';
 import {
   fetchStaffCoupons,
@@ -92,10 +93,10 @@ export const AdminCouponsView: React.FC = () => {
       render: (row) => (
         <span
           style={{
-            fontFamily: 'var(--sa-font-mono)',
+            fontFamily: 'var(--sa-font-code)',
             fontWeight: 700,
             fontSize: '13px',
-            backgroundColor: 'var(--sa-canvas)',
+            backgroundColor: 'var(--sa-surface)',
             padding: '2px 8px',
             borderRadius: 'var(--sa-radius-sm)',
             border: '1px solid var(--sa-border)',
@@ -109,7 +110,7 @@ export const AdminCouponsView: React.FC = () => {
       key: 'discount_percentage',
       label: 'Diskon',
       render: (row) => (
-        <strong style={{ color: 'var(--sa-text-primary)' }}>
+        <strong style={{ color: 'var(--sa-text)' }}>
           {row.discount_percentage}%
         </strong>
       ),
@@ -118,7 +119,7 @@ export const AdminCouponsView: React.FC = () => {
       key: 'usage',
       label: 'Penggunaan / Kuota',
       render: (row) => (
-        <span style={{ fontSize: '12px', color: 'var(--sa-text-secondary)' }}>
+        <span style={{ fontSize: '13px', color: 'var(--sa-text-secondary)' }}>
           {row.used_count || 0} / {row.max_uses && row.max_uses > 0 ? row.max_uses : 'Tak Terbatas'}
         </span>
       ),
@@ -127,7 +128,7 @@ export const AdminCouponsView: React.FC = () => {
       key: 'expires_at',
       label: 'Berlaku Hingga',
       render: (row) => (
-        <span style={{ fontSize: '12px', color: 'var(--sa-text-muted)' }}>
+        <span style={{ fontSize: '13px', color: 'var(--sa-text-muted)' }}>
           {formatDate(row.expires_at)}
         </span>
       ),
@@ -135,11 +136,12 @@ export const AdminCouponsView: React.FC = () => {
     {
       key: 'status',
       label: 'Status',
-      render: (row) => (
-        <span className={`sa-badge ${row.status === 'active' ? 'sa-badge--active' : 'sa-badge--expired'}`}>
-          {row.status === 'active' ? 'Aktif' : 'Nonaktif'}
-        </span>
-      ),
+      render: (row) => {
+        // Past its expiry day (WIB, like the backend) a coupon is no longer usable even if still "active".
+        const st = couponState(row.status, row.expires_at);
+        const view = { active: { cls: 'sa-badge--active', label: 'Aktif' }, expired: { cls: 'sa-badge--expired', label: 'Kedaluwarsa' }, inactive: { cls: 'sa-badge--expired', label: 'Nonaktif' } }[st];
+        return <span className={`sa-badge ${view.cls}`}>{view.label}</span>;
+      },
     },
     {
       key: 'action',
@@ -160,7 +162,7 @@ export const AdminCouponsView: React.FC = () => {
             <span>Nonaktifkan</span>
           </button>
         ) : (
-          <span style={{ fontSize: '12px', color: 'var(--sa-text-muted)' }}>-</span>
+          <span style={{ fontSize: '13px', color: 'var(--sa-text-muted)' }}>-</span>
         )
       ),
     },
@@ -204,10 +206,10 @@ export const AdminCouponsView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#ECFDF5',
-            border: '1px solid #A7F3D0',
+            backgroundColor: 'var(--sa-green-bg)',
+            border: '1px solid var(--sa-green-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#059669',
+            color: 'var(--db-status-closing)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -224,10 +226,10 @@ export const AdminCouponsView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FECACA',
+            backgroundColor: 'var(--sa-red-bg)',
+            border: '1px solid var(--sa-red-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#DC2626',
+            color: 'var(--db-status-lost)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -256,7 +258,7 @@ export const AdminCouponsView: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: 'var(--sa-overlay-modal)',
             backdropFilter: 'blur(3px)',
             zIndex: 100,
             display: 'flex',
@@ -268,12 +270,12 @@ export const AdminCouponsView: React.FC = () => {
         >
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--sa-card)',
               borderRadius: 'var(--sa-radius-md)',
               maxWidth: '440px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: 'var(--sa-shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -286,7 +288,7 @@ export const AdminCouponsView: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Kode Kupon (Otomatis Huruf Besar):
                 </label>
                 <input
@@ -299,8 +301,8 @@ export const AdminCouponsView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontFamily: 'var(--sa-font-mono)',
-                    fontSize: '13px',
+                    fontFamily: 'var(--sa-font-code)',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -310,7 +312,7 @@ export const AdminCouponsView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Besar Diskon (%):
                 </label>
                 <input
@@ -324,7 +326,7 @@ export const AdminCouponsView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 10px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -335,7 +337,7 @@ export const AdminCouponsView: React.FC = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                     Batas Penggunaan:
                   </label>
                   <input
@@ -348,7 +350,7 @@ export const AdminCouponsView: React.FC = () => {
                       width: '100%',
                       height: '38px',
                       padding: '0 10px',
-                      fontSize: '13px',
+                      fontSize: 'var(--db-text-input)',
                       border: '1px solid var(--sa-border)',
                       borderRadius: 'var(--sa-radius-sm)',
                       outline: 'none',
@@ -358,7 +360,7 @@ export const AdminCouponsView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                     Kedaluwarsa (Opsional):
                   </label>
                   <input
@@ -369,7 +371,7 @@ export const AdminCouponsView: React.FC = () => {
                       width: '100%',
                       height: '38px',
                       padding: '0 10px',
-                      fontSize: '13px',
+                      fontSize: 'var(--db-text-input)',
                       border: '1px solid var(--sa-border)',
                       borderRadius: 'var(--sa-radius-sm)',
                       outline: 'none',

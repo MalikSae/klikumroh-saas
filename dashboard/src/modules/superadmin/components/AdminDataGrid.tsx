@@ -94,7 +94,7 @@ export function AdminDataGrid<T extends Record<string, any>, K = string>({
         <div className="sa-panel__toolbar-left">
           {title && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '6px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--sa-text-primary)' }}>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--sa-text)' }}>
                 {title}
               </span>
               <span className="sa-badge sa-badge--neutral">
@@ -133,7 +133,7 @@ export function AdminDataGrid<T extends Record<string, any>, K = string>({
                 >
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <span style={{ fontSize: '11px', opacity: activeTab === tab.key ? 1 : 0.7 }}>
+                    <span style={{ fontSize: '13px', opacity: activeTab === tab.key ? 1 : 0.7 }}>
                       {tab.count}
                     </span>
                   )}
@@ -225,7 +225,7 @@ export function AdminDataGrid<T extends Record<string, any>, K = string>({
               <ChevronLeft size={16} />
             </button>
 
-            <span style={{ fontSize: '12px', fontWeight: 600, padding: '0 8px', color: 'var(--sa-text-secondary)' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, padding: '0 8px', color: 'var(--sa-text-secondary)' }}>
               {currentPage} / {totalPages}
             </span>
 

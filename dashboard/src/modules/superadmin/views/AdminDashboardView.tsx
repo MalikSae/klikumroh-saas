@@ -190,7 +190,7 @@ export const AdminDashboardView: React.FC = () => {
             <span className="sa-nav-count">{expiringTenants.length}</span>
           </div>
 
-          <div style={{ padding: '0' }}>
+          <div className="sa-table-scroller" style={{ padding: '0' }}>
             {expiringTenants.length === 0 ? (
               <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--sa-text-muted)', fontSize: '13px' }}>
                 Seluruh travel mitra masih memiliki masa aktif langganan yang aman.
@@ -213,7 +213,7 @@ export const AdminDashboardView: React.FC = () => {
                       <td>
                         <span className="sa-pill sa-pill--neutral">{t.plan_name || 'Pro'}</span>
                       </td>
-                      <td style={{ fontSize: '12px' }}>{formatDate(t.subscription_expires_at)}</td>
+                      <td style={{ fontSize: '13px' }}>{formatDate(t.subscription_expires_at)}</td>
                       <td>
                         <span className={`sa-pill ${t.daysLeft <= 0 ? 'sa-pill--red' : t.daysLeft <= 7 ? 'sa-pill--amber' : 'sa-pill--neutral'}`}>
                           {followUpLabel(t.daysLeft)}
@@ -232,7 +232,7 @@ export const AdminDashboardView: React.FC = () => {
                             <span>WhatsApp</span>
                           </a>
                         ) : (
-                          <span style={{ fontSize: '11px', color: 'var(--sa-text-subtle)' }}>-</span>
+                          <span style={{ fontSize: '13px', color: 'var(--sa-text-subtle)' }}>-</span>
                         )}
                       </td>
                     </tr>
@@ -324,14 +324,14 @@ export const AdminDashboardView: React.FC = () => {
                   justifyContent: 'space-between',
                 }}
               >
-                <div style={{ fontSize: '12.5px', color: 'var(--sa-amber-text)', fontWeight: 600 }}>
+                <div style={{ fontSize: '13px', color: 'var(--sa-amber-text)', fontWeight: 600 }}>
                   Ada {metrics?.pending_verifications_count} bukti transfer menunggu review Anda
                 </div>
                 <button
                   type="button"
                   className="sa-action-btn sa-action-btn--primary"
                   onClick={() => navigate('/internal/payment-verifications')}
-                  style={{ height: '26px', fontSize: '11.5px', padding: '0 8px' }}
+                  style={{ height: '26px', fontSize: '13px', padding: '0 8px' }}
                 >
                   <span>Buka Antrean</span>
                   <ArrowRight size={11} />

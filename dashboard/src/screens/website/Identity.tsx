@@ -79,8 +79,10 @@ export const Identity: React.FC = () => {
     setError(null);
     try {
       if (form.tagline !== saved.tagline || form.about !== saved.about) {
-        // The profile endpoint also carries the name and logo: send them unchanged.
-        setProfile(await updateTenantProfile({ ...profile, tagline: form.tagline.trim() || null, about_summary: form.about.trim() || null }));
+        // The profile PUT replaces the name too (owned by Pengaturan > Profil, maybe changed in another tab
+        // since this page loaded): take the current values from the server and change only this page's fields.
+        const latest = await fetchTenantProfile();
+        setProfile(await updateTenantProfile({ ...latest, tagline: form.tagline.trim() || null, about_summary: form.about.trim() || null }));
       }
       if (form.color !== saved.color && form.color.trim()) await updateTenantBranding(form.color.toUpperCase());
       if (form.rating !== saved.rating || form.alumni !== saved.alumni || form.guarantee !== saved.guarantee) {

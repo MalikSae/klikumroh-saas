@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { trackMetaEvent } from '../lib/metaPixel';
+import { parseRouteLegs } from '../lib/flightRoute';
 import {
   ArrowLeft,
   Share2,
@@ -271,15 +272,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
     return [];
   };
 
-  const routeLegs = (text?: string) =>
-    (text || '')
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const parts = line.split(/\s+-\s+/).map((p) => p.trim()).filter(Boolean);
-        return parts.length >= 2 ? { stops: parts, text: '' } : { stops: [] as string[], text: line };
-      });
+  const routeLegs = parseRouteLegs;
 
   const itineraryItems = parseItinerary(pkg.itinerary);
   const includedFacilities = parseLines(pkg.facilities_included);

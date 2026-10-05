@@ -31,6 +31,9 @@ export const AdminSettingsView: React.FC = () => {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // The save is a full replace: never offer the (empty) form when the load failed, or saving after filling
+  // in the bank fields would wipe the terms and privacy URLs.
+  const [loaded, setLoaded] = useState<boolean>(false);
 
   const loadData = async () => {
     try {
@@ -46,7 +49,10 @@ export const AdminSettingsView: React.FC = () => {
         privacy_url: data.privacy_url || '',
       });
       setMissingFields(data.missing_fields || []);
+      setLoaded(true);
     } catch (err: any) {
+      setLoaded(false);
+      setSuccessMessage(null);
       setError(err.message || 'Gagal memuat pengaturan platform');
     } finally {
       setLoading(false);
@@ -93,10 +99,10 @@ export const AdminSettingsView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#ECFDF5',
-            border: '1px solid #A7F3D0',
+            backgroundColor: 'var(--sa-green-bg)',
+            border: '1px solid var(--sa-green-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#059669',
+            color: 'var(--db-status-closing)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -113,10 +119,10 @@ export const AdminSettingsView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FECACA',
+            backgroundColor: 'var(--sa-red-bg)',
+            border: '1px solid var(--sa-red-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#DC2626',
+            color: 'var(--db-status-lost)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -129,7 +135,14 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       )}
 
-      {!loading && missingFields.length > 0 && (
+      {!loading && !loaded && (
+        <button type="button" className="sa-btn sa-btn--secondary" onClick={loadData}>
+          <RefreshCw size={14} />
+          <span>Coba lagi</span>
+        </button>
+      )}
+
+      {!loading && loaded && missingFields.length > 0 && (
         <div
           style={{
             padding: '12px 16px',
@@ -154,12 +167,13 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       )}
 
+      {loaded && (
       <form onSubmit={handleSubmit} style={{ maxWidth: '720px' }}>
         {/* Panel Rekening Bank */}
         <div className="sa-panel" style={{ padding: '24px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <Building2 size={18} style={{ color: 'var(--sa-text-muted)' }} />
-            <h2 style={{ fontFamily: 'var(--sa-font-heading)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
+            <h2 style={{ fontFamily: 'var(--sa-font-display)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
               Rekening Bank Pembayaran Manual
             </h2>
           </div>
@@ -169,7 +183,7 @@ export const AdminSettingsView: React.FC = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                 Nama Bank:
               </label>
               <input
@@ -181,7 +195,7 @@ export const AdminSettingsView: React.FC = () => {
                   width: '100%',
                   height: '38px',
                   padding: '0 12px',
-                  fontSize: '13px',
+                  fontSize: 'var(--db-text-input)',
                   border: '1px solid var(--sa-border)',
                   borderRadius: 'var(--sa-radius-sm)',
                   outline: 'none',
@@ -192,7 +206,7 @@ export const AdminSettingsView: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Nomor Rekening:
                 </label>
                 <input
@@ -204,8 +218,8 @@ export const AdminSettingsView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
-                    fontFamily: 'var(--sa-font-mono)',
+                    fontSize: 'var(--db-text-input)',
+                    fontFamily: 'var(--sa-font-code)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -215,7 +229,7 @@ export const AdminSettingsView: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Atas Nama (Pemilik Rekening):
                 </label>
                 <input
@@ -227,7 +241,7 @@ export const AdminSettingsView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -243,7 +257,7 @@ export const AdminSettingsView: React.FC = () => {
         <div className="sa-panel" style={{ padding: '24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <Phone size={18} style={{ color: 'var(--sa-text-muted)' }} />
-            <h2 style={{ fontFamily: 'var(--sa-font-heading)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
+            <h2 style={{ fontFamily: 'var(--sa-font-display)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
               Dukungan & Helpdesk Resmi
             </h2>
           </div>
@@ -252,7 +266,7 @@ export const AdminSettingsView: React.FC = () => {
           </p>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Nomor WhatsApp CS:
             </label>
             <input
@@ -264,7 +278,7 @@ export const AdminSettingsView: React.FC = () => {
                 width: '100%',
                 height: '38px',
                 padding: '0 12px',
-                fontSize: '13px',
+                fontSize: 'var(--db-text-input)',
                 border: '1px solid var(--sa-border)',
                 borderRadius: 'var(--sa-radius-sm)',
                 outline: 'none',
@@ -278,7 +292,7 @@ export const AdminSettingsView: React.FC = () => {
         <div className="sa-panel" style={{ padding: '24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <FileText size={18} style={{ color: 'var(--sa-text-muted)' }} />
-            <h2 style={{ fontFamily: 'var(--sa-font-heading)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
+            <h2 style={{ fontFamily: 'var(--sa-font-display)', fontSize: '16px', fontWeight: 700, margin: 0 }}>
               Dokumen Legal
             </h2>
           </div>
@@ -292,7 +306,7 @@ export const AdminSettingsView: React.FC = () => {
               ['privacy_url', 'URL Kebijakan Privasi:', 'https://klikumroh.id/kebijakan-privasi'],
             ] as const).map(([key, label, placeholder]) => (
               <div key={key}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   {label}
                 </label>
                 <input
@@ -304,7 +318,7 @@ export const AdminSettingsView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -328,6 +342,7 @@ export const AdminSettingsView: React.FC = () => {
           </button>
         </div>
       </form>
+      )}
     </AdminLayout>
   );
 };

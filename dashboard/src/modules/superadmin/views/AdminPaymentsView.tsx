@@ -113,7 +113,7 @@ export const AdminPaymentsView: React.FC = () => {
       label: 'ID',
       width: '60px',
       render: (row) => (
-        <span style={{ fontWeight: 600, color: 'var(--sa-text-muted)', fontSize: '12px' }}>
+        <span style={{ fontWeight: 600, color: 'var(--sa-text-muted)', fontSize: '13px' }}>
           #{row.id}
         </span>
       ),
@@ -128,7 +128,7 @@ export const AdminPaymentsView: React.FC = () => {
             <span style={{ fontWeight: 600, color: 'var(--sa-text)' }}>
               {row.tenant_name}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', flexWrap: 'nowrap' }}>
               {row.tenant_whatsapp ? (
                 <a
                   href={`https://wa.me/${waClean}?text=${encodeURIComponent(`Halo ${row.tenant_name}, terkait verifikasi pembayaran paket ${row.plan_name || ''} di KlikUmroh...`)}`}
@@ -187,11 +187,11 @@ export const AdminPaymentsView: React.FC = () => {
       label: 'Nominal Transfer',
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <strong style={{ color: 'var(--sa-text-primary)', fontFamily: 'var(--sa-font-heading)' }}>
+          <strong style={{ color: 'var(--sa-text)', fontFamily: 'var(--sa-font-display)' }}>
             {formatIDR(row.final_amount ?? row.amount)}
           </strong>
           {row.coupon_code && (
-            <span style={{ fontSize: '11px', color: '#15803D', fontWeight: 600 }}>
+            <span style={{ fontSize: '13px', color: 'var(--sa-green-strong)', fontWeight: 600 }}>
               Kupon: {row.coupon_code}
             </span>
           )}
@@ -202,7 +202,7 @@ export const AdminPaymentsView: React.FC = () => {
       key: 'created_at',
       label: 'Tanggal Tagihan',
       render: (row) => (
-        <span style={{ fontSize: '12px', color: 'var(--sa-text-muted)' }}>
+        <span style={{ fontSize: '13px', color: 'var(--sa-text-muted)' }}>
           {formatDate(row.created_at)}
         </span>
       ),
@@ -276,10 +276,10 @@ export const AdminPaymentsView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#ECFDF5',
-            border: '1px solid #A7F3D0',
+            backgroundColor: 'var(--sa-green-bg)',
+            border: '1px solid var(--sa-green-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#059669',
+            color: 'var(--db-status-closing)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -296,10 +296,10 @@ export const AdminPaymentsView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FECACA',
+            backgroundColor: 'var(--sa-red-bg)',
+            border: '1px solid var(--sa-red-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#DC2626',
+            color: 'var(--db-status-lost)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',

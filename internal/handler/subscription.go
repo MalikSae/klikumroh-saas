@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"klikumroh/internal/middleware"
+	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
 	"klikumroh/internal/util"
 )
@@ -140,7 +142,18 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 		if savedProofAbsPath != "" {
 			_ = os.Remove(savedProofAbsPath)
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		switch {
+		case errors.Is(err, service.ErrPlanNotFound), isCouponClientError(err):
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		case errors.Is(err, service.ErrVerificationNotPending), errors.Is(err, service.ErrVerificationAlreadyDone):
+			respondJSON(w, http.StatusConflict, map[string]string{"error": "Tagihan sudah diproses tim KlikUmroh. Muat ulang halaman lalu periksa lagi."})
+		case errors.Is(err, repository.ErrNotFound):
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data tagihan tidak ditemukan"})
+		default:
+			// Database and other server faults are logged, never shown as raw text.
+			log.Printf("[Subscription] tenant %d renewal request: %v", tenantID, err)
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal mengajukan perpanjangan, coba lagi"})
+		}
 		return
 	}
 

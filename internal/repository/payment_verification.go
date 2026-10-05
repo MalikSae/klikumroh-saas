@@ -551,3 +551,26 @@ func (r *mysqlPaymentVerificationRepository) scanList(rows *sql.Rows) ([]Payment
 
 	return list, nil
 }
+
+// PendingFinalAmounts lists the totals of every open (pending) invoice between minAmount and maxAmount,
+// leaving out excludeID. It is used to pick a unique transfer code: the bank statement is matched to an
+// invoice by its total, so two open invoices must never share one. Platform-wide by design (the bank
+// account is KlikUmroh's, shared by every travel); only amounts are returned, never tenant data.
+func (r *mysqlPaymentVerificationRepository) PendingFinalAmounts(ctx context.Context, minAmount, maxAmount float64, excludeID uint64) ([]float64, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT final_amount FROM payment_verifications
+		WHERE status = 'pending' AND final_amount BETWEEN ? AND ? AND id <> ?`, minAmount, maxAmount, excludeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []float64{}
+	for rows.Next() {
+		var v float64
+		if err := rows.Scan(&v); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}

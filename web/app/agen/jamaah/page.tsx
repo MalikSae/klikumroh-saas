@@ -152,11 +152,16 @@ export default function AgenJamaahListPage() {
       setTotal(typeof data?.total === 'number' ? data.total : items.length);
       setPage(pageToLoad);
     } catch (err: unknown) {
+      // A superseded request (newer tab or search started) must not show its error over the newer one.
+      if (seq !== requestSeq.current) return;
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data';
       setError(msg);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      // Only the latest request ends the loading state; otherwise the old tab's rows show under the new chip.
+      if (seq === requestSeq.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 

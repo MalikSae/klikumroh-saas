@@ -34,6 +34,9 @@ export async function GET(
         'X-Forwarded-For': forwardedFor,
       },
       body: JSON.stringify({ referral_code: code }),
+      cache: 'no-store',
+      // Best-effort: on a slow backend the visitor is still redirected (landing path + ?ref kept).
+      signal: AbortSignal.timeout(1500),
     });
   } catch (err) {
     // Non-blocking: redirect still succeeds even if tracking fails temporarily

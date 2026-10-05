@@ -210,7 +210,7 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Syarat & Ketentuan wajib disetujui"})
 			return
 		}
-		if errors.Is(err, service.ErrAgentPasswordTooShort) {
+		if errors.Is(err, service.ErrAgentPasswordTooShort) || errors.Is(err, service.ErrReferralAgentNotActive) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -457,9 +457,41 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Swap the file in BEFORE the record changes, keeping the old proof aside: if the record update then
+	// fails, the old file is put back. The other order could leave the record saying a new proof was sent
+	// (pending verification) while the old file stays in place, and a retry is then refused (409).
+	backupPath := tmpPath + ".old"
+	hadOld := false
+	if err := os.Rename(absPath, backupPath); err == nil {
+		hadOld = true
+	} else if !os.IsNotExist(err) {
+		_ = os.Remove(tmpPath)
+		log.Printf("agent payment proof (tenant %d, agent %d): keep old file: %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan bukti pembayaran"})
+		return
+	}
+	restoreOld := func() {
+		if hadOld {
+			if err := os.Rename(backupPath, absPath); err != nil {
+				log.Printf("agent payment proof (tenant %d, agent %d): restore old file: %v", tenantID, agentID, err)
+			}
+		}
+	}
+	if err := os.Rename(tmpPath, absPath); err != nil {
+		_ = os.Remove(tmpPath)
+		restoreOld()
+		log.Printf("agent payment proof (tenant %d, agent %d): replace file: %v", tenantID, agentID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan bukti pembayaran"})
+		return
+	}
+
 	updated, err := h.agentService.UpdatePaymentProof(r.Context(), tenantID, agentID, relPath)
 	if err != nil {
-		_ = os.Remove(tmpPath)
+		if hadOld {
+			restoreOld() // overwrites the new file with the old proof
+		} else {
+			_ = os.Remove(absPath)
+		}
 		switch {
 		case errors.Is(err, service.ErrInvalidPaymentState):
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
@@ -473,11 +505,8 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	if err := os.Rename(tmpPath, absPath); err != nil {
-		_ = os.Remove(tmpPath)
-		log.Printf("agent payment proof (tenant %d, agent %d): replace file: %v", tenantID, agentID, err)
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal menyimpan bukti pembayaran"})
-		return
+	if hadOld {
+		_ = os.Remove(backupPath)
 	}
 
 	respondJSON(w, http.StatusOK, updated)

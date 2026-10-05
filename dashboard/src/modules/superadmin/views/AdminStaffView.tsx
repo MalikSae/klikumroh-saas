@@ -224,7 +224,7 @@ export const AdminStaffView: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 700,
-                fontSize: '11.5px',
+                fontSize: '13px',
                 color: 'var(--sa-text)',
                 fontFamily: 'var(--sa-font-code)',
                 flexShrink: 0,
@@ -240,13 +240,13 @@ export const AdminStaffView: React.FC = () => {
                 {isSelf && (
                   <span
                     className="sa-pill sa-pill--neutral"
-                    style={{ fontSize: '10.5px', padding: '1px 6px', fontWeight: 600 }}
+                    style={{ fontSize: '13px', padding: '1px 6px', fontWeight: 600 }}
                   >
                     Anda
                   </span>
                 )}
               </div>
-              <span style={{ color: 'var(--sa-text-muted)', fontSize: '12px', fontFamily: 'var(--sa-font-code)' }}>
+              <span style={{ color: 'var(--sa-text-muted)', fontSize: '13px', fontFamily: 'var(--sa-font-code)' }}>
                 {row.email}
               </span>
             </div>
@@ -274,7 +274,7 @@ export const AdminStaffView: React.FC = () => {
       key: 'created_at',
       label: 'Terdaftar Sejak',
       render: (row) => (
-        <span style={{ fontSize: '12.5px', color: 'var(--sa-text-muted)' }}>
+        <span style={{ fontSize: '13px', color: 'var(--sa-text-muted)' }}>
           {formatDate(row.created_at)}
         </span>
       ),
@@ -447,7 +447,7 @@ export const AdminStaffView: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.5)',
+            backgroundColor: 'var(--sa-overlay-modal)',
             backdropFilter: 'blur(2px)',
             display: 'flex',
             alignItems: 'center',
@@ -461,7 +461,7 @@ export const AdminStaffView: React.FC = () => {
             style={{
               backgroundColor: 'var(--sa-card)',
               borderRadius: 'var(--sa-radius-sm)',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              boxShadow: 'var(--sa-shadow-modal)',
               width: '100%',
               maxWidth: '440px',
               maxHeight: '90vh',
@@ -488,7 +488,7 @@ export const AdminStaffView: React.FC = () => {
                   border: '1px solid var(--sa-red-border)',
                   borderRadius: 'var(--sa-radius-sm)',
                   color: 'var(--sa-red-text)',
-                  fontSize: '12.5px',
+                  fontSize: '13px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -502,7 +502,7 @@ export const AdminStaffView: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
                   <User size={13} style={{ color: 'var(--sa-text-muted)' }} />
                   <span>Nama Lengkap:</span>
                 </label>
@@ -516,7 +516,7 @@ export const AdminStaffView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -528,7 +528,7 @@ export const AdminStaffView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
                   <Mail size={13} style={{ color: 'var(--sa-text-muted)' }} />
                   <span>Email Login:</span>
                 </label>
@@ -542,7 +542,7 @@ export const AdminStaffView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -554,7 +554,7 @@ export const AdminStaffView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
                   <Lock size={13} style={{ color: 'var(--sa-text-muted)' }} />
                   <span>Kata Sandi:</span>
                 </label>
@@ -571,7 +571,7 @@ export const AdminStaffView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -580,7 +580,7 @@ export const AdminStaffView: React.FC = () => {
                     color: 'var(--sa-text)',
                   }}
                 />
-                <span style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: 'var(--sa-text-muted)' }}>
+                <span style={{ display: 'block', marginTop: '4px', fontSize: '13px', color: 'var(--sa-text-muted)' }}>
                   {editingStaff
                     ? 'Hanya diisi jika Anda ingin menyetel ulang kata sandi pengguna ini.'
                     : 'Gunakan kombinasi huruf, angka, dan simbol untuk keamanan maksimal.'}
@@ -588,7 +588,7 @@ export const AdminStaffView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '22px' }}>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--sa-text)', marginBottom: '6px' }}>
                   Status Akun:
                 </label>
                 <CustomDropdown
@@ -601,7 +601,7 @@ export const AdminStaffView: React.FC = () => {
                   ]}
                 />
                 {editingStaff && currentUser && currentUser.id === editingStaff.id && (
-                  <span style={{ display: 'block', marginTop: '4px', fontSize: '11px', color: 'var(--sa-text-muted)' }}>
+                  <span style={{ display: 'block', marginTop: '4px', fontSize: '13px', color: 'var(--sa-text-muted)' }}>
                     Akun yang sedang Anda gunakan tidak dapat diubah statusnya menjadi nonaktif.
                   </span>
                 )}

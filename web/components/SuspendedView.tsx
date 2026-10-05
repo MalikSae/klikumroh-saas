@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React from 'react';
-import { AlertTriangle, MessageCircle, Phone, Mail, LogIn } from 'lucide-react';
+import { AlertTriangle, LogIn } from 'lucide-react';
 import { MobileContainer } from './MobileContainer';
 import type { PublicTenantInfo } from '../app/page';
 import './SuspendedView.css';
@@ -10,16 +10,12 @@ export interface SuspendedViewProps {
   tenantInfo: PublicTenantInfo | null;
 }
 
+// Shown to public visitors while the travel's subscription is suspended: it only says the website is
+// temporarily inactive. No contact to the travel here (no WhatsApp, phone or email): public contact goes
+// through the prospect form, which is closed while suspended (founder decision, 5 Oct 2026).
 export const SuspendedView: React.FC<SuspendedViewProps> = ({ tenantInfo }) => {
   const brandPrimary = tenantInfo?.brand_primary_color;
   const travelName = tenantInfo?.name || 'Travel Umroh';
-
-  const formatWaUrl = (phone: string, travel: string) => {
-    let clean = phone.replace(/[^0-9]/g, '');
-    if (clean.startsWith('0')) clean = '62' + clean.slice(1);
-    const msg = `Halo ${travel}, saya ingin menanyakan informasi paket umroh.`;
-    return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
-  };
 
   return (
     <div
@@ -55,39 +51,6 @@ export const SuspendedView: React.FC<SuspendedViewProps> = ({ tenantInfo }) => {
             <p className="tw-suspended-desc">
               Mohon maaf atas ketidaknyamanan ini. Website resmi travel ini sedang dinonaktifkan sementara karena masa aktif lisensi software telah berakhir dan dalam proses perpanjangan oleh pengelola travel.
             </p>
-
-            {/* Customer Contact Assistance */}
-            {(tenantInfo?.whatsapp_number || tenantInfo?.phone || tenantInfo?.email) && (
-              <div className="tw-suspended-contacts">
-                <span className="tw-suspended-contacts-label">Kontak Resmi Travel</span>
-
-                {tenantInfo.whatsapp_number && (
-                  <a
-                    href={formatWaUrl(tenantInfo.whatsapp_number, travelName)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tw-suspended-wa-btn"
-                  >
-                    <MessageCircle size={18} />
-                    <span>Hubungi Pengelola via WhatsApp</span>
-                  </a>
-                )}
-
-                {tenantInfo.phone && !tenantInfo.whatsapp_number && (
-                  <a href={`tel:${tenantInfo.phone}`} className="tw-suspended-contact-item">
-                    <Phone size={15} />
-                    <span>{tenantInfo.phone}</span>
-                  </a>
-                )}
-
-                {tenantInfo.email && (
-                  <a href={`mailto:${tenantInfo.email}`} className="tw-suspended-contact-item">
-                    <Mail size={15} />
-                    <span>{tenantInfo.email}</span>
-                  </a>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Admin Owner Quick Access */}

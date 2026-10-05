@@ -363,7 +363,17 @@ func (h *StaffHandler) UpdateTenantSubscription(w http.ResponseWriter, r *http.R
 	}
 
 	if err := h.staffService.UpdateTenantSubscription(r.Context(), tenantID, req.PlanID, staffUserID, req.PeriodMonths); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui langganan: " + err.Error()})
+		switch {
+		case errors.Is(err, service.ErrPlanNotFound):
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Paket langganan tidak ditemukan"})
+		case errors.Is(err, service.ErrStaffTenantNotFound):
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Travel tidak ditemukan"})
+		case errors.Is(err, service.ErrInvalidManualPeriod):
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Masa langganan harus 1-120 bulan"})
+		default:
+			log.Printf("staff update subscription (tenant %d): %v", tenantID, err)
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui langganan, coba lagi"})
+		}
 		return
 	}
 
@@ -423,7 +433,12 @@ func (h *StaffHandler) CreateStaffUser(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if isStaffUserInputError(err) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("staff create user: %v", err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal membuat akun staf"})
 		return
 	}
 
@@ -465,11 +480,23 @@ func (h *StaffHandler) UpdateStaffUser(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if isStaffUserInputError(err) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("staff update user %d: %v", targetID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui akun staf"})
 		return
 	}
 
 	respondJSON(w, http.StatusOK, user)
+}
+
+// isStaffUserInputError: validation errors of the staff user form, shown to the user as 400.
+func isStaffUserInputError(err error) bool {
+	return errors.Is(err, service.ErrStaffNameRequired) ||
+		errors.Is(err, service.ErrStaffEmailInvalid) ||
+		errors.Is(err, service.ErrStaffPasswordTooShort)
 }
 
 

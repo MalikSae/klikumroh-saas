@@ -29,6 +29,19 @@ var ErrStaffCannotDeactivateSelf = errors.New("tidak dapat menonaktifkan akun se
 // ErrStaffNotFound is returned when a requested staff user does not exist.
 var ErrStaffNotFound = errors.New("data staf tidak ditemukan")
 
+// Validation errors of the staff user and manual subscription forms (shown to staff as 400).
+var (
+	ErrStaffNameRequired     = errors.New("nama staf wajib diisi")
+	ErrStaffEmailInvalid     = errors.New("format email tidak valid")
+	ErrStaffPasswordTooShort = errors.New("password minimal 8 karakter")
+	// ErrStaffTenantNotFound: the travel of a staff action does not exist.
+	ErrStaffTenantNotFound = errors.New("travel tidak ditemukan")
+	ErrInvalidManualPeriod = errors.New("masa langganan manual harus 1-120 bulan")
+)
+
+// MaxManualPeriodMonths caps a manual subscription change by staff (10 years).
+const MaxManualPeriodMonths = 120
+
 // ErrAccessReasonInvalid is returned when staff impersonates a tenant without a sufficiently descriptive reason.
 var ErrAccessReasonInvalid = errors.New("alasan akses wajib diisi minimal 10 karakter dan maksimal 255 karakter")
 
@@ -364,14 +377,15 @@ func (s *staffService) GetTenantDetail(ctx context.Context, tenantID uint64, sta
 				if d.Type == "subdomain" && d.Hostname != "" {
 					detail.Domain.Subdomain = d.Hostname
 					detail.Subdomain = d.Hostname
-				} else if d.Type == "custom" {
-					host := d.Hostname
-					st := d.Status
-					detail.Domain.CustomDomain = &host
-					detail.Domain.CustomDomainStatus = &st
-					detail.CustomDomain = &host
-					detail.CustomDomainStatus = &st
 				}
+			}
+			if d := pickPrimaryCustomDomain(domains); d != nil {
+				host := d.Hostname
+				st := d.Status
+				detail.Domain.CustomDomain = &host
+				detail.Domain.CustomDomainStatus = &st
+				detail.CustomDomain = &host
+				detail.CustomDomainStatus = &st
 			}
 		}
 	}
@@ -534,10 +548,21 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 	metrics.EstimatedARR = metrics.EstimatedMRR * 12
 
 	if s.pvRepo != nil {
+		// The demo travel's invoices are not customer payments (its billing writes are blocked by DemoGuard;
+		// older rows may still exist).
+		demoTenants := map[uint64]bool{}
+		for _, t := range allTenants {
+			if t.IsDemo {
+				demoTenants[t.ID] = true
+			}
+		}
 		pvs, pErr := s.pvRepo.ListAll(ctx, "pending")
 		if pErr == nil {
-			metrics.PendingVerificationsCount = len(pvs)
 			for _, pv := range pvs {
+				if demoTenants[pv.TenantID] {
+					continue
+				}
+				metrics.PendingVerificationsCount++
 				metrics.PendingVerificationsTotal += pv.FinalAmount
 			}
 		}
@@ -632,8 +657,14 @@ func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID ui
 	if s.tenantRepo == nil || s.planRepo == nil {
 		return errors.New("repository not configured")
 	}
+	if len(customPeriodMonths) > 0 && (customPeriodMonths[0] < 0 || customPeriodMonths[0] > MaxManualPeriodMonths) {
+		return ErrInvalidManualPeriod
+	}
 	plan, err := s.planRepo.GetByID(ctx, planID)
 	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrPlanNotFound
+		}
 		return err
 	}
 	months := plan.PeriodMonths
@@ -643,6 +674,9 @@ func (s *staffService) UpdateTenantSubscription(ctx context.Context, tenantID ui
 
 	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
 	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrStaffTenantNotFound
+		}
 		return err
 	}
 
@@ -706,13 +740,13 @@ func (s *staffService) CreateStaffUser(ctx context.Context, name, email, passwor
 	status = strings.ToLower(strings.TrimSpace(status))
 
 	if name == "" {
-		return nil, errors.New("nama staf wajib diisi")
+		return nil, ErrStaffNameRequired
 	}
 	if email == "" || !strings.Contains(email, "@") {
-		return nil, errors.New("format email tidak valid")
+		return nil, ErrStaffEmailInvalid
 	}
 	if !passwordLongEnough(password) {
-		return nil, errors.New("password minimal 8 karakter")
+		return nil, ErrStaffPasswordTooShort
 	}
 	if status != "active" && status != "inactive" {
 		status = "active"
@@ -739,6 +773,9 @@ func (s *staffService) CreateStaffUser(ctx context.Context, name, email, passwor
 	}
 
 	if err := s.staffRepo.Create(ctx, newUser); err != nil {
+		if repository.IsDuplicateKey(err) {
+			return nil, ErrStaffEmailExists // lost a race with another request for the same email
+		}
 		return nil, err
 	}
 
@@ -757,10 +794,10 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 	status = strings.ToLower(strings.TrimSpace(status))
 
 	if name == "" {
-		return nil, errors.New("nama staf wajib diisi")
+		return nil, ErrStaffNameRequired
 	}
 	if email == "" || !strings.Contains(email, "@") {
-		return nil, errors.New("format email tidak valid")
+		return nil, ErrStaffEmailInvalid
 	}
 	if status != "active" && status != "inactive" {
 		status = "active"
@@ -796,7 +833,7 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 	if password != nil && strings.TrimSpace(*password) != "" {
 		pwd := *password
 		if !passwordLongEnough(pwd) {
-			return nil, errors.New("password baru minimal 8 karakter")
+			return nil, ErrStaffPasswordTooShort
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
 		if err != nil {
@@ -816,9 +853,15 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 			keep = currentToken
 		}
 		if err := s.staffRepo.UpdateAndRevokeSessions(ctx, existing, keep); err != nil {
+			if repository.IsDuplicateKey(err) {
+				return nil, ErrStaffEmailExists
+			}
 			return nil, err
 		}
 	} else if err := s.staffRepo.Update(ctx, existing); err != nil {
+		if repository.IsDuplicateKey(err) {
+			return nil, ErrStaffEmailExists
+		}
 		return nil, err
 	}
 
@@ -829,4 +872,24 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 		Status:    existing.Status,
 		CreatedAt: existing.CreatedAt,
 	}, nil
+}
+
+// pickPrimaryCustomDomain is the custom domain shown on the staff tenant detail: the primary one (no
+// RedirectToDomainID, e.g. www.namatravel.com) over its redirecting alias (namatravel.com), whatever the
+// list order. The alias is shown only when the travel has no primary custom domain.
+func pickPrimaryCustomDomain(domains []repository.Domain) *repository.Domain {
+	var alias *repository.Domain
+	for i := range domains {
+		d := &domains[i]
+		if d.Type != "custom" {
+			continue
+		}
+		if d.RedirectToDomainID == nil {
+			return d
+		}
+		if alias == nil {
+			alias = d
+		}
+	}
+	return alias
 }

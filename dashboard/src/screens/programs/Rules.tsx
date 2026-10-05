@@ -110,8 +110,12 @@ export const Rules: React.FC = () => {
       if (form.releaseOn !== saved.releaseOn) await updateCommissionReleasePolicy(form.releaseOn);
       const agentKeys: Array<keyof Form> = ['minPayout', 'fee', 'bankName', 'bankNumber', 'bankHolder', 'benefits', 'terms'];
       if (agentKeys.some((k) => form[k] !== saved[k])) {
+        // The PUT replaces every column, agent_poster_url included. The poster is saved by its own
+        // upload/delete calls (maybe from another tab), so take it fresh from the server, not from load time.
+        const latest = await fetchTenantAgentSettings();
         const next: TenantAgentSettings = {
           ...(agentSettings as TenantAgentSettings),
+          agent_poster_url: latest.agent_poster_url ?? null,
           minimum_payout_amount: minPayout,
           agent_registration_fee: feeVal,
           agent_bank_name: form.bankName.trim() || null,

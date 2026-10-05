@@ -13,6 +13,7 @@ import { fetchHabitSummary } from '../../../lib/agentHabits';
 import { jakartaDateLabel } from '../../../lib/jakartaTime';
 import { isBlankPassword, newPasswordError } from '../../../lib/passwordRules';
 import { agentPhoneError } from '../../../lib/agentPhone';
+import { copyToClipboard } from '../../../lib/clipboard';
 import './AgenProfil.css';
 
 interface AgentProfileData {
@@ -441,9 +442,10 @@ export default function AgenProfilPage() {
     setPasswordMsg(null);
     setSheet(s);
   };
-  const copyReferral = () => {
+  // 'Tersalin' only once the code is really copied (in-app browsers may block the clipboard).
+  const copyReferral = async () => {
     if (!agent?.referral_code) return;
-    navigator.clipboard.writeText(agent.referral_code).catch(() => {});
+    if (!(await copyToClipboard(agent.referral_code))) return;
     setRefCopied(true);
     setTimeout(() => setRefCopied(false), 2000);
   };

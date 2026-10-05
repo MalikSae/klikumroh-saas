@@ -237,6 +237,13 @@ func (s *subscriptionService) CreateRenewalRequest(
 				return nil, ErrAffiliatorCouponSignupOnly
 			}
 		}
+		var openID uint64
+		if pending != nil {
+			openID = pending.ID // the invoice this request updates does not count against the coupon
+		}
+		if err := s.couponUsedByTenant(ctx, tenantID, c, existingHistory, openID, true); err != nil {
+			return nil, err
+		}
 		coupon = c
 	} else if pending != nil && pending.CouponCode != nil {
 		// A travel that has not paid yet and changes plan keeps the affiliator coupon of its signup
@@ -244,7 +251,7 @@ func (s *subscriptionService) CreateRenewalRequest(
 		// after the affiliator replaced its code.
 		if c, err := s.couponRepo.FindByCode(ctx, *pending.CouponCode); err == nil && c.AffiliatorID != nil &&
 			(c.PlanID == nil || *c.PlanID == planID) && s.couponHonoredAtApproval(ctx, pending, c) == nil {
-			allowed, err := s.affiliatorCouponAllowed(ctx, tenantID, c, existingHistory)
+			allowed, err := s.affiliatorCouponCarryAllowed(ctx, tenantID, c, existingHistory)
 			if err != nil {
 				return nil, err
 			}
@@ -267,7 +274,11 @@ func (s *subscriptionService) CreateRenewalRequest(
 	uniqueCode := 0
 	finalAmount := discountedAmount
 	if discountedAmount > 0 {
-		uniqueCode = rand.Intn(900) + 100
+		var excludeID uint64
+		if pending != nil {
+			excludeID = pending.ID
+		}
+		uniqueCode = pickUniqueCode(ctx, s.pvRepo, discountedAmount, excludeID, 0)
 		finalAmount = discountedAmount + float64(uniqueCode)
 	}
 
@@ -532,7 +543,13 @@ func (s *subscriptionService) ApproveVerificationExpecting(ctx context.Context, 
 	// that many through and stops the rest here, and staff can then remove the coupon or reject.
 	var consumedCouponID uint64
 	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" {
-		if coupon, err := s.couponRepo.FindByCode(ctx, *pv.CouponCode); err == nil && coupon != nil {
+		coupon, err := s.couponRepo.FindByCode(ctx, *pv.CouponCode)
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			// A failed lookup must not approve the discounted price without counting the coupon.
+			s.releaseApprovalClaim(ctx, pv.ID)
+			return err
+		}
+		if err == nil && coupon != nil {
 			if err := s.couponHonoredAtApproval(ctx, pv, coupon); err != nil {
 				s.releaseApprovalClaim(ctx, pv.ID)
 				return err
@@ -738,7 +755,13 @@ func (s *subscriptionService) couponHonoredAtApproval(ctx context.Context, pv *r
 			return ErrCouponExpired
 		}
 	}
-	return nil
+	// One coupon per travel, checked again here so two invoices carrying the same coupon cannot both be
+	// approved: an invoice approved meanwhile (or claimed by a concurrent approval) counts against it.
+	history, err := s.pvRepo.ListByTenant(ctx, pv.TenantID)
+	if err != nil {
+		return err
+	}
+	return s.couponUsedByTenant(ctx, pv.TenantID, coupon, history, pv.ID, false)
 }
 
 // affiliatorCouponAllowed: an affiliator coupon discounts only a travel's first payment (keputusan
@@ -851,9 +874,7 @@ func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verifi
 	uniqueCode := pv.UniqueCode
 	finalAmount := discountedAmount
 	if discountedAmount > 0 {
-		if uniqueCode <= 0 {
-			uniqueCode = rand.Intn(900) + 100
-		}
+		uniqueCode = pickUniqueCode(ctx, s.pvRepo, discountedAmount, pv.ID, uniqueCode)
 		finalAmount = discountedAmount + float64(uniqueCode)
 	} else {
 		uniqueCode = 0
@@ -898,6 +919,30 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 		if err != nil {
 			return nil, err
 		}
+		history, err := s.pvRepo.ListByTenant(ctx, pv.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		// Same rules as the travel's own billing page: an affiliator coupon only on the first payment of a
+		// travel brought by that affiliator (the commission goes to the travel's own affiliator), and a
+		// coupon once per travel.
+		if coupon.AffiliatorID != nil {
+			allowed := false
+			if sameCouponCode(pv.CouponCode, &coupon.Code) {
+				allowed, err = s.affiliatorCouponCarryAllowed(ctx, pv.TenantID, coupon, history)
+			} else {
+				allowed, err = s.affiliatorCouponAllowed(ctx, pv.TenantID, coupon, history)
+			}
+			if err != nil {
+				return nil, err
+			}
+			if !allowed {
+				return nil, ErrAffiliatorCouponSignupOnly
+			}
+		}
+		if err := s.couponUsedByTenant(ctx, pv.TenantID, coupon, history, pv.ID, true); err != nil {
+			return nil, err
+		}
 		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
 		discountedAmount = math.Round(baseAmount - discount)
 		if discountedAmount < 0 {
@@ -911,9 +956,7 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 	uniqueCode := pv.UniqueCode
 	finalAmount := discountedAmount
 	if discountedAmount > 0 {
-		if uniqueCode <= 0 {
-			uniqueCode = rand.Intn(900) + 100
-		}
+		uniqueCode = pickUniqueCode(ctx, s.pvRepo, discountedAmount, pv.ID, uniqueCode)
 		finalAmount = discountedAmount + float64(uniqueCode)
 	} else {
 		uniqueCode = 0
@@ -929,4 +972,113 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 		return nil, err
 	}
 	return updatedPV, nil
+}
+
+// couponUsedByTenant applies "one coupon per travel" (keputusan pendiri 5 Okt 2026): ErrCouponUsedByTenant
+// when the travel already has an approved payment with this coupon (coupon_redemptions, or an approved
+// invoice carrying the code) or, when includePending, another open invoice of the travel carries it.
+// excludeID is the invoice being created, edited or approved, which never counts against itself.
+func (s *subscriptionService) couponUsedByTenant(ctx context.Context, tenantID uint64, coupon *repository.Coupon, history []repository.PaymentVerification, excludeID uint64, includePending bool) error {
+	redeemed, err := s.couponRepo.HasTenantRedeemed(ctx, tenantID, coupon.ID)
+	if err != nil {
+		return err
+	}
+	if redeemed {
+		return ErrCouponUsedByTenant
+	}
+	for i := range history {
+		h := history[i]
+		if h.ID == excludeID || h.TenantID != tenantID || !sameCouponCode(h.CouponCode, &coupon.Code) {
+			continue
+		}
+		if h.Status == "approved" || (includePending && h.Status == "pending") {
+			return ErrCouponUsedByTenant
+		}
+	}
+	return nil
+}
+
+// CouponUsableByTenant is the "one coupon per travel" check for the dashboard coupon check
+// (GET /api/dashboard/coupons/validate). The travel's open invoice is the one the coupon would go on, so
+// it does not count against the coupon.
+func (s *subscriptionService) CouponUsableByTenant(ctx context.Context, tenantID uint64, coupon *repository.Coupon) error {
+	history, err := s.pvRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	var openID uint64
+	for i := range history {
+		if history[i].Status == "pending" {
+			openID = history[i].ID
+			break
+		}
+	}
+	return s.couponUsedByTenant(ctx, tenantID, coupon, history, openID, true)
+}
+
+// affiliatorCouponCarryAllowed: the affiliator coupon already on the travel's open signup invoice stays
+// when the travel changes plan before its first approved payment. It is honored also when the signup
+// was not attributed to the affiliator (e.g. refused by the self-referral guard): the founder rule is
+// that the coupon discount still applies then, only the commission is refused. It is not honored when
+// the travel is attributed to a different affiliator.
+func (s *subscriptionService) affiliatorCouponCarryAllowed(ctx context.Context, tenantID uint64, coupon *repository.Coupon, history []repository.PaymentVerification) (bool, error) {
+	if coupon.AffiliatorID == nil {
+		return true, nil
+	}
+	for i := range history {
+		if history[i].Status == "approved" {
+			return false, nil
+		}
+	}
+	if s.affiliators == nil {
+		return false, nil
+	}
+	tenantAffiliator, err := s.affiliators.TenantAffiliatorID(ctx, tenantID)
+	if err != nil {
+		return false, err
+	}
+	return tenantAffiliator == nil || *tenantAffiliator == *coupon.AffiliatorID, nil
+}
+
+// pendingAmountLister is implemented by the MySQL payment verification repository (see
+// PendingFinalAmounts); test doubles without it get a plain random code.
+type pendingAmountLister interface {
+	PendingFinalAmounts(ctx context.Context, minAmount, maxAmount float64, excludeID uint64) ([]float64, error)
+}
+
+// pickUniqueCode returns a transfer code (100-999) whose total (amount + code) no other open invoice has,
+// so a bank statement line matches exactly one invoice. keep is the invoice's current code, kept when it
+// is still unique. When every code is taken (or the lookup fails) a random code is used, as before.
+func pickUniqueCode(ctx context.Context, repo repository.PaymentVerificationRepository, amount float64, excludeID uint64, keep int) int {
+	lister, ok := repo.(pendingAmountLister)
+	if !ok {
+		if keep >= 100 && keep <= 999 {
+			return keep
+		}
+		return rand.Intn(900) + 100
+	}
+	taken, err := lister.PendingFinalAmounts(ctx, amount+100, amount+999, excludeID)
+	if err != nil {
+		log.Printf("[Subscription] cannot check open invoice totals for a unique code: %v", err)
+		if keep >= 100 && keep <= 999 {
+			return keep
+		}
+		return rand.Intn(900) + 100
+	}
+	used := make(map[int64]bool, len(taken))
+	for _, v := range taken {
+		used[int64(math.Round(v*100))] = true
+	}
+	free := func(code int) bool { return !used[int64(math.Round((amount+float64(code))*100))] }
+	if keep >= 100 && keep <= 999 && free(keep) {
+		return keep
+	}
+	start := rand.Intn(900)
+	for i := 0; i < 900; i++ {
+		code := 100 + (start+i)%900
+		if free(code) {
+			return code
+		}
+	}
+	return rand.Intn(900) + 100
 }

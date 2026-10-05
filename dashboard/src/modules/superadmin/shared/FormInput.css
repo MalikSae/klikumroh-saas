@@ -27,7 +27,7 @@
 .db-form-textarea {
   width: 100%;
   padding: clamp(8px, 1vw, 10px) clamp(12px, 1.2vw, 14px);
-  font-size: var(--font-size-base, 14px);
+  font-size: var(--db-text-input, 16px); /* input: >= 16px (AGENTS.md 3.10) */
   font-family: inherit;
   color: var(--db-text-primary);
   background-color: var(--db-card-bg);
@@ -56,13 +56,13 @@
 }
 
 .db-form-error {
-  font-size: var(--font-size-xs, 12px);
+  font-size: var(--font-size-xs, 13px);
   color: var(--db-negative);
   margin-top: 2px;
 }
 
 .db-form-hint {
-  font-size: var(--font-size-xs, 12px);
+  font-size: var(--font-size-xs, 13px);
   color: var(--db-text-muted);
   margin-top: 2px;
 }

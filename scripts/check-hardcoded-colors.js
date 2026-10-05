@@ -21,7 +21,8 @@ if (args.length > 0) {
 const HEX_COLOR_REGEX = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/g;
 const RGB_COLOR_REGEX = /rgba?\s*\([^)]*\)/gi;
 
-// Token definition files are the one place raw values live (ui/tokens.css is generated from design-tokens.json).
+// Token definition files are the one place raw values live (ui/tokens.css and modules/superadmin/shared/tokens.css
+// are generated from design-tokens.json by scripts/build-ui-tokens.js).
 const IGNORED_FILES = ['index.css', 'globals.css', 'tokens.css'];
 
 let violations = [];

@@ -13,3 +13,9 @@ var (
 	// status than expected (e.g. another request already approved it).
 	ErrStatusConflict = errors.New("record status changed concurrently")
 )
+
+// IsDuplicateKey reports a MySQL unique-key violation (error 1062), e.g. two requests racing to create
+// the same slug or email, so callers can answer with a friendly conflict instead of the raw database text.
+func IsDuplicateKey(err error) bool {
+	return errors.Is(err, ErrDuplicate) || isDuplicateKey(err)
+}

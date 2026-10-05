@@ -22,6 +22,8 @@ export interface FormInputProps {
   min?: number;
   max?: number;
   step?: number;
+  /** Mobile keyboard hint for text inputs (e.g. 'decimal' for percentages typed with a comma). */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
   error?: string;
   hint?: string;
   tooltip?: string;
@@ -45,6 +47,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   min,
   max,
   step,
+  inputMode,
   error,
   hint,
   tooltip,
@@ -105,6 +108,7 @@ export const FormInput: React.FC<FormInputProps> = ({
           min={min}
           max={max}
           step={step}
+          inputMode={inputMode}
           className={`db-form-input ${error ? 'db-form-input--error' : ''}`}
         />
       )}

@@ -231,15 +231,27 @@ func TestProspectAudit_PublicValidationAndSource(t *testing.T) {
 		}
 	}
 
-	// A client-sent source_channel is ignored; fbclid marks the prospect as paid.
+	// A client-sent source_channel is ignored. Only a real Meta ad id (ad_id) makes a lead paid
+	// (keputusan pendiri 5 Okt 2026): fbclid alone, utm_medium alone or an unfilled {{ad.id}} are organic.
 	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true, Name: "Siti", Phone: "081311110012", SourceChannel: "agen"}); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true,
-		Name: "Rina", Phone: "081311110013",
-		Attribution: &service.ProspectAttribution{UTMSource: "facebook", UTMCampaign: "umroh-desember", Fbclid: "IwAR0abc"},
-	}); err != nil {
-		t.Fatalf("create paid: %v", err)
+	attributions := []struct {
+		name, phone string
+		attr        service.ProspectAttribution
+	}{
+		{"Rina", "081311110013", service.ProspectAttribution{UTMSource: "facebook", UTMCampaign: "umroh-desember", Fbclid: "IwAR0abc"}},
+		{"Ani", "081311110014", service.ProspectAttribution{UTMSource: "facebook", UTMMedium: "paid"}},
+		{"Dewi", "081311110015", service.ProspectAttribution{UTMSource: "facebook", Fbclid: "IwAR0def", AdID: "120200000000"}},
+		{"Eka", "081311110016", service.ProspectAttribution{UTMSource: "facebook", AdID: "{{ad.id}}"}},
+	}
+	for _, a := range attributions {
+		attr := a.attr
+		if _, err := e.svc.CreatePublic(e.ctx, e.tenantA.ID, service.PublicProspectInput{Consent: true,
+			Name: a.name, Phone: a.phone, Attribution: &attr,
+		}); err != nil {
+			t.Fatalf("create %s: %v", a.name, err)
+		}
 	}
 	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{})
 	got := map[string]string{}
@@ -249,8 +261,11 @@ func TestProspectAudit_PublicValidationAndSource(t *testing.T) {
 			t.Errorf("expected utm_campaign stored, got %v", p.UTMCampaign)
 		}
 	}
-	if got["Siti"] != "organik" || got["Rina"] != "paid" {
-		t.Fatalf("expected Siti=organik, Rina=paid, got %v", got)
+	want := map[string]string{"Siti": "organik", "Rina": "organik", "Ani": "organik", "Dewi": "paid", "Eka": "organik"}
+	for name, ch := range want {
+		if got[name] != ch {
+			t.Errorf("%s: expected source %s, got %q", name, ch, got[name])
+		}
 	}
 }
 

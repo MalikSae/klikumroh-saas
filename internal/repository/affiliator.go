@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -613,13 +614,33 @@ func (r *mysqlAffiliatorRepository) RequestPayout(ctx context.Context, affiliato
 	if pending > 0 {
 		return nil, ErrPayoutPending
 	}
-	var available float64
-	if err := tx.QueryRowContext(ctx, `
-		SELECT COALESCE(SUM(amount), 0) FROM affiliator_commissions
-		WHERE affiliator_id = ? AND payout_id IS NULL AND available_at <= ?`, affiliatorID, now).Scan(&available); err != nil {
+	// Lock and read the commissions with one locking (current) read, then sum and link exactly those ids:
+	// with hold_days = 0 a commission approved between a plain SUM and the UPDATE used to be linked to
+	// the payout (and marked paid with it) without being counted in its amount.
+	rows, err := tx.QueryContext(ctx, `
+		SELECT id, amount FROM affiliator_commissions
+		WHERE affiliator_id = ? AND payout_id IS NULL AND available_at <= ?
+		FOR UPDATE`, affiliatorID, now)
+	if err != nil {
 		return nil, err
 	}
-	if available <= 0 || available < minAmount {
+	var ids []any
+	var cents int64
+	for rows.Next() {
+		var id uint64
+		var amount float64
+		if err := rows.Scan(&id, &amount); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids = append(ids, id)
+		cents += int64(math.Round(amount * 100))
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	available := float64(cents) / 100
+	if len(ids) == 0 || available <= 0 || available < minAmount {
 		return nil, ErrPayoutBelowMinimum
 	}
 	res, err := tx.ExecContext(ctx, `
@@ -632,10 +653,18 @@ func (r *mysqlAffiliatorRepository) RequestPayout(ctx context.Context, affiliato
 	if err != nil {
 		return nil, err
 	}
-	if _, err := tx.ExecContext(ctx, `
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	args := append([]any{payoutID, affiliatorID}, ids...)
+	res, err = tx.ExecContext(ctx, `
 		UPDATE affiliator_commissions SET payout_id = ?
-		WHERE affiliator_id = ? AND payout_id IS NULL AND available_at <= ?`, payoutID, affiliatorID, now); err != nil {
+		WHERE affiliator_id = ? AND payout_id IS NULL AND id IN (`+placeholders+`)`, args...)
+	if err != nil {
 		return nil, err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return nil, err
+	} else if n != int64(len(ids)) {
+		return nil, ErrStatusConflict // the locked set changed; nothing is committed
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -697,7 +726,7 @@ func (r *mysqlAffiliatorRepository) MarkPayoutPaid(ctx context.Context, payoutID
 		WHERE id = ? AND status = 'pending'`, staffUserID, payoutID)
 	if err := execAffected(res, err); err != nil {
 		if errors.Is(err, ErrNotFound) {
-			return ErrStatusConflict
+			return r.payoutMissingOrConflict(ctx, payoutID)
 		}
 		return err
 	}
@@ -716,7 +745,7 @@ func (r *mysqlAffiliatorRepository) RejectPayout(ctx context.Context, payoutID, 
 		WHERE id = ? AND status = 'pending'`, reason, staffUserID, payoutID)
 	if err := execAffected(res, err); err != nil {
 		if errors.Is(err, ErrNotFound) {
-			return ErrStatusConflict
+			return r.payoutMissingOrConflict(ctx, payoutID)
 		}
 		return err
 	}
@@ -724,4 +753,17 @@ func (r *mysqlAffiliatorRepository) RejectPayout(ctx context.Context, payoutID, 
 		return err
 	}
 	return tx.Commit()
+}
+
+// payoutMissingOrConflict explains a conditional payout UPDATE that changed nothing: ErrNotFound for an
+// id that does not exist (404), ErrStatusConflict for a payout no longer pending (409).
+func (r *mysqlAffiliatorRepository) payoutMissingOrConflict(ctx context.Context, payoutID uint64) error {
+	var n int
+	if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM affiliator_payouts WHERE id = ?`, payoutID).Scan(&n); err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	return ErrStatusConflict
 }

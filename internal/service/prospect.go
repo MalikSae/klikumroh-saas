@@ -821,6 +821,9 @@ func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id 
 	if oldStatus == status && sameStringPtr(reason, prospect.LostReason) && sameStringPtr(category, prospect.LostReasonCategory) {
 		return nil
 	}
+	if lostCategoryIsSystem(oldStatus, status, prospect.LostReasonCategory) {
+		return ErrLostReasonSystemCategory
+	}
 
 	// Claim the transition atomically: only one of several concurrent requests (double click, two
 	// admins) moves the prospect out of oldStatus, so commission is booked exactly once.
@@ -1159,19 +1162,45 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 	}
 
 	releasedAt := s.releaseTimeFor(ctx, tenantID, prospect)
+
+	// What each agent can already withdraw from this closing. A reduction under the "lunas" policy would
+	// otherwise be held while the commission it reduces is already withdrawable (it was released under the
+	// "dp" policy before the switch), so the agent could still withdraw the full old amount. The part of a
+	// reduction covered by released commission is released at once; the rest stays held with the rows
+	// it reduces.
+	releasedNet := map[uint64]float64{}
+	for i := range ledgers {
+		if ledgers[i].ReleasedAt != nil {
+			releasedNet[ledgers[i].AgentID] += ledgers[i].Amount
+		}
+	}
 	var entries []*repository.CommissionLedger
-	if diff := targetDirect - directTotal; diff != 0 {
+	addCorrection := func(corrAgentID uint64, diff float64) {
+		if diff < 0 && releasedAt == nil {
+			if avail := math.Round(releasedNet[corrAgentID]*100) / 100; avail > 0 {
+				part := math.Min(-diff, avail)
+				now := time.Now()
+				entries = append(entries, &repository.CommissionLedger{
+					TenantID: tenantID, AgentID: corrAgentID, ProspectID: prospect.ID, PackageID: pkgID,
+					Type: "correction", Amount: -part, Notes: &reason, ReleasedAt: &now,
+				})
+				diff += part
+				if math.Round(diff*100) == 0 {
+					return
+				}
+			}
+		}
 		entries = append(entries, &repository.CommissionLedger{
-			TenantID: tenantID, AgentID: agentID, ProspectID: prospect.ID, PackageID: pkgID,
+			TenantID: tenantID, AgentID: corrAgentID, ProspectID: prospect.ID, PackageID: pkgID,
 			Type: "correction", Amount: diff, Notes: &reason, ReleasedAt: releasedAt,
 		})
 	}
+	if diff := targetDirect - directTotal; diff != 0 {
+		addCorrection(agentID, diff)
+	}
 	if overrideAgentID != nil {
 		if diff := targetOverride - overrideTotal; diff != 0 {
-			entries = append(entries, &repository.CommissionLedger{
-				TenantID: tenantID, AgentID: *overrideAgentID, ProspectID: prospect.ID, PackageID: pkgID,
-				Type: "correction", Amount: diff, Notes: &reason, ReleasedAt: releasedAt,
-			})
+			addCorrection(*overrideAgentID, diff)
 		}
 	}
 	return s.createLedgers(ctx, tenantID, entries)
@@ -1726,6 +1755,9 @@ func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint
 	if oldStatus == status && sameStringPtr(reason, prospect.LostReason) && sameStringPtr(category, prospect.LostReasonCategory) {
 		return nil
 	}
+	if lostCategoryIsSystem(oldStatus, status, prospect.LostReasonCategory) {
+		return ErrLostReasonSystemCategory
+	}
 
 	if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, oldStatus, status, reason, category); err != nil {
 		if errors.Is(err, repository.ErrStatusConflict) {
@@ -1900,6 +1932,11 @@ func (s *prospectService) RecordReferralClick(ctx context.Context, tenantID uint
 		return repository.ErrNotFound
 	}
 	if agent == nil || agent.TenantID != tenantID {
+		return repository.ErrNotFound
+	}
+	// Only an active agent's link produces attributed leads (CreatePublic), so only its clicks count;
+	// otherwise the funnel of a pending or deactivated agent grows with clicks that can never convert.
+	if agent.Status != "active" {
 		return repository.ErrNotFound
 	}
 

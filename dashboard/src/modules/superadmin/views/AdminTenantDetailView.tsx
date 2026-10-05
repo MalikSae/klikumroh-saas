@@ -19,6 +19,7 @@ import { AdminLayout } from '../layout/AdminLayout';
 import { Modal, FormInput, Button } from '../shared';
 import { CustomDropdown } from '../shared/CustomDropdown';
 import { subscriptionStatusView } from '../shared/subscriptionStatus';
+import { adminStatusView, domainStatusView } from '../shared/statusLabels';
 import {
   fetchStaffTenantDetail,
   fetchPricingPlans,
@@ -362,7 +363,7 @@ export const AdminTenantDetailView: React.FC = () => {
                       color: 'var(--sa-text)',
                       textDecoration: 'none',
                       fontFamily: 'var(--sa-font-code)',
-                      fontSize: '12.5px',
+                      fontSize: '13px',
                       fontWeight: 600,
                     }}
                   >
@@ -379,7 +380,7 @@ export const AdminTenantDetailView: React.FC = () => {
               <span style={{ color: 'var(--sa-text-muted)' }}>Domain Kustom</span>
               <div style={{ textAlign: 'right' }}>
                 {tenant.domain?.custom_domain ? (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12.5px' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
                     <Globe size={13} style={{ color: 'var(--sa-blue-text)' }} />
                     <strong style={{ color: 'var(--sa-text)' }}>{tenant.domain.custom_domain}</strong>
                   </div>
@@ -391,9 +392,10 @@ export const AdminTenantDetailView: React.FC = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--sa-text-muted)' }}>Status Domain</span>
-              <span className="sa-pill sa-pill--neutral">
-                {tenant.domain?.custom_domain_status || 'Subdomain Aktif'}
-              </span>
+              {(() => {
+                const dv = domainStatusView(tenant.domain?.custom_domain ? tenant.domain?.custom_domain_status : null);
+                return <span className={`sa-pill sa-pill--${dv.tone}`}>{dv.label}</span>;
+              })()}
             </div>
           </div>
         </div>
@@ -502,14 +504,21 @@ export const AdminTenantDetailView: React.FC = () => {
                 admins.map((admin: StaffTenantAdminItem) => (
                   <tr key={admin.id}>
                     <td style={{ fontWeight: 600 }}>{admin.name}</td>
-                    <td style={{ fontFamily: 'var(--sa-font-code)', fontSize: '12.5px' }}>{admin.email}</td>
+                    <td style={{ fontFamily: 'var(--sa-font-code)', fontSize: '13px' }}>{admin.email}</td>
                     <td>
-                      <span className="sa-pill sa-pill--green">
-                        <span className="sa-status-dot" style={{ backgroundColor: 'var(--sa-green)' }} />
-                        <span>{admin.status || 'Aktif'}</span>
-                      </span>
+                      {(() => {
+                        const av = adminStatusView(admin.status);
+                        return (
+                          <span className={`sa-pill sa-pill--${av.tone}`}>
+                            {av.tone !== 'neutral' && (
+                              <span className="sa-status-dot" style={{ backgroundColor: `var(--sa-${av.tone})` }} />
+                            )}
+                            <span>{av.label}</span>
+                          </span>
+                        );
+                      })()}
                     </td>
-                    <td style={{ color: 'var(--sa-text-muted)', fontSize: '12px' }}>
+                    <td style={{ color: 'var(--sa-text-muted)', fontSize: '13px' }}>
                       {formatDate(admin.created_at)}
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -582,7 +591,7 @@ export const AdminTenantDetailView: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: 'var(--sa-overlay-modal)',
             backdropFilter: 'blur(3px)',
             zIndex: 100,
             display: 'flex',
@@ -599,7 +608,7 @@ export const AdminTenantDetailView: React.FC = () => {
               maxWidth: '440px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: 'var(--sa-shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -613,7 +622,7 @@ export const AdminTenantDetailView: React.FC = () => {
             <form onSubmit={handleExtendSubmit}>
               {/* Pilihan Paket Langganan */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--sa-text)' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--sa-text)' }}>
                   Paket Langganan:
                 </label>
                 <CustomDropdown
@@ -628,7 +637,7 @@ export const AdminTenantDetailView: React.FC = () => {
 
               {/* Pilihan Durasi Perpanjangan */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px', color: 'var(--sa-text)' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px', color: 'var(--sa-text)' }}>
                   Durasi Tambahan:
                 </label>
                 <CustomDropdown
@@ -658,7 +667,7 @@ export const AdminTenantDetailView: React.FC = () => {
                       borderRadius: 'var(--sa-radius-sm)',
                       border: '1px solid var(--sa-border)',
                       marginBottom: '20px',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '8px',
@@ -691,12 +700,12 @@ export const AdminTenantDetailView: React.FC = () => {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 700, color: 'var(--sa-green-text)' }}>Masa Aktif Baru:</span>
-                      <strong style={{ fontSize: '13px', fontWeight: 800, color: 'var(--sa-green-text)' }}>
+                      <strong style={{ fontSize: '13px', fontWeight: 700, color: 'var(--sa-green-text)' }}>
                         {formatDate(newDate.toISOString())}
                       </strong>
                     </div>
 
-                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--sa-text-muted)', lineHeight: 1.4 }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--sa-text-muted)', lineHeight: 1.4 }}>
                       {isCurrentlyActive
                         ? 'Dihitung akumulatif melanjutkan sisa masa aktif saat ini.'
                         : 'Dihitung mulai hari ini karena masa aktif sebelumnya telah berakhir.'}
@@ -733,7 +742,7 @@ export const AdminTenantDetailView: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: 'var(--sa-overlay-modal)',
             backdropFilter: 'blur(3px)',
             zIndex: 100,
             display: 'flex',
@@ -750,7 +759,7 @@ export const AdminTenantDetailView: React.FC = () => {
               maxWidth: '420px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: 'var(--sa-shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -763,7 +772,7 @@ export const AdminTenantDetailView: React.FC = () => {
 
             <form onSubmit={handleResetSubmit}>
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Kata Sandi Baru (min. 8 karakter):
                 </label>
                 <input
@@ -776,7 +785,7 @@ export const AdminTenantDetailView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',

@@ -22,6 +22,7 @@ import {
   type PlaceholderReplacements,
 } from '../../../lib/scriptData';
 import { matchesQuery, packageFacts, type PackageLike } from '../../../lib/placeholderFill';
+import { copyToClipboard } from '../../../lib/clipboard';
 
 const FAVORITES_STORAGE_KEY = 'klikumroh_agent_script_favorites';
 const PROSPECT_NAME_STORAGE_KEY = 'klikumroh_agent_script_prospect_name';
@@ -336,10 +337,11 @@ function ScriptWAContent() {
   };
 
   // Copy handler
-  const handleCopyText = (text: string, key: string) => {
+  const handleCopyText = async (text: string, key: string) => {
     // Logged first: the habit counts the intent, even if the browser refuses the clipboard.
     logHabit('contact');
-    navigator.clipboard.writeText(text).catch(() => {});
+    // 'Tersalin' only once the text is really copied (in-app browsers may block the clipboard).
+    if (!(await copyToClipboard(text))) return;
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };

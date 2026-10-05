@@ -2,7 +2,7 @@
 // action of the old detail page (closing confirmation + commission/seat warnings, lunas, batal closing,
 // delete for spam, UU PDP anonymisation).
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, MessageCircle, MoreHorizontal, Pencil, Trash2, UserX } from 'lucide-react';
+import { AlertTriangle, ArrowRight, MessageCircle, MoreHorizontal, Pencil, Trash2, UserX } from 'lucide-react';
 import { EditProspectModal } from './EditProspectModal';
 import {
   LOST_REASON_OPTIONS,
@@ -323,7 +323,12 @@ export const ProspectDrawer: React.FC<{
             <div className="ku-trail">
               {data!.status_history.map((h) => (
                 <div key={h.id}>
-                  {h.old_status ? `${PROSPECT_STATUS[h.old_status]?.label ?? h.old_status} → ` : ''}
+                  {h.old_status && (
+                    <>
+                      {PROSPECT_STATUS[h.old_status]?.label ?? h.old_status}{' '}
+                      <ArrowRight size={14} aria-label="menjadi" style={{ verticalAlign: 'middle' }} />{' '}
+                    </>
+                  )}
                   {PROSPECT_STATUS[h.new_status]?.label ?? h.new_status}
                   <span className="ku-trail__when">
                     {h.changed_by_name || (h.changed_by_type === 'agent' ? 'Agen' : 'Admin')} · {formatDateTimeWIB(h.changed_at)}

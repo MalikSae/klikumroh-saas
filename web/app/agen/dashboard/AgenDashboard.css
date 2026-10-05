@@ -802,3 +802,28 @@
 .ag-share__link:hover .ag-share__name {
   color: var(--tw-brand-primary);
 }
+
+/* Copy refused by the browser: the full link, selectable for a manual copy */
+.ag-copy-failed {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-danger-text);
+}
+
+.ag-copy-failed svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ag-copy-failed__link {
+  display: block;
+  margin-top: 4px;
+  color: var(--tw-neutral-900);
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}

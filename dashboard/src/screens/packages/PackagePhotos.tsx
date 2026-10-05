@@ -6,8 +6,11 @@ import { errorText } from '../../ui';
 import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 
 const MAX_PHOTOS = 10;
-// Same 8 MB cap as the server, counted on the whole multipart body (see utils/uploadLimit).
+// Same caps as the server (internal/handler/dashboard_package_photo.go): the photo itself up to 8 MB, and the
+// request body up to 8 MB plus 64 KB of room for the multipart envelope (see utils/uploadLimit).
 const MAX_BYTES = 8 * MB;
+const ENVELOPE_ROOM = 64 * 1024;
+const fitsPhotoLimit = (f: File) => f.size <= MAX_BYTES && fitsUploadLimit(f, 'photo', MAX_BYTES + ENVELOPE_ROOM);
 
 export const PackagePhotos: React.FC<{ packageId: number; photos: PackagePhoto[]; onChange: (p: PackagePhoto[]) => void }> = ({ packageId, photos, onChange }) => {
   const [busy, setBusy] = useState<string | null>(null);
@@ -26,7 +29,7 @@ export const PackagePhotos: React.FC<{ packageId: number; photos: PackagePhoto[]
         setError(`${f.name} bukan gambar.`);
         continue;
       }
-      if (!fitsUploadLimit(f, 'photo', MAX_BYTES)) {
+      if (!fitsPhotoLimit(f)) {
         setError(`${f.name} lebih dari 8 MB.`);
         continue;
       }
@@ -123,7 +126,7 @@ export const PendingPhotos: React.FC<{ files: File[]; onChange: (f: File[]) => v
     const picked: File[] = [];
     for (const f of Array.from(list)) {
       if (!f.type.startsWith('image/')) setError(`${f.name} bukan gambar.`);
-      else if (!fitsUploadLimit(f, 'photo', MAX_BYTES)) setError(`${f.name} lebih dari 8 MB.`);
+      else if (!fitsPhotoLimit(f)) setError(`${f.name} lebih dari 8 MB.`);
       else if (picked.length < room) picked.push(f);
       else setError(`Maksimal ${MAX_PHOTOS} foto per paket.`);
     }

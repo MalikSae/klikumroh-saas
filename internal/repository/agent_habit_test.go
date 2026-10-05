@@ -68,7 +68,7 @@ func TestAgentHabit_LogDeriveAndTenantIsolation(t *testing.T) {
 	if err := repo.LogHabit(e.ctx, e.tenantB.ID, e.agentA.ID, "caption", today); err != nil {
 		t.Fatalf("cross-tenant log: %v", err)
 	}
-	if err := repo.SetSumberDone(e.ctx, e.tenantB.ID, e.agentA.ID, 5, true); err != nil {
+	if _, err := repo.SetSumberDone(e.ctx, e.tenantB.ID, e.agentA.ID, 5, true); err != nil {
 		t.Fatalf("cross-tenant sumber: %v", err)
 	}
 	other, err := repo.ListHabitDays(e.ctx, e.tenantB.ID, e.agentA.ID, today, today)
@@ -86,14 +86,14 @@ func TestAgentHabit_LogDeriveAndTenantIsolation(t *testing.T) {
 	}
 
 	// Sumber progress for the right tenant: mark, list, unmark.
-	if err := repo.SetSumberDone(e.ctx, e.tenantA.ID, e.agentA.ID, 7, true); err != nil {
+	if _, err := repo.SetSumberDone(e.ctx, e.tenantA.ID, e.agentA.ID, 7, true); err != nil {
 		t.Fatalf("mark sumber: %v", err)
 	}
 	ids, err := repo.ListSumberDone(e.ctx, e.tenantA.ID, e.agentA.ID)
 	if err != nil || len(ids) != 1 || ids[0] != 7 {
 		t.Fatalf("expected sumber [7], got %v (%v)", ids, err)
 	}
-	if err := repo.SetSumberDone(e.ctx, e.tenantA.ID, e.agentA.ID, 7, false); err != nil {
+	if _, err := repo.SetSumberDone(e.ctx, e.tenantA.ID, e.agentA.ID, 7, false); err != nil {
 		t.Fatalf("unmark sumber: %v", err)
 	}
 	if ids, _ := repo.ListSumberDone(e.ctx, e.tenantA.ID, e.agentA.ID); len(ids) != 0 {

@@ -7,18 +7,21 @@ const getBackendBaseUrl = (): string => {
 
 // Hosts that serve KlikUmroh itself (same list as the marketing check in app/page.tsx).
 const PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id', 'klikumroh.local', 'localhost', '127.0.0.1']);
-const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing', '/affiliator'];
+// /demo runs KlikUmroh's demo login and handoff to the platform dashboard, so it is platform-only too.
+const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing', '/affiliator', '/demo'];
 
 // Where platform pages live. Unset in development: the dev server would turn a redirect to its own
 // origin (localhost:3000) into a relative one and loop on the travel host, so dev answers 404 instead.
 const getPlatformOrigin = (): string | null =>
   process.env.PLATFORM_ORIGIN || (process.env.NODE_ENV === 'production' ? 'https://klikumroh.id' : null);
 
-// Ad attribution: when a visitor lands from an ad (utm_* or Meta's fbclid in the URL), remember it for
-// 7 days (Meta's default click window) so the prospect form can report the source even if the visitor
-// browses other pages first. Last ad click wins. Read by components/ProspectModal.tsx.
+// Ad attribution: when a visitor lands from an ad (utm_*, Meta's fbclid, or the Meta ad id ad_id filled by
+// {{ad.id}}), remember it for 7 days (Meta's default click window) so the prospect form can report the
+// source even if the visitor browses other pages first. Last ad click wins. Read by
+// components/ProspectModal.tsx via lib/adAttribution.ts: keep this key list in sync with that file
+// (test/ad-attribution.test.mjs checks it). The backend counts a lead as paid only when ad_id is present.
 const ATTRIBUTION_COOKIE = 'ku_attr';
-const ATTRIBUTION_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid'] as const;
+const ATTRIBUTION_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'ad_id'] as const;
 
 function withAttribution(req: NextRequest, res: NextResponse): NextResponse {
   const params = req.nextUrl.searchParams;
@@ -146,6 +149,8 @@ export async function proxy(req: NextRequest) {
         'X-Forwarded-Host': hostname,
       },
       cache: 'no-store',
+      // Runs on every travel-host request: a hung backend must not hang every page with it.
+      signal: AbortSignal.timeout(1500),
     });
 
     if (res.ok) {

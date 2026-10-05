@@ -20,6 +20,9 @@ var (
 	// ErrCouponOwnedByAffiliator: an affiliator coupon is switched off by deactivating its affiliator, so
 	// payment approval can tell "affiliator replaced its code" (honored) from "switched off" (refused).
 	ErrCouponOwnedByAffiliator = errors.New("kupon affiliator dinonaktifkan lewat menonaktifkan affiliatornya")
+	// ErrCouponUsedByTenant: a coupon counts once per travel (keputusan pendiri 5 Okt 2026). The travel
+	// already paid with it, or another open invoice of the travel carries it.
+	ErrCouponUsedByTenant = errors.New("Kupon ini sudah pernah dipakai travel Anda")
 )
 
 // CouponService provides business logic for managing and validating coupons.

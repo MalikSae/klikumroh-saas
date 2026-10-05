@@ -7,6 +7,7 @@ import { CityField } from './CityField';
 import { Button } from './Button';
 import { jakartaMonthOptions } from '../lib/jakartaTime';
 import { getMetaBrowserContext, isMetaPixelActive, trackMetaEvent } from '../lib/metaPixel';
+import { readAttribution } from '../lib/adAttribution';
 import './ProspectModal.css';
 
 const WhatsAppIcon: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = '' }) => (
@@ -94,25 +95,10 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
     return null;
   };
 
-  // Ad attribution captured by proxy.ts when the visitor landed (utm_* / fbclid), or the current URL.
+  // Ad attribution captured by proxy.ts when the visitor landed (utm_* / fbclid / ad_id), or the current URL.
   const getAttribution = (): Record<string, string> | null => {
     if (typeof window === 'undefined') return null;
-    const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid'];
-    const params = new URLSearchParams(window.location.search);
-    const fromUrl: Record<string, string> = {};
-    keys.forEach((k) => {
-      const v = params.get(k);
-      if (v) fromUrl[k] = v;
-    });
-    if (Object.keys(fromUrl).length > 0) return fromUrl;
-    const match = document.cookie.match(/(?:^|;\s*)ku_attr=([^;]+)/);
-    if (!match) return null;
-    try {
-      const parsed = JSON.parse(decodeURIComponent(match[1]));
-      return parsed && typeof parsed === 'object' ? parsed : null;
-    } catch {
-      return null;
-    }
+    return readAttribution(window.location.search, document.cookie);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

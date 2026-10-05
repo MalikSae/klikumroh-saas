@@ -26,6 +26,9 @@ type CommissionLedgerWithProspect struct {
 	CommissionLedger
 	ProspectName         string `json:"prospect_name"`
 	ProspectJumlahJamaah int    `json:"prospect_jumlah_jamaah"`
+	// ProspectAgentID is the agent the prospect belongs to (0 when none). A row booked to another agent
+	// (the upline's override or its correction) comes from a downline's prospect.
+	ProspectAgentID uint64 `json:"-"`
 }
 
 // CommissionLedgerRepository defines access methods for commission ledger records.
@@ -205,7 +208,8 @@ func (r *mysqlCommissionLedgerRepository) ListByAgentWithProspect(ctx context.Co
 	query := `
 		SELECT l.id, l.tenant_id, l.agent_id, l.prospect_id, l.package_id, l.type, l.amount, l.notes, l.released_at, l.created_at,
 		       COALESCE(p.name, ''),
-		       COALESCE(p.jumlah_jamaah, 1)
+		       COALESCE(p.jumlah_jamaah, 1),
+		       COALESCE(p.agent_id, 0)
 		FROM commission_ledger l
 		LEFT JOIN prospects p ON p.id = l.prospect_id AND p.tenant_id = ?
 		WHERE l.tenant_id = ? AND l.agent_id = ?
@@ -237,6 +241,7 @@ func (r *mysqlCommissionLedgerRepository) ListByAgentWithProspect(ctx context.Co
 			&item.CreatedAt,
 			&item.ProspectName,
 			&item.ProspectJumlahJamaah,
+			&item.ProspectAgentID,
 		); err != nil {
 			return nil, err
 		}

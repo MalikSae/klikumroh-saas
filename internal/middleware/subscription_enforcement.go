@@ -36,6 +36,13 @@ func isBillingSupportRequest(r *http.Request) bool {
 	if r.Method == http.MethodGet && billingSupportPaths[r.URL.Path] {
 		return true
 	}
+	// The travel's own transfer proof, so a new travel sees the proof it just uploaded. Only subscription
+	// proofs pass here; the handler still serves nothing outside the session's tenant.
+	if r.Method == http.MethodGet && r.URL.Path == "/api/dashboard/files" {
+		if info, ok := util.ParsePrivateUpload(r.URL.Query().Get("path")); ok && info.Kind == util.PrivateSubscriptionProof {
+			return true
+		}
+	}
 	// Notifications (e.g. "pembayaran disetujui") stay readable and can be marked read.
 	return strings.HasPrefix(r.URL.Path, "/api/dashboard/notifications")
 }

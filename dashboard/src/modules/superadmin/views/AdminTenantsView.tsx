@@ -189,7 +189,7 @@ export const AdminTenantsView: React.FC = () => {
                 >
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <span style={{ fontSize: '10.5px', opacity: 0.75 }}>
+                    <span style={{ fontSize: '13px', opacity: 0.75 }}>
                       ({tab.count})
                     </span>
                   )}
@@ -218,7 +218,7 @@ export const AdminTenantsView: React.FC = () => {
                   width: '100%',
                   height: '32px',
                   padding: '0 10px 0 30px',
-                  fontSize: '12px',
+                  fontSize: 'var(--db-text-input)',
                   border: '1px solid var(--sa-border)',
                   borderRadius: 'var(--sa-radius-sm)',
                   backgroundColor: 'var(--sa-bg)',
@@ -272,7 +272,7 @@ export const AdminTenantsView: React.FC = () => {
                       onClick={() => navigate(`/internal/tenants/${row.id}`)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <td style={{ color: 'var(--sa-text-muted)', fontFamily: 'var(--sa-font-code)', fontSize: '12px' }}>
+                      <td style={{ color: 'var(--sa-text-muted)', fontFamily: 'var(--sa-font-code)', fontSize: '13px' }}>
                         #{row.id}
                       </td>
 
@@ -300,7 +300,7 @@ export const AdminTenantsView: React.FC = () => {
                             onClick={(e) => e.stopPropagation()}
                             style={{
                               color: 'var(--sa-text-muted)',
-                              fontSize: '12px',
+                              fontSize: '13px',
                               textDecoration: 'none',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -336,7 +336,7 @@ export const AdminTenantsView: React.FC = () => {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '6px',
-                              fontSize: '12.5px',
+                              fontSize: '13px',
                               textDecoration: 'none',
                               fontFamily: 'var(--sa-font-code)',
                             }}
@@ -345,18 +345,18 @@ export const AdminTenantsView: React.FC = () => {
                             <span>{row.whatsapp_number}</span>
                           </a>
                         ) : (
-                          <span style={{ color: 'var(--sa-text-subtle)', fontSize: '12px' }}>-</span>
+                          <span style={{ color: 'var(--sa-text-subtle)', fontSize: '13px' }}>-</span>
                         )}
                       </td>
 
                       <td>
                         {row.custom_domain ? (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
                             <Globe size={13} style={{ color: 'var(--sa-blue-text)' }} />
                             <strong style={{ color: 'var(--sa-text)' }}>{row.custom_domain}</strong>
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--sa-text-subtle)', fontSize: '12px' }}>-</span>
+                          <span style={{ color: 'var(--sa-text-subtle)', fontSize: '13px' }}>-</span>
                         )}
                       </td>
 
@@ -366,11 +366,11 @@ export const AdminTenantsView: React.FC = () => {
                             {plan}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--sa-text-subtle)', fontSize: '12px' }}>Tanpa Paket</span>
+                          <span style={{ color: 'var(--sa-text-subtle)', fontSize: '13px' }}>Tanpa Paket</span>
                         )}
                       </td>
 
-                      <td style={{ fontSize: '12.5px', fontWeight: 500 }}>
+                      <td style={{ fontSize: '13px', fontWeight: 500 }}>
                         {formatDate(row.subscription_expires_at)}
                       </td>
 
@@ -388,7 +388,7 @@ export const AdminTenantsView: React.FC = () => {
                         })()}
                       </td>
 
-                      <td style={{ fontSize: '12px', color: 'var(--sa-text-muted)' }}>
+                      <td style={{ fontSize: '13px', color: 'var(--sa-text-muted)' }}>
                         {formatDate(row.created_at)}
                       </td>
 
@@ -421,7 +421,7 @@ export const AdminTenantsView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: '12px',
+            fontSize: '13px',
             color: 'var(--sa-text-muted)',
             backgroundColor: 'var(--sa-card)',
           }}

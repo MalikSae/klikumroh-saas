@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { UserPlus, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
@@ -39,6 +39,10 @@ export default function AgenDaftarPage() {
 
   const [regInfo, setRegInfo] = useState<RegistrationInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState<boolean>(true);
+  // Registration info (fee, terms) could not be loaded: the fee is unknown, so the page must not claim
+  // 'gratis' and sign-up waits until a retry succeeds.
+  const [infoError, setInfoError] = useState<boolean>(false);
+  const [infoAttempt, setInfoAttempt] = useState<number>(0);
 
   // Form states
   const [name, setName] = useState('');
@@ -80,8 +84,8 @@ export default function AgenDaftarPage() {
   // Fetch registration info & tenant info
   useEffect(() => {
     const fetchInfo = async () => {
+      let regLoaded = false;
       try {
-        setLoadingInfo(true);
         const [regRes, tenantRes] = await Promise.all([
           fetch('/api/public/agent-registration-info'),
           fetch('/api/public/tenant-info'),
@@ -91,7 +95,12 @@ export default function AgenDaftarPage() {
         if (regRes.ok) {
           const regJson = await regRes.json();
           const info = regJson?.data ?? regJson;
-          combined = { ...combined, ...info };
+          if (info && typeof info === 'object') {
+            // null fee from the API means free (mode 'gratis').
+            const fee = typeof info.agent_registration_fee === 'number' ? info.agent_registration_fee : 0;
+            combined = { ...combined, ...info, agent_registration_fee: fee };
+            regLoaded = true;
+          }
         }
         if (tenantRes.ok) {
           const tenantJson = await tenantRes.json();
@@ -112,11 +121,18 @@ export default function AgenDaftarPage() {
       } catch (err) {
         console.error('Failed to load agent registration info', err);
       } finally {
+        setInfoError(!regLoaded);
         setLoadingInfo(false);
       }
     };
     fetchInfo();
-  }, []);
+  }, [infoAttempt]);
+
+  const retryInfo = () => {
+    setLoadingInfo(true);
+    setInfoError(false);
+    setInfoAttempt((n) => n + 1);
+  };
 
   // Close domisili dropdown on outside click
   useEffect(() => {
@@ -191,6 +207,8 @@ export default function AgenDaftarPage() {
     e.preventDefault();
     setSubmitError(null);
 
+    // The fee must be known before signing up (the status page asks for it right after).
+    if (loadingInfo || infoError) return;
     if (!validate()) return;
 
     try {
@@ -317,7 +335,18 @@ export default function AgenDaftarPage() {
           )}
 
           {/* 4. Biaya & keuntungan: main content, straight from Pengaturan > Aturan agen. */}
-          {!loadingInfo && regInfo && (
+          {!loadingInfo && infoError && (
+            <div className="tw-agen-daftar-alert" role="alert">
+              <AlertCircle size={18} className="tw-agen-daftar-alert__icon" aria-hidden="true" />
+              <span className="tw-agen-daftar-alert__text">Info biaya pendaftaran belum bisa dimuat. Pendaftaran bisa dilanjutkan setelah info ini tampil.</span>
+              <button type="button" className="tw-agen-daftar-alert__retry" onClick={retryInfo}>
+                <RefreshCw size={16} aria-hidden="true" />
+                Coba lagi
+              </button>
+            </div>
+          )}
+
+          {!loadingInfo && !infoError && regInfo && (
             <section className="tw-agen-daftar-offer" aria-label="Biaya dan keuntungan menjadi agen">
               <div className="tw-agen-daftar-offer__fee">
                 {regInfo.agent_registration_fee > 0 ? (
@@ -565,7 +594,7 @@ export default function AgenDaftarPage() {
                 type="submit"
                 variant="primary"
                 size="lg"
-                disabled={isSubmitting}
+                disabled={isSubmitting || loadingInfo || infoError}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

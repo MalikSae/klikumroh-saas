@@ -27,6 +27,11 @@ var demoBlocked = []demoRule{
 	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/domains(/.*)?$`)},
 	{http.MethodDelete, regexp.MustCompile(`^/api/dashboard/domains/.+$`)},
 	{http.MethodPut, regexp.MustCompile(`^/api/agent/password$`)},
+	// Billing: a renewal request or proof from the demo would be a real invoice for staff to review.
+	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/subscription(/.*)?$`)},
+	{http.MethodPut, regexp.MustCompile(`^/api/dashboard/subscription(/.*)?$`)},
+	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/subscription(/.*)?$`)},
+	{http.MethodDelete, regexp.MustCompile(`^/api/dashboard/subscription(/.*)?$`)},
 }
 
 // DemoBlockedMessage is the error shown for a blocked action.

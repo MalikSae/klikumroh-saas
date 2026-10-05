@@ -94,8 +94,10 @@ export const ProfileSettings: React.FC = () => {
     try {
       let nextProfile = profile;
       if (profile && form.name.trim() !== saved.name) {
-        // The profile endpoint also carries the logo and website texts: send them unchanged.
-        nextProfile = await updateTenantProfile({ ...profile, name: form.name.trim() });
+        // The profile PUT replaces the tagline and about text too (owned by Website > Identitas, maybe changed
+        // in another tab since this page loaded): take them fresh from the server and change only the name.
+        const latest = await fetchTenantProfile();
+        nextProfile = await updateTenantProfile({ ...latest, name: form.name.trim() });
         setProfile(nextProfile);
         setStoredTravelName(nextProfile.name);
         frame?.refreshTravel();
@@ -143,7 +145,7 @@ export const ProfileSettings: React.FC = () => {
       </SettingsSection>
 
       <SettingsSection title="Kontak" description="Cara calon jamaah menghubungi travel Anda.">
-        <Field label="Nomor WhatsApp" optional hint="Tombol WhatsApp di website mengarah ke nomor ini. Format 08xx atau 62xx.">
+        <Field label="Nomor WhatsApp" optional hint="Dipakai di portal agen agar agen bisa menghubungi travel, dan tampil di footer website bila telepon kantor kosong. Format 08xx atau 62xx.">
           {(id) => <input id={id} className="ku-input" inputMode="tel" value={form.whatsapp_number} onChange={set('whatsapp_number')} placeholder="0812xxxxxxxx" />}
         </Field>
         <div className="st-grid">

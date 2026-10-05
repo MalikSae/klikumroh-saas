@@ -114,7 +114,7 @@ export const AdminPlansView: React.FC = () => {
       label: 'ID',
       width: '60px',
       render: (row) => (
-        <span style={{ fontWeight: 600, color: 'var(--sa-text-muted)', fontSize: '12px' }}>
+        <span style={{ fontWeight: 600, color: 'var(--sa-text-muted)', fontSize: '13px' }}>
           #{row.id}
         </span>
       ),
@@ -123,7 +123,7 @@ export const AdminPlansView: React.FC = () => {
       key: 'name',
       label: 'Nama Paket',
       render: (row) => (
-        <span style={{ fontWeight: 600, color: 'var(--sa-text-primary)' }}>
+        <span style={{ fontWeight: 600, color: 'var(--sa-text)' }}>
           {row.name}
         </span>
       ),
@@ -141,7 +141,7 @@ export const AdminPlansView: React.FC = () => {
       key: 'price',
       label: 'Harga Paket',
       render: (row) => (
-        <strong style={{ fontFamily: 'var(--sa-font-heading)', color: 'var(--sa-text-primary)' }}>
+        <strong style={{ fontFamily: 'var(--sa-font-display)', color: 'var(--sa-text)' }}>
           {formatIDR(row.price)}
         </strong>
       ),
@@ -208,10 +208,10 @@ export const AdminPlansView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#ECFDF5',
-            border: '1px solid #A7F3D0',
+            backgroundColor: 'var(--sa-green-bg)',
+            border: '1px solid var(--sa-green-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#059669',
+            color: 'var(--db-status-closing)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -228,10 +228,10 @@ export const AdminPlansView: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            backgroundColor: '#FEF2F2',
-            border: '1px solid #FECACA',
+            backgroundColor: 'var(--sa-red-bg)',
+            border: '1px solid var(--sa-red-border)',
             borderRadius: 'var(--sa-radius-sm)',
-            color: '#DC2626',
+            color: 'var(--db-status-lost)',
             fontSize: '13px',
             display: 'flex',
             alignItems: 'center',
@@ -260,7 +260,7 @@ export const AdminPlansView: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backgroundColor: 'var(--sa-overlay-modal)',
             backdropFilter: 'blur(3px)',
             zIndex: 100,
             display: 'flex',
@@ -272,12 +272,12 @@ export const AdminPlansView: React.FC = () => {
         >
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--sa-card)',
               borderRadius: 'var(--sa-radius-md)',
               maxWidth: '420px',
               width: '100%',
               padding: '24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: 'var(--sa-shadow-modal)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -290,7 +290,7 @@ export const AdminPlansView: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Nama Paket:
                 </label>
                 <input
@@ -303,7 +303,7 @@ export const AdminPlansView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -313,7 +313,7 @@ export const AdminPlansView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Durasi Periode (Bulan):
                 </label>
                 <input
@@ -326,7 +326,7 @@ export const AdminPlansView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',
@@ -336,7 +336,7 @@ export const AdminPlansView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Harga Langganan (IDR):
                 </label>
                 <input
@@ -350,7 +350,7 @@ export const AdminPlansView: React.FC = () => {
                     width: '100%',
                     height: '38px',
                     padding: '0 12px',
-                    fontSize: '13px',
+                    fontSize: 'var(--db-text-input)',
                     border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)',
                     outline: 'none',

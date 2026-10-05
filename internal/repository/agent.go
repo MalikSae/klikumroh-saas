@@ -560,7 +560,15 @@ func (r *mysqlAgentRepository) UpdateBankInfo(ctx context.Context, tenantID uint
 		return err
 	}
 	if rowsAffected == 0 {
-		return ErrNotFound
+		// MySQL reports 0 rows when the values are unchanged (repeat payout, same bank): only a missing
+		// agent is an error.
+		var exists int
+		if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM agents WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&exists); err != nil {
+			return err
+		}
+		if exists == 0 {
+			return ErrNotFound
+		}
 	}
 	return nil
 }

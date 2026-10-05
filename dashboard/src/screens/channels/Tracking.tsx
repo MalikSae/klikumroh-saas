@@ -5,6 +5,7 @@ import { fetchMetaIntegration, fetchPackages, saveMetaIntegration, sendMetaTestE
 import { Banner, Button, Field, Select, errorText, fmtAgo } from '../../ui';
 import { publicSiteUrl, useFrame } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
+import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
 
 const SOURCES = [
   { value: 'facebook', label: 'Facebook' },
@@ -84,6 +85,65 @@ const LinkBuilder: React.FC = () => {
           </div>
         </>
       )}
+    </SettingsSection>
+  );
+};
+
+/** Paste-ready Meta "URL parameters": the backend counts a lead as Iklan only when ad_id (Meta's {{ad.id}}) is in the link. */
+const META_URL_PARAMS = 'utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&ad_id={{ad.id}}';
+
+const META_PARAMS_TIP =
+  'Meta mengganti {{ad.id}} dengan ID iklan dan {{campaign.name}} dengan nama kampanye saat iklan diklik. Prospek dihitung sebagai Iklan hanya bila linknya membawa ad_id; fbclid atau utm_medium saja tidak cukup. Kolom ini ada di level iklan, bagian Pelacakan (Tracking).';
+
+/** Clipboard API first; textarea + execCommand for browsers without it (e.g. http on a LAN address). True only if copied. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to the fallback
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.className = 'ch-copy-buffer';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+const MetaUrlParams: React.FC = () => {
+  const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const copy = async () => {
+    const ok = await copyText(META_URL_PARAMS);
+    setCopied(ok);
+    setFailed(!ok);
+    if (ok) window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  return (
+    <SettingsSection title="Parameter URL iklan Meta">
+      <p className="ch-text">
+        Agar lead dari iklan Meta tercatat sebagai Iklan, tempel teks ini di kolom URL parameters (Parameter URL) setiap iklan di Meta Ads Manager:{' '}
+        <Tooltip content={META_PARAMS_TIP} />
+      </p>
+      <div className="ch-link">
+        <code className="ch-link__url">{META_URL_PARAMS}</code>
+        <Button size="sm" variant="secondary" icon={copied ? <Check className="ku-icon--sm" /> : <Copy className="ku-icon--sm" />} onClick={copy}>
+          {copied ? 'Tersalin' : 'Salin'}
+        </Button>
+      </div>
+      {failed && <p className="ku-muted">Gagal menyalin otomatis. Blok teks di atas lalu salin manual.</p>}
     </SettingsSection>
   );
 };
@@ -260,6 +320,7 @@ const EventList: React.FC = () => (
 export const Tracking: React.FC = () => (
   <div className="st-form">
     <LinkBuilder />
+    <MetaUrlParams />
     <MetaSettings />
     <EventList />
   </div>

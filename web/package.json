@@ -15,7 +15,9 @@
     "test:checkout": "node --experimental-strip-types test/checkout-validation.test.mjs",
     "test:web-fixes": "node --experimental-strip-types test/web-fixes.test.mjs",
     "test:placeholders": "node --experimental-strip-types test/placeholder-fill.test.mjs",
-    "test:agent-phone": "node --experimental-strip-types test/agent-phone.test.mjs"
+    "test:agent-phone": "node --experimental-strip-types test/agent-phone.test.mjs",
+    "test:bh3-web": "node --experimental-strip-types test/bh3-web-fixes.test.mjs",
+    "test:ad-attribution": "node --experimental-strip-types test/ad-attribution.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

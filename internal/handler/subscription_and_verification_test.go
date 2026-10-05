@@ -111,6 +111,15 @@ func (m *mockCouponRepo) RecordRedemption(ctx context.Context, couponID, tenantI
 	return nil
 }
 
+func (m *mockCouponRepo) HasTenantRedeemed(ctx context.Context, tenantID, couponID uint64) (bool, error) {
+	for _, r := range m.redemptions {
+		if r.TenantID == tenantID && r.CouponID == couponID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // mockPVRepo implements repository.PaymentVerificationRepository in-memory for testing.
 type mockPVRepo struct {
 	mu            sync.Mutex // guards status transitions, mirroring the atomic conditional UPDATE in MySQL

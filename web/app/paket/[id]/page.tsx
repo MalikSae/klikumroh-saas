@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { PackageDetailClientView } from '../../../components/PackageDetailClientView';
 import type { PublicPackage } from '../../../components/publicPackage';
 import type { PublicTenantInfo } from '../../page';
+import { parsePackageId } from '../../../lib/packageId';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ const getBackendBaseUrl = (): string => {
   return process.env.BACKEND_INTERNAL_URL || process.env.API_BASE_URL || 'http://localhost:8080';
 };
 
-async function getPackageDetail(host: string, id: string): Promise<PublicPackage | null> {
+async function getPackageDetail(host: string, id: number): Promise<PublicPackage | null> {
   const backendUrl = getBackendBaseUrl();
   try {
     const res = await fetch(`${backendUrl}/api/public/packages/${id}`, {
@@ -72,7 +73,10 @@ export async function generateMetadata(
   // Same host the page body uses for its (no-store) fetches.
   const host = headerList.get('host') || 'travela.klikumroh.local';
   const publicHost = headerList.get('x-forwarded-host') || headerList.get('host') || '';
-  const { id } = await params;
+  const id = parsePackageId((await params).id);
+  if (id === null) {
+    return {};
+  }
 
   const [pkg, tenantInfo] = await Promise.all([getPackageDetail(host, id), getTenantInfo(host)]);
   if (!pkg || !tenantInfo || tenantInfo === 'down' || tenantInfo.is_suspended) {
@@ -80,6 +84,7 @@ export async function generateMetadata(
   }
 
   const origin = publicHost ? `https://${publicHost}` : '';
+  // Normalized number: /paket/007 and /paket/7 share one canonical.
   const canonicalUrl = `${origin}/paket/${id}`;
   const title = `${pkg.name} | ${tenantInfo.name}`;
   const plainDescription = (pkg.description || '').replace(/\s+/g, ' ').trim();
@@ -120,8 +125,12 @@ export async function generateMetadata(
 export default async function PackageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const headerList = await headers();
   const host = headerList.get('host') || 'travela.klikumroh.local';
-  
-  const { id } = await params;
+
+  // Only a positive whole number may go into the backend URL (route params arrive decoded).
+  const id = parsePackageId((await params).id);
+  if (id === null) {
+    notFound();
+  }
 
   const [pkg, tenantInfo] = await Promise.all([
     getPackageDetail(host, id),

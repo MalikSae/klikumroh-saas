@@ -15,6 +15,7 @@ import {
   HelpCircle,
   ArrowLeft,
   Handshake,
+  Command,
 } from 'lucide-react';
 import { Tooltip } from '../shared/Tooltip';
 import { NotificationDropdown } from '../shared/NotificationDropdown';
@@ -263,7 +264,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <div className="sa-search-command">
               <Search size={14} />
               <input type="text" placeholder="Quick search travel, domain..." readOnly />
-              <span className="sa-kbd">⌘K</span>
+              <span className="sa-kbd"><Command size={11} aria-hidden="true" />K</span>
             </div>
 
             <NotificationDropdown
@@ -291,7 +292,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                       padding: 0,
                       marginBottom: '6px',
                       color: 'var(--sa-text-muted)',
-                      fontSize: '12px',
+                      fontSize: '13px',
                       fontWeight: 500,
                       cursor: 'pointer',
                       width: 'fit-content',

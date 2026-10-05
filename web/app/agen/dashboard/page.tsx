@@ -31,7 +31,9 @@ import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspe
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { initAudioUnlock, playNotificationSound } from '../../../lib/notificationSound';
 import { HABITS, fetchHabitSummary, habitHeadline, logHabit, type HabitSummary } from '../../../lib/agentHabits';
-import { jakartaDayKey } from '../../../lib/jakartaTime';
+import { JAKARTA_TZ, jakartaDayKey } from '../../../lib/jakartaTime';
+import { homeRank } from '../../../lib/agentRank';
+import { copyToClipboard } from '../../../lib/clipboard';
 import { canShareFiles, packagePhotoFile, packageShareText, sharePackage } from '../../../lib/packageShare';
 import './AgenDashboard.css';
 
@@ -42,8 +44,9 @@ interface AgentFunnelSummary {
 }
 
 interface LeaderboardPreview {
-  rank_saya: number;
-  total_agen: number;
+  // 0 or null when the agent has no rank (no closing yet).
+  rank_saya?: number | null;
+  total_agen?: number;
 }
 
 export interface AgentTargetView {
@@ -73,7 +76,7 @@ interface AgentDashboardSummary {
   minimum_payout_amount: number | null;
   referral_link: string;
   funnel_ringkasan: AgentFunnelSummary;
-  leaderboard_preview: LeaderboardPreview;
+  leaderboard_preview?: LeaderboardPreview | null;
   photo_url?: string | null;
   total_clicks?: number;
   // The travel's subscription is suspended: the portal is read-only.
@@ -81,12 +84,12 @@ interface AgentDashboardSummary {
 }
 
 // Today's date in Indonesian, with the Hijri date (Umm al-Qura, computed in the browser; may differ by a day
-// from the official Kemenag date). Falls back to the Gregorian date alone if the calendar is not available.
+// from the official Kemenag date), both for today in WIB like the rest of the portal. Falls back to the Gregorian date alone if the calendar is not available.
 function todayLabel(): string {
   const now = new Date();
-  const masehi = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
+  const masehi = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: JAKARTA_TZ }).format(now);
   try {
-    const hijri = new Intl.DateTimeFormat('id-ID-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+    const hijri = new Intl.DateTimeFormat('id-ID-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric', timeZone: JAKARTA_TZ }).format(now);
     return `${masehi} · ${hijri}`;
   } catch {
     return masehi;
@@ -104,6 +107,8 @@ export default function AgenDashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
+  // Link the browser refused to copy (in-app browsers often block the clipboard): shown for a manual copy.
+  const [copyFailedLink, setCopyFailedLink] = useState<string | null>(null);
   const [showBalance, setShowBalance] = useState<boolean>(true);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [travel, setTravel] = useState<TravelBrand | null>(null);
@@ -162,7 +167,8 @@ export default function AgenDashboardPage() {
         },
       });
 
-      if (meRes.status === 401) {
+      // 401: session expired. 404: the agent account no longer exists. Both need a fresh login.
+      if (meRes.status === 401 || meRes.status === 404) {
         localStorage.removeItem('agent_token');
         router.push('/agen/login');
         return;
@@ -308,9 +314,15 @@ export default function AgenDashboardPage() {
     return 'Rp ' + Math.floor(val).toLocaleString('id-ID');
   };
 
-  const handleCopyLink = () => {
+  // 'Tersalin' and the share habit only count once the link is really on the clipboard.
+  const handleCopyLink = async () => {
     if (!summary?.referral_link) return;
-    navigator.clipboard.writeText(summary.referral_link);
+    const link = summary.referral_link;
+    if (!(await copyToClipboard(link))) {
+      setCopyFailedLink(link);
+      return;
+    }
+    setCopyFailedLink(null);
     logShare();
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -320,10 +332,14 @@ export default function AgenDashboardPage() {
   const packageLink = (pkg: PublicPackage): string =>
     summary?.referral_link ? `${summary.referral_link}?to=${encodeURIComponent(`/paket/${pkg.id}`)}` : '';
 
-  const copyPackageLink = (pkg: PublicPackage) => {
+  const copyPackageLink = async (pkg: PublicPackage) => {
     const link = packageLink(pkg);
     if (!link) return;
-    navigator.clipboard.writeText(link);
+    if (!(await copyToClipboard(link))) {
+      setCopyFailedLink(link);
+      return;
+    }
+    setCopyFailedLink(null);
     logShare();
     setSyiarCopied(true);
     setTimeout(() => {
@@ -412,6 +428,9 @@ export default function AgenDashboardPage() {
     .sort((x, y) => (x.departure_date || '9999').localeCompare(y.departure_date || '9999'))
     .slice(0, 6);
 
+  // No rank before the agent's first closing (the order would only follow account age).
+  const rank = homeRank(summary.leaderboard_preview?.rank_saya, summary.funnel_ringkasan?.closing);
+
   const menu = [
     { key: 'tarik', icon: <ArrowDownToLine size={22} aria-hidden="true" />, label: 'Tarik saldo', href: summary.travel_suspended ? undefined : '/agen/tarik-saldo' },
     { key: 'riwayat', icon: <History size={22} aria-hidden="true" />, label: 'Riwayat', href: '/agen/riwayat-komisi' },
@@ -425,7 +444,7 @@ export default function AgenDashboardPage() {
       key: 'peringkat',
       tone: 'amber',
       icon: <Trophy size={22} aria-hidden="true" />,
-      label: summary.leaderboard_preview.rank_saya > 0 && summary.leaderboard_preview.rank_saya < 10 ? `Peringkat #${summary.leaderboard_preview.rank_saya}` : 'Peringkat',
+      label: rank !== null ? `Peringkat #${rank}` : 'Peringkat',
       href: '/agen/leaderboard',
     },
   ];
@@ -560,6 +579,7 @@ export default function AgenDashboardPage() {
               {copied ? 'Tersalin' : 'Salin'}
             </button>
           </div>
+          {copyFailedLink === summary.referral_link && <CopyFailedNote link={copyFailedLink} />}
         </section>
 
         {/* Packages to share */}
@@ -597,7 +617,7 @@ export default function AgenDashboardPage() {
                         {pkg.price ? ` · ${formatRupiah(pkg.price)}` : ''}
                       </span>
                     </Link>
-                    <button type="button" className="ag-share__btn" onClick={() => setSyiarPkg(pkg)}>
+                    <button type="button" className="ag-share__btn" onClick={() => { setCopyFailedLink(null); setSyiarPkg(pkg); }}>
                       <Megaphone size={16} aria-hidden="true" />
                       Syiarkan!
                     </button>
@@ -728,6 +748,7 @@ export default function AgenDashboardPage() {
                 </span>
               </a>
             </div>
+            {copyFailedLink && copyFailedLink === packageLink(syiarPkg) && <CopyFailedNote link={copyFailedLink} />}
             <button type="button" className="ag-sheet__cancel" onClick={() => setSyiarPkg(null)}>
               Batal
             </button>
@@ -739,6 +760,17 @@ export default function AgenDashboardPage() {
     </MobileContainer>
   );
 }
+
+// Shown when the browser refused to copy: the link in full, selectable, so the agent can copy it by hand.
+const CopyFailedNote: React.FC<{ link: string }> = ({ link }) => (
+  <p className="ag-copy-failed" role="alert">
+    <AlertCircle size={16} aria-hidden="true" />
+    <span>
+      Browser ini menolak menyalin otomatis. Tekan lama link berikut untuk menyalin manual:
+      <span className="ag-copy-failed__link">{link}</span>
+    </span>
+  </p>
+);
 
 // Portal header: 'Portal Agen' with the travel's name in small text below; notification bell on the right.
 const AgentHeader: React.FC<{ brand?: boolean; travel?: TravelBrand | null; unreadCount?: number; onBell?: () => void }> = ({

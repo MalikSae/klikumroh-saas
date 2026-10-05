@@ -13,11 +13,11 @@ import {
   markStaffAffiliatorPayoutPaid,
   rejectStaffAffiliatorPayout,
   updateAffiliatorSettings,
-  type AffiliatorSettings,
   type StaffAffiliatorItem,
   type StaffAffiliatorPayout,
 } from '../../../services/staffApi';
 import { PAYOUT_PILL, formatDateID, formatIDR } from './affiliatorFormat';
+import { parseAffiliatorDraft, toAffiliatorDraft, type AffiliatorSettingsDraft } from './affiliatorSettingsForm';
 import './AdminAffiliators.css';
 
 type View = 'affiliators' | 'payouts' | 'settings';
@@ -96,7 +96,8 @@ export const AdminAffiliatorsView: React.FC = () => {
   const [affiliators, setAffiliators] = useState<StaffAffiliatorItem[]>([]);
   const [payouts, setPayouts] = useState<StaffAffiliatorPayout[]>([]);
   const [payoutFilter, setPayoutFilter] = useState<'pending' | 'all'>('pending');
-  const [settings, setSettings] = useState<AffiliatorSettings | null>(null);
+  // Typed text per field: a cleared field stays empty and is refused on save (never saved as 0).
+  const [settings, setSettings] = useState<AffiliatorSettingsDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -110,7 +111,7 @@ export const AdminAffiliatorsView: React.FC = () => {
       const [a, p, s] = await Promise.all([fetchStaffAffiliators(), fetchStaffAffiliatorPayouts('all'), fetchAffiliatorSettings()]);
       setAffiliators(a);
       setPayouts(p);
-      setSettings(s);
+      setSettings(toAffiliatorDraft(s));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat data affiliator');
     } finally {
@@ -200,10 +201,16 @@ export const AdminAffiliatorsView: React.FC = () => {
   const saveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
+    const parsed = parseAffiliatorDraft(settings);
+    if (!parsed.ok) {
+      setMessage(null);
+      setError(parsed.error);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      setSettings(await updateAffiliatorSettings(settings));
+      setSettings(toAffiliatorDraft(await updateAffiliatorSettings(parsed.value)));
       setMessage('Pengaturan program affiliator disimpan. Diskon kupon berlaku untuk semua kupon affiliator yang aktif.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan pengaturan');
@@ -211,8 +218,8 @@ export const AdminAffiliatorsView: React.FC = () => {
       setSaving(false);
     }
   };
-  const num = (key: keyof AffiliatorSettings) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    settings && setSettings({ ...settings, [key]: e.target.value === '' ? 0 : Number(e.target.value) });
+  const num = (key: keyof AffiliatorSettingsDraft) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    settings && setSettings({ ...settings, [key]: e.target.value });
 
   return (
     <AdminLayout
@@ -298,9 +305,9 @@ export const AdminAffiliatorsView: React.FC = () => {
       {view === 'settings' && settings && (
         <form className="sa-panel sa-aff-settings" onSubmit={saveSettings}>
           <div className="sa-aff-settings__grid">
-            <FormInput type="number" label="Komisi pembayaran pertama (%)" min={0} max={100} step={0.5} value={settings.first_rate} onChange={num('first_rate')} tooltip="Persen dari tagihan setelah diskon (tanpa kode unik) pada pembayaran pertama travel yang disetujui." />
-            <FormInput type="number" label="Komisi perpanjangan (%)" min={0} max={100} step={0.5} value={settings.renewal_rate} onChange={num('renewal_rate')} tooltip="Persen dari setiap pembayaran perpanjangan berikutnya, selama travel terus berlangganan." />
-            <FormInput type="number" label="Diskon kupon affiliator (%)" min={1} max={100} step={1} value={settings.coupon_discount} onChange={num('coupon_discount')} tooltip="Sama untuk semua affiliator. Mengubahnya langsung berlaku untuk semua kupon affiliator yang aktif. Kupon affiliator hanya untuk pendaftaran travel baru." />
+            <FormInput type="text" inputMode="decimal" label="Komisi pembayaran pertama (%)" value={settings.first_rate} onChange={num('first_rate')} tooltip="Persen dari tagihan setelah diskon (tanpa kode unik) pada pembayaran pertama travel yang disetujui." />
+            <FormInput type="text" inputMode="decimal" label="Komisi perpanjangan (%)" value={settings.renewal_rate} onChange={num('renewal_rate')} tooltip="Persen dari setiap pembayaran perpanjangan berikutnya, selama travel terus berlangganan." />
+            <FormInput type="text" inputMode="decimal" label="Diskon kupon affiliator (%)" value={settings.coupon_discount} onChange={num('coupon_discount')} tooltip="Sama untuk semua affiliator. Mengubahnya langsung berlaku untuk semua kupon affiliator yang aktif. Kupon affiliator hanya untuk pendaftaran travel baru." />
             <FormInput type="number" label="Masa tahan komisi (hari)" min={0} max={365} step={1} value={settings.hold_days} onChange={num('hold_days')} tooltip="Komisi baru bisa diajukan pencairan setelah sekian hari sejak pembayaran disetujui." />
             <FormInput type="number" label="Minimal pencairan (Rp)" min={0} step={10000} value={settings.min_payout} onChange={num('min_payout')} />
           </div>

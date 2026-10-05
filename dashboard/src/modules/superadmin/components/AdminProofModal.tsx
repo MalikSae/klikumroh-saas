@@ -236,7 +236,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   const previewTotal = targetPlan ? planChangeTotal(targetPlan.price, couponPercentage, currentItem.unique_code) : 0;
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: 700,
     color: 'var(--sa-text-muted)',
     textTransform: 'uppercase',
@@ -256,7 +256,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.6)',
+        backgroundColor: 'var(--sa-overlay-modal)',
         backdropFilter: 'blur(3px)',
         zIndex: 100,
         display: 'flex',
@@ -275,7 +275,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 24px 48px -8px rgba(0, 0, 0, 0.18)',
+          boxShadow: 'var(--sa-shadow-modal-lg)',
           overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -292,10 +292,10 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           }}
         >
           <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, fontFamily: 'var(--sa-font-heading)', color: 'var(--sa-text-primary)' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, fontFamily: 'var(--sa-font-display)', color: 'var(--sa-text)' }}>
               Verifikasi Pembayaran #{currentItem.id}
             </h3>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--sa-text-muted)' }}>
+            <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--sa-text-muted)' }}>
               {currentItem.tenant_name}
             </p>
           </div>
@@ -345,7 +345,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           )}
 
           {/* ── Section 1: Tagihan ── */}
-          <div style={{ ...sectionStyle, backgroundColor: 'var(--sa-canvas)', border: '1px solid var(--sa-border)' }}>
+          <div style={{ ...sectionStyle, backgroundColor: 'var(--sa-surface)', border: '1px solid var(--sa-border)' }}>
             <span style={labelStyle}>Rincian Tagihan</span>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
               {/* Left: breakdown */}
@@ -370,9 +370,9 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     <span>+Rp {currentItem.unique_code}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, borderTop: '1px solid var(--sa-border)', paddingTop: '8px', marginTop: '4px', color: 'var(--sa-text-primary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, borderTop: '1px solid var(--sa-border)', paddingTop: '8px', marginTop: '4px', color: 'var(--sa-text)' }}>
                   <span>Total Transfer</span>
-                  <span style={{ color: 'var(--sa-primary)' }}>{formatIDR(currentItem.final_amount ?? currentItem.amount)}</span>
+                  <span style={{ color: 'var(--sa-text)' }}>{formatIDR(currentItem.final_amount ?? currentItem.amount)}</span>
                 </div>
               </div>
             </div>
@@ -385,7 +385,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   onClick={() => { setShowUpsellForm(!showUpsellForm); setShowCouponForm(false); setError(null); }}
                   style={{
                     background: 'none', border: '1px solid var(--sa-border)', padding: '5px 10px', cursor: 'pointer',
-                    fontSize: '12px', fontWeight: 600, color: 'var(--sa-text-secondary)', display: 'inline-flex',
+                    fontSize: '13px', fontWeight: 600, color: 'var(--sa-text-secondary)', display: 'inline-flex',
                     alignItems: 'center', gap: '4px', borderRadius: 'var(--sa-radius-sm)',
                   }}
                 >
@@ -397,7 +397,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   onClick={() => { setShowCouponForm(!showCouponForm); setShowUpsellForm(false); setError(null); }}
                   style={{
                     background: 'none', border: '1px solid var(--sa-border)', padding: '5px 10px', cursor: 'pointer',
-                    fontSize: '12px', fontWeight: 600, color: 'var(--sa-text-secondary)', display: 'inline-flex',
+                    fontSize: '13px', fontWeight: 600, color: 'var(--sa-text-secondary)', display: 'inline-flex',
                     alignItems: 'center', gap: '4px', borderRadius: 'var(--sa-radius-sm)',
                   }}
                 >
@@ -428,7 +428,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
               )}
 
               {targetPlan && selectedPlanId !== currentItem.plan_id && (
-                <div style={{ backgroundColor: 'var(--sa-canvas)', padding: '10px 12px', borderRadius: 'var(--sa-radius-sm)', marginBottom: '10px', fontSize: '12px' }}>
+                <div style={{ backgroundColor: 'var(--sa-surface)', padding: '10px 12px', borderRadius: 'var(--sa-radius-sm)', marginBottom: '10px', fontSize: '13px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
                     <span>Harga Paket Baru</span><span>{formatIDR(targetPlan.price)}</span>
                   </div>
@@ -450,17 +450,17 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid var(--sa-border)', paddingTop: '6px' }}>
                     <span>Total Baru</span>
-                    <span style={{ color: 'var(--sa-primary)' }}>{formatIDR(previewTotal)}</span>
+                    <span style={{ color: 'var(--sa-text)' }}>{formatIDR(previewTotal)}</span>
                   </div>
                 </div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <button type="button" className="sa-btn sa-btn--secondary" onClick={() => setShowUpsellForm(false)} disabled={updatingPlan} style={{ padding: '6px 12px', fontSize: '12px' }}>Batal</button>
+                <button type="button" className="sa-btn sa-btn--secondary" onClick={() => setShowUpsellForm(false)} disabled={updatingPlan} style={{ padding: '6px 12px', fontSize: '13px' }}>Batal</button>
                 <button
                   type="button" className="sa-btn sa-btn--primary" onClick={handleSavePlan}
                   disabled={updatingPlan || selectedPlanId === currentItem.plan_id}
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
+                  style={{ padding: '6px 12px', fontSize: '13px' }}
                 >
                   {updatingPlan ? 'Menyimpan...' : 'Simpan Paket'}
                 </button>
@@ -482,7 +482,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     type="button"
                     onClick={handleRemoveCoupon}
                     disabled={updatingCoupon}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sa-red-text)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sa-red-text)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 600 }}
                   >
                     <XCircle size={14} />
                     Hapus
@@ -496,7 +496,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                   placeholder="Masukkan kode kupon..."
                   style={{
-                    flex: 1, padding: '8px 12px', fontSize: '13px', border: '1px solid var(--sa-border)',
+                    flex: 1, padding: '8px 12px', fontSize: 'var(--db-text-input)', border: '1px solid var(--sa-border)',
                     borderRadius: 'var(--sa-radius-sm)', textTransform: 'uppercase', letterSpacing: '0.04em',
                     boxSizing: 'border-box',
                   }}
@@ -505,7 +505,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 <button
                   type="button" className="sa-btn sa-btn--primary" onClick={handleApplyCoupon}
                   disabled={updatingCoupon || !couponInput.trim()}
-                  style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                  style={{ padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                 >
                   <ChevronRight size={13} />
                   {updatingCoupon ? 'Memproses...' : (hasCoupon ? 'Ganti Kupon' : 'Terapkan')}
@@ -519,7 +519,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             <span style={labelStyle}>Kontak Mitra</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', alignItems: 'center', fontSize: '13px', gap: '4px' }}>
-                <span style={{ color: 'var(--sa-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                <span style={{ color: 'var(--sa-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
                   <Phone size={11} /> WhatsApp
                 </span>
                 {currentItem.tenant_whatsapp ? (
@@ -532,11 +532,11 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     <ExternalLink size={11} />
                   </a>
                 ) : (
-                  <span style={{ color: 'var(--sa-text-subtle)', fontStyle: 'italic', fontSize: '12px' }}>Belum dicantumkan</span>
+                  <span style={{ color: 'var(--sa-text-subtle)', fontStyle: 'italic', fontSize: '13px' }}>Belum dicantumkan</span>
                 )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', alignItems: 'center', fontSize: '13px', gap: '4px' }}>
-                <span style={{ color: 'var(--sa-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                <span style={{ color: 'var(--sa-text-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '13px' }}>
                   <Mail size={11} /> Email
                 </span>
                 {currentItem.tenant_email ? (
@@ -544,7 +544,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     {currentItem.tenant_email}
                   </a>
                 ) : (
-                  <span style={{ color: 'var(--sa-text-subtle)', fontStyle: 'italic', fontSize: '12px' }}>-</span>
+                  <span style={{ color: 'var(--sa-text-subtle)', fontStyle: 'italic', fontSize: '13px' }}>-</span>
                 )}
               </div>
             </div>
@@ -566,7 +566,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   <a
                     href={proofFile.url || undefined}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: '12px', color: 'var(--sa-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                    style={{ fontSize: '13px', color: 'var(--sa-text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
                   >
                     Buka di tab baru
                     <ExternalLink size={11} />
@@ -574,7 +574,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div style={{ padding: '32px 0', textAlign: 'center', backgroundColor: 'var(--sa-canvas)', borderRadius: 'var(--sa-radius-sm)', color: 'var(--sa-text-muted)', fontSize: '13px', border: '1px dashed var(--sa-border)' }}>
+              <div style={{ padding: '32px 0', textAlign: 'center', backgroundColor: 'var(--sa-surface)', borderRadius: 'var(--sa-radius-sm)', color: 'var(--sa-text-muted)', fontSize: '13px', border: '1px dashed var(--sa-border)' }}>
                 Belum ada file bukti transfer
               </div>
             )}
@@ -609,7 +609,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Contoh: Nominal tidak sesuai, struk tidak terbaca..."
-                style={{ width: '100%', padding: '8px 12px', fontSize: '13px', border: '1px solid var(--sa-border)', borderRadius: 'var(--sa-radius-sm)', boxSizing: 'border-box', resize: 'vertical' }}
+                style={{ width: '100%', padding: '8px 12px', fontSize: 'var(--db-text-input)', border: '1px solid var(--sa-border)', borderRadius: 'var(--sa-radius-sm)', boxSizing: 'border-box', resize: 'vertical' }}
               />
             </div>
           )}
@@ -624,7 +624,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             alignItems: 'center',
             justifyContent: 'flex-end',
             gap: '8px',
-            backgroundColor: 'var(--sa-canvas)',
+            backgroundColor: 'var(--sa-surface)',
             flexShrink: 0,
           }}
         >

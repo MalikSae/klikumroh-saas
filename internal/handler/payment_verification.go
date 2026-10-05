@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,6 +24,9 @@ type approveVerificationRequest struct {
 	ExpectedPlanID      *uint64  `json:"expected_plan_id"`
 	ExpectedFinalAmount *float64 `json:"expected_final_amount"`
 }
+
+// approveCouponUsedMessage: the travel already paid an invoice with this coupon (one coupon per travel).
+const approveCouponUsedMessage = "Travel ini sudah pernah memakai kupon pada invoice ini. Hapus atau ganti kupon (harga akan dihitung ulang), atau tolak pembayaran."
 
 const approveProofRequiredMessage = "Bukti transfer belum diunggah. Tagihan di atas Rp 0 hanya bisa disetujui setelah ada bukti transfer."
 
@@ -118,6 +122,12 @@ func (h *PaymentVerificationHandler) Approve(w http.ResponseWriter, r *http.Requ
 		if errors.Is(err, service.ErrCouponInactive) {
 			respondJSON(w, http.StatusConflict, map[string]string{
 				"error": "Kupon pada invoice ini sudah dinonaktifkan. Hapus atau ganti kupon (harga akan dihitung ulang), atau tolak pembayaran.",
+			})
+			return
+		}
+		if errors.Is(err, service.ErrCouponUsedByTenant) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": approveCouponUsedMessage,
 			})
 			return
 		}
@@ -223,13 +233,15 @@ func (h *PaymentVerificationHandler) UpdatePlan(w http.ResponseWriter, r *http.R
 		}
 		// The invoice's coupon would not apply to the new plan: the plan is not changed, staff decide.
 		if errors.Is(err, service.ErrCouponPlanMismatch) || errors.Is(err, service.ErrCouponInactive) ||
-			errors.Is(err, service.ErrCouponExpired) || errors.Is(err, service.ErrCouponNotFound) {
+			errors.Is(err, service.ErrCouponExpired) || errors.Is(err, service.ErrCouponNotFound) ||
+			errors.Is(err, service.ErrCouponUsedByTenant) {
 			respondJSON(w, http.StatusConflict, map[string]string{
 				"error": "Paket tidak diubah: kupon pada tagihan ini (" + err.Error() + ") tidak berlaku untuk paket baru. Hapus atau ganti kuponnya dulu, lalu ubah paket.",
 			})
 			return
 		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui paket verifikasi: " + err.Error()})
+		log.Printf("[Payment] staff update plan of invoice %d: %v", id, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui paket tagihan, coba lagi"})
 		return
 	}
 
@@ -276,11 +288,14 @@ func (h *PaymentVerificationHandler) ApplyCoupon(w http.ResponseWriter, r *http.
 			errors.Is(err, service.ErrCouponInactive) ||
 			errors.Is(err, service.ErrCouponExpired) ||
 			errors.Is(err, service.ErrCouponExhausted) ||
-			errors.Is(err, service.ErrCouponPlanMismatch) {
+			errors.Is(err, service.ErrCouponPlanMismatch) ||
+			errors.Is(err, service.ErrCouponUsedByTenant) ||
+			errors.Is(err, service.ErrAffiliatorCouponSignupOnly) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menerapkan kupon: " + err.Error()})
+		log.Printf("[Payment] staff apply coupon to invoice %d: %v", id, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menerapkan kupon, coba lagi"})
 		return
 	}
 

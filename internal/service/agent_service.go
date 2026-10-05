@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -18,6 +19,10 @@ import (
 
 // MinAgentPasswordLength applies to sign-up, password change and admin reset alike.
 const MinAgentPasswordLength = 8
+
+// ErrReferralAgentNotActive: the referral code given at sign-up belongs to an agent of this travel that is
+// not active (pending, rejected or deactivated).
+var ErrReferralAgentNotActive = errors.New("kode referral pengajak sudah tidak aktif. Kosongkan kolom kode referral untuk mendaftar tanpa pengajak, atau minta kode dari agen lain")
 
 var (
 	ErrTermsRequired       = errors.New("Syarat & Ketentuan wajib disetujui")
@@ -224,7 +229,10 @@ type CommissionHistoryItem struct {
 	ProspectID uint64 `json:"prospect_id,omitempty"`
 	// prospectName is only used to build the admin description of override entries.
 	prospectName string
-	CreatedAt    time.Time `json:"created_at"`
+	// fromNetwork: the entry's prospect belongs to another agent (an upline's override or a correction of
+	// it), so the agent view must not reveal the prospect or the admin's free-text reason.
+	fromNetwork bool
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type UpdateProfileRequest struct {
@@ -453,6 +461,11 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 		code := strings.TrimSpace(*req.ReferralCode)
 		parentAgent, err := s.agentRepo.GetByReferralCode(ctx, code)
 		if err == nil && parentAgent.TenantID == tenantID {
+			// A pending, rejected or deactivated agent cannot recruit: it earns no override and its link
+			// produces no leads, so the person is told instead of being silently placed under it.
+			if parentAgent.Status != "active" {
+				return nil, ErrReferralAgentNotActive
+			}
 			pID := parentAgent.ID
 			parentAgentID = &pID
 		}
@@ -669,20 +682,7 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 	}
 
 	totalAgen := len(stats)
-	rankSaya := 0
-	for i, stat := range stats {
-		if stat.AgentID == agentID {
-			rankSaya = i + 1
-			break
-		}
-	}
-	if rankSaya == 0 {
-		rankSaya = totalAgen
-		if rankSaya == 0 {
-			rankSaya = 1
-			totalAgen = 1
-		}
-	}
+	rankSaya := closingRank(stats, agentID)
 
 	// Calculate TargetBulanan
 	var targetBulanan *TargetBulanan
@@ -1193,6 +1193,12 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 		return nil, ErrPayoutBankInfoRequired
 	}
 
+	// The column is DECIMAL(15,2): work in whole cents, so 0.001 cannot be stored as a 0.00 request that
+	// blocks real ones, and 99999.995 cannot pass a 99999.99 balance and be stored as 100000.00.
+	if math.IsNaN(input.AmountRequested) || math.IsInf(input.AmountRequested, 0) {
+		return nil, ErrPayoutAmountNotPositive
+	}
+	input.AmountRequested = math.Round(input.AmountRequested*100) / 100
 	if input.AmountRequested <= 0 {
 		return nil, ErrPayoutAmountNotPositive
 	}
@@ -1244,7 +1250,7 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 		if saldoTersedia < 0 {
 			saldoTersedia = 0
 		}
-		if input.AmountRequested > saldoTersedia {
+		if math.Round(input.AmountRequested*100) > math.Round(saldoTersedia*100) {
 			return ErrPayoutExceedsBalance
 		}
 
@@ -1432,6 +1438,7 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 			Held:         l.ReleasedAt == nil,
 			ProspectID:   l.ProspectID,
 			prospectName: l.ProspectName,
+			fromNetwork:  l.ProspectAgentID != 0 && l.ProspectAgentID != l.AgentID,
 			CreatedAt:    l.CreatedAt,
 		})
 	}
@@ -1492,9 +1499,15 @@ func (s *agentService) GetCommissionHistory(ctx context.Context, tenantID uint64
 		return nil, err
 	}
 	// An override comes from a downline agent's prospect: the agent must not learn which one.
+	// A correction booked to this agent for a downline's prospect is the same: its notes carry the admin's
+	// reason, which often names the jamaah, so a generic description replaces it.
 	for i := range items {
 		if items[i].Type == "override" {
 			items[i].ProspectID = 0
+		}
+		if items[i].Type == "correction" && items[i].fromNetwork {
+			items[i].ProspectID = 0
+			items[i].Description = "Koreksi komisi override dari jaringan Anda"
 		}
 	}
 	return items, nil
@@ -1861,4 +1874,27 @@ func (s *agentService) ToggleAgentStatus(ctx context.Context, tenantID uint64, a
 	default:
 		return ErrInvalidAgentAction
 	}
+}
+
+// closingRank is the agent's leaderboard position by closed jamaah: 0 (no rank) while the agent has no
+// closing of its own, so nobody is "#1" only because of account age when no agent has closed yet. Agents
+// with the same total share a rank (1 + the number of agents with strictly more).
+func closingRank(stats []repository.AgentClosingStat, agentID uint64) int {
+	own := -1
+	for _, st := range stats {
+		if st.AgentID == agentID {
+			own = st.TotalJamaah
+			break
+		}
+	}
+	if own <= 0 {
+		return 0
+	}
+	rank := 1
+	for _, st := range stats {
+		if st.TotalJamaah > own {
+			rank++
+		}
+	}
+	return rank
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -44,10 +45,13 @@ func NewPublicSignupHandler(
 func (h *PublicSignupHandler) RegisterPublicRoutes(r chi.Router) {
 	slugLimiter := middleware.NewIPRateLimiter(30, time.Minute)
 	signupLimiter := middleware.NewIPRateLimiter(10, time.Minute)
+	couponLimiter := middleware.NewIPRateLimiter(20, time.Minute)
 
 	r.Get("/api/public/pricing-plans", h.ListPricingPlans)
 	r.With(slugLimiter).Get("/api/public/check-slug", h.CheckSlug)
-	r.Post("/api/public/coupons/validate", h.ValidateCoupon)
+	// Limited like the slug check: affiliator codes are short and human-readable, so an unlimited
+	// endpoint would let anyone enumerate them.
+	r.With(couponLimiter).Post("/api/public/coupons/validate", h.ValidateCoupon)
 	r.With(signupLimiter).Post("/api/public/tenant-signup", h.TenantSignup)
 	// No public payment endpoints: after signup the travel logs in and pays from the dashboard billing page.
 }
@@ -123,7 +127,12 @@ func (h *PublicSignupHandler) ValidateCoupon(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if isCouponClientError(err) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("[Coupon] public validate: %v", err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memeriksa kupon"})
 		return
 	}
 
@@ -151,33 +160,29 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, service.ErrInvalidTravelName) ||
+		// Already taken by another travel (also when two signups race for it): 409.
+		if errors.Is(err, service.ErrSlugAlreadyTaken) ||
+			errors.Is(err, service.ErrAdminEmailAlreadyInUse) ||
+			errors.Is(err, service.ErrTenantWhatsAppAlreadyInUse) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+		var slugErr *service.SlugUnavailableError
+		if errors.As(err, &slugErr) ||
+			errors.Is(err, service.ErrInvalidTravelName) ||
 			errors.Is(err, service.ErrInvalidSlug) ||
-			errors.Is(err, service.ErrSlugAlreadyTaken) ||
 			errors.Is(err, service.ErrInvalidAdminName) ||
 			errors.Is(err, service.ErrInvalidAdminEmail) ||
-			errors.Is(err, service.ErrAdminEmailAlreadyInUse) ||
 			errors.Is(err, service.ErrInvalidAdminWhatsApp) ||
-			errors.Is(err, service.ErrTenantWhatsAppAlreadyInUse) ||
 			errors.Is(err, service.ErrPasswordTooShort) ||
 			errors.Is(err, service.ErrPlanNotFound) ||
-			errors.Is(err, service.ErrCouponNotFound) ||
-			errors.Is(err, service.ErrCouponInactive) ||
-			errors.Is(err, service.ErrCouponExpired) ||
-			errors.Is(err, service.ErrCouponExhausted) ||
-			errors.Is(err, service.ErrCouponPlanMismatch) {
+			isCouponClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
 
-		// Check for specific constraint message
-		if strings.Contains(strings.ToLower(err.Error()), "slug") ||
-			strings.Contains(strings.ToLower(err.Error()), "email") ||
-			strings.Contains(strings.ToLower(err.Error()), "whatsapp") {
-			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-			return
-		}
-
+		// Never pass raw database text on to the public page.
+		log.Printf("[Signup] tenant signup failed: %v", err)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memproses pendaftaran travel"})
 		return
 	}

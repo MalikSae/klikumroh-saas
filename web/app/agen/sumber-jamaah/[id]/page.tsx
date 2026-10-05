@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronRight, Copy, Check, CheckCircle2 } from 'lucide-react
 import { MobileContainer } from '../../../../components/MobileContainer';
 import './SumberJamaahDetail.css';
 import { fetchSumberDone, setSumberDone } from '../../../../lib/agentHabits';
+import { copyToClipboard } from '../../../../lib/clipboard';
 import sumberDataRaw from '../../../../data/sumber-jamaah.json';
 
 interface SumberJamaahItem {
@@ -65,12 +66,11 @@ export default function SumberJamaahDetailPage() {
     if (!(await setSumberDone(id, next))) setIsCompleted(!next);
   };
 
-  const handleCopy = (text: string) => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
+  // 'Tersalin' only once the text is really copied (in-app browsers may block the clipboard).
+  const handleCopy = async (text: string) => {
+    if (!(await copyToClipboard(text))) return;
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const totalItems = (sumberDataRaw as SumberJamaahItem[]).length;

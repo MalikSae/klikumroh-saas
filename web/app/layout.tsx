@@ -6,6 +6,7 @@ import '../components/FormInput.css';
 import { TravelAgencyJsonLd } from '../components/TravelAgencyJsonLd';
 import { MetaPixel } from '../components/MetaPixel';
 import { DemoRibbon } from '../components/DemoRibbon';
+import { isPlatformHost } from '../lib/platformHost';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--tw-font-heading',
@@ -66,6 +67,16 @@ export async function generateMetadata(): Promise<Metadata> {
   const headerList = await headers();
   const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
   const tenantInfo = await getTenantInfo(host);
+
+  // A travel host with no active travel (unknown, not active yet, or the API failed): never KlikUmroh's own
+  // title, canonical or favicon on a travel's domain (whitelabel), and keep the empty page out of search.
+  if (!tenantInfo && !isPlatformHost(host)) {
+    return {
+      title: 'Situs belum tersedia',
+      robots: { index: false, follow: false },
+      icons: { icon: [{ url: 'data:,' }] },
+    };
+  }
 
   if (!tenantInfo) {
     return {
@@ -196,7 +207,7 @@ export default async function RootLayout({
   return (
     <html lang="id" className={`${plusJakartaSans.variable} ${roboto.variable}`} style={styleObj} suppressHydrationWarning>
       <head>
-        {isCustomTenantIcon ? (
+        {!tenantInfo && !isPlatformHost(host) ? null : isCustomTenantIcon ? (
           <>
             <link rel="icon" href={tenantIconUrl} />
             <link rel="shortcut icon" href={tenantIconUrl} />

@@ -814,6 +814,12 @@ const AnonymizedName = "Data dihapus (UU PDP)"
 // anonymizedMention replaces the jamaah's name inside notification texts.
 const anonymizedMention = "jamaah (data dihapus)"
 
+// Ledger notes written by Anonymize in place of the admin's free-text reasons.
+const (
+	AnonymizedCancelNote = "Pembatalan closing: alasan dihapus (UU PDP)"
+	AnonymizedLedgerNote = "alasan dihapus (UU PDP)"
+)
+
 // jamaahNotificationTypes are the notification types whose text can name a jamaah.
 const jamaahNotificationTypes = `'prospect_new', 'prospect_repeat', 'prospect_already_closed', 'prospect_status_updated',
 	'prospect_closing_cancelled', 'commission_earned', 'commission_override_earned', 'commission_released'`
@@ -868,6 +874,16 @@ func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE referral_clicks SET prospect_id = NULL, ip_address = NULL WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
+		return err
+	}
+	// Commission ledger notes hold the admin's free-text cancel/correction reasons, which often name the
+	// jamaah. The amounts stay; the text is replaced. The "Pembatalan closing: " prefix is kept because it
+	// marks where a cancelled closing ends in the ledger (service.currentClosingLedgers).
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE commission_ledger
+		SET notes = CASE WHEN notes LIKE 'Pembatalan closing: %' THEN ? ELSE ? END
+		WHERE tenant_id = ? AND prospect_id = ? AND notes IS NOT NULL AND notes <> ''`,
+		AnonymizedCancelNote, AnonymizedLedgerNote, tenantID, id); err != nil {
 		return err
 	}
 	if err := scrubProspectNotifications(ctx, tx, tenantID, id, oldName); err != nil {

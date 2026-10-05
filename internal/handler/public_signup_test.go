@@ -279,8 +279,8 @@ func TestPublicSignup_DuplicateEmailCrossTenant(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400 for duplicate global email, got %d: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected status 409 for duplicate global email, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
@@ -676,8 +676,8 @@ func TestPublicSignup_DuplicateWhatsApp(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400 for duplicate whatsapp, got %d: %s", w.Code, w.Body.String())
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected status 409 for duplicate whatsapp, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var resp map[string]string

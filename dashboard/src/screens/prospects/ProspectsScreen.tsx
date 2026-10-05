@@ -23,6 +23,7 @@ import {
 } from '../../services/api';
 import { formatDateWIB, formatTimeWIB } from '../../utils/datetime';
 import { rememberProspectListQuery } from '../../utils/prospectListQuery';
+import { clampedPage } from '../../utils/pagination';
 import { awaitingPayoffAgentNote, lostReasonNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
   Banner,
@@ -157,10 +158,20 @@ export const ProspectsScreen: React.FC = () => {
       setError(null);
       const data = await fetchProspectPage(filters, page, pageSize);
       if (mine !== seq.current) return;
+      // Page past the end (rows left this filter, or a stale ?page= link): go to the last page with rows.
+      const fixed = clampedPage(page, data.total, pageSize);
+      if (fixed !== null && fixed !== page) {
+        setPage(fixed);
+        return;
+      }
       setRows(data.items);
       setTotal(data.total);
     } catch (e: any) {
-      if (mine === seq.current) setError(e.message || 'Daftar prospek tidak dapat dimuat.');
+      if (mine !== seq.current) return;
+      // Never leave the previous filter's rows under the new tab.
+      setRows([]);
+      setTotal(0);
+      setError(e.message || 'Daftar prospek tidak dapat dimuat.');
     } finally {
       if (mine === seq.current) setLoading(false);
     }
@@ -244,7 +255,7 @@ export const ProspectsScreen: React.FC = () => {
       )}
       {summary && summary.awaiting_payoff > 0 && status === 'closing' && payoff !== 'pending' && (
         <Banner tone="info" icon={<Wallet className="ku-icon--sm" />} action={<Button size="sm" onClick={() => change(setPayoff)('pending')}>Tampilkan</Button>}>
-          <b>{fmtNumber(summary.awaiting_payoff)} jamaah</b> sudah DP dan menunggu ditandai lunas
+          <b>{fmtNumber(summary.awaiting_payoff)} prospek</b> sudah DP dan menunggu ditandai lunas
           {awaitingPayoffAgentNote(summary.awaiting_payoff_with_agent, releasePolicy, fmtNumber)}
         </Banner>
       )}

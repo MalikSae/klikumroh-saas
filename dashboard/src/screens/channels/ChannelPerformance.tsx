@@ -4,6 +4,10 @@ import { ArrowDownRight, ArrowUpRight, Inbox } from 'lucide-react';
 import { fetchChannelReport, type ChannelReport, type ChannelStat, type DailyTrendItem } from '../../services/api';
 import { Banner, Button, Card, ChannelTag, Checkbox, DataTable, EmptyState, Select, Toolbar, errorText, fmtNumber, fmtPercent, type Channel, type Column } from '../../ui';
 import { ChannelChart } from '../dashboard/ChannelChart';
+import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
+
+// Iklan = prospects whose landing link carried Meta's ad id (ad_id, from {{ad.id}}); decided by the backend.
+const ADS_TIP = 'Dihitung dari parameter ad_id di link iklan Meta. Angka iklan resmi ada di Meta Ads Manager.';
 
 const PERIODS = [
   { value: '7', label: '7 hari terakhir' },
@@ -91,7 +95,21 @@ export const ChannelPerformance: React.FC = () => {
   const period = PERIODS.find((p) => p.value === days)?.label.toLowerCase() ?? '';
 
   const columns: Column<Row>[] = [
-    { key: 'ch', header: 'Kanal', cell: (r) => (r.total ? <b>Semua kanal</b> : <ChannelTag channel={r.channel} />) },
+    {
+      key: 'ch',
+      header: 'Kanal',
+      cell: (r) =>
+        r.total ? (
+          <b>Semua kanal</b>
+        ) : r.channel === 'ads' ? (
+          <span className="ch-kanal">
+            <ChannelTag channel={r.channel} />
+            <Tooltip content={ADS_TIP} align="right" />
+          </span>
+        ) : (
+          <ChannelTag channel={r.channel} />
+        ),
+    },
     { key: 'prospects', header: 'Prospek', align: 'right', cell: (r) => <b className="ku-num">{fmtNumber(r.prospects)}</b> },
     { key: 'delta', header: 'vs periode sebelumnya', align: 'right', cell: (r) => <Delta now={r.prospects} before={r.before} /> },
     { key: 'processed', header: 'Sudah diproses', align: 'right', cell: (r) => (r.prospects ? fmtPercent((r.processed / r.prospects) * 100) : '—') },

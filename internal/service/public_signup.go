@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/rand"
 	"net/mail"
 	"regexp"
 	"strings"
@@ -31,6 +30,12 @@ var (
 	// ErrLegalDocumentsNotConfigured blocks signup while there are no Terms/Privacy documents to consent to.
 	ErrLegalDocumentsNotConfigured = errors.New("pendaftaran belum dibuka: Syarat & Ketentuan dan Kebijakan Privasi belum tersedia")
 )
+
+// SlugUnavailableError: the requested slug cannot be used (invalid format or reserved); Reason is the
+// user-facing explanation from CheckSlug.
+type SlugUnavailableError struct{ Reason string }
+
+func (e *SlugUnavailableError) Error() string { return e.Reason }
 
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
@@ -197,7 +202,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 	}
 	if !available {
 		if reason != "" {
-			return nil, errors.New(reason)
+			return nil, &SlugUnavailableError{Reason: reason}
 		}
 		return nil, ErrSlugAlreadyTaken
 	}
@@ -253,7 +258,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 	uniqueCode := 0
 	finalAmount := discountedAmount
 	if discountedAmount > 0 {
-		uniqueCode = rand.Intn(900) + 100
+		uniqueCode = pickUniqueCode(ctx, s.pvRepo, discountedAmount, 0, 0)
 		finalAmount = discountedAmount + float64(uniqueCode)
 	}
 
@@ -290,6 +295,19 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		WhatsAppNumber:   whatsappPtr,
 	}
 	if err := s.tenantRepo.Create(ctx, tenant); err != nil {
+		// Lost a race with another signup for the same slug or WhatsApp number (UNIQUE index): report
+		// it cleanly instead of passing on the raw database text.
+		if repository.IsDuplicateKey(err) {
+			if existing, findErr := s.tenantRepo.GetBySlug(ctx, slug); findErr == nil && existing != nil {
+				return nil, ErrSlugAlreadyTaken
+			}
+			if whatsappPtr != nil {
+				if existing, findErr := s.tenantRepo.GetByWhatsAppNumber(ctx, *whatsappPtr); findErr == nil && existing != nil {
+					return nil, ErrTenantWhatsAppAlreadyInUse
+				}
+			}
+			return nil, ErrSlugAlreadyTaken
+		}
 		return nil, err
 	}
 

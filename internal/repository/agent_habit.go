@@ -21,8 +21,9 @@ type AgentHabitRepository interface {
 	ListHabitDays(ctx context.Context, tenantID, agentID uint64, from, to string) ([]AgentHabitDay, error)
 	// ListSumberDone returns the ids of the "sumber jamaah" the agent marked as tried.
 	ListSumberDone(ctx context.Context, tenantID, agentID uint64) ([]int, error)
-	// SetSumberDone marks (done=true) or unmarks a "sumber jamaah" for the agent.
-	SetSumberDone(ctx context.Context, tenantID, agentID uint64, sumberID int, done bool) error
+	// SetSumberDone marks (done=true) or unmarks a "sumber jamaah" for the agent. added is true only when a
+	// mark stored a source that was not marked yet (a repeat mark changes nothing).
+	SetSumberDone(ctx context.Context, tenantID, agentID uint64, sumberID int, done bool) (added bool, err error)
 	// AwardBadge records a streak milestone for the agent; true only the first time (newly earned).
 	AwardBadge(ctx context.Context, tenantID, agentID uint64, days int) (bool, error)
 	// ListBadges returns the agent's milestones, smallest first.
@@ -108,20 +109,27 @@ func (r *mysqlAgentHabitRepository) ListSumberDone(ctx context.Context, tenantID
 	return ids, rows.Err()
 }
 
-func (r *mysqlAgentHabitRepository) SetSumberDone(ctx context.Context, tenantID, agentID uint64, sumberID int, done bool) error {
+func (r *mysqlAgentHabitRepository) SetSumberDone(ctx context.Context, tenantID, agentID uint64, sumberID int, done bool) (bool, error) {
 	if !done {
 		_, err := r.db.ExecContext(ctx, `
 			DELETE FROM agent_sumber_progress
 			WHERE tenant_id = ? AND agent_id = ? AND sumber_id = ?`, tenantID, agentID, sumberID)
-		return err
+		return false, err
 	}
 	// The agent must belong to the tenant: insert through the agents row, never a bare id.
-	_, err := r.db.ExecContext(ctx, `
+	res, err := r.db.ExecContext(ctx, `
 		INSERT IGNORE INTO agent_sumber_progress (tenant_id, agent_id, sumber_id)
 		SELECT a.tenant_id, a.id, ?
 		FROM agents a
 		WHERE a.tenant_id = ? AND a.id = ?`, sumberID, tenantID, agentID)
-	return err
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 // AgentHabitBadge is a streak milestone (7, 30 or 100 days) the agent has reached.

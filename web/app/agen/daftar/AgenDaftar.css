@@ -378,3 +378,28 @@
 .tw-agen-daftar-input::placeholder { color: var(--tw-text-muted); }
 .tw-agen-daftar-input--error, .tw-agen-daftar-input--error:focus { border-color: var(--tw-danger) !important; box-shadow: 0 0 0 1px var(--tw-danger); }
 .tw-agen-daftar-input-wrap:has(.tw-agen-daftar-toggle-pw) .tw-agen-daftar-input { padding-right: 40px; }
+
+/* Registration info failed to load: message + retry (submit stays disabled meanwhile) */
+.tw-agen-daftar-alert__icon {
+  flex-shrink: 0;
+}
+
+.tw-agen-daftar-alert__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tw-agen-daftar-alert__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--tw-danger-line);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  font: 600 14px var(--tw-font-body);
+  color: var(--tw-danger-strong);
+  cursor: pointer;
+}

@@ -7,14 +7,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "lint:tokens": "node ../scripts/check-hardcoded-colors.js src/ui src/app src/screens && node ../scripts/build-ui-tokens.js --check",
+    "lint:tokens": "node ../scripts/check-hardcoded-colors.js src/ui src/app src/screens src/modules && node ../scripts/build-ui-tokens.js --check",
     "lint:no-emoji": "node ../scripts/check-no-emoji.js",
     "preview": "vite preview",
     "test:number": "node --experimental-strip-types test/number-input.test.mjs",
     "test:status-date": "node --experimental-strip-types test/status-date.test.mjs",
     "test:domain-zone": "node --experimental-strip-types test/domain-zone.test.mjs",
     "test:billing-math": "node --experimental-strip-types test/billing-math.test.mjs",
-    "test:session-texts": "node --experimental-strip-types test/tab-session-texts.test.mjs"
+    "test:session-texts": "node --experimental-strip-types test/tab-session-texts.test.mjs",
+    "test:list-forms": "node --experimental-strip-types test/list-and-forms.test.mjs"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

@@ -60,6 +60,10 @@ export default function AgenNotifikasiPage() {
   // Items marked read locally whose read state the server has not reported yet. A poll that started
   // before the PATCH landed would otherwise flip them back to unread.
   const pendingReadRef = useRef<Map<number, string>>(new Map());
+  // Polls are numbered; a poll that started before 'Tandai semua dibaca' succeeded carries the old unread
+  // state and is dropped, so it cannot flip the list back to unread.
+  const pollSeqRef = useRef(0);
+  const staleUpToRef = useRef(0);
 
   const fetchNotifications = useCallback(async () => {
     const token = localStorage.getItem('agent_token');
@@ -70,6 +74,7 @@ export default function AgenNotifikasiPage() {
     // focus + visibilitychange fire together; skip a poll while one is still running.
     if (inFlightRef.current) return;
     inFlightRef.current = true;
+    const seq = ++pollSeqRef.current;
 
     try {
       const res = await fetch('/api/agent/notifications?limit=50', {
@@ -89,6 +94,7 @@ export default function AgenNotifikasiPage() {
       }
 
       const data = await res.json();
+      if (seq <= staleUpToRef.current) return;
       const pending = pendingReadRef.current;
       let unread: number = data.unread_count || 0;
       const list: NotificationItem[] = (data.notifications || []).map((n: NotificationItem) => {
@@ -190,6 +196,7 @@ export default function AgenNotifikasiPage() {
         },
       });
       if (res.ok) {
+        staleUpToRef.current = pollSeqRef.current;
         const nowStr = new Date().toISOString();
         setNotifications((prev) =>
           prev.map((n) => ({ ...n, read_at: n.read_at || nowStr }))

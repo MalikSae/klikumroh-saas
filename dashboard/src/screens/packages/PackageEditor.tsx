@@ -85,22 +85,44 @@ export const PackageEditor: React.FC = () => {
   usePageTitle(isNew ? 'Paket baru' : pkg?.name || 'Paket');
 
   useEffect(() => {
-    if (isNew) return;
-    fetchPackageById(Number(id))
-      .then((p) => {
-        setPkg(p);
-        setPhotos(p.photos || []);
-        const f = toForm(p);
-        setSaved(f);
-        setForm(f);
-      })
-      .catch((e) => setError(errorText(e, 'Paket tidak ditemukan')))
-      .finally(() => setLoading(false));
+    // The route id can change on this same instance (e.g. a link to another package): drop the previous
+    // package's data first, so its form is never shown under, or saved to, the new id.
+    let alive = true;
+    setPkg(null);
+    setPhotos([]);
+    setSaved(EMPTY);
+    setForm(EMPTY);
+    setErrors({});
+    setError(null);
+    setNotice(null);
+    setConfirmDelete(false);
+    setPending([]);
+    setLoading(!isNew);
+    if (!isNew) {
+      fetchPackageById(Number(id))
+        .then((p) => {
+          if (!alive) return;
+          setPkg(p);
+          setPhotos(p.photos || []);
+          const f = toForm(p);
+          setSaved(f);
+          setForm(f);
+        })
+        .catch((e) => {
+          if (alive) setError(errorText(e, 'Paket tidak ditemukan'));
+        })
+        .finally(() => {
+          if (alive) setLoading(false);
+        });
+    }
     // Coming from "new package": show what happened to the save and the photo uploads.
     if (arrived?.notice) setNotice(arrived.notice);
     if (arrived?.photoError) setError(arrived.photoError);
     // Show the message once: a reload must not repeat it.
     if (arrived) window.history.replaceState({}, '');
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isNew]);
 
@@ -123,6 +145,8 @@ export const PackageEditor: React.FC = () => {
   };
 
   const save = async (status: PackageItem['status'], message: string) => {
+    // Only ever save the form of the package that is loaded for this route id.
+    if (!isNew && pkg?.id !== Number(id)) return;
     if (!validate(status)) return;
     setSaving(true);
     setError(null);

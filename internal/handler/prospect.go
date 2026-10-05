@@ -378,6 +378,10 @@ func (h *ProspectHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "prospek tidak ditemukan"})
 			return
 		}
+		if errors.Is(err, service.ErrProspectAnonymized) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
 		if isProspectInputError(err) || strings.Contains(err.Error(), "catatan tidak boleh kosong") {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

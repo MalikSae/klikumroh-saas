@@ -4,11 +4,14 @@
 .ch-block { display: flex; flex-direction: column; gap: var(--ku-space-3); }
 .ch-block__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); }
 .ch-block .ku-table tbody tr:last-child td { font-weight: var(--ku-weight-medium); }
+.ch-kanal { display: inline-flex; align-items: center; gap: var(--ku-space-1); }
 .ch-delta { display: inline-flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
 .ch-delta--up { color: var(--ku-green-2); }
 .ch-delta--down { color: var(--ku-red); }
 .ch-text { margin: 0; color: var(--ku-ink-2); line-height: var(--ku-leading-loose); }
 .ch-link { display: flex; align-items: center; gap: var(--ku-space-2); padding: var(--ku-space-2) var(--ku-space-2) var(--ku-space-2) var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); background: var(--ku-soft); }
+/* Off-screen textarea for the copy fallback in Tracking.tsx. */
+.ch-copy-buffer { position: fixed; top: 0; left: 0; opacity: 0; pointer-events: none; }
 .ch-link__url { flex: 1; min-width: 0; overflow-wrap: anywhere; font: var(--ku-text-md) var(--ku-font-body); color: var(--ku-ink); }
 .ch-status { display: flex; align-items: flex-start; gap: var(--ku-space-2); color: var(--ku-ink-2); font-size: var(--ku-text-md); }
 .ch-status__dot { width: 8px; height: 8px; margin-top: 6px; flex-shrink: 0; border-radius: var(--ku-radius-round); background: var(--ku-ink-4); }

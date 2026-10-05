@@ -140,21 +140,20 @@ type ProspectAttribution struct {
 	UTMMedium   string `json:"utm_medium"`
 	UTMCampaign string `json:"utm_campaign"`
 	Fbclid      string `json:"fbclid"`
+	// AdID is the Meta ad id the ad's URL parameters fill in ({{ad.id}}). Used only to decide paid vs
+	// organic; it is not stored.
+	AdID string `json:"ad_id"`
 }
 
-// paidUTMMediums are utm_medium values that mean the visit came from a paid ad.
-var paidUTMMediums = map[string]bool{
-	"cpc": true, "ppc": true, "cpm": true, "paid": true, "ads": true, "ad": true,
-	"paid_social": true, "paidsocial": true, "paid-social": true, "social_paid": true,
-}
+// metaAdIDPattern is a real Meta ad id: digits only. An unfilled template ("{{ad.id}}") or any other
+// value does not count.
+var metaAdIDPattern = regexp.MustCompile(`^[0-9]{5,25}$`)
 
-// isPaid reports whether the visit came from an ad: a Meta click id (fbclid, set by Meta on every ad
-// click and later reused by Pixel/CAPI) or a paid utm_medium.
+// isPaid reports whether the visit came from a Meta ad (keputusan pendiri 5 Okt 2026): only when the
+// landing carried a real Meta ad id. fbclid alone does not count (Facebook adds it to organic post
+// clicks too), and neither does utm_medium alone (anyone can type it into a link).
 func (a ProspectAttribution) isPaid() bool {
-	if strings.TrimSpace(a.Fbclid) != "" {
-		return true
-	}
-	return paidUTMMediums[strings.ToLower(strings.TrimSpace(a.UTMMedium))]
+	return metaAdIDPattern.MatchString(strings.TrimSpace(a.AdID))
 }
 
 func truncatedPtr(v string, max int) *string {
@@ -193,6 +192,17 @@ var (
 	ErrInvalidDomicile           = errors.New("domisili maksimal 100 karakter")
 	ErrPhoneUsedByOpenProspect   = errors.New("nomor WhatsApp ini sudah dipakai prospek lain yang masih diproses")
 )
+
+// ErrLostReasonSystemCategory: a cancelled closing keeps its system reason, so the "Batal setelah DP"
+// figures (status summary, CSV) do not lose it.
+var ErrLostReasonSystemCategory = errors.New("alasan \"Batal setelah DP\" dicatat otomatis saat closing dibatalkan dan tidak dapat diganti")
+
+// lostCategoryIsSystem reports a 'tidak_lanjut' -> 'tidak_lanjut' edit of a prospect whose reason was set
+// by Batalkan Closing. Moving it to another status (reopening it) is still allowed.
+func lostCategoryIsSystem(oldStatus, newStatus string, oldCategory *string) bool {
+	return oldStatus == "tidak_lanjut" && newStatus == "tidak_lanjut" &&
+		oldCategory != nil && *oldCategory == "batal_setelah_dp"
+}
 
 // cleanLostReasonWithCategory validates the 'Tidak Lanjut' reason. The category is required; for
 // older clients that only send a free-text reason, the category falls back to "lainnya".

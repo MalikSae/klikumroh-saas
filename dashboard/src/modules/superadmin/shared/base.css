@@ -1,86 +1,19 @@
+@import './tokens.css';
+
 :root {
   /* Typography Tokens (Global standard: Plus Jakarta Sans heading, Roboto body) */
   --db-font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --db-font-body: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  /* Dashboard Design Tokens (Modern Monochrome B2B SaaS Architecture) */
-  --db-sidebar-bg: #09090B;
-  --db-sidebar-active-highlight: #18181B;
-  --db-primary-button: #09090B;
-  --db-accent-teal: #18181B;
-  --db-accent: #09090B;
-  --db-page-bg: #FAFAFA;
-  --db-card-bg: #FFFFFF;
-  --db-chart-area-fill: rgba(9, 9, 11, 0.04);
-  --db-positive: #10B981;
-  --db-negative: #EF4444;
-  --db-rating-star: #F59E0B;
-  --db-text-primary: #09090B;
-  --db-text-muted: #71717A;
-  --db-border: #E4E4E7;
+  /* Color, shadow and terminal tokens (--db-*, --sa-*) live in ./tokens.css, generated from
+     design-tokens.json by scripts/build-ui-tokens.js. */
 
-  /* Dashboard Compound & Utility Tokens */
-  --db-button-primary-hover: #27272A;
-  --db-surface: #F4F4F5;
-  --db-surface-hover: #E4E4E7;
-  --db-sidebar-border: rgba(255, 255, 255, 0.08);
-  --db-sidebar-text: rgba(255, 255, 255, 0.70);
-  --db-sidebar-text-white: #FFFFFF;
-  --db-sidebar-text-muted: #A1A1AA;
-  --db-sidebar-hover: rgba(255, 255, 255, 0.06);
-  --db-sidebar-active-bg: #18181B;
-  --db-sidebar-active-border: #FFFFFF;
-  --db-sidebar-muted: rgba(255, 255, 255, 0.45);
-  --db-sidebar-badge-bg: rgba(255, 255, 255, 0.08);
-  --db-sidebar-badge-border: rgba(255, 255, 255, 0.14);
-  --db-sidebar-travel-card-bg: #18181B;
-  --db-sidebar-travel-card-border: rgba(255, 255, 255, 0.10);
-  --db-sidebar-travel-mark-bg: #27272A;
-  --db-sidebar-travel-mark-border: rgba(255, 255, 255, 0.12);
-  --db-modal-overlay: rgba(9, 9, 11, 0.50);
-  --db-modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
-  --db-focus-ring: rgba(9, 9, 11, 0.08);
-  --db-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
-  --db-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-  --db-shadow-md: 0 3px 8px rgba(0, 0, 0, 0.14);
-  --db-shadow-accent: 0 2px 8px rgba(0, 110, 103, 0.25);
-  --db-text-on-dark: #FFFFFF;
-  --db-divider-on-dark: rgba(255, 255, 255, 0.12);
-  --db-status-new: #0284C7;
-  --db-status-new-bg: rgba(2, 132, 199, 0.08);
-  --db-status-new-border: #BAE6FD;
-  --db-status-contacted: #D97706;
-  --db-status-contacted-bg: rgba(217, 119, 6, 0.08);
-  --db-status-contacted-border: #FDE68A;
-  --db-status-interested: #4F46E5;
-  --db-status-interested-bg: rgba(79, 70, 229, 0.08);
-  --db-status-interested-border: #C7D2FE;
-  --db-status-closing: #059669;
-  --db-status-closing-bg: rgba(5, 150, 105, 0.08);
-  --db-status-closing-border: #A7F3D0;
-  --db-status-lost: #DC2626;
-  --db-status-lost-bg: rgba(220, 38, 38, 0.08);
-  --db-status-lost-border: #FECACA;
-
-  /* Terminal-style internal login (design-tokens.json dashboard.terminal) */
+  /* Terminal-style internal login (colors: --db-term-* in ./tokens.css) */
   --db-font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  --db-term-bg: #050805;
-  --db-term-panel: #0A100B;
-  --db-term-bar: #0F1811;
-  --db-term-line: #1C3A24;
-  --db-term-text: #C8F5D6;
-  --db-term-muted: #6E9F7B;
-  --db-term-accent: #22C55E;
-  --db-term-accent-hover: #4ADE80;
-  --db-term-on-accent: #03140A;
-  --db-term-error: #F87171;
-  --db-term-glow: rgba(34, 197, 94, 0.28);
-  --db-term-scanline: rgba(200, 245, 214, 0.03);
-  --db-term-grid: rgba(34, 197, 94, 0.06);
 
   /* Canonical Integer Typography Scale (Standard Desktop & Tablet B2B SaaS) */
-  --db-text-2xs: 11px;  /* Micro: status badge, pill tags, timestamp halus */
-  --db-text-xs: 12px;   /* Caption: table column headers, helper text, subtitle, tooltip */
+  --db-text-2xs: 13px;  /* Micro: status badge, pill tags, timestamp halus (AGENTS.md 3.10: never below 13px) */
+  --db-text-xs: 13px;   /* Caption: table column headers, helper text, subtitle, tooltip (AGENTS.md 3.10: never below 13px) */
   --db-text-sm: 13px;   /* UI Compact: table cell data, form labels, nav items, small button */
   --db-text-base: 14px; /* UI Standard: body text default, form input text, default button */
   --db-text-md: 15px;   /* Emphasized: list title, compact card heading */
@@ -88,6 +21,7 @@
   --db-text-xl: 18px;   /* Section Title: sub-headline, modal sub-heading */
   --db-text-2xl: 22px;  /* Page Title: h1, topbar title, main modal title */
   --db-text-3xl: 28px;  /* Hero KPI Metric: nominal kpi stat cards */
+  --db-text-input: 16px; /* Form inputs: >= 16px so iOS Safari does not zoom on focus (AGENTS.md 3.10) */
 
   /* Legacy Scale Aliases (Integer Mapped - No Fractional Clamps) */
   --font-size-xs: var(--db-text-xs);
@@ -125,9 +59,8 @@
   --radius-md: 8px;
   --radius-lg: 10px;
   --radius-full: 9999px;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --db-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px -4px rgba(0, 0, 0, 0.04);
+  --shadow-sm: var(--db-shadow-soft);
+  --shadow-md: var(--db-shadow-raised);
 }
 
 * {
@@ -355,7 +288,7 @@ textarea {
   border: 1px solid var(--db-border);
   background-color: var(--db-card-bg);
   font-family: var(--db-font-body);
-  font-size: var(--font-size-base);
+  font-size: var(--db-text-input);
   color: var(--db-text-primary);
   outline: none;
   resize: vertical;
@@ -427,7 +360,7 @@ textarea {
 }
 
 .db-tab-btn--active .db-tab-count {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: var(--db-on-dark-tint);
   color: var(--db-card-bg);
 }
 

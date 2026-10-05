@@ -5,6 +5,7 @@ import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { getFullImageUrl } from '../../services/api';
 import { errorText } from '../../ui';
 import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
+import { withVersion } from '../../utils/cacheBust';
 
 export const ImageField: React.FC<{
   label: string;
@@ -18,6 +19,8 @@ export const ImageField: React.FC<{
 }> = ({ label, hint, url, shape = 'square', maxMB, onUpload, onRemove, onChange }) => {
   const [busy, setBusy] = useState<'upload' | 'remove' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set after an upload: fixed-path images (agent poster) keep their URL, so the shown src is versioned.
+  const [version, setVersion] = useState<number | null>(null);
   const ref = useRef<HTMLInputElement>(null);
 
   const upload = async (f: File) => {
@@ -27,6 +30,7 @@ export const ImageField: React.FC<{
     setBusy('upload');
     try {
       onChange(await onUpload(f));
+      setVersion(Date.now());
     } catch (e) {
       setError(errorText(e, 'Gagal mengunggah gambar'));
     } finally {
@@ -53,7 +57,7 @@ export const ImageField: React.FC<{
       <span className="ku-field__label">{label}</span>
       {url ? (
         <div className={`ws-slot ws-slot--${shape}`}>
-          <img src={getFullImageUrl(url)} alt={label} />
+          <img src={withVersion(getFullImageUrl(url), version)} alt={label} />
           <div className="ws-slot__actions">
             <button type="button" aria-label={`Ganti ${label.toLowerCase()}`} title="Ganti" onClick={() => ref.current?.click()} disabled={Boolean(busy)}>
               <RefreshCw className="ku-icon--sm" aria-hidden="true" />

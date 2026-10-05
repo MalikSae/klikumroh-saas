@@ -14,6 +14,12 @@ if (args.length > 0) {
   targetDirs = [
     path.join(rootDir, 'dashboard', 'src', 'components'),
     path.join(rootDir, 'dashboard', 'src', 'pages'),
+    // Staff portal + affiliator modules (AGENTS.md 3.4).
+    path.join(rootDir, 'dashboard', 'src', 'modules'),
+    // Travel admin screens and shared UI (AGENTS.md 3.4).
+    path.join(rootDir, 'dashboard', 'src', 'screens'),
+    path.join(rootDir, 'dashboard', 'src', 'ui'),
+    path.join(rootDir, 'dashboard', 'src', 'app'),
     path.join(rootDir, 'web', 'components'),
     path.join(rootDir, 'web', 'app'),
   ];

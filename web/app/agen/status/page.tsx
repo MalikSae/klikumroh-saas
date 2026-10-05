@@ -24,6 +24,7 @@ import { PublicHeader } from '../../../components/PublicHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
+import { copyToClipboard } from '../../../lib/clipboard';
 import designTokens from '../../../../design-tokens.json';
 import './AgenStatus.css';
 
@@ -64,7 +65,10 @@ interface FooterInfo {
   brand_primary_color?: string | null;
 }
 
-const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+// The server reads at most 8 MB of request body (internal/handler/agent.go, MaxBytesReader 8<<20), and that
+// includes the multipart envelope (boundary, headers): keep 64 KB of room for it so an accepted photo fits.
+const MAX_PROOF_BYTES = 8 * 1024 * 1024 - 64 * 1024;
+const MAX_PROOF_LABEL = '7,9 MB';
 
 const formatRupiah = (val?: number) => 'Rp ' + (val ?? 0).toLocaleString('id-ID');
 
@@ -117,7 +121,7 @@ const ProofUpload: React.FC<{
         <label htmlFor="proof-file" className="tw-st-upload__drop">
           <ImageUp size={24} aria-hidden="true" />
           <span className="tw-st-upload__title">Pilih foto bukti transfer</span>
-          <span className="tw-st-upload__hint">JPG, PNG, atau WebP, maks. 5 MB</span>
+          <span className="tw-st-upload__hint">JPG, PNG, atau WebP, maks. {MAX_PROOF_LABEL}</span>
         </label>
       )}
 
@@ -154,6 +158,8 @@ export default function AgenStatusPage() {
   // Copy feedbacks
   const [copiedBank, setCopiedBank] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<boolean>(false);
+  // Which copy the browser refused (in-app browsers often block the clipboard): the text stays on screen to copy by hand.
+  const [copyFailed, setCopyFailed] = useState<'bank' | 'ref' | null>(null);
 
   // Lightbox for proof
   const [showProofModal, setShowProofModal] = useState<boolean>(false);
@@ -294,7 +300,7 @@ export default function AgenStatusPage() {
     setUploadSuccess(null);
     if (!file) return;
     if (file.size > MAX_PROOF_BYTES) {
-      setUploadError('Ukuran foto maksimal 5 MB.');
+      setUploadError(`Ukuran foto maksimal ${MAX_PROOF_LABEL}.`);
       return;
     }
     setSelectedFile(file);
@@ -343,9 +349,13 @@ export default function AgenStatusPage() {
     }
   };
 
-  const handleCopyBank = () => {
+  const handleCopyBank = async () => {
     if (data?.agent_bank_account_number) {
-      navigator.clipboard.writeText(data.agent_bank_account_number);
+      if (!(await copyToClipboard(data.agent_bank_account_number))) {
+        setCopyFailed('bank');
+        return;
+      }
+      setCopyFailed(null);
       setCopiedBank(true);
       setTimeout(() => setCopiedBank(false), 2000);
     }
@@ -359,10 +369,14 @@ export default function AgenStatusPage() {
     return '';
   };
 
-  const handleCopyRefLink = () => {
+  const handleCopyRefLink = async () => {
     const url = getReferralUrl();
     if (url) {
-      navigator.clipboard.writeText(url);
+      if (!(await copyToClipboard(url))) {
+        setCopyFailed('ref');
+        return;
+      }
+      setCopyFailed(null);
       setCopiedRef(true);
       setTimeout(() => setCopiedRef(false), 2000);
     }
@@ -501,6 +515,12 @@ export default function AgenStatusPage() {
                   <dd>{data.agent_bank_account_holder || '-'}</dd>
                 </div>
               </dl>
+              {copyFailed === 'bank' && (
+                <p className="tw-st-alert tw-st-alert--error" role="alert">
+                  <AlertCircle size={16} aria-hidden="true" />
+                  <span>Browser ini menolak menyalin otomatis. Tekan lama nomor rekening di atas untuk menyalin manual.</span>
+                </p>
+              )}
             </div>
           </section>
 
@@ -608,6 +628,13 @@ export default function AgenStatusPage() {
             <span className="tw-st-transfer__amount">{agent.referral_code}</span>
             <span className="tw-st-reflink">{getReferralUrl()}</span>
           </div>
+
+          {copyFailed === 'ref' && (
+            <p className="tw-st-alert tw-st-alert--error" role="alert">
+              <AlertCircle size={16} aria-hidden="true" />
+              <span>Browser ini menolak menyalin otomatis. Tekan lama link di atas untuk menyalin manual.</span>
+            </p>
+          )}
 
           <div className="tw-st-actions">
             <Button variant="primary" size="lg" onClick={handleCopyRefLink}>

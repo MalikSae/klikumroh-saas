@@ -18,6 +18,7 @@ import type { AffiliatorCommission, AffiliatorTenant } from '../../../services/a
 import { PayoutDialogs } from './AdminAffiliatorsView';
 import { PAYOUT_PILL, formatDateID, formatIDR } from './affiliatorFormat';
 import { resetPasswordProblem } from '../../../utils/password';
+import { parsePercent } from '../../../screens/programs/numberInput';
 import './AdminAffiliators.css';
 
 const TENANT_PILL: Record<string, { label: string; cls: string }> = {
@@ -69,7 +70,8 @@ export const AdminAffiliatorDetailView: React.FC = () => {
   };
 
   const saveRates = async (clear = false) => {
-    const parse = (v: string) => (clear || v.trim() === '' ? null : Number(v));
+    // "2,5" and "2.5" both mean 2.5 (same parser as Aturan agen); empty = default rate, invalid = NaN.
+    const parse = (v: string) => (clear || v.trim() === '' ? null : (parsePercent(v) ?? NaN));
     const f = parse(firstRate);
     const r = parse(renewalRate);
     if ((f !== null && (isNaN(f) || f < 0 || f > 100)) || (r !== null && (isNaN(r) || r < 0 || r > 100))) {
@@ -278,8 +280,8 @@ export const AdminAffiliatorDetailView: React.FC = () => {
       >
         <p className="sa-aff-modal-text">Kosongkan untuk memakai default program. Berlaku untuk komisi berikutnya, komisi lama tidak berubah.</p>
         <div className="sa-aff-modal-fields">
-          <FormInput type="number" label="Komisi pembayaran pertama (%)" min={0} max={100} step={0.5} value={firstRate} onChange={(e) => setFirstRate(e.target.value)} placeholder={data ? `Default ${rateText(data.first_rate)}` : ''} />
-          <FormInput type="number" label="Komisi perpanjangan (%)" min={0} max={100} step={0.5} value={renewalRate} onChange={(e) => setRenewalRate(e.target.value)} />
+          <FormInput type="text" inputMode="decimal" label="Komisi pembayaran pertama (%)" value={firstRate} onChange={(e) => setFirstRate(e.target.value)} placeholder={data ? `Default ${rateText(data.first_rate)}` : ''} />
+          <FormInput type="text" inputMode="decimal" label="Komisi perpanjangan (%)" value={renewalRate} onChange={(e) => setRenewalRate(e.target.value)} />
         </div>
         {dialogError && <div className="sa-aff-msg sa-aff-msg--error"><AlertCircle size={14} /> {dialogError}</div>}
       </Modal>

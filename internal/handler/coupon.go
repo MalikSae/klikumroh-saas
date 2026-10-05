@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -35,6 +36,23 @@ type CouponHandler struct {
 // AffiliatorCouponChecker is implemented by the subscription service.
 type AffiliatorCouponChecker interface {
 	AffiliatorCouponAllowedForTenant(ctx context.Context, tenantID uint64, coupon *repository.Coupon) (bool, error)
+}
+
+// CouponReuseChecker is implemented by the subscription service: a coupon counts once per travel.
+type CouponReuseChecker interface {
+	CouponUsableByTenant(ctx context.Context, tenantID uint64, coupon *repository.Coupon) error
+}
+
+// isCouponClientError reports coupon validation errors shown to the user as 400 (never a database error).
+func isCouponClientError(err error) bool {
+	return errors.Is(err, service.ErrCouponNotFound) ||
+		errors.Is(err, service.ErrCouponInactive) ||
+		errors.Is(err, service.ErrCouponExpired) ||
+		errors.Is(err, service.ErrCouponExhausted) ||
+		errors.Is(err, service.ErrCouponPlanMismatch) ||
+		errors.Is(err, service.ErrEmptyCouponCode) ||
+		errors.Is(err, service.ErrCouponUsedByTenant) ||
+		errors.Is(err, service.ErrAffiliatorCouponSignupOnly)
 }
 
 // SetAffiliatorCouponChecker wires the subscription service in (main.go).
@@ -175,8 +193,26 @@ func (h *CouponHandler) ValidateTravel(w http.ResponseWriter, r *http.Request) {
 		coupon, err = h.couponService.Validate(r.Context(), code)
 	}
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		if isCouponClientError(err) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		log.Printf("[Coupon] tenant %d validate: %v", tenantID, err)
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memeriksa kupon"})
 		return
+	}
+	// A coupon counts once per travel (keputusan pendiri 5 Okt 2026): refused when the travel already
+	// paid with it, or another open invoice of the travel carries it.
+	if rc, ok := h.affiliatorCoupons.(CouponReuseChecker); ok && h.affiliatorCoupons != nil {
+		if err := rc.CouponUsableByTenant(r.Context(), tenantID, coupon); err != nil {
+			if errors.Is(err, service.ErrCouponUsedByTenant) {
+				respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
+			log.Printf("[Coupon] tenant %d reuse check: %v", tenantID, err)
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memeriksa kupon"})
+			return
+		}
 	}
 	// Travel dashboard: an affiliator coupon only applies to the travel's first payment, and only its own
 	// affiliator's (same rule as the renewal request).

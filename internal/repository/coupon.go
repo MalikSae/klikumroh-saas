@@ -49,6 +49,9 @@ type CouponRepository interface {
 	// ReleaseUsedCount gives back a use consumed by an approval that failed afterwards.
 	ReleaseUsedCount(ctx context.Context, couponID uint64) error
 	RecordRedemption(ctx context.Context, couponID, tenantID uint64) error
+	// HasTenantRedeemed reports whether the tenant already paid an invoice with this coupon (a redemption
+	// is recorded when staff approve the payment). Scoped by tenant_id.
+	HasTenantRedeemed(ctx context.Context, tenantID, couponID uint64) (bool, error)
 }
 
 type mysqlCouponRepository struct {
@@ -318,4 +321,14 @@ func (r *mysqlCouponRepository) RecordRedemption(ctx context.Context, couponID, 
 
 func usedCountHelper(target *int) interface{} {
 	return target
+}
+
+func (r *mysqlCouponRepository) HasTenantRedeemed(ctx context.Context, tenantID, couponID uint64) (bool, error) {
+	var n int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM coupon_redemptions WHERE tenant_id = ? AND coupon_id = ?`, tenantID, couponID).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }

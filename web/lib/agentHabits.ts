@@ -76,30 +76,53 @@ export const fetchHabitSummary = async (): Promise<HabitSummary | null> => {
 // "99 sumber jamaah" progress, stored on the server. The old browser-only list is moved up once.
 const LEGACY_SUMBER_KEY = 'klikumroh_agent_sumber_completed';
 
+/**
+ * Legacy browser-stored source ids that still have to be sent to the server: only the ones the server does
+ * not know yet. Marking a source done also logs today's "sumber" habit on the server, so replaying ids the
+ * server already has would credit today's habit (and the streak) without the agent trying anything new.
+ */
+export const legacySumberToReplay = (legacy: unknown, serverDone: readonly number[]): number[] => {
+  if (!Array.isArray(legacy)) return [];
+  const known = new Set(serverDone);
+  const out: number[] = [];
+  for (const n of legacy) {
+    if (Number.isInteger(n) && n > 0 && !known.has(n) && !out.includes(n)) out.push(n);
+  }
+  return out;
+};
+
+const readSumberDone = async (headers: Record<string, string>): Promise<number[] | null> => {
+  const res = await fetch('/api/agent/sumber-progress', { headers });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { done?: number[] };
+  return Array.isArray(data.done) ? data.done : [];
+};
+
 export const fetchSumberDone = async (): Promise<number[] | null> => {
   const headers = authHeaders();
   if (!headers) return null;
   try {
-    let legacy: number[] = [];
+    let legacy: unknown = [];
     try {
       const saved = localStorage.getItem(LEGACY_SUMBER_KEY);
-      const parsed = saved ? JSON.parse(saved) : [];
-      if (Array.isArray(parsed)) legacy = parsed.filter((n) => Number.isInteger(n));
+      legacy = saved ? JSON.parse(saved) : [];
     } catch {
       legacy = [];
     }
-    if (legacy.length > 0) {
-      await Promise.all(legacy.map((id) => setSumberDone(id, true)));
+    const done = await readSumberDone(headers);
+    if (done === null) return null;
+    if (!Array.isArray(legacy) || legacy.length === 0) return done;
+
+    const toReplay = legacySumberToReplay(legacy, done);
+    const results = await Promise.all(toReplay.map((id) => setSumberDone(id, true)));
+    if (results.every(Boolean)) {
       try {
         localStorage.removeItem(LEGACY_SUMBER_KEY);
       } catch {
-        // storage unavailable: it is moved again next time (marking twice is harmless)
+        // storage unavailable: tried again next time (ids the server then knows are skipped)
       }
     }
-    const res = await fetch('/api/agent/sumber-progress', { headers });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { done?: number[] };
-    return Array.isArray(data.done) ? data.done : [];
+    return [...done, ...toReplay.filter((_, i) => results[i])];
   } catch {
     return null;
   }
