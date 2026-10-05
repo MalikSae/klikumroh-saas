@@ -448,20 +448,19 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 		}
 	}
 
-	// MANDATORY CROSS-TENANT VALIDATION: the package must belong strictly to this tenant.
-	// A package that is not (or no longer) published, or has already departed, is not linked, but the
-	// lead is still kept: the visitor may have had the page open while the package went offline.
+	// MANDATORY CROSS-TENANT VALIDATION: the package is looked up only within this tenant and is linked
+	// only when it belongs to it. A package that is not found (deleted, or another travel's id - the
+	// tenant-scoped lookup cannot tell them apart), not (or no longer) published, or already departed is
+	// not linked, but the lead is still kept: the visitor may have had the page open while the package
+	// went offline (founder decision 5 Oct 2026). Nothing from another tenant is read or linked.
 	packageName := "Umroh"
 	packageID := input.PackageID
 	if input.PackageID != nil {
 		pkg, err := s.packageRepo.GetByID(ctx, tenantID, *input.PackageID)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return nil, ErrPackageNotFound
-			}
+		if err != nil && !errors.Is(err, repository.ErrNotFound) {
 			return nil, err
 		}
-		if pkg.Status == "published" && !PackageDeparted(pkg, time.Now()) {
+		if err == nil && pkg.Status == "published" && !PackageDeparted(pkg, time.Now()) {
 			packageName = pkg.Name
 		} else {
 			packageID = nil

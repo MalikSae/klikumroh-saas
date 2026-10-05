@@ -613,8 +613,10 @@ func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
 		}
 	})
 
-	// 2. CRITICAL VALIDATION: Submitting to Tenant A with Tenant B's package_id MUST BE REJECTED (400)
-	t.Run("CRITICAL: Cross-tenant package_id is rejected with 400 Bad Request", func(t *testing.T) {
+	// 2. CRITICAL VALIDATION: Submitting to Tenant A with Tenant B's package_id must NEVER link Tenant B's
+	// package. The lead is kept without a package (201), the same as for a deleted package: the
+	// tenant-scoped lookup cannot tell the two apart (founder decision 5 Oct 2026).
+	t.Run("CRITICAL: Cross-tenant package_id is never linked, lead kept without package", func(t *testing.T) {
 		body, _ := json.Marshal(map[string]interface{}{
 			"consent":        true,
 			"name":           "Penyusup Cross-Tenant",
@@ -627,13 +629,26 @@ func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
 		rr := httptest.NewRecorder()
 		r.ServeHTTP(rr, req)
 
-		if rr.Code != http.StatusBadRequest {
-			t.Fatalf("Expected 400 Bad Request for cross-tenant package_id, got %d (%s)", rr.Code, rr.Body.String())
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("Expected 201 for cross-tenant package_id (lead kept, package not linked), got %d (%s)", rr.Code, rr.Body.String())
 		}
-		var errResp map[string]string
-		_ = json.Unmarshal(rr.Body.Bytes(), &errResp)
-		if errResp["error"] != "paket tidak ditemukan" {
-			t.Errorf("Expected 'paket tidak ditemukan', got '%s'", errResp["error"])
+		if strings.Contains(rr.Body.String(), pkgB.Name) {
+			t.Errorf("response must not leak Tenant B's package name: %s", rr.Body.String())
+		}
+		var created *repository.Prospect
+		for _, p := range prospectRepo.prospects {
+			if p.Name == "Penyusup Cross-Tenant" {
+				created = p
+			}
+		}
+		if created == nil {
+			t.Fatal("lead was not saved")
+		}
+		if created.TenantID != 10 {
+			t.Errorf("lead must belong to Tenant A (10), got tenant %d", created.TenantID)
+		}
+		if created.PackageID != nil {
+			t.Errorf("CRITICAL: lead linked to package %d of another tenant", *created.PackageID)
 		}
 	})
 }
