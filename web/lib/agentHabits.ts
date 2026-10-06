@@ -128,20 +128,30 @@ export const fetchSumberDone = async (): Promise<number[] | null> => {
   }
 };
 
-export const setSumberDone = async (id: number, done: boolean): Promise<boolean> => {
+export type SumberSaveOutcome = 'ok' | 'suspended' | 'failed';
+
+// 402: the travel's subscription is suspended, so the portal is read-only (agent_suspension middleware).
+export const sumberSaveOutcome = (status: number): SumberSaveOutcome =>
+  status >= 200 && status < 300 ? 'ok' : status === 402 ? 'suspended' : 'failed';
+
+// Saves one source as tried / not tried; the outcome says why a save was refused.
+export const saveSumberDone = async (id: number, done: boolean): Promise<SumberSaveOutcome> => {
   const headers = authHeaders();
-  if (!headers) return false;
+  if (!headers) return 'failed';
   try {
     const res = await fetch(`/api/agent/sumber-progress/${id}`, {
       method: 'PUT',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ done }),
     });
-    return res.ok;
+    return sumberSaveOutcome(res.status);
   } catch {
-    return false;
+    return 'failed';
   }
 };
+
+export const setSumberDone = async (id: number, done: boolean): Promise<boolean> =>
+  (await saveSumberDone(id, done)) === 'ok';
 
 // Motivating headline for the habit card and page, by today's progress. Framed as daily "syiar Baitullah"
 // (inviting people to the Holy Land), soft wording ("semoga"), no promised rewards.

@@ -68,6 +68,8 @@ export const TargetDrawer: React.FC<{ targetId: number; onClose: () => void; onC
   const closed = target?.status === 'closed';
   const unit = target ? METRIC_UNIT[target.metric_type] : '';
   const reached = progress.filter((r) => target && (r.achieved || r.achieved_value >= target.metric_value)).length;
+  // Closing before the period is over is allowed but final: say so plainly and confirm it explicitly.
+  const early = state?.key === 'running' || state?.key === 'upcoming';
 
   return (
     <>
@@ -214,15 +216,19 @@ export const TargetDrawer: React.FC<{ targetId: number; onClose: () => void; onC
       <Modal
         open={Boolean(target) && dialog === 'close'}
         onClose={() => setDialog(null)}
-        title="Tutup periode target?"
-        description={`${reached} agen yang mencapai target dicatat sebagai penerima hadiah. Target tidak bisa diubah setelah ditutup.`}
+        title={early ? 'Tutup periode sebelum selesai?' : 'Tutup periode target?'}
+        description={
+          early && target
+            ? `Periode target ini ${state?.key === 'upcoming' ? 'belum dimulai' : 'masih berjalan'} sampai ${fmtDate(target.period_end)}. Jika ditutup sekarang, hanya ${reached} agen yang sudah mencapai target dicatat sebagai penerima hadiah, progres agen setelah ini tidak dihitung, dan target tidak bisa diubah lagi.`
+            : `${reached} agen yang mencapai target dicatat sebagai penerima hadiah. Target tidak bisa diubah setelah ditutup.`
+        }
         footer={
           <>
             <Button variant="ghost" onClick={() => setDialog(null)} disabled={busy}>
               Batal
             </Button>
-            <Button variant="primary" disabled={busy} onClick={() => act(async () => { const r = await closeTargetPeriod(targetId); return `Periode ditutup. ${r.achieved_count} agen berhak mendapat hadiah.`; })}>
-              {busy ? 'Memproses...' : 'Tutup periode'}
+            <Button variant="primary" disabled={busy} onClick={() => act(async () => { const r = await closeTargetPeriod(targetId, early); return `Periode ditutup. ${r.achieved_count} agen berhak mendapat hadiah.`; })}>
+              {busy ? 'Memproses...' : early ? 'Tetap tutup sekarang' : 'Tutup periode'}
             </Button>
           </>
         }

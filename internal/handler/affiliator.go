@@ -96,7 +96,7 @@ func respondAffiliatorError(w http.ResponseWriter, err error) {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
 	case errors.Is(err, service.ErrAffiliatorEmailInUse), errors.Is(err, service.ErrAffiliatorCouponTaken),
 		errors.Is(err, repository.ErrPayoutPending), errors.Is(err, repository.ErrStatusConflict):
-		respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+		respondJSON(w, http.StatusConflict, map[string]string{"error": conflictMessage(err)})
 	case errors.Is(err, repository.ErrNotFound):
 		respondJSON(w, http.StatusNotFound, map[string]string{"error": "data tidak ditemukan"})
 	case errors.Is(err, service.ErrAffiliatorNameRequired), errors.Is(err, service.ErrAffiliatorInvalidEmail),
@@ -321,7 +321,6 @@ type affiliatorPortalPayout struct {
 	BankAccountNumber string     `json:"bank_account_number"`
 	BankAccountHolder string     `json:"bank_account_holder"`
 	RejectionReason   *string    `json:"rejection_reason"`
-	ReviewedBy        *uint64    `json:"reviewed_by"`
 	ReviewedAt        *time.Time `json:"reviewed_at"`
 	CreatedAt         time.Time  `json:"created_at"`
 }
@@ -330,7 +329,7 @@ func toPortalPayout(p *repository.AffiliatorPayout) affiliatorPortalPayout {
 	return affiliatorPortalPayout{
 		ID: p.ID, AffiliatorID: p.AffiliatorID, Amount: p.Amount, Status: p.Status,
 		BankName: p.BankName, BankAccountNumber: p.BankAccountNumber, BankAccountHolder: p.BankAccountHolder,
-		RejectionReason: p.RejectionReason, ReviewedBy: p.ReviewedBy, ReviewedAt: p.ReviewedAt, CreatedAt: p.CreatedAt,
+		RejectionReason: p.RejectionReason, ReviewedAt: p.ReviewedAt, CreatedAt: p.CreatedAt,
 	}
 }
 
@@ -454,6 +453,10 @@ func (h *AffiliatorHandler) StaffMarkPaid(w http.ResponseWriter, r *http.Request
 	}
 	staffID, _ := middleware.GetStaffUserID(r.Context())
 	if err := h.svc.MarkPayoutPaid(r.Context(), id, staffID); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": staffPayoutProcessedMessage})
+			return
+		}
 		respondAffiliatorError(w, err)
 		return
 	}
@@ -473,6 +476,10 @@ func (h *AffiliatorHandler) StaffRejectPayout(w http.ResponseWriter, r *http.Req
 	}
 	staffID, _ := middleware.GetStaffUserID(r.Context())
 	if err := h.svc.RejectPayout(r.Context(), id, staffID, req.Reason); err != nil {
+		if errors.Is(err, repository.ErrStatusConflict) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": staffPayoutProcessedMessage})
+			return
+		}
 		respondAffiliatorError(w, err)
 		return
 	}
@@ -494,6 +501,8 @@ func (h *AffiliatorHandler) StaffRequestPayout(w http.ResponseWriter, r *http.Re
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "affiliator tidak ditemukan"})
 		case errors.Is(err, service.ErrStaffPayoutPending):
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+		case errors.Is(err, repository.ErrStatusConflict):
+			respondJSON(w, http.StatusConflict, map[string]string{"error": affiliatorDataChangedMessage})
 		case errors.Is(err, service.ErrStaffPayoutNothingAvailable), errors.Is(err, service.ErrStaffPayoutBankMissing):
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		default:
@@ -525,4 +534,22 @@ func (h *AffiliatorHandler) StaffUpdateSettings(w http.ResponseWriter, r *http.R
 		return
 	}
 	respondJSON(w, http.StatusOK, s)
+}
+
+// Friendly 409 texts for repository.ErrStatusConflict ("record status changed concurrently" must
+// never reach the UI).
+const (
+	// staffPayoutProcessedMessage: another staff member already marked the payout paid or rejected it.
+	staffPayoutProcessedMessage = "Pencairan ini sudah diproses staf lain. Muat ulang halaman."
+	// affiliatorDataChangedMessage: the data changed under a concurrent request (e.g. the commissions
+	// of a payout being created changed); reloading shows the current state.
+	affiliatorDataChangedMessage = "Data sudah berubah karena ada proses lain. Muat ulang halaman lalu coba lagi."
+)
+
+// conflictMessage is the 409 text of respondAffiliatorError.
+func conflictMessage(err error) string {
+	if errors.Is(err, repository.ErrStatusConflict) {
+		return affiliatorDataChangedMessage
+	}
+	return err.Error()
 }

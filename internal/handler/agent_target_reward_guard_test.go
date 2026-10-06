@@ -46,7 +46,7 @@ func TestMarkRewardGiven_RecheckTargetAndNoDoubleGive(t *testing.T) {
 		return rr
 	}
 
-	if rr := do("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close", target.ID), "tok-admin-t1", nil); rr.Code != http.StatusOK {
+	if rr := do("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close?force=true", target.ID), "tok-admin-t1", nil); rr.Code != http.StatusOK {
 		t.Fatalf("close: %d %s", rr.Code, rr.Body.String())
 	}
 	var achID uint64

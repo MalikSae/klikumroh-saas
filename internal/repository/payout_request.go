@@ -254,7 +254,7 @@ func (r *mysqlCommissionPayoutRequestRepository) List(ctx context.Context, tenan
 		       r.reviewed_by, r.reviewed_at, r.rejection_reason, r.created_at, r.updated_at,
 		       COALESCE(a.name, '') AS agent_name, a.phone AS agent_phone
 		FROM commission_payout_requests r
-		JOIN agents a ON r.agent_id = a.id
+		JOIN agents a ON r.agent_id = a.id AND a.tenant_id = r.tenant_id
 		WHERE r.tenant_id = ?
 	`
 	args = append(args, tenantID)

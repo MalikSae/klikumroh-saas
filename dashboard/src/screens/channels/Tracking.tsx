@@ -5,6 +5,7 @@ import { fetchMetaIntegration, fetchPackages, saveMetaIntegration, sendMetaTestE
 import { Banner, Button, Field, Select, errorText, fmtAgo } from '../../ui';
 import { publicSiteUrl, useFrame } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
+import { copyText } from '../../utils/clipboard';
 import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
 
 const SOURCES = [
@@ -48,14 +49,13 @@ const LinkBuilder: React.FC = () => {
     return `${base}?${q.toString()}`;
   }, [site, page, source, campaign]);
 
-  const copy = () =>
-    navigator.clipboard
-      ?.writeText(url)
-      .then(() => {
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1600);
-      })
-      .catch(() => {});
+  const [copyFailed, setCopyFailed] = useState(false);
+  const copy = async () => {
+    const ok = await copyText(url);
+    setCopied(ok);
+    setCopyFailed(!ok);
+    if (ok) window.setTimeout(() => setCopied(false), 1600);
+  };
 
   return (
     <SettingsSection
@@ -94,6 +94,7 @@ const LinkBuilder: React.FC = () => {
               {copied ? 'Tersalin' : 'Salin link'}
             </Button>
           </div>
+          {copyFailed && <p className="ku-muted">Gagal menyalin otomatis. Blok link di atas lalu salin manual.</p>}
         </>
       )}
     </SettingsSection>
@@ -101,35 +102,11 @@ const LinkBuilder: React.FC = () => {
 };
 
 /** Paste-ready Meta "URL parameters": the backend counts a lead as Iklan only when ad_id (Meta's {{ad.id}}) is in the link. */
-const META_URL_PARAMS = 'utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&ad_id={{ad.id}}';
+// {{site_source_name}} is filled by Meta per placement (fb, ig, msg, an) so Instagram leads are told apart.
+const META_URL_PARAMS = 'utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&ad_id={{ad.id}}';
 
 const META_PARAMS_TIP =
   'Meta mengganti {{ad.id}} dengan ID iklan dan {{campaign.name}} dengan nama kampanye saat iklan diklik. Prospek dihitung sebagai Iklan hanya bila linknya membawa ad_id; fbclid atau utm_medium saja tidak cukup. Kolom ini ada di level iklan, bagian Pelacakan (Tracking).';
-
-/** Clipboard API first; textarea + execCommand for browsers without it (e.g. http on a LAN address). True only if copied. */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // fall through to the fallback
-  }
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.className = 'ch-copy-buffer';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
-}
 
 const MetaUrlParams: React.FC = () => {
   const [copied, setCopied] = useState(false);

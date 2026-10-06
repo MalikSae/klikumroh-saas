@@ -193,6 +193,62 @@ func (r *mysqlAdminUserRepository) CountActiveByTenant(ctx context.Context, tena
 	return count, nil
 }
 
+// ErrLastActiveAdmin is returned by DeactivateKeepingOneActive when the admin is the travel's only
+// active admin.
+var ErrLastActiveAdmin = errors.New("last active admin")
+
+// DeactivateKeepingOneActive sets an admin inactive unless that would leave the travel without an
+// active admin. The active admins of the tenant are locked (FOR UPDATE) while counting, so two admins
+// deactivating each other at the same time cannot both succeed. An admin that is already inactive is
+// left as is. Returns ErrNotFound for another tenant's admin.
+func (r *mysqlAdminUserRepository) DeactivateKeepingOneActive(ctx context.Context, tenantID uint64, id uint64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM admin_users WHERE tenant_id = ? AND status = 'active' FOR UPDATE`, tenantID)
+	if err != nil {
+		return err
+	}
+	active, targetActive := 0, false
+	for rows.Next() {
+		var aid uint64
+		if err := rows.Scan(&aid); err != nil {
+			rows.Close()
+			return err
+		}
+		active++
+		if aid == id {
+			targetActive = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+
+	if !targetActive {
+		var exists int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM admin_users WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&exists); err != nil {
+			return err
+		}
+		if exists == 0 {
+			return ErrNotFound
+		}
+		return tx.Commit()
+	}
+	if active <= 1 {
+		return ErrLastActiveAdmin
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE admin_users SET status = 'inactive' WHERE id = ? AND tenant_id = ?`, id, tenantID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (r *mysqlAdminUserRepository) FindByEmail(ctx context.Context, email string) (*AdminUser, error) {
 	// SPECIAL EXCEPTION: Used exclusively by login authentication to resolve tenant_id from email.
 	query := `

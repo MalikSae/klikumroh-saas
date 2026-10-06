@@ -121,8 +121,16 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 	}
 
 	lostReason := "Batal setelah DP: " + reason
+	lostReasonPtr := &lostReason
+	// The jamaah's personal data was removed (UU PDP). The closing can still be cancelled so the
+	// commission is reversed, but the admin's free-text reason (which often names the jamaah) is not
+	// stored anywhere: lost_reason stays empty and the ledger, note and notification use a fixed text.
+	if prospect.AnonymizedAt != nil {
+		reason = repository.AnonymizedLedgerNote
+		lostReasonPtr = nil
+	}
 	category := "batal_setelah_dp"
-	if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, "closing", "tidak_lanjut", &lostReason, &category); err != nil {
+	if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, "closing", "tidak_lanjut", lostReasonPtr, &category); err != nil {
 		if errors.Is(err, repository.ErrStatusConflict) {
 			return nil, ErrProspectStatusConflict
 		}

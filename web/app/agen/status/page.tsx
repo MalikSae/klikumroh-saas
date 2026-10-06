@@ -213,7 +213,9 @@ export default function AgenStatusPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.status === 401) {
+      // 404: the agent account no longer exists (deleted by the travel). The token is useless, so it is
+      // cleared like an expired one instead of leaving the page in a retry loop.
+      if (res.status === 401 || res.status === 404) {
         localStorage.removeItem('agent_token');
         router.push('/agen/login');
         return;

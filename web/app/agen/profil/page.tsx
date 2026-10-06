@@ -14,6 +14,7 @@ import { jakartaDateLabel } from '../../../lib/jakartaTime';
 import { isBlankPassword, newPasswordError } from '../../../lib/passwordRules';
 import { agentPhoneError } from '../../../lib/agentPhone';
 import { copyToClipboard } from '../../../lib/clipboard';
+import { apiErrorMessage } from '../../../lib/safeJson';
 import './AgenProfil.css';
 
 interface AgentProfileData {
@@ -93,14 +94,16 @@ export default function AgenProfilPage() {
           },
         });
 
-        if (res.status === 401) {
+        // 404: the agent account no longer exists (deleted by the travel): clear the token like an expired
+        // one instead of showing an empty form.
+        if (res.status === 401 || res.status === 404) {
           localStorage.removeItem('agent_token');
           router.push('/agen/login');
           return;
         }
 
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json().catch(() => ({}));
           const ag: AgentProfileData = data.agent || data.data?.agent || data;
           setAgent(ag);
 
@@ -270,9 +273,10 @@ export default function AgenProfilPage() {
         }),
       });
 
-      const json = await res.json();
+      // A gateway error page is not JSON: show a friendly message, never the parser's.
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json.error || 'Gagal menyimpan profil');
+        throw new Error(apiErrorMessage(res.status, json, 'Gagal menyimpan profil'));
       }
 
       const updated = json.agent || json.data?.agent || json;
@@ -326,9 +330,10 @@ export default function AgenProfilPage() {
         }),
       });
 
-      const json = await res.json();
+      // A gateway error page is not JSON: show a friendly message, never the parser's.
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json.error || 'Gagal menyimpan info rekening');
+        throw new Error(apiErrorMessage(res.status, json, 'Gagal menyimpan info rekening'));
       }
 
       const updated = json.agent || json.data?.agent || json;
@@ -380,9 +385,10 @@ export default function AgenProfilPage() {
         }),
       });
 
-      const json = await res.json();
+      // A gateway error page is not JSON: show a friendly message, never the parser's.
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json.error || 'Gagal mengubah password');
+        throw new Error(apiErrorMessage(res.status, json, 'Gagal mengubah password'));
       }
 
       setCurrentPassword('');

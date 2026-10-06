@@ -12,6 +12,7 @@ import {
   type AffiliatorOverview,
   type AffiliatorPayout,
 } from '../../services/affiliatorApi';
+import { affiliatorPayoutState } from './payoutRule';
 import './affiliator.css';
 
 type Tab = 'commissions' | 'payouts';
@@ -40,6 +41,7 @@ export const AffiliatorCommissionsView: React.FC = () => {
         setOverview(o);
         setCommissions(c);
         setPayouts(p);
+        setError(null);
       })
       .catch((e) => setError(errorText(e, 'Gagal memuat komisi')))
       .finally(() => setLoading(false));
@@ -104,23 +106,22 @@ export const AffiliatorCommissionsView: React.FC = () => {
     }
   };
 
-  if (error) return <Banner tone="danger">{error}</Banner>;
+  const retry = (
+    <Button size="sm" variant="secondary" onClick={() => { setError(null); load(); }}>
+      Coba lagi
+    </Button>
+  );
+  // Only the first load replaces the page; a failed refresh later keeps the data on screen with a banner.
+  if (error && !overview) return <Banner tone="danger" action={retry}>{error}</Banner>;
   if (!overview) return <p className="af-muted">Memuat...</p>;
 
   const a = overview.affiliator;
-  const hasBank = Boolean(a.bank_name && a.bank_account_number && a.bank_account_holder);
   const b = overview.balance;
-  const canRequest = hasBank && b.available > 0 && b.available >= overview.min_payout && b.requested === 0;
-  const reason = !hasBank
-    ? 'Lengkapi rekening di menu Akun sebelum mengajukan pencairan.'
-    : b.requested > 0
-      ? 'Pencairan sebelumnya masih diproses tim KlikUmroh.'
-      : b.available < overview.min_payout
-        ? `Minimal pencairan ${fmtRupiah(overview.min_payout)}.`
-        : null;
+  const { canRequest, reason } = affiliatorPayoutState(overview, fmtRupiah);
 
   return (
     <div className="af-stack">
+      {error && <Banner tone="danger" action={retry}>{error}</Banner>}
       {requested && <Banner tone="success">Pengajuan pencairan terkirim. Tim KlikUmroh akan mentransfer ke rekening Anda.</Banner>}
 
       <section className="af-balance" aria-label="Saldo komisi">

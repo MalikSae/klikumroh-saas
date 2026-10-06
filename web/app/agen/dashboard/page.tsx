@@ -34,7 +34,7 @@ import { HABITS, fetchHabitSummary, habitHeadline, logHabit, type HabitSummary }
 import { JAKARTA_TZ, jakartaDayKey } from '../../../lib/jakartaTime';
 import { homeRank } from '../../../lib/agentRank';
 import { copyToClipboard } from '../../../lib/clipboard';
-import { canShareFiles, packagePhotoFile, packageShareText, sharePackage } from '../../../lib/packageShare';
+import { canShareFiles, packagePhotoFile, packageShareText, shareCountsAsHabit, sharePackage } from '../../../lib/packageShare';
 import './AgenDashboard.css';
 
 interface AgentFunnelSummary {
@@ -373,8 +373,9 @@ export default function AgenDashboardPage() {
   const sharePackageWithPhoto = async (pkg: PublicPackage) => {
     const link = packageLink(pkg);
     if (!link) return;
-    logShare();
     const result = await sharePackage(pkg, link, syiarFile);
+    // Logged only after the share really happened, never for a cancelled or failed share sheet.
+    if (shareCountsAsHabit(result)) logShare();
     if (result !== 'cancelled') setSyiarPkg(null);
   };
 
@@ -517,7 +518,9 @@ export default function AgenDashboardPage() {
             }
             if (m.external) {
               return (
-                <a key={m.key} href={m.external} target="_blank" rel="noopener noreferrer" className="ag-menu__item" onClick={logShare}>
+                // "Bagikan" opens wa.me: the click counts as a share (the page cannot see what happens in WhatsApp).
+                // No link yet ('#') opens nothing, so it does not count.
+                <a key={m.key} href={m.external} target="_blank" rel="noopener noreferrer" className="ag-menu__item" onClick={m.external !== '#' ? logShare : undefined}>
                   {inner}
                 </a>
               );
@@ -735,6 +738,8 @@ export default function AgenDashboardPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ag-sheet__option"
+                // A wa.me link click counts as a share: the page cannot see whether WhatsApp then sends the
+                // message, and the link opens WhatsApp with the message ready (accepted trade-off).
                 onClick={() => {
                   logShare();
                   setSyiarPkg(null);

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { fetchTargetProgress, fetchTargets, type AgentTarget } from '../../services/api';
+import { fetchTargetAchievements, fetchTargetProgress, fetchTargets, type AgentTarget } from '../../services/api';
 import { Banner, Button, DataTable, EmptyState, Pill, Toolbar, errorText, type Column } from '../../ui';
 import { METRIC_LABEL, periodText, targetName, targetState } from './targetUtil';
 import { TargetModal } from './TargetModal';
@@ -25,9 +25,12 @@ export const Targets: React.FC = () => {
       const list = await fetchTargets();
       const reached = await Promise.all(
         list.map((t) =>
-          fetchTargetProgress(t.id)
-            .then((p) => (p.rows ?? []).filter((r) => r.achieved || r.achieved_value >= t.metric_value).length)
-            .catch(() => null),
+          // A closed target counts the achievements recorded at closing (as the drawer lists them), not
+          // the live progress, which can still change afterwards (e.g. a cancelled closing).
+          (t.status === 'closed'
+            ? fetchTargetAchievements(t.id).then((a) => a.length)
+            : fetchTargetProgress(t.id).then((p) => (p.rows ?? []).filter((r) => r.achieved || r.achieved_value >= t.metric_value).length)
+          ).catch(() => null),
         ),
       );
       setRows(
@@ -35,6 +38,7 @@ export const Targets: React.FC = () => {
           .map((t, i) => ({ ...t, reached: reached[i] }))
           .sort((a, b) => ORDER[targetState(a).key] - ORDER[targetState(b).key] || b.period_end.localeCompare(a.period_end)),
       );
+      setError(null);
     } catch (e) {
       setError(errorText(e, 'Gagal memuat target'));
     } finally {

@@ -10,6 +10,8 @@ export const metadata = {
   title: 'Daftar & Aktifkan Platform | KlikUmroh.id',
   description:
     'Daftarkan biro travel Anda dan aktifkan platform agen & affiliate KlikUmroh. Pilih paket, isi data, dan mulai dalam hitungan menit.',
+  // Own canonical (platform-only path, see proxy.ts); otherwise it inherits the homepage's from the root layout.
+  alternates: { canonical: 'https://klikumroh.id/checkout' },
 };
 
 export default async function CheckoutPage() {

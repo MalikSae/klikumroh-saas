@@ -12,7 +12,7 @@ import (
 )
 
 // impersonationReadDedupWindow limits how often an identical read request (same impersonation session,
-// method, and path) is written to access_logs, so dashboard polling does not flood the travel's audit trail.
+// method, and path including the query string) is written to access_logs, so dashboard polling does not flood the travel's audit trail.
 // Every mutating request (POST/PUT/PATCH/DELETE) is always logged.
 const impersonationReadDedupWindow = 5 * time.Minute
 
@@ -84,7 +84,12 @@ func recordImpersonationAccess(r *http.Request, logRepo repository.AccessLogRepo
 	}
 
 	method := r.Method
+	// The query string is part of what was accessed (which private file, which export or search filter),
+	// so it is logged and part of the read dedup key: two different files are two rows.
 	path := r.URL.Path
+	if r.URL.RawQuery != "" {
+		path += "?" + r.URL.RawQuery
+	}
 	if len(path) > maxAccessLogPathLength {
 		path = path[:maxAccessLogPathLength]
 	}

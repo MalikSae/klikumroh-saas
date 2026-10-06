@@ -22,6 +22,15 @@ var demoBlocked = []demoRule{
 	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/team$`)},
 	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/team/[^/]+/toggle-status$`)},
 	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/agents/[^/]+/reset-password$`)},
+	// Deactivating or rejecting the shared demo agents would end their sessions and break the agent
+	// demo login for every visitor until the nightly rebuild.
+	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/agents/[^/]+/toggle-status$`)},
+	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/agents/[^/]+/reject$`)},
+	// The public demo site's identity: travel profile, logo and WhatsApp number.
+	{http.MethodPut, regexp.MustCompile(`^/api/dashboard/tenant/profile$`)},
+	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/tenant/branding/logo$`)},
+	{http.MethodDelete, regexp.MustCompile(`^/api/dashboard/tenant/branding/logo$`)},
+	{http.MethodPut, regexp.MustCompile(`^/api/dashboard/tenant/whatsapp$`)},
 	{http.MethodPut, regexp.MustCompile(`^/api/dashboard/meta-integration$`)},
 	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/meta-integration/test$`)},
 	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/domains(/.*)?$`)},

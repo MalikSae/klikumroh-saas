@@ -5,8 +5,13 @@ import { Banner, Card, DataTable, EmptyState, Pill, errorText, fmtDate, type Col
 import { fetchAffiliatorTenants, type AffiliatorTenant } from '../../services/affiliatorApi';
 
 const STATUS: Record<string, { label: string; tone: PillTone }> = {
+  // Derived subscription status from the API (same rules as super admin).
   pending: { label: 'Menunggu pembayaran', tone: 'amber' },
   active: { label: 'Aktif', tone: 'green' },
+  expired: { label: 'Kedaluwarsa', tone: 'amber' },
+  suspended: { label: 'Ditangguhkan', tone: 'red' },
+  no_plan: { label: 'Belum berlangganan', tone: 'gray' },
+  demo: { label: 'Demo', tone: 'gray' },
   inactive: { label: 'Nonaktif', tone: 'gray' },
 };
 

@@ -344,7 +344,14 @@ func TestReaudit7_DeleteScrubsNotifications(t *testing.T) {
 		return id
 	}
 	linked := insert(e.tenantA.ID, "prospect_new", "Jamaah Audit tertarik paket", "/prospects/"+itoa(p.ID))
-	commission := insert(e.tenantA.ID, "commission_earned", "Komisi dari closing jamaah Jamaah Audit", "/agen/riwayat-komisi")
+	// A commission notification as the service writes it: to the prospect's agent, "jamaah <name> sudah ...".
+	res, err := e.db.Exec(`INSERT INTO notifications (tenant_id, recipient_type, recipient_id, type, title, body, link_url)
+		VALUES (?, 'agent', ?, 'commission_earned', 'Komisi', 'Komisi Rp 1.000 dari closing jamaah Jamaah Audit sudah bisa dicairkan.', '/agen/riwayat-komisi')`,
+		e.tenantA.ID, e.agentA.ID)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	commission, _ := res.LastInsertId()
 	otherTenant := insert(e.tenantB.ID, "prospect_new", "Jamaah Audit tertarik paket", "/prospects/"+itoa(p.ID))
 
 	if err := e.svc.Delete(e.ctx, e.tenantB.ID, p.ID); !errors.Is(err, repository.ErrNotFound) {

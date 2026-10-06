@@ -322,43 +322,6 @@
   gap: 12px;
 }
 
-/* Command Palette Search Box */
-.sa-search-command {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--sa-surface);
-  border: 1px solid var(--sa-border);
-  padding: 6px 12px;
-  border-radius: var(--sa-radius-sm);
-  color: var(--sa-text-muted);
-  font-size: 13px;
-  width: 280px;
-}
-
-.sa-search-command input {
-  background: none;
-  border: none;
-  outline: none;
-  font-size: 16px; /* input: >= 16px (AGENTS.md 3.10) */
-  color: var(--sa-text);
-  width: 100%;
-}
-
-.sa-kbd {
-  font-family: var(--sa-font-code);
-  font-size: 13px;
-  font-weight: 600;
-  background-color: var(--sa-card);
-  border: 1px solid var(--sa-border);
-  padding: 1px 4px;
-  border-radius: 3px;
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  color: var(--sa-text-subtle);
-}
-
 /* Breadcrumb */
 .sa-crumb {
   display: flex;
@@ -891,6 +854,30 @@
   border: 1px solid var(--sa-border);
 }
 
+/* Compact badge for inline use next to a value: tighter padding, text stays at the 13px minimum. */
+.sa-badge--sm {
+  gap: 4px;
+  padding: 0 6px;
+  line-height: 1.5;
+}
+
+/* Spinner for refresh/loading icons (RefreshCw). Static for users who ask for reduced motion. */
+@keyframes db-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.db-spin {
+  animation: db-spin 0.9s linear infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .db-spin {
+    animation: none;
+  }
+}
+
 /* Table Scroller & Grid Compatibility */
 .sa-table-container {
   width: 100%;
@@ -1147,10 +1134,6 @@
 
   .sa-canvas {
     padding: 16px 14px;
-  }
-
-  .sa-search-command {
-    display: none;
   }
 }
 

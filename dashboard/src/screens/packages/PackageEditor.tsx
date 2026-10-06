@@ -1,5 +1,5 @@
 // Package editor: one page, sections left-titled like Pengaturan, sticky save bar with the publish action.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react';
 import { createPackage, deletePackage, fetchPackageById, updatePackage, uploadPackagePhoto, type PackageItem, type PackagePhoto } from '../../services/api';
@@ -76,6 +76,10 @@ export const PackageEditor: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  // Blocks a second save/archive/delete while one is running (the menu items are not disabled by `saving`,
+  // and a fast second click lands before the re-render): two PUTs at once could leave the form out of step.
+  const busyRef = useRef(false);
   // Photos picked on a new package: uploaded right after the package is created, in this order.
   const [pending, setPending] = useState<File[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
@@ -147,7 +151,9 @@ export const PackageEditor: React.FC = () => {
   const save = async (status: PackageItem['status'], message: string) => {
     // Only ever save the form of the package that is loaded for this route id.
     if (!isNew && pkg?.id !== Number(id)) return;
+    if (busyRef.current) return;
     if (!validate(status)) return;
+    busyRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -186,12 +192,15 @@ export const PackageEditor: React.FC = () => {
     } catch (e) {
       setError(errorText(e, 'Gagal menyimpan paket'));
     } finally {
+      busyRef.current = false;
       setSaving(false);
       setProgress(null);
     }
   };
 
   const remove = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setSaving(true);
     try {
       await deletePackage(Number(id));
@@ -200,7 +209,16 @@ export const PackageEditor: React.FC = () => {
       setError(errorText(e, 'Gagal menghapus paket'));
       setConfirmDelete(false);
       setSaving(false);
+    } finally {
+      busyRef.current = false;
     }
+  };
+
+  // Archiving saves the whole form: with unsaved edits, ask first instead of saving them silently.
+  const archive = () => {
+    if (busyRef.current) return;
+    if (dirty) setConfirmArchive(true);
+    else save('archived', 'Paket diarsipkan.');
   };
 
   if (loading) return <div className="st-loading" aria-busy="true" />;
@@ -223,7 +241,7 @@ export const PackageEditor: React.FC = () => {
 
   const menuItems = [
     ...(status === 'published' ? [{ label: 'Kembalikan ke draf', onClick: () => save('draft', 'Paket dijadikan draf dan tidak tampil di website.') }] : []),
-    ...(status !== 'archived' ? [{ label: 'Arsipkan', onClick: () => save('archived', 'Paket diarsipkan.') }] : [{ label: 'Kembalikan ke draf', onClick: () => save('draft', 'Paket dikembalikan ke draf.') }]),
+    ...(status !== 'archived' ? [{ label: 'Arsipkan', onClick: archive }] : [{ label: 'Kembalikan ke draf', onClick: () => save('draft', 'Paket dikembalikan ke draf.') }]),
     { label: 'Hapus paket', danger: true, onClick: () => setConfirmDelete(true) },
   ];
 
@@ -377,6 +395,30 @@ export const PackageEditor: React.FC = () => {
           )}
         </div>
       </form>
+
+      <Modal
+        open={confirmArchive}
+        onClose={() => setConfirmArchive(false)}
+        title="Arsipkan paket?"
+        description="Ada perubahan yang belum disimpan. Perubahan itu ikut disimpan saat paket diarsipkan. Pilih Batal untuk memeriksanya dulu."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmArchive(false)} disabled={saving}>
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              disabled={saving}
+              onClick={() => {
+                setConfirmArchive(false);
+                void save('archived', 'Paket diarsipkan.');
+              }}
+            >
+              Simpan dan arsipkan
+            </Button>
+          </>
+        }
+      />
 
       <Modal
         open={confirmDelete}

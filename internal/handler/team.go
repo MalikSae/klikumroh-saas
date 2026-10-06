@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -16,12 +17,16 @@ import (
 // TeamHandler handles HTTP endpoints for team management and personal profile.
 type TeamHandler struct {
 	teamService service.TeamService
+	// passwordFailures locks PUT /api/dashboard/me/password for an admin after repeated wrong current
+	// passwords, so a stolen session token cannot brute-force the password online.
+	passwordFailures *middleware.LoginFailureLimiter
 }
 
 // NewTeamHandler creates a new TeamHandler instance.
 func NewTeamHandler(teamService service.TeamService) *TeamHandler {
 	return &TeamHandler{
-		teamService: teamService,
+		teamService:      teamService,
+		passwordFailures: middleware.NewLoginFailureLimiter(5, 15*time.Minute),
 	}
 }
 
@@ -226,9 +231,19 @@ func (h *TeamHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Keyed by the account, not the IP: changing IP does not reset it.
+	failKey := middleware.LoginKey("me-password", strconv.FormatUint(tenantID, 10), strconv.FormatUint(adminUserID, 10))
+	if h.passwordFailures != nil && h.passwordFailures.Blocked(failKey) {
+		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": PasswordChangeLockedMessage})
+		return
+	}
+
 	err := h.teamService.UpdateMyPassword(r.Context(), tenantID, adminUserID, payload.CurrentPassword, payload.NewPassword, bearerToken(r))
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCurrentPassword) {
+			if h.passwordFailures != nil {
+				h.passwordFailures.Fail(failKey)
+			}
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
 			return
 		}
@@ -244,5 +259,11 @@ func (h *TeamHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.passwordFailures != nil {
+		h.passwordFailures.Reset(failKey)
+	}
 	respondJSON(w, http.StatusOK, map[string]string{"message": "password berhasil diperbarui"})
 }
+
+// PasswordChangeLockedMessage is returned (HTTP 429) after 5 wrong current passwords in 15 minutes.
+const PasswordChangeLockedMessage = "Terlalu banyak percobaan dengan password saat ini yang salah. Silakan coba lagi dalam 15 menit."

@@ -4,9 +4,8 @@ import { Check } from 'lucide-react';
 import { Banner, Button, Card, CardBody, Field, errorText } from '../../ui';
 import { changeAffiliatorPassword, fetchAffiliatorOverview, logoutAffiliator, updateAffiliatorBank, type Affiliator } from '../../services/affiliatorApi';
 import { PasswordInput } from './PasswordInput';
+import { MIN_PASSWORD_LENGTH as MIN_PASSWORD, passwordLongEnough } from '../../utils/password';
 import './affiliator.css';
-
-const MIN_PASSWORD = 8;
 
 export const AffiliatorAccountView: React.FC = () => {
   const [me, setMe] = useState<Affiliator | null>(null);
@@ -59,7 +58,8 @@ export const AffiliatorAccountView: React.FC = () => {
     e.preventDefault();
     const errs: typeof pwErrors = {};
     if (!current) errs.current = 'Masukkan kata sandi saat ini.';
-    if (next.length < MIN_PASSWORD) errs.next = `Kata sandi baru minimal ${MIN_PASSWORD} karakter.`;
+    // Same count as the server (passwordLongEnough): leading/trailing spaces do not count.
+    if (!passwordLongEnough(next)) errs.next = `Kata sandi baru minimal ${MIN_PASSWORD} karakter (spasi di awal/akhir tidak dihitung).`;
     if (confirm !== next) errs.confirm = 'Konfirmasi tidak sama dengan kata sandi baru.';
     setPwErrors(errs);
     if (Object.keys(errs).length) return;

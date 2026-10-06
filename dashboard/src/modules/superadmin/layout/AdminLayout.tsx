@@ -11,11 +11,9 @@ import {
   Users,
   Menu,
   X,
-  Search,
   HelpCircle,
   ArrowLeft,
   Handshake,
-  Command,
 } from 'lucide-react';
 import { Tooltip } from '../shared/Tooltip';
 import { NotificationDropdown } from '../shared/NotificationDropdown';
@@ -265,12 +263,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </div>
 
           <div className="sa-topbar__right">
-            <div className="sa-search-command">
-              <Search size={14} />
-              <input type="text" placeholder="Quick search travel, domain..." readOnly />
-              <span className="sa-kbd"><Command size={11} aria-hidden="true" />K</span>
-            </div>
-
             <NotificationDropdown
               apiPrefix="/api/staff/notifications"
               tokenGetter={getStoredStaffToken}

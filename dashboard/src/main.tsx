@@ -10,6 +10,8 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import App from './App.tsx';
 import { API_BASE, setAuthSession, setImpersonatedSession } from './services/api';
+import { HANDOFF_FAILED_KEY, parseHandoffHash, toHandoffKind, type HandoffKind } from './services/handoff';
+import { HandoffFailed } from './app/HandoffFailed';
 
 // ---------------------------------------------------------------------------
 // Cross-origin auth handoff
@@ -21,18 +23,16 @@ import { API_BASE, setAuthSession, setImpersonatedSession } from './services/api
 // (it holds the HttpOnly ku_handoff cookie), so a link crafted by someone else cannot sign a visitor into
 // another account. Staff impersonation (AdminTenantDetailView) opens a tab with the same kind of code.
 // ---------------------------------------------------------------------------
-async function redeemHandoff(): Promise<void> {
-  const hash = window.location.hash;
-  if (!hash.startsWith('#handoff=')) return;
-  let target = '/';
-  try {
-    const payload = JSON.parse(decodeURIComponent(hash.slice('#handoff='.length)));
-    // Optional landing path (e.g. the billing page right after signup). Only same-origin
-    // absolute paths are accepted, so the payload can't send the user to another site.
-    if (typeof payload.redirect === 'string' && /^\/(?![/\\])/.test(payload.redirect)) {
-      target = payload.redirect;
-    }
-    if (typeof payload.code === 'string' && payload.code) {
+// A failed exchange (expired code, missing cookie, server restart) must not fall back to whatever session
+// is still stored: that could be another travel staff impersonated earlier. The tab shows an error
+// instead, remembered per tab (sessionStorage) so a reload doesn't fall back either. Other tabs keep
+// their sessions untouched.
+async function redeemHandoff(): Promise<HandoffKind | null> {
+  const payload = parseHandoffHash(window.location.hash);
+  if (!payload) return readFailedHandoff();
+  let ok = false;
+  if (payload.code) {
+    try {
       const res = await fetch(`${API_BASE}/api/auth/handoff/exchange`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -45,20 +45,36 @@ async function redeemHandoff(): Promise<void> {
           setAuthSession(data.token, data.user);
           // Set by the server for staff impersonation, never taken from the URL.
           setImpersonatedSession(Boolean(data.impersonated));
+          ok = true;
         }
       }
+    } catch {
+      // Network error or bad JSON: handled as a failed handoff below.
     }
-  } catch {
-    // Malformed payload or network error: without a session RequireAuth sends the user to login.
   }
   // Clean the URL so the code doesn't linger in the address bar or history.
-  history.replaceState(null, '', target);
+  history.replaceState(null, '', ok ? payload.redirect : '/');
+  try {
+    if (ok) sessionStorage.removeItem(HANDOFF_FAILED_KEY);
+    else sessionStorage.setItem(HANDOFF_FAILED_KEY, payload.kind);
+  } catch {
+    /* storage unavailable: the error still shows for this page load */
+  }
+  return ok ? null : payload.kind;
 }
 
-void redeemHandoff().then(() => {
+function readFailedHandoff(): HandoffKind | null {
+  try {
+    return toHandoffKind(sessionStorage.getItem(HANDOFF_FAILED_KEY));
+  } catch {
+    return null;
+  }
+}
+
+void redeemHandoff().then((failed) => {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      {failed ? <HandoffFailed kind={failed} /> : <App />}
     </StrictMode>,
   );
 });

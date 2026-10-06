@@ -344,7 +344,7 @@ type prospectDetailFiller interface {
 }
 
 type prospectAnonymizer interface {
-	Anonymize(ctx context.Context, tenantID uint64, id uint64) error
+	Anonymize(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
 }
 
 type agentStatusCounter interface {
@@ -799,8 +799,21 @@ func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id 
 	}
 
 	// Personal data removed (UU PDP): the prospect stays as a record only, it never re-enters the pipeline.
+	// One that was anonymized while still open (before Anonymize moved such prospects out of the
+	// pipeline) may still be moved to 'Tidak Lanjut', with the system reason and no free text.
 	if prospect.AnonymizedAt != nil {
-		return ErrProspectAnonymized
+		if strings.ToLower(strings.TrimSpace(newStatus)) != "tidak_lanjut" || !(prospect.Status == "baru" || prospect.Status == "dihubungi" || prospect.Status == "tertarik") {
+			return ErrProspectAnonymized
+		}
+		category := repository.LostCategoryDataDeleted
+		if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, prospect.Status, "tidak_lanjut", nil, &category); err != nil {
+			if errors.Is(err, repository.ErrStatusConflict) {
+				return ErrProspectStatusConflict
+			}
+			return err
+		}
+		s.recordHistory(ctx, tenantID, id, "admin", adminUserID, prospect.Status, "tidak_lanjut")
+		return nil
 	}
 
 	// GUARD PALING AWAL: kalau status LAMA prospek sudah 'closing', tolak
@@ -1168,14 +1181,35 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 	// "dp" policy before the switch), so the agent could still withdraw the full old amount. The part of a
 	// reduction covered by released commission is released at once; the rest stays held with the rows
 	// it reduces.
+	//
+	// The mirror case: under the "dp" policy a new entry is released at once, but the rows it reduces can
+	// still be held (closed under "lunas", not marked lunas yet). The part of the reduction covered by
+	// held commission stays held with those rows, so the agent's withdrawable balance never drops for
+	// money they could not withdraw yet; only the rest is released.
 	releasedNet := map[uint64]float64{}
+	heldNet := map[uint64]float64{}
 	for i := range ledgers {
 		if ledgers[i].ReleasedAt != nil {
 			releasedNet[ledgers[i].AgentID] += ledgers[i].Amount
+		} else {
+			heldNet[ledgers[i].AgentID] += ledgers[i].Amount
 		}
 	}
 	var entries []*repository.CommissionLedger
 	addCorrection := func(corrAgentID uint64, diff float64) {
+		if diff < 0 && releasedAt != nil {
+			if held := math.Round(heldNet[corrAgentID]*100) / 100; held > 0 {
+				part := math.Min(-diff, held)
+				entries = append(entries, &repository.CommissionLedger{
+					TenantID: tenantID, AgentID: corrAgentID, ProspectID: prospect.ID, PackageID: pkgID,
+					Type: "correction", Amount: -part, Notes: &reason,
+				})
+				diff += part
+				if math.Round(diff*100) == 0 {
+					return
+				}
+			}
+		}
 		if diff < 0 && releasedAt == nil {
 			if avail := math.Round(releasedNet[corrAgentID]*100) / 100; avail > 0 {
 				part := math.Min(-diff, avail)
@@ -1462,7 +1496,7 @@ func (s *prospectService) Anonymize(ctx context.Context, tenantID uint64, id uin
 	if !ok {
 		return errors.New("anonimisasi tidak didukung oleh penyimpanan data ini")
 	}
-	if err := anonymizer.Anonymize(ctx, tenantID, id); err != nil {
+	if err := anonymizer.Anonymize(ctx, tenantID, id, adminUserID); err != nil {
 		if errors.Is(err, repository.ErrStatusConflict) {
 			return ErrProspectAnonymized
 		}

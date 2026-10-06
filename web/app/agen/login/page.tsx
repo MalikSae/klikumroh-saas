@@ -12,6 +12,7 @@ import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import designTokens from '../../../../design-tokens.json';
 import { isBlankPassword } from '../../../lib/passwordRules';
+import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
 import './AgenLogin.css';
 
 interface TenantInfo {
@@ -126,10 +127,13 @@ export default function AgenLoginPage() {
         }),
       });
 
-      const json = await res.json();
+      // A gateway error page is not JSON: show a friendly message, never the parser's.
+      const json: AgentAuthJson = (await readJsonSafe<AgentAuthJson>(res)) ?? {};
 
       if (!res.ok) {
-        setErrorMessage(json.error || 'Email atau password salah');
+        setErrorMessage(
+          apiErrorMessage(res.status, json, res.status === 401 ? 'Email atau password salah' : 'Gagal masuk. Silakan coba lagi.')
+        );
         return;
       }
 

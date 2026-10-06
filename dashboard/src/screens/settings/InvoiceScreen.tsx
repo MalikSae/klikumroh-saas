@@ -17,24 +17,24 @@ import { useFrame } from '../../app/AppFrame';
 import { invoiceStatus, planTitle } from './BillingSettings';
 import './InvoiceScreen.css';
 import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
+import { copyText } from '../../utils/clipboard';
 
 const MAX_PROOF_BYTES = 10 * MB; // server body limit (MaxBytesReader 10<<20)
 
 const CopyValue: React.FC<{ value: string; label: string; children: React.ReactNode }> = ({ value, label, children }) => {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard
-      ?.writeText(value)
-      .then(() => {
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1600);
-      })
-      .catch(() => {});
+  const [failed, setFailed] = useState(false);
+  const copy = async () => {
+    const ok = await copyText(value);
+    setCopied(ok);
+    setFailed(!ok);
+    window.setTimeout(() => (ok ? setCopied(false) : setFailed(false)), 2000);
   };
+  const text = copied ? `${label} tersalin` : failed ? 'Gagal menyalin, salin manual' : `Salin ${label}`;
   return (
     <span className="st-copy">
       {children}
-      <button type="button" className="st-copy__btn" onClick={copy} aria-label={copied ? `${label} tersalin` : `Salin ${label}`} title={copied ? 'Tersalin' : `Salin ${label}`}>
+      <button type="button" className="st-copy__btn" onClick={copy} aria-label={text} title={text}>
         {copied ? <Check className="ku-icon--sm" aria-hidden="true" /> : <Copy className="ku-icon--sm" aria-hidden="true" />}
       </button>
     </span>
@@ -48,6 +48,8 @@ export const InvoiceScreen: React.FC = () => {
   const frame = useFrame();
   const [pv, setPv] = useState<PaymentVerification | null>(null);
   const [platform, setPlatform] = useState<PlatformSettings | null>(null);
+  // Platform settings (bank account, WhatsApp) are extra: when they fail the invoice still opens and can be paid.
+  const [platformFailed, setPlatformFailed] = useState(false);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +68,14 @@ export const InvoiceScreen: React.FC = () => {
       setLoading(false);
       return;
     }
-    Promise.all([fetchPaymentVerificationDetail(vid), fetchPlatformSettings(), fetchTenantSubscription(true).catch(() => null)])
+    Promise.all([
+      fetchPaymentVerificationDetail(vid),
+      fetchPlatformSettings().catch(() => {
+        setPlatformFailed(true);
+        return null;
+      }),
+      fetchTenantSubscription(true).catch(() => null),
+    ])
       .then(([p, s, sub]) => {
         setPv(p);
         setPlatform(s);
@@ -104,16 +113,24 @@ export const InvoiceScreen: React.FC = () => {
     }
     setUploading(true);
     try {
-      await uploadRenewalProof(pv.id, file);
-      const next = await fetchPaymentVerificationDetail(pv.id);
-      setPv(next);
+      try {
+        await uploadRenewalProof(pv.id, file);
+      } catch (e) {
+        setUploadError(errorText(e, 'Gagal mengunggah bukti transfer'));
+        return;
+      }
+      // The proof is saved from here on: a failed refresh must not be reported as a failed upload.
       setJustUploaded(true);
-      // Through the frame, so its banner and redirect use the new state too.
-      if (frame) await frame.refreshSubscription();
-      else await fetchTenantSubscription(true).catch(() => null);
-      frame?.refreshBadges();
-    } catch (e) {
-      setUploadError(errorText(e, 'Gagal mengunggah bukti transfer'));
+      try {
+        const next = await fetchPaymentVerificationDetail(pv.id);
+        setPv(next);
+        // Through the frame, so its banner and redirect use the new state too.
+        if (frame) await frame.refreshSubscription();
+        else await fetchTenantSubscription(true).catch(() => null);
+        frame?.refreshBadges();
+      } catch {
+        setUploadError('Bukti transfer sudah terkirim, tetapi halaman belum diperbarui. Muat ulang halaman untuk melihat statusnya.');
+      }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -183,7 +200,7 @@ export const InvoiceScreen: React.FC = () => {
             <div><dt>Bank</dt><dd>{bank.bank_name}</dd></div>
             <div><dt>Nomor rekening</dt><dd><CopyValue value={bank.bank_account_number.replace(/\s/g, '')} label="nomor rekening">{bank.bank_account_number}</CopyValue></dd></div>
             <div><dt>Atas nama</dt><dd>{bank.bank_account_holder}</dd></div>
-          </dl> : <p className="st-muted">Rekening tujuan belum tersedia. Hubungi tim KlikUmroh sebelum transfer.</p>}
+          </dl> : <p className="st-muted">{platformFailed ? 'Rekening tujuan gagal dimuat. Muat ulang halaman sebelum transfer.' : 'Rekening tujuan belum tersedia. Hubungi tim KlikUmroh sebelum transfer.'}</p>}
           {(pv.unique_code ?? 0) > 0 && <p className="st-invoice__note">Transfer sesuai total, termasuk kode unik <b>{pv.unique_code}</b>, agar pembayaran dapat dicocokkan.</p>}
         </section>}
         <section className="st-proof" aria-labelledby="invoice-proof-title">

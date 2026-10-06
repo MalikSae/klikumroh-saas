@@ -177,11 +177,6 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "domisili wajib dipilih"})
 		return
 	}
-	if len(strings.TrimSpace(req.Password)) < service.MinAgentPasswordLength {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrAgentPasswordTooShort.Error()})
-		return
-	}
-
 	// Referral contract: referral_code ABSENT (or null) falls back to the ref_code cookie set by the agent
 	// link; referral_code PRESENT but empty means the person cleared the field on purpose and registers
 	// without an upline, so the cookie is NOT used.
@@ -202,7 +197,8 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": "nomor whatsapp sudah terdaftar sebagai agen"})
 			return
 		}
-		if errors.Is(err, service.ErrInvalidAgentPhone) {
+		if errors.Is(err, service.ErrInvalidAgentPhone) || errors.Is(err, service.ErrInvalidAgentEmail) ||
+			errors.Is(err, service.ErrAgentNameTooLong) || errors.Is(err, service.ErrAgentDomisiliTooLong) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -1365,7 +1361,7 @@ func (h *AgentHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "password saat ini salah"})
 			return
 		}
-		if strings.Contains(err.Error(), "minimal 8 karakter") {
+		if strings.Contains(err.Error(), "minimal 8 karakter") || errors.Is(err, service.ErrPasswordTooLong) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

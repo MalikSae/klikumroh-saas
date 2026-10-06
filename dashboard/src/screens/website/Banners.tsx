@@ -121,7 +121,10 @@ export const Banners: React.FC = () => {
 
   const reload = () =>
     fetchBanners()
-      .then(setItems)
+      .then((list) => {
+        setItems(list);
+        setError(null);
+      })
       .catch((e) => setError(errorText(e, 'Gagal memuat banner')))
       .finally(() => setLoading(false));
 

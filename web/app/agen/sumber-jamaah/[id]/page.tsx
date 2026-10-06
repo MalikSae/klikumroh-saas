@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { MobileContainer } from '../../../../components/MobileContainer';
 import './SumberJamaahDetail.css';
-import { fetchSumberDone, setSumberDone } from '../../../../lib/agentHabits';
+import { fetchSumberDone, saveSumberDone } from '../../../../lib/agentHabits';
 import { copyToClipboard } from '../../../../lib/clipboard';
 import sumberDataRaw from '../../../../data/sumber-jamaah.json';
 
@@ -29,6 +29,8 @@ export default function SumberJamaahDetailPage() {
 
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
+  // Why the last mark was put back (the server refused it), shown above the button.
+  const [markError, setMarkError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('agent_token');
@@ -63,7 +65,15 @@ export default function SumberJamaahDetailPage() {
   const toggleCompleted = async () => {
     const next = !isCompleted;
     setIsCompleted(next);
-    if (!(await setSumberDone(id, next))) setIsCompleted(!next);
+    setMarkError(null);
+    const outcome = await saveSumberDone(id, next);
+    if (outcome === 'ok') return;
+    setIsCompleted(!next);
+    setMarkError(
+      outcome === 'suspended'
+        ? 'Layanan travel sedang ditangguhkan, jadi tanda ini belum bisa disimpan. Coba lagi setelah travel memperpanjang langganan.'
+        : 'Tanda belum tersimpan. Periksa koneksi lalu coba lagi.'
+    );
   };
 
   // 'Tersalin' only once the text is really copied (in-app browsers may block the clipboard).
@@ -153,6 +163,11 @@ export default function SumberJamaahDetailPage() {
 
       {/* Main action, stuck to the bottom: mark this source as tried (fills the progress on the list). */}
       <div className="sjd-bar">
+        {markError && (
+          <p className="sjd-bar__msg" role="status">
+            {markError}
+          </p>
+        )}
         <button type="button" onClick={toggleCompleted} aria-pressed={isCompleted} className={`sjd-mark${isCompleted ? ' sjd-mark--done' : ''}`}>
           {isCompleted ? (
             <>

@@ -470,3 +470,6 @@ a.ku-notice:hover { background: var(--ku-hover); }
 
 /* Inside a stacked page the stack gap already spaces the KPI row. */
 .ku-stack > .ku-kpi-row { margin-bottom: 0; }
+
+/* Hidden textarea used by utils/clipboard.ts when the Clipboard API is unavailable (appended to body). */
+.ku-copy-buffer { position: fixed; top: 0; left: 0; opacity: 0; pointer-events: none; }

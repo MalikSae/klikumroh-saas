@@ -7,6 +7,7 @@ import { TravelAgencyJsonLd } from '../components/TravelAgencyJsonLd';
 import { MetaPixel } from '../components/MetaPixel';
 import { DemoRibbon } from '../components/DemoRibbon';
 import { isPlatformHost } from '../lib/platformHost';
+import { travelSiteFlags } from '../lib/travelSiteState';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--tw-font-heading',
@@ -172,8 +173,9 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: imageUrl ? [imageUrl] : undefined,
     },
-    // The demo travel is made up: keep it out of search engines.
-    robots: tenantInfo.is_demo ? { index: false, follow: false } : undefined,
+    // The demo travel is made up and a suspended travel shows only a notice: keep both out of search engines.
+    // Pages that return no robots of their own (e.g. /paket while suspended returns {}) inherit this.
+    robots: travelSiteFlags(tenantInfo).noindex ? { index: false, follow: false } : undefined,
     other: {
       ...(tenantInfo.city ? { 'geo.placename': tenantInfo.city } : {}),
       ...(tenantInfo.province ? { 'geo.region': tenantInfo.province } : {}),
@@ -191,7 +193,9 @@ export default async function RootLayout({
   const headerList = await headers();
   const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
   const tenantInfo = await getTenantInfo(host);
-  const metaPixelId = tenantInfo ? await getMetaPixelId(host) : '';
+  const siteFlags = travelSiteFlags(tenantInfo);
+  // No Meta Pixel while the travel is suspended: the site only shows the suspended notice.
+  const metaPixelId = siteFlags.metaPixel ? await getMetaPixelId(host) : '';
   const brandPrimaryColor = tenantInfo?.brand_primary_color;
 
   const styleObj = brandPrimaryColor
@@ -221,8 +225,8 @@ export default async function RootLayout({
             <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
           </>
         )}
-        {/* No travel agency structured data for the made-up demo travel. */}
-        {!tenantInfo?.is_demo && <TravelAgencyJsonLd tenantInfo={tenantInfo} host={host} />}
+        {/* No travel agency structured data (phone, email, address) for the made-up demo travel or a suspended travel. */}
+        {siteFlags.structuredData && <TravelAgencyJsonLd tenantInfo={tenantInfo} host={host} />}
       </head>
       <body suppressHydrationWarning>
         {tenantInfo?.is_demo && <DemoRibbon host={host} />}

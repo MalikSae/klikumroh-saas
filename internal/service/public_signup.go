@@ -226,8 +226,8 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		return nil, ErrAdminEmailAlreadyInUse
 	}
 
-	if !passwordLongEnough(req.AdminPassword) {
-		return nil, ErrPasswordTooShort
+	if err := checkNewPassword(req.AdminPassword, ErrPasswordTooShort); err != nil {
+		return nil, err
 	}
 
 	plan, err := s.planRepo.GetByID(ctx, req.PlanID)

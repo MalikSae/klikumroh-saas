@@ -12,6 +12,8 @@ import styles from './page.module.css';
 import './Jamaah.css';
 import { logHabit } from '../../../lib/agentHabits';
 import { jakartaDateLabel, jakartaDayKey, jakartaMonthOptions } from '../../../lib/jakartaTime';
+import { appendUniqueById } from '../../../lib/appendUnique';
+import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
 
 const PAGE_SIZE = 20;
 
@@ -140,6 +142,13 @@ export default function AgenJamaahListPage() {
         return;
       }
 
+      // 403 ErrAgentNotActive: the agent was deactivated or is not approved; the status page explains it
+      // (same as Beranda, Riwayat, Tarik saldo and Leaderboard).
+      if (res.status === 403) {
+        router.push('/agen/status');
+        return;
+      }
+
       if (!res.ok) {
         throw new Error('Gagal memuat daftar jamaah');
       }
@@ -148,7 +157,8 @@ export default function AgenJamaahListPage() {
       if (seq !== requestSeq.current) return;
       const items: AgentProspectItem[] = Array.isArray(data?.items) ? data.items : [];
       if (data?.status_counts && typeof data.status_counts === 'object') setStatusCounts(data.status_counts);
-      setJamaahList((prev) => (pageToLoad === 1 ? items : [...prev, ...items]));
+      // Offset paging can repeat a row after new jamaah arrive between loads: append only rows not shown yet.
+      setJamaahList((prev) => (pageToLoad === 1 ? appendUniqueById([], items) : appendUniqueById(prev, items)));
       setTotal(typeof data?.total === 'number' ? data.total : items.length);
       setPage(pageToLoad);
     } catch (err: unknown) {
@@ -306,14 +316,20 @@ export default function AgenJamaahListPage() {
         body: JSON.stringify(payload),
       });
 
+      // A gateway error page is not JSON: show a friendly message, never the parser's.
+      const body = await readJsonSafe<{ id?: number; error?: string }>(res);
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Gagal menambahkan jamaah');
+        throw new Error(apiErrorMessage(res.status, body, 'Gagal menambahkan jamaah'));
       }
 
-      const created = await res.json();
       setIsModalOpen(false);
-      router.push(`/agen/jamaah/${created.id}`);
+      if (body?.id) {
+        router.push(`/agen/jamaah/${body.id}`);
+      } else {
+        // Saved, but the reply could not be read: show the refreshed list instead of a broken detail URL.
+        beginLoad(1);
+        fetchJamaah(activeStatus, 1, debouncedSearch);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem';
       setFormError(msg);

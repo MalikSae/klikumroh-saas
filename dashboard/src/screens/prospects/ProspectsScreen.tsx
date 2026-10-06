@@ -23,7 +23,7 @@ import {
   type ProspectStatusSummary,
 } from '../../services/api';
 import { formatDateWIB, formatTimeWIB } from '../../utils/datetime';
-import { rememberProspectListQuery } from '../../utils/prospectListQuery';
+import { prospectListStateFromParams, rememberProspectListQuery, sameProspectListState, withExtraDepartureMonths } from '../../utils/prospectListQuery';
 import { clampedPage } from '../../utils/pagination';
 import { awaitingPayoffAgentNote, lostReasonNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
@@ -79,16 +79,17 @@ export const ProspectsScreen: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const get = (k: string, d: string) => params.get(k) || d;
 
-  const [status, setStatus] = useState<StatusTab>(() => get('status', 'all') as StatusTab);
-  const [source, setSource] = useState(() => get('source', 'all'));
-  const [pkg, setPkg] = useState(() => get('package', 'all'));
-  const [agent, setAgent] = useState(() => get('agent', 'all'));
-  const [payoff, setPayoff] = useState(() => get('payoff', 'all'));
-  const [departure, setDeparture] = useState(() => get('departure', 'all'));
+  const initial = prospectListStateFromParams(params, PAGE_SIZES);
+  const [status, setStatus] = useState<StatusTab>(initial.status as StatusTab);
+  const [source, setSource] = useState(initial.source);
+  const [pkg, setPkg] = useState(initial.pkg);
+  const [agent, setAgent] = useState(initial.agent);
+  const [payoff, setPayoff] = useState(initial.payoff);
+  const [departure, setDeparture] = useState(initial.departure);
   const [searchInput, setSearchInput] = useState(() => get('q', ''));
   const [search, setSearch] = useState(() => get('q', ''));
-  const [page, setPage] = useState(() => Math.max(1, Number(get('page', '1')) || 1));
-  const [pageSize, setPageSize] = useState(() => (PAGE_SIZES.includes(Number(get('size', '25'))) ? Number(get('size', '25')) : 25));
+  const [page, setPage] = useState(initial.page);
+  const [pageSize, setPageSize] = useState(initial.pageSize);
 
   const [rows, setRows] = useState<ProspectItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -121,6 +122,24 @@ export const ProspectsScreen: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.get('q')]);
+
+  // The URL changed while this screen stays mounted (sidebar "Prospek", a notification link, back/forward):
+  // take the filters and page from it, so the list always matches the address bar. Our own URL writes
+  // below already match the state, so they are a no-op here.
+  useEffect(() => {
+    const fromUrl = prospectListStateFromParams(params, PAGE_SIZES);
+    const current = { status, source, pkg, agent, payoff, departure, page, pageSize };
+    if (sameProspectListState(fromUrl, current)) return;
+    setStatus(fromUrl.status as StatusTab);
+    setSource(fromUrl.source);
+    setPkg(fromUrl.pkg);
+    setAgent(fromUrl.agent);
+    setPayoff(fromUrl.payoff);
+    setDeparture(fromUrl.departure);
+    setPage(fromUrl.page);
+    setPageSize(fromUrl.pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.toString()]);
 
   useEffect(() => {
     if (searchInput === search) return;
@@ -324,7 +343,11 @@ export const ProspectsScreen: React.FC = () => {
                   label="Rencana berangkat"
                   value={departure}
                   onChange={change(setDeparture)}
-                  options={[{ value: 'all', label: 'Semua bulan' }, { value: 'none', label: 'Belum diisi' }, ...departurePlanOptions().filter((o) => o.value !== '')]}
+                  options={[{ value: 'all', label: 'Semua bulan' }, { value: 'none', label: 'Belum diisi' }, ...withExtraDepartureMonths(
+                      departurePlanOptions().filter((o) => o.value !== ''),
+                      [departure, ...rows.map((r) => r.departure_plan)],
+                      formatDeparturePlan,
+                    )]}
                 />
               )}
             </Field>

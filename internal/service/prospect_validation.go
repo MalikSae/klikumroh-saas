@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"klikumroh/internal/repository"
 	"klikumroh/internal/util"
 )
 
@@ -172,7 +173,9 @@ func truncatedPtr(v string, max int) *string {
 }
 
 // LostReasonCategories are the fixed reasons for 'Tidak Lanjut' (keputusan pendiri 29 Sep 2026), so the
-// travel can see why it loses jamaah. "batal_setelah_dp" is set by Batalkan Closing only.
+// travel can see why it loses jamaah. The system categories (systemLostReasonCategories) are never
+// chosen by a person: "batal_setelah_dp" is set by Batalkan Closing, "data_dihapus" when an open
+// prospect is anonymized (UU PDP).
 var LostReasonCategories = map[string]string{
 	"harga":            "Harga tidak cocok",
 	"jadwal":           "Jadwal tidak cocok",
@@ -180,7 +183,14 @@ var LostReasonCategories = map[string]string{
 	"travel_lain":      "Memilih travel lain",
 	"tidak_respons":    "Tidak merespons",
 	"batal_setelah_dp": "Batal setelah DP",
+	"data_dihapus":     "Data dihapus (UU PDP)",
 	"lainnya":          "Lainnya",
+}
+
+// systemLostReasonCategories are set by the system only and are never accepted from an admin or agent.
+var systemLostReasonCategories = map[string]bool{
+	"batal_setelah_dp":                 true,
+	repository.LostCategoryDataDeleted: true,
 }
 
 var (
@@ -201,7 +211,7 @@ var ErrLostReasonSystemCategory = errors.New("alasan \"Batal setelah DP\" dicata
 // by Batalkan Closing. Moving it to another status (reopening it) is still allowed.
 func lostCategoryIsSystem(oldStatus, newStatus string, oldCategory *string) bool {
 	return oldStatus == "tidak_lanjut" && newStatus == "tidak_lanjut" &&
-		oldCategory != nil && *oldCategory == "batal_setelah_dp"
+		oldCategory != nil && systemLostReasonCategories[*oldCategory]
 }
 
 // cleanLostReasonWithCategory validates the 'Tidak Lanjut' reason. The category is required; for
@@ -224,7 +234,7 @@ func cleanLostReasonWithCategory(status string, reason, category *string, allowS
 		}
 		cat = "lainnya"
 	}
-	if _, ok := LostReasonCategories[cat]; !ok || (cat == "batal_setelah_dp" && !allowSystem) {
+	if _, ok := LostReasonCategories[cat]; !ok || (systemLostReasonCategories[cat] && !allowSystem) {
 		return nil, nil, ErrLostReasonCategoryInvalid
 	}
 	if cat == "lainnya" && detail == nil {

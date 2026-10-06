@@ -10,6 +10,7 @@ import './JamaahDetail.css';
 import { logHabit } from '../../../../lib/agentHabits';
 import { LOST_REASON_OPTIONS, formatDeparturePlan } from '../../../../lib/lostReasons';
 import { jakartaDateLabel, jakartaTimeLabel } from '../../../../lib/jakartaTime';
+import { readJsonSafe, apiErrorMessage } from '../../../../lib/safeJson';
 
 interface ProspectData {
   id: number;
@@ -149,6 +150,13 @@ export default function AgenJamaahDetailPage() {
         return;
       }
 
+      // 403 ErrAgentNotActive: the agent was deactivated or is not approved; the status page explains it
+      // (same as Beranda, Riwayat, Tarik saldo and Leaderboard).
+      if (res.status === 403) {
+        router.push('/agen/status');
+        return;
+      }
+
       if (res.status === 404) {
         setError('Data jamaah tidak ditemukan atau Anda tidak memiliki akses ke data ini.');
         return;
@@ -237,8 +245,8 @@ export default function AgenJamaahDetailPage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Gagal mengubah status');
+        // A gateway error page is not JSON: show a friendly message, never the parser's.
+        throw new Error(apiErrorMessage(res.status, await readJsonSafe(res), 'Gagal mengubah status'));
       }
 
       setIsStatusModalOpen(false);
@@ -275,8 +283,7 @@ export default function AgenJamaahDetailPage() {
       });
 
       if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || 'Gagal menambahkan catatan');
+        throw new Error(apiErrorMessage(res.status, await readJsonSafe(res), 'Gagal menambahkan catatan'));
       }
 
       setNewNoteText('');
@@ -370,7 +377,11 @@ export default function AgenJamaahDetailPage() {
   // Why the jamaah did not continue: fixed category label plus the optional free-text note.
   const lostCategoryLabel = prospect.lost_reason_category
     ? LOST_REASON_OPTIONS.find((o) => o.value === prospect.lost_reason_category)?.label ||
-      (prospect.lost_reason_category === 'batal_setelah_dp' ? 'Batal setelah DP' : prospect.lost_reason_category)
+      (prospect.lost_reason_category === 'batal_setelah_dp'
+        ? 'Batal setelah DP'
+        : prospect.lost_reason_category === 'data_dihapus'
+          ? 'Data dihapus (UU PDP)'
+          : prospect.lost_reason_category)
     : '';
   const lostReasonText =
     prospect.status === 'tidak_lanjut'

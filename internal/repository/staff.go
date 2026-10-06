@@ -254,10 +254,31 @@ func (r *mysqlStaffRepository) UpdateAndRevokeSessions(ctx context.Context, user
 	return tx.Commit()
 }
 
+// DeleteSession signs a staff session out (logout). The impersonation sessions that staff user opened
+// are revoked in the same transaction: a travel dashboard opened as staff must not stay usable for up to
+// 4 hours after the staff member logged out (SPECIAL EXCEPTION like UpdateAndRevokeSessions: these
+// sessions span tenants and are selected by the staff user that created them).
 func (r *mysqlStaffRepository) DeleteSession(ctx context.Context, token string) error {
-	query := `DELETE FROM staff_sessions WHERE token = ?`
-	_, err := r.db.ExecContext(ctx, query, token)
-	return err
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var staffUserID uint64
+	err = tx.QueryRowContext(ctx, `SELECT staff_user_id FROM staff_sessions WHERE token = ? FOR UPDATE`, token).Scan(&staffUserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM staff_sessions WHERE token = ?`, token); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM sessions WHERE impersonated_by_staff_id = ?`, staffUserID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *mysqlStaffRepository) ListAllTenants(ctx context.Context, statusFilter ...string) ([]StaffTenantItem, error) {

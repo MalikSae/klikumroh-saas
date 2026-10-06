@@ -80,3 +80,16 @@ assert.strictEqual(parseAffiliatorDraft({ ...base, hold_days: '400' }).ok, false
 assert.strictEqual(parseAffiliatorDraft({ ...base, min_payout: '-5' }).ok, false);
 
 console.log('list-and-forms: all assertions passed');
+
+// --- utm_source label: Meta {{site_source_name}} placement codes ---
+{
+  const { sourceLabel } = await import('../src/utils/sourceLabel.ts');
+  assert.strictEqual(sourceLabel('fb'), 'Facebook');
+  assert.strictEqual(sourceLabel('IG'), 'Instagram');
+  assert.strictEqual(sourceLabel('msg'), 'Messenger');
+  assert.strictEqual(sourceLabel('an'), 'Audience Network');
+  assert.strictEqual(sourceLabel('tiktok'), 'tiktok');
+  assert.strictEqual(sourceLabel(''), '');
+  assert.strictEqual(sourceLabel(null), '');
+  console.log('ok - sourceLabel maps Meta placement codes');
+}

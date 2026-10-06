@@ -211,6 +211,10 @@ func (h *StaffHandler) ResetTenantAdminPassword(w http.ResponseWriter, r *http.R
 	}
 
 	if err := h.staffService.ResetTenantAdminPassword(r.Context(), tenantID, adminUserID, req.NewPassword, staffUserID); err != nil {
+		if errors.Is(err, service.ErrPasswordTooLong) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Admin user tidak ditemukan pada tenant ini"})
 			return

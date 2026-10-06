@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"klikumroh/internal/repository"
 	"klikumroh/internal/util"
@@ -529,6 +530,20 @@ func (s *tenantService) GetSEOGeo(ctx context.Context, tenantID uint64) (*Tenant
 }
 
 func (s *tenantService) UpdateSEOGeo(ctx context.Context, tenantID uint64, city, province, metaTitle, metaDescription, metaKeywords *string) (*TenantSEOGeo, error) {
+	// Column limits (migration 000024): longer text is a 400 with the field named, not a database 500.
+	for _, f := range []struct {
+		v   *string
+		max int
+		err error
+	}{
+		{city, 100, ErrSEOCityTooLong}, {province, 100, ErrSEOProvinceTooLong},
+		{metaTitle, 255, ErrSEOMetaTitleTooLong}, {metaDescription, 500, ErrSEOMetaDescriptionTooLong},
+		{metaKeywords, 255, ErrSEOMetaKeywordsTooLong},
+	} {
+		if f.v != nil && utf8.RuneCountInString(*f.v) > f.max {
+			return nil, f.err
+		}
+	}
 	settings := &repository.TenantSEOGeoSettings{
 		City:            city,
 		Province:        province,
@@ -546,4 +561,20 @@ func (s *tenantService) UpdateSEOGeo(ctx context.Context, tenantID uint64, city,
 
 func (s *tenantService) UpdateOGImage(ctx context.Context, tenantID uint64, ogImageURL *string) error {
 	return s.tenantRepo.UpdateOGImage(ctx, tenantID, ogImageURL)
+}
+
+// SEO & location field limits (UpdateSEOGeo), answered 400.
+var (
+	ErrSEOCityTooLong            = errors.New("kota maksimal 100 karakter")
+	ErrSEOProvinceTooLong        = errors.New("provinsi maksimal 100 karakter")
+	ErrSEOMetaTitleTooLong       = errors.New("judul SEO (meta title) maksimal 255 karakter")
+	ErrSEOMetaDescriptionTooLong = errors.New("deskripsi SEO (meta description) maksimal 500 karakter")
+	ErrSEOMetaKeywordsTooLong    = errors.New("kata kunci SEO (meta keywords) maksimal 255 karakter")
+)
+
+// IsSEOInputError reports the UpdateSEOGeo validation errors (HTTP 400).
+func IsSEOInputError(err error) bool {
+	return errors.Is(err, ErrSEOCityTooLong) || errors.Is(err, ErrSEOProvinceTooLong) ||
+		errors.Is(err, ErrSEOMetaTitleTooLong) || errors.Is(err, ErrSEOMetaDescriptionTooLong) ||
+		errors.Is(err, ErrSEOMetaKeywordsTooLong)
 }

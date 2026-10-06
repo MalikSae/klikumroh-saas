@@ -53,6 +53,8 @@ type AffiliatorSession struct {
 type AffiliatorTenant struct {
 	TenantID              uint64     `json:"tenant_id"`
 	Name                  string     `json:"name"`
+	// Status is the derived subscription status (DeriveSubscriptionStatus): active, expired, suspended,
+	// pending, no_plan or demo.
 	Status                string     `json:"status"`
 	SubscriptionExpiresAt *time.Time `json:"subscription_expires_at"`
 	Source                string     `json:"source"`
@@ -499,7 +501,8 @@ func (r *mysqlAffiliatorRepository) TenantAffiliator(ctx context.Context, tenant
 
 func (r *mysqlAffiliatorRepository) ListTenants(ctx context.Context, affiliatorID uint64) ([]AffiliatorTenant, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT t.id, t.name, t.status, t.subscription_expires_at, t.affiliator_source, t.affiliated_at
+		SELECT t.id, t.name, t.status, t.subscription_expires_at, t.affiliator_source, t.affiliated_at,
+		       t.is_demo, t.current_plan_id IS NOT NULL
 		FROM tenants t
 		WHERE t.affiliator_id = ?
 		ORDER BY t.affiliated_at DESC, t.id DESC`, affiliatorID)
@@ -508,17 +511,22 @@ func (r *mysqlAffiliatorRepository) ListTenants(ctx context.Context, affiliatorI
 	}
 	defer rows.Close()
 	out := []AffiliatorTenant{}
+	now := time.Now()
 	for rows.Next() {
 		var t AffiliatorTenant
 		var expires sql.NullTime
 		var source sql.NullString
 		var affiliatedAt sql.NullTime
-		if err := rows.Scan(&t.TenantID, &t.Name, &t.Status, &expires, &source, &affiliatedAt); err != nil {
+		var isDemo, hasPlan bool
+		if err := rows.Scan(&t.TenantID, &t.Name, &t.Status, &expires, &source, &affiliatedAt, &isDemo, &hasPlan); err != nil {
 			return nil, err
 		}
 		if expires.Valid {
 			t.SubscriptionExpiresAt = &expires.Time
 		}
+		// The subscription status, not tenants.status (which stays "active" after expiry): same rule
+		// as the super admin list, so an expired or suspended travel is never reported as active.
+		t.Status = DeriveSubscriptionStatus(isDemo, t.Status, hasPlan, t.SubscriptionExpiresAt, now)
 		t.Source = source.String
 		t.AffiliatedAt = affiliatedAt.Time
 		out = append(out, t)

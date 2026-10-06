@@ -12,6 +12,10 @@ export interface SharePackageInfo {
 
 export type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
 
+// The share habit counts only once the message really left (share sheet completed) or is really on the
+// clipboard (copy fallback). A cancelled or failed share sheet does not count.
+export const shareCountsAsHabit = (result: ShareResult): boolean => result === 'shared' || result === 'copied';
+
 const formatDate = (d?: string | null) =>
   d ? new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 

@@ -135,6 +135,8 @@ export const AdminAffiliatorDetailView: React.FC = () => {
   };
 
   const available = data?.balance.available ?? 0;
+  // One payout at a time: the server refuses a new request while one is still waiting for transfer.
+  const payoutInProgress = (data?.balance.requested ?? 0) > 0 || Boolean(data?.payouts?.some((p) => p.status === 'pending'));
   const bankComplete = Boolean(a?.bank_name?.trim() && a?.bank_account_number?.trim() && a?.bank_account_holder?.trim());
 
   // Staff submit a payout for the whole available balance; the server picks the commissions and the bank details.
@@ -236,7 +238,7 @@ export const AdminAffiliatorDetailView: React.FC = () => {
       headerActions={
         a && (
           <div className="sa-aff-actions">
-            {available > 0 && (
+            {available > 0 && !payoutInProgress && (
               <button type="button" className="sa-btn sa-btn--primary" onClick={() => { setDialogError(null); setPayoutOpen(true); }}>
                 <Wallet size={14} />
                 <span>Ajukan pencairan</span>
@@ -372,7 +374,7 @@ export const AdminAffiliatorDetailView: React.FC = () => {
         footer={
           <>
             <button type="button" className="sa-btn sa-btn--secondary" onClick={() => setPayoutOpen(false)} disabled={busy}>Batal</button>
-            <button type="button" className="sa-btn sa-btn--primary" onClick={() => void submitPayout()} disabled={busy || available <= 0 || !bankComplete}>
+            <button type="button" className="sa-btn sa-btn--primary" onClick={() => void submitPayout()} disabled={busy || available <= 0 || payoutInProgress || !bankComplete}>
               {busy ? 'Mengajukan...' : 'Ajukan pencairan'}
             </button>
           </>
@@ -396,6 +398,7 @@ export const AdminAffiliatorDetailView: React.FC = () => {
           setMessage(m);
           void load();
         }}
+        onError={() => void load()}
       />
     </AdminLayout>
   );

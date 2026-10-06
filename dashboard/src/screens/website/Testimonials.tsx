@@ -97,7 +97,10 @@ export const Testimonials: React.FC = () => {
 
   const reload = () =>
     fetchTestimonials()
-      .then(setItems)
+      .then((list) => {
+        setItems(list);
+        setError(null);
+      })
       .catch((e) => setError(errorText(e, 'Gagal memuat testimoni')))
       .finally(() => setLoading(false));
 

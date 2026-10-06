@@ -264,7 +264,10 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
         justifyContent: 'center',
         padding: '16px',
       }}
-      onClick={onClose}
+      onClick={() => {
+        // Never close mid-request: a late 409 would otherwise reopen the modal by itself.
+        if (!(processing || updatingPlan || updatingCoupon)) onClose();
+      }}
     >
       <div
         style={{
@@ -322,6 +325,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              disabled={processing || updatingPlan || updatingCoupon}
+              aria-label="Tutup"
               style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: 'var(--sa-text-muted)', borderRadius: 'var(--sa-radius-sm)', display: 'flex' }}
             >
               <X size={18} />

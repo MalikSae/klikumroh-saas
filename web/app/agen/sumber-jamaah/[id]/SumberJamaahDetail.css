@@ -199,6 +199,14 @@
   background-color: var(--tw-background);
 }
 
+/* Why the mark was put back (travel suspended or save failed) */
+.sjd-bar__msg {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-danger-text);
+}
+
 .sjd-mark {
   display: flex;
   align-items: center;

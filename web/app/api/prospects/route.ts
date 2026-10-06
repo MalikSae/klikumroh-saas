@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Longer than the 1.5 s lookups in proxy.ts and /ref (this one writes the lead), short enough for a visitor.
+const BACKEND_TIMEOUT_MS = 10_000;
+
 export async function POST(req: NextRequest) {
   const host = req.headers.get('host') || 'travela.klikumroh.local';
   const backendUrl = process.env.BACKEND_INTERNAL_URL || process.env.API_BASE_URL || 'http://localhost:8080';
@@ -27,11 +30,19 @@ export async function POST(req: NextRequest) {
         ...(userAgent ? { 'User-Agent': userAgent } : {}),
       },
       body: JSON.stringify(body),
+      // A hung backend must not leave the interest form on "Menghubungkan..." forever.
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     });
 
     const data = await res.json().catch(() => ({ error: 'Gagal mengirim data' }));
     return NextResponse.json(data, { status: res.status });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+      return NextResponse.json(
+        { error: 'Server sedang lambat merespons. Silakan coba kirim lagi beberapa saat lagi.' },
+        { status: 504 }
+      );
+    }
     return NextResponse.json({ error: 'Server sedang tidak dapat dihubungi, silakan coba lagi.' }, { status: 502 });
   }
 }

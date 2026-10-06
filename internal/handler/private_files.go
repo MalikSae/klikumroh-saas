@@ -10,7 +10,7 @@ import (
 
 // Private files (transfer proofs) are served only to whoever may see them, never from /uploads:
 //   - GET /api/dashboard/files?path=...  travel admin: own tenant's subscription and agent proofs
-//   - GET /api/staff/files?path=...      platform staff: any tenant (payment review)
+//   - GET /api/staff/files?path=...      platform staff: subscription proofs of any tenant (payment review)
 //   - GET /api/agent/files?path=...      agent: only their own registration proof
 // The path is the reference stored in the database ("/uploads/{tenant}/...").
 
@@ -46,9 +46,16 @@ func ServeDashboardPrivateFile(w http.ResponseWriter, r *http.Request) {
 	servePrivateFile(w, r, abs)
 }
 
-// ServeStaffPrivateFile handles GET /api/staff/files (behind StaffAuthMiddleware).
+// ServeStaffPrivateFile handles GET /api/staff/files (behind StaffAuthMiddleware). Staff only review
+// subscription payments here, so only subscription proofs are served. An agent's registration proof
+// belongs to the travel: staff see it only by impersonating the travel, which is written to its access
+// log (GET /api/dashboard/files).
 func ServeStaffPrivateFile(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("path")
+	if info, ok := util.ParsePrivateUpload(ref); !ok || info.Kind != util.PrivateSubscriptionProof {
+		privateFileNotFound(w)
+		return
+	}
 	abs, ok := util.ResolvePrivateUpload(ref)
 	if !ok {
 		privateFileNotFound(w)

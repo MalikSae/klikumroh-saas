@@ -217,7 +217,7 @@ func TestBH4_RecruitTargetCountsRegistrationsInPeriod(t *testing.T) {
 			t.Fatalf("create admin: %v", err)
 		}
 		svc := service.NewAgentTargetService(targetRepo, agentRepo)
-		achieved, err := svc.CloseTargetPeriod(ctx, tenantA.ID, target.ID, admin.ID)
+		achieved, err := svc.CloseTargetPeriod(ctx, tenantA.ID, target.ID, admin.ID, true)
 		if err != nil {
 			t.Fatalf("CloseTargetPeriod: %v", err)
 		}

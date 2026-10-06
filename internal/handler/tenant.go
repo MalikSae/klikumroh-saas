@@ -652,6 +652,10 @@ func (h *TenantHandler) UpdateSEOGeo(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.tenantService.UpdateSEOGeo(r.Context(), tenantID, payload.City, payload.Province, payload.MetaTitle, payload.MetaDescription, payload.MetaKeywords)
 	if err != nil {
+		if service.IsSEOInputError(err) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "tenant tidak ditemukan"})
 			return

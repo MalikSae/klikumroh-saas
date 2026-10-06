@@ -119,7 +119,7 @@ export const AdminTenantDetailView: React.FC = () => {
       setShowImpersonateModal(false);
       // Only a one-time code goes in the URL (fragment, never sent to a server); the new tab trades it
       // for the impersonation session, and only this browser can (main.tsx).
-      const handoff = encodeURIComponent(JSON.stringify({ code: res.handoff_code, redirect: '/' }));
+      const handoff = encodeURIComponent(JSON.stringify({ code: res.handoff_code, redirect: '/', source: 'staff' }));
       window.open(`/#handoff=${handoff}`, '_blank');
     } catch (err: any) {
       setImpersonateError(err.message || 'Gagal impersonasi travel');

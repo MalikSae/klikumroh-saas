@@ -253,8 +253,8 @@ func (s *affiliatorService) Register(ctx context.Context, req AffiliatorRegister
 	if _, err := mail.ParseAddress(email); err != nil || !strings.Contains(email, "@") {
 		return nil, ErrAffiliatorInvalidEmail
 	}
-	if !passwordLongEnough(req.Password) {
-		return nil, ErrPasswordTooShort
+	if err := checkNewPassword(req.Password, ErrPasswordTooShort); err != nil {
+		return nil, err
 	}
 	var wa *string
 	if raw := strings.TrimSpace(req.WhatsApp); raw != "" {
@@ -351,8 +351,8 @@ func (s *affiliatorService) ChangePassword(ctx context.Context, affiliatorID uin
 	if bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(currentPassword)) != nil {
 		return ErrAffiliatorWrongPassword
 	}
-	if !passwordLongEnough(newPassword) {
-		return ErrPasswordTooShort
+	if err := checkNewPassword(newPassword, ErrPasswordTooShort); err != nil {
+		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -678,8 +678,8 @@ func (s *affiliatorService) SetRates(ctx context.Context, affiliatorID uint64, f
 // ResetPassword is done by staff for an affiliator who forgot its password: the new password is set and
 // every existing session is ended. The password itself is never logged.
 func (s *affiliatorService) ResetPassword(ctx context.Context, affiliatorID uint64, newPassword string, staffUserID uint64) error {
-	if !passwordLongEnough(newPassword) {
-		return ErrPasswordTooShort
+	if err := checkNewPassword(newPassword, ErrPasswordTooShort); err != nil {
+		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {

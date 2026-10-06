@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -221,8 +222,24 @@ func (h *AgentTargetHandler) CloseTarget(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	achievedCount, err := h.targetService.CloseTargetPeriod(r.Context(), tenantID, targetID, adminUserID)
+	// Early close (before period_end) needs force=true, as query "?force=true" or JSON body {"force": true}.
+	// The body is optional: no body (or an unreadable one) means no force.
+	force := strings.EqualFold(r.URL.Query().Get("force"), "true") || r.URL.Query().Get("force") == "1"
+	if !force && r.Body != nil {
+		var body struct {
+			Force bool `json:"force"`
+		}
+		if json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&body) == nil {
+			force = body.Force
+		}
+	}
+
+	achievedCount, err := h.targetService.CloseTargetPeriod(r.Context(), tenantID, targetID, adminUserID, force)
 	if err != nil {
+		if errors.Is(err, service.ErrTargetPeriodNotEnded) {
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error(), "code": "period_not_ended"})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "target tidak ditemukan"})
 			return

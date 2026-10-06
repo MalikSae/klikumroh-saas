@@ -8,6 +8,7 @@ import { Button } from './Button';
 import { jakartaMonthOptions } from '../lib/jakartaTime';
 import { getMetaBrowserContext, isMetaPixelActive, trackMetaEvent } from '../lib/metaPixel';
 import { readAttribution } from '../lib/adAttribution';
+import { apiErrorMessage } from '../lib/safeJson';
 import './ProspectModal.css';
 
 const WhatsAppIcon: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = '' }) => (
@@ -156,9 +157,10 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      // A gateway error page is not JSON: show a friendly message, never the parser's.
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal mengirim data');
+        throw new Error(apiErrorMessage(res.status, data, 'Gagal mengirim data'));
       }
 
       // Sesuai instruksi: cek response.whatsapp_redirect_url
@@ -202,7 +204,12 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
         }
       }
     } catch (err: unknown) {
-      setErrorMessage((err instanceof Error && err.message) || 'Terjadi kesalahan saat memproses data');
+      // A failed fetch (offline, connection dropped) throws a TypeError with a browser-specific text.
+      setErrorMessage(
+        err instanceof TypeError
+          ? 'Koneksi terputus. Periksa internet Anda lalu coba lagi.'
+          : (err instanceof Error && err.message) || 'Terjadi kesalahan saat memproses data'
+      );
     } finally {
       setSubmitting(false);
     }

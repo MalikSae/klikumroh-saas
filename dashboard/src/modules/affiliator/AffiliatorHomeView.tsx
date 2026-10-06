@@ -4,21 +4,22 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Banner, Button, Card, CardBody, Field, IconButton, errorText, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
 import { affiliatorLink, fetchAffiliatorOverview, setAffiliatorCoupon, type AffiliatorOverview } from '../../services/affiliatorApi';
+import { copyText } from '../../utils/clipboard';
+import { affiliatorPayoutState } from './payoutRule';
 import './affiliator.css';
 
 export const CopyButton: React.FC<{ text: string; label: string }> = ({ text, label }) => {
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setDone(true);
-      setTimeout(() => setDone(false), 2000);
-    } catch {
-      /* clipboard blocked: the text stays selectable */
-    }
+    // When copying fails the text stays selectable on the page.
+    const ok = await copyText(text);
+    setDone(ok);
+    setFailed(!ok);
+    setTimeout(() => (ok ? setDone(false) : setFailed(false)), 2000);
   };
   return (
-    <IconButton label={done ? `${label} tersalin` : label} onClick={copy}>
+    <IconButton label={done ? `${label} tersalin` : failed ? 'Gagal menyalin, salin manual' : label} onClick={copy}>
       {done ? <Check className="ku-icon" aria-hidden="true" /> : <Copy className="ku-icon" aria-hidden="true" />}
     </IconButton>
   );
@@ -66,7 +67,8 @@ export const AffiliatorHomeView: React.FC = () => {
   if (!data) return <p className="af-muted">Memuat...</p>;
 
   const link = affiliatorLink(data.affiliator.link_code);
-  const canPayout = data.balance.available > 0 && data.balance.available >= data.min_payout;
+  // Same rule as the Komisi page (bank details, nothing requested, minimum reached).
+  const canPayout = affiliatorPayoutState(data, fmtRupiah).canRequest;
   const showCouponForm = editing || !data.coupon_code;
 
   return (

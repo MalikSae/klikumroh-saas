@@ -157,9 +157,11 @@ export const AppFrame: React.FC = () => {
     Promise.all([
       fetchProspectSummary().catch(() => null),
       fetchDashboardAgents('pending').catch(() => []),
+      // Same as the Payouts "Perlu tindakan" view and the home card: pending and approved (not yet transferred).
       fetchPayoutRequests('pending').catch(() => []),
-    ]).then(([summary, agents, payouts]) =>
-      setBadges({ prospects: summary?.baru ?? 0, agents: agents.length, payouts: payouts.length }),
+      fetchPayoutRequests('approved').catch(() => []),
+    ]).then(([summary, agents, pending, approved]) =>
+      setBadges({ prospects: summary?.baru ?? 0, agents: agents.length, payouts: pending.length + approved.length }),
     );
   }, []);
 

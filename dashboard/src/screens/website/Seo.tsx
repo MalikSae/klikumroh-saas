@@ -69,13 +69,13 @@ export const Seo: React.FC = () => {
           <span className="ws-serp__desc">{form.description || 'Deskripsi website travel Anda tampil di sini.'}</span>
         </div>
         <Field label="Judul halaman" optional hint={<Counter n={form.title.length} max={60} />}>
-          {(id) => <input id={id} className="ku-input" value={form.title} onChange={set('title')} placeholder={travel ? `${travel} - Paket Umroh Resmi` : ''} />}
+          {(id) => <input id={id} className="ku-input" value={form.title} onChange={set('title')} maxLength={255} placeholder={travel ? `${travel} - Paket Umroh Resmi` : ''} />}
         </Field>
         <Field label="Deskripsi" optional hint={<Counter n={form.description.length} max={160} />}>
-          {(id) => <textarea id={id} className="ku-textarea" rows={3} value={form.description} onChange={set('description')} />}
+          {(id) => <textarea id={id} className="ku-textarea" rows={3} value={form.description} onChange={set('description')} maxLength={500} />}
         </Field>
         <Field label="Kata kunci" optional hint="Pisahkan dengan koma. Contoh: umroh bandung, umroh murah.">
-          {(id) => <input id={id} className="ku-input" value={form.keywords} onChange={set('keywords')} />}
+          {(id) => <input id={id} className="ku-input" value={form.keywords} onChange={set('keywords')} maxLength={255} />}
         </Field>
       </SettingsSection>
 

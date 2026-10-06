@@ -96,8 +96,8 @@ func (s *teamService) AddTeamMember(ctx context.Context, tenantID uint64, name, 
 	if email == "" || !strings.Contains(email, "@") {
 		return nil, ErrEmailRequired
 	}
-	if !passwordLongEnough(password) {
-		return nil, ErrPasswordTooShort
+	if err := checkNewPassword(password, ErrPasswordTooShort); err != nil {
+		return nil, err
 	}
 
 	// Check if email already exists globally in the system (required for central single-door login)
@@ -147,6 +147,28 @@ func (s *teamService) ToggleStatus(ctx context.Context, tenantID uint64, current
 	targetUser, err := s.adminUserRepo.GetByID(ctx, tenantID, targetUserID)
 	if err != nil {
 		return nil, err
+	}
+
+	// The MySQL repository counts and deactivates in one locking transaction, so two admins deactivating
+	// each other at the same time cannot leave the travel without an active admin.
+	if deactivator, ok := s.adminUserRepo.(adminDeactivator); ok && action == "deactivate" {
+		if err := deactivator.DeactivateKeepingOneActive(ctx, tenantID, targetUserID); err != nil {
+			if errors.Is(err, repository.ErrLastActiveAdmin) {
+				return nil, ErrCannotDeactivateLastActiveAdmin
+			}
+			return nil, err
+		}
+		targetUser.Status = "inactive"
+		if err := s.sessionRepo.DeleteByAdminUser(ctx, tenantID, targetUser.ID, ""); err != nil {
+			return nil, err
+		}
+		return &TeamMemberResponse{
+			ID:        targetUser.ID,
+			Name:      targetUser.Name,
+			Email:     targetUser.Email,
+			Status:    targetUser.Status,
+			CreatedAt: targetUser.CreatedAt,
+		}, nil
 	}
 
 	if action == "deactivate" {
@@ -247,8 +269,8 @@ func (s *teamService) UpdateMyProfile(ctx context.Context, tenantID uint64, admi
 }
 
 func (s *teamService) UpdateMyPassword(ctx context.Context, tenantID uint64, adminUserID uint64, currentPassword, newPassword, currentToken string) error {
-	if !passwordLongEnough(newPassword) {
-		return ErrPasswordTooShort
+	if err := checkNewPassword(newPassword, ErrPasswordTooShort); err != nil {
+		return err
 	}
 
 	user, err := s.adminUserRepo.GetByID(ctx, tenantID, adminUserID)
@@ -272,4 +294,9 @@ func (s *teamService) UpdateMyPassword(ctx context.Context, tenantID uint64, adm
 
 	// Changing the password evicts anyone else holding a session (e.g. a stolen token).
 	return s.sessionRepo.DeleteByAdminUser(ctx, tenantID, adminUserID, currentToken)
+}
+
+// adminDeactivator is implemented by the MySQL admin user repository.
+type adminDeactivator interface {
+	DeactivateKeepingOneActive(ctx context.Context, tenantID uint64, id uint64) error
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/mail"
 	"sort"
 	"strings"
 	"time"
@@ -37,6 +38,8 @@ var (
 	ErrInvalidAgentPhone = errors.New("nomor WhatsApp agen tidak valid, gunakan format 08xx atau 62xx")
 	// ErrAgentEmailRequired: the agent's email (its login) cannot be emptied from the admin edit.
 	ErrAgentEmailRequired = errors.New("email agen wajib diisi (dipakai agen untuk login)")
+	// ErrInvalidAgentEmail: the sign-up email is not a single valid address (or longer than the column).
+	ErrInvalidAgentEmail = errors.New("format email tidak valid")
 	// ErrAgentRegistrationClosed: the travel's subscription is pending or suspended.
 	ErrAgentRegistrationClosed = errors.New("pendaftaran agen sementara tidak dibuka karena layanan travel belum aktif atau sedang ditangguhkan")
 	// ErrAgentPasswordTooShort: one rule for sign-up, password change and admin reset.
@@ -225,6 +228,9 @@ type CommissionHistoryItem struct {
 	Status      string  `json:"status,omitempty"` // "pending", "approved", "rejected", "paid"
 	// Held: commission entry not withdrawable yet (jamaah belum lunas). Ledger entries only.
 	Held bool `json:"held,omitempty"`
+	// CountsAgainstBalance is sent only as false, on a rejected payout request: it never left the balance,
+	// so clients show it neutrally instead of as a deduction. Absent means the row counts as usual.
+	CountsAgainstBalance *bool `json:"counts_against_balance,omitempty"`
 	// ProspectID: the prospect a ledger entry belongs to. For override entries that is a downline agent's
 	// prospect, so the agent view clears it; the admin view keeps it to link the entry to the prospect.
 	ProspectID uint64 `json:"prospect_id,omitempty"`
@@ -446,8 +452,8 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 		return nil, ErrAgentRegistrationClosed
 	}
 
-	if len(strings.TrimSpace(req.Password)) < MinAgentPasswordLength {
-		return nil, ErrAgentPasswordTooShort
+	if err := checkNewPassword(req.Password, ErrAgentPasswordTooShort); err != nil {
+		return nil, err
 	}
 
 	// 1. Validate terms if tenant has terms configured
@@ -501,6 +507,12 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 	email := strings.TrimSpace(req.Email)
 	domisili := strings.TrimSpace(req.Domisili)
 	phone := strings.TrimSpace(req.Phone)
+	if err := validateAgentProfileLengths(&name, &domisili); err != nil {
+		return nil, err
+	}
+	if addr, err := mail.ParseAddress(email); err != nil || addr.Address != email || len(email) > 255 {
+		return nil, ErrInvalidAgentEmail
+	}
 	if err := validateAgentPhone(phone); err != nil {
 		return nil, err
 	}
@@ -1212,6 +1224,15 @@ func (s *agentService) CreatePayoutRequest(ctx context.Context, tenantID uint64,
 	if bankName == "" || accountNumber == "" || accountHolder == "" {
 		return nil, ErrPayoutBankInfoRequired
 	}
+	// Snapshot column limits (migration 000026): longer input would fail at the database as a 500.
+	switch {
+	case utf8.RuneCountInString(bankName) > 100:
+		return nil, payoutInvalid("nama bank maksimal 100 karakter")
+	case utf8.RuneCountInString(accountNumber) > 50:
+		return nil, payoutInvalid("nomor rekening maksimal 50 karakter")
+	case utf8.RuneCountInString(accountHolder) > 150:
+		return nil, payoutInvalid("nama pemilik rekening maksimal 150 karakter")
+	}
 
 	// The column is DECIMAL(15,2): work in whole cents, so 0.001 cannot be stored as a 0.00 request that
 	// blocks real ones, and 99999.995 cannot pass a 99999.99 balance and be stored as 100000.00.
@@ -1464,6 +1485,11 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 	}
 
 	for _, p := range payouts {
+		var counts *bool
+		if p.Status == "rejected" {
+			f := false
+			counts = &f
+		}
 		items = append(items, CommissionHistoryItem{
 			ID:          p.ID,
 			Source:      "payout",
@@ -1473,6 +1499,8 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 			Direction:   "keluar",
 			Status:      p.Status,
 			CreatedAt:   p.CreatedAt,
+
+			CountsAgainstBalance: counts,
 		})
 	}
 
@@ -1635,8 +1663,8 @@ func (s *agentService) RemovePhoto(ctx context.Context, tenantID uint64, agentID
 }
 
 func (s *agentService) UpdatePassword(ctx context.Context, tenantID uint64, agentID uint64, req *UpdatePasswordRequest) error {
-	if !passwordLongEnough(req.NewPassword) {
-		return errors.New("password baru minimal 8 karakter")
+	if err := checkNewPassword(req.NewPassword, errNewPasswordTooShort); err != nil {
+		return err
 	}
 
 	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
@@ -1847,8 +1875,8 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 }
 
 func (s *agentService) ResetAgentPassword(ctx context.Context, tenantID uint64, agentID uint64, newPassword string) error {
-	if !passwordLongEnough(newPassword) {
-		return ErrAgentPasswordTooShort
+	if err := checkNewPassword(newPassword, ErrAgentPasswordTooShort); err != nil {
+		return err
 	}
 
 	// Verify agent exists and belongs to tenant

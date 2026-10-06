@@ -302,7 +302,7 @@ func TestAgentTargetHandler_Progress_Close_Achievements_Export(t *testing.T) {
 	// 2. POST /api/dashboard/tenant/targets/{id}/close
 	t.Run("CloseTarget - success & isolation", func(t *testing.T) {
 		// Tenant 2 attempt
-		req2 := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close", target.ID), nil)
+		req2 := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close?force=true", target.ID), nil)
 		req2.Header.Set("Authorization", "Bearer tok-admin-t2")
 		rr2 := httptest.NewRecorder()
 		router.ServeHTTP(rr2, req2)
@@ -311,7 +311,7 @@ func TestAgentTargetHandler_Progress_Close_Achievements_Export(t *testing.T) {
 		}
 
 		// Tenant 1 close
-		req1 := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close", target.ID), nil)
+		req1 := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close?force=true", target.ID), nil)
 		req1.Header.Set("Authorization", "Bearer tok-admin-t1")
 		rr1 := httptest.NewRecorder()
 		router.ServeHTTP(rr1, req1)
@@ -328,7 +328,7 @@ func TestAgentTargetHandler_Progress_Close_Achievements_Export(t *testing.T) {
 		}
 
 		// Closing again should return 409 Conflict
-		reqAgain := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close", target.ID), nil)
+		reqAgain := httptest.NewRequest("POST", fmt.Sprintf("/api/dashboard/tenant/targets/%d/close?force=true", target.ID), nil)
 		reqAgain.Header.Set("Authorization", "Bearer tok-admin-t1")
 		rrAgain := httptest.NewRecorder()
 		router.ServeHTTP(rrAgain, reqAgain)

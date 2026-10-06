@@ -371,7 +371,7 @@ const redirectToLogin = () => {
   }
 };
 
-const getAuthHeaders = async (): Promise<Record<string, string>> => {
+export const getAuthHeaders = async (): Promise<Record<string, string>> => {
   // Refuse before anything else: the screen still shows the old account or travel.
   if (tabSession.check()) throw new SessionSwitchedError();
   const token = getStoredToken();
@@ -667,6 +667,8 @@ export const LOST_REASON_OPTIONS: { value: string; label: string }[] = [
 export const lostReasonCategoryLabel = (category?: string | null): string => {
   if (!category) return '';
   if (category === 'batal_setelah_dp') return 'Batal setelah DP';
+  // Set by the system when an open prospect is anonymized (UU PDP); never selectable.
+  if (category === 'data_dihapus') return 'Data dihapus (UU PDP)';
   return LOST_REASON_OPTIONS.find((o) => o.value === category)?.label || category;
 };
 
@@ -1606,11 +1608,16 @@ export const fetchTargetProgress = async (id: number): Promise<TargetProgressRes
   return await res.json();
 };
 
-export const closeTargetPeriod = async (id: number): Promise<{ message: string; achieved_count: number }> => {
+/**
+ * Closes a target's period. `force` confirms closing before the period has ended (the admin saw the
+ * warning); it is sent as ?force=true and in the JSON body so either server contract accepts it.
+ */
+export const closeTargetPeriod = async (id: number, force = false): Promise<{ message: string; achieved_count: number }> => {
   const headers = await getAuthHeaders();
-  const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/targets/${id}/close`, {
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/tenant/targets/${id}/close${force ? '?force=true' : ''}`, {
     method: 'POST',
     headers,
+    ...(force ? { body: JSON.stringify({ force: true }) } : {}),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Gagal menutup periode target' }));
@@ -1742,6 +1749,8 @@ export interface CommissionHistoryItem {
   description: string;
   amount: number;
   direction: string; // 'masuk' | 'keluar'
+  /** Newer backends: false when the row does not change the balance (rejected payout). */
+  counts_against_balance?: boolean;
   status?: string; // 'pending' | 'approved' | 'rejected' | 'paid'
   /** Ledger entry not withdrawable yet (jamaah belum lunas). */
   held?: boolean;

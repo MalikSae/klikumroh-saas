@@ -20,8 +20,19 @@ type ipRateLimiter struct {
 // NewIPRateLimiter creates an in-memory IP rate limiter middleware.
 func NewIPRateLimiter(maxReqs int, window time.Duration) func(http.Handler) http.Handler {
 	return NewKeyedRateLimiter(maxReqs, window, func(r *http.Request) (string, bool) {
-		return getClientIP(r), true
+		return RateLimitIPKey(getClientIP(r)), true
 	})
+}
+
+// RateLimitIPKey is the per-IP limiter key. An IPv6 client usually controls a whole /64 (one home or
+// server prefix) and can rotate addresses inside it freely, so IPv6 addresses are keyed by their /64
+// prefix; IPv4 addresses (including IPv4-mapped IPv6) are keyed as they are.
+func RateLimitIPKey(ip string) string {
+	parsed := net.ParseIP(strings.TrimSpace(ip))
+	if parsed == nil || parsed.To4() != nil {
+		return ip
+	}
+	return parsed.Mask(net.CIDRMask(64, 128)).String() + "/64"
 }
 
 // TenantRateKey keys a limiter on the travel of the authenticated dashboard session (AuthMiddleware).

@@ -451,8 +451,8 @@ func (s *staffService) ResetTenantAdminPassword(ctx context.Context, tenantID ui
 		return errors.New("admin user or session repository not configured")
 	}
 
-	if !passwordLongEnough(newPassword) {
-		return errors.New("password baru minimal 8 karakter")
+	if err := checkNewPassword(newPassword, errNewPasswordTooShort); err != nil {
+		return err
 	}
 
 	// Verify that the admin user belongs to the specified tenant
@@ -755,8 +755,8 @@ func (s *staffService) CreateStaffUser(ctx context.Context, name, email, passwor
 	if email == "" || !strings.Contains(email, "@") {
 		return nil, ErrStaffEmailInvalid
 	}
-	if !passwordLongEnough(password) {
-		return nil, ErrStaffPasswordTooShort
+	if err := checkNewPassword(password, ErrStaffPasswordTooShort); err != nil {
+		return nil, err
 	}
 	if status != "active" && status != "inactive" {
 		status = "active"
@@ -843,8 +843,8 @@ func (s *staffService) UpdateStaffUser(ctx context.Context, id uint64, name, ema
 	passwordChanged := false
 	if password != nil && strings.TrimSpace(*password) != "" {
 		pwd := *password
-		if !passwordLongEnough(pwd) {
-			return nil, ErrStaffPasswordTooShort
+		if err := checkNewPassword(pwd, ErrStaffPasswordTooShort); err != nil {
+			return nil, err
 		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
 		if err != nil {

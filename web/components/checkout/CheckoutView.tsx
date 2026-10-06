@@ -148,6 +148,7 @@ interface OrderSummaryProps {
   couponCode: string;
   onCouponCodeChange: (val: string) => void;
   onApplyCoupon: () => void;
+  onRemoveCoupon: () => void;
   couponLoading: boolean;
   couponError: string | null;
 }
@@ -160,6 +161,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   couponCode,
   onCouponCodeChange,
   onApplyCoupon,
+  onRemoveCoupon,
   couponLoading,
   couponError,
 }) => {
@@ -303,13 +305,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               type="button"
               id="apply-coupon-btn"
               className={styles.applyCouponBtn}
-              onClick={onApplyCoupon}
-              disabled={couponLoading || !couponCode.trim() || !!coupon}
+              // An applied coupon can be removed, then another code entered (totals follow the coupon state).
+              onClick={coupon ? onRemoveCoupon : onApplyCoupon}
+              disabled={couponLoading || (!coupon && !couponCode.trim())}
             >
               {couponLoading ? (
                 <Loader2 size={14} className={styles.spinner} />
               ) : coupon ? (
-                'Dipakai'
+                'Hapus kupon'
               ) : (
                 'Pakai'
               )}
@@ -1029,6 +1032,11 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
               if (!val) setCoupon(null);
             }}
             onApplyCoupon={handleApplyCoupon}
+            onRemoveCoupon={() => {
+              setCoupon(null);
+              setCouponCode('');
+              setCouponError(null);
+            }}
             couponLoading={couponLoading}
             couponError={couponError}
           />

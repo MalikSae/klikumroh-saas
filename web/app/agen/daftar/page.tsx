@@ -43,6 +43,9 @@ export default function AgenDaftarPage() {
   // 'gratis' and sign-up waits until a retry succeeds.
   const [infoError, setInfoError] = useState<boolean>(false);
   const [infoAttempt, setInfoAttempt] = useState<number>(0);
+  // The travel's subscription is suspended: the backend refuses new agents (403 ErrAgentRegistrationClosed),
+  // so the form is replaced by a closed notice instead of failing only after everything is filled in.
+  const [travelSuspended, setTravelSuspended] = useState<boolean>(false);
 
   // Form states
   const [name, setName] = useState('');
@@ -104,6 +107,7 @@ export default function AgenDaftarPage() {
         }
         if (tenantRes.ok) {
           const tenantJson = await tenantRes.json();
+          setTravelSuspended(Boolean(tenantJson?.is_suspended));
           combined = {
             ...combined,
             tenant_name: combined.tenant_name || tenantJson.name,
@@ -208,7 +212,7 @@ export default function AgenDaftarPage() {
     setSubmitError(null);
 
     // The fee must be known before signing up (the status page asks for it right after).
-    if (loadingInfo || infoError) return;
+    if (loadingInfo || infoError || travelSuspended) return;
     if (!validate()) return;
 
     try {
@@ -323,7 +327,7 @@ export default function AgenDaftarPage() {
           </div>
 
           {/* 3. Poster Promosi Agen (Rasio 1:1) jika diupload */}
-          {!loadingInfo && regInfo?.agent_poster_url && (
+          {!loadingInfo && !travelSuspended && regInfo?.agent_poster_url && (
             <div className="tw-agen-daftar-poster-wrap">
               {/* eslint-disable-next-line @next/next/no-img-element -- poster uploaded by the travel, served as-is */}
               <img
@@ -335,7 +339,7 @@ export default function AgenDaftarPage() {
           )}
 
           {/* 4. Biaya & keuntungan: main content, straight from Pengaturan > Aturan agen. */}
-          {!loadingInfo && infoError && (
+          {!loadingInfo && !travelSuspended && infoError && (
             <div className="tw-agen-daftar-alert" role="alert">
               <AlertCircle size={18} className="tw-agen-daftar-alert__icon" aria-hidden="true" />
               <span className="tw-agen-daftar-alert__text">Info biaya pendaftaran belum bisa dimuat. Pendaftaran bisa dilanjutkan setelah info ini tampil.</span>
@@ -346,7 +350,7 @@ export default function AgenDaftarPage() {
             </div>
           )}
 
-          {!loadingInfo && !infoError && regInfo && (
+          {!loadingInfo && !travelSuspended && !infoError && regInfo && (
             <section className="tw-agen-daftar-offer" aria-label="Biaya dan keuntungan menjadi agen">
               <div className="tw-agen-daftar-offer__fee">
                 {regInfo.agent_registration_fee > 0 ? (
@@ -386,7 +390,22 @@ export default function AgenDaftarPage() {
             </div>
           )}
 
+          {/* Registration closed while the travel is suspended (the backend refuses it anyway). */}
+          {!loadingInfo && travelSuspended && (
+            <section className="tw-agen-daftar-closed" role="status" aria-label="Pendaftaran agen ditutup">
+              <AlertCircle size={18} className="tw-agen-daftar-closed__icon" aria-hidden="true" />
+              <div>
+                <h2 className="tw-agen-daftar-closed__title">Pendaftaran agen sedang ditutup</h2>
+                <p className="tw-agen-daftar-closed__text">
+                  Layanan travel ini sedang ditangguhkan sementara, jadi belum menerima pendaftaran mitra agen baru.
+                  Silakan kembali lagi nanti.
+                </p>
+              </div>
+            </section>
+          )}
+
           {/* 6. Registration Form Card */}
+          {!travelSuspended && (
           <form onSubmit={handleSubmit} className="tw-agen-daftar-card">
             {/* Nama Lengkap */}
             <div className="tw-agen-daftar-field">
@@ -611,6 +630,7 @@ export default function AgenDaftarPage() {
               </div>
             </div>
           </form>
+          )}
 
           {/* 7. Link to Login Card */}
           <div className="tw-agen-daftar-login-card">
@@ -724,12 +744,13 @@ export default function AgenDaftarPage() {
             </div>
           </div>
         )}
+        {/* No travel contact while suspended (founder decision: the suspended site shows no contact at all). */}
         <PublicFooter
           tenantName={regInfo?.tenant_name}
-          address={regInfo?.address}
-          phone={regInfo?.phone}
-          whatsappNumber={regInfo?.whatsapp_number}
-          email={regInfo?.email}
+          address={travelSuspended ? undefined : regInfo?.address}
+          phone={travelSuspended ? undefined : regInfo?.phone}
+          whatsappNumber={travelSuspended ? undefined : regInfo?.whatsapp_number}
+          email={travelSuspended ? undefined : regInfo?.email}
           ppiuNumber={regInfo?.ppiu_number}
         />
       </MobileContainer>

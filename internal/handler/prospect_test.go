@@ -1760,7 +1760,7 @@ func (m *mockProspectRepo) ListByAgentPage(ctx context.Context, tenantID uint64,
 	return all[offset:end], total, nil
 }
 
-func (m *mockProspectRepo) Anonymize(ctx context.Context, tenantID uint64, id uint64) error {
+func (m *mockProspectRepo) Anonymize(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error {
 	p, ok := m.prospects[id]
 	if !ok || p.TenantID != tenantID {
 		return repository.ErrNotFound
@@ -1770,6 +1770,10 @@ func (m *mockProspectRepo) Anonymize(ctx context.Context, tenantID uint64, id ui
 	}
 	now := time.Now()
 	p.Name, p.Phone, p.PhoneNormalized, p.Email, p.Domicile, p.AnonymizedAt = repository.AnonymizedName, "", nil, nil, nil, &now
+	if p.Status == "baru" || p.Status == "dihubungi" || p.Status == "tertarik" {
+		cat := repository.LostCategoryDataDeleted
+		p.Status, p.LostReason, p.LostReasonCategory = "tidak_lanjut", nil, &cat
+	}
 	return nil
 }
 

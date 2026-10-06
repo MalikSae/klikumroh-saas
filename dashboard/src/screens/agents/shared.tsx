@@ -1,6 +1,7 @@
 // Helpers shared by the Agen screens.
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { copyText } from '../../utils/clipboard';
 import type { PillTone } from '../../ui';
 
 export const AGENT_STATUS: Record<string, { label: string; tone: PillTone }> = {
@@ -34,6 +35,7 @@ export const waHref = (phone?: string | null) => {
 
 export const CopyText: React.FC<{ value: string; label: string; children?: React.ReactNode }> = ({ value, label, children }) => {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   return (
     <span className="ag-copy">
       {children ?? value}
@@ -41,16 +43,14 @@ export const CopyText: React.FC<{ value: string; label: string; children?: React
         type="button"
         className="ag-copy__btn"
         aria-label={`Salin ${label}`}
-        title={copied ? 'Tersalin' : `Salin ${label}`}
+        title={copied ? 'Tersalin' : failed ? 'Gagal menyalin, salin manual' : `Salin ${label}`}
         onClick={(e) => {
           e.stopPropagation();
-          navigator.clipboard
-            ?.writeText(value)
-            .then(() => {
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1500);
-            })
-            .catch(() => {});
+          void copyText(value).then((ok) => {
+            setCopied(ok);
+            setFailed(!ok);
+            window.setTimeout(() => (ok ? setCopied(false) : setFailed(false)), 1500);
+          });
         }}
       >
         {copied ? <Check className="ku-icon--sm" aria-hidden="true" /> : <Copy className="ku-icon--sm" aria-hidden="true" />}

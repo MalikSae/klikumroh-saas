@@ -1,5 +1,5 @@
 // Agent detail page: contact, performance, daily syiar (habits), commission balance and history, account actions.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, MessageCircle, MoreHorizontal } from 'lucide-react';
 import {
@@ -18,6 +18,7 @@ import { Avatar, Banner, Button, Card, CardBody, CityInput, Field, Menu, Modal, 
 import { AGENT_STATUS, CopyText, PAYOUT_STATUS, waHref } from './shared';
 import { AgentHabits } from './AgentHabits';
 import { resetPasswordProblem } from '../../utils/password';
+import { ledgerSign, ledgerTone } from '../../utils/commissionLedger';
 
 type Dialog = null | 'edit' | 'password' | 'deactivate';
 const MIN_PASSWORD = 8;
@@ -195,19 +196,29 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = () =>
-    Promise.all([fetchAgentDetail(agentId), fetchAgentCommissions(agentId).catch(() => null), fetchAgentPerformance().catch(() => [] as AgentPerformance[])])
+  // Only the latest request may fill the page: moving from /agents/1 to /agents/2 (back/forward) while
+  // agent 1 is still loading must not show agent 1 under agent 2's URL.
+  const loadSeq = useRef(0);
+  const load = () => {
+    const seq = ++loadSeq.current;
+    return Promise.all([fetchAgentDetail(agentId), fetchAgentCommissions(agentId).catch(() => null), fetchAgentPerformance().catch(() => [] as AgentPerformance[])])
       .then(([a, c, p]) => {
+        if (seq !== loadSeq.current) return;
         setAgent(a);
         setLedger(c ?? a.riwayat_komisi ?? []);
         setPerf(p.find((x) => x.agent_id === agentId) ?? null);
+        setError(null);
       })
-      .catch((e) => setError(errorText(e, 'Gagal memuat agen')));
+      .catch((e) => {
+        if (seq === loadSeq.current) setError(errorText(e, 'Gagal memuat agen'));
+      });
+  };
 
   useEffect(() => {
     setAgent(null);
     setError(null);
     if (!agentId) {
+      loadSeq.current++;
       setError('Agen tidak ditemukan.');
       return;
     }
@@ -369,6 +380,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                 <ul className="ag-ledger">
                   {ledger.map((c) => {
                     // Cross-check: a commission opens its prospect, a payout opens Pencairan komisi.
+                    const tone = ledgerTone(c);
                     const to = c.source === 'payout' ? '/payouts' : c.prospect_id ? `/prospects/${c.prospect_id}` : null;
                     const body = (
                       <>
@@ -380,8 +392,8 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                             {c.source === 'payout' && c.status ? ` · ${PAYOUT_STATUS[c.status]?.label ?? c.status}` : ''}
                           </span>
                         </div>
-                        <span className={c.direction === 'keluar' ? 'ag-ledger__out' : 'ag-ledger__in'}>
-                          {c.direction === 'keluar' ? '−' : '+'}
+                        <span className={`ag-ledger__${tone}`}>
+                          {ledgerSign(tone)}
                           {fmtRupiah(Math.abs(c.amount))}
                         </span>
                         {to && <ChevronRight className="ku-icon--sm ag-ledger__go" aria-hidden="true" />}

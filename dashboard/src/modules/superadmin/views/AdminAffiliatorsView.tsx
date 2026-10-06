@@ -27,7 +27,9 @@ export const PayoutDialogs: React.FC<{
   target: { payout: StaffAffiliatorPayout | null; action: 'paid' | 'reject' | null };
   onClose: () => void;
   onDone: (message: string) => void;
-}> = ({ target, onClose, onDone }) => {
+  /** Called after a failed request (e.g. a 409 when another staff already processed it) so the list reloads. */
+  onError?: () => void;
+}> = ({ target, onClose, onDone, onError }) => {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,10 @@ export const PayoutDialogs: React.FC<{
         onDone(`Pencairan ${p.affiliator_name} ditolak. Komisinya kembali ke saldo affiliator.`);
       }
     } catch (err) {
+      // The server text is shown as is (conflicts come back as a friendly 409 sentence); the list is
+      // reloaded because another staff may have processed this payout in the meantime.
       setError(err instanceof Error ? err.message : 'Gagal memproses pencairan');
+      onError?.();
     } finally {
       setBusy(false);
     }
@@ -338,6 +343,7 @@ export const AdminAffiliatorsView: React.FC = () => {
           setMessage(m);
           void load();
         }}
+        onError={() => void load()}
       />
     </AdminLayout>
   );

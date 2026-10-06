@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"klikumroh/internal/util"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -165,6 +167,17 @@ func (r *mysqlAgentRepository) Create(ctx context.Context, tenantID uint64, agen
 		agent.ParentAgentID,
 	)
 	if err != nil {
+		// Two concurrent sign-ups (double submit) both pass the checks above; the unique indexes then
+		// refuse the second insert. Report it like the explicit check so the caller answers 409, not 500.
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			switch {
+			case strings.Contains(mysqlErr.Message, "unique_tenant_email"):
+				return ErrDuplicateAgentEmail
+			case strings.Contains(mysqlErr.Message, "unique_tenant_phone"):
+				return ErrDuplicateAgentPhone
+			}
+		}
 		return err
 	}
 

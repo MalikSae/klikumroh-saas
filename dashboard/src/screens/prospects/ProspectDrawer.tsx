@@ -21,6 +21,7 @@ import {
 } from '../../services/api';
 import { formatDateTimeWIB } from '../../utils/datetime';
 import { closingSeatsWarning } from '../../utils/packageSeats';
+import { sourceLabel } from '../../utils/sourceLabel';
 import { closingCommissionNote, closingPayoffNote, lostReasonNote, paidOffDialogNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
   Banner,
@@ -91,18 +92,25 @@ export const ProspectDrawer: React.FC<{
     load();
   }, [load]);
 
-  const run = async (fn: () => Promise<unknown>, after?: () => void) => {
+  // `removed`: the prospect no longer exists after fn (delete). `after` (onDeleted) then closes the drawer
+  // and refreshes the list itself, so there is no reload of the deleted id and no second refresh.
+  const run = async (fn: () => Promise<unknown>, after?: () => void, removed = false) => {
     try {
       setBusy(true);
       setActionError(null);
       await fn();
       setDialog(null);
       after?.();
+      if (removed) return;
       await load();
       onChanged();
     } catch (e: any) {
       setActionError(e.message || 'Perubahan gagal disimpan.');
       setConfirmClosing(false);
+      // The refusal may come from a change made elsewhere (another admin closed or deleted it): show the
+      // current state instead of the stale status and buttons. The error message stays visible.
+      await load();
+      onChanged();
     } finally {
       setBusy(false);
     }
@@ -277,7 +285,7 @@ export const ProspectDrawer: React.FC<{
               {(p.utm_source || p.utm_campaign) && (
                 <div>
                   Kampanye iklan
-                  <span className="ku-trail__when">{[p.utm_source, p.utm_medium, p.utm_campaign].filter(Boolean).join(' · ')}</span>
+                  <span className="ku-trail__when">{[sourceLabel(p.utm_source), p.utm_medium, p.utm_campaign].filter(Boolean).join(' · ')}</span>
                 </div>
               )}
               {p.consent_at && (
@@ -472,7 +480,7 @@ export const ProspectDrawer: React.FC<{
         footer={
           <>
             <Button onClick={() => setDialog(null)} disabled={busy}>Batal</Button>
-            <Button variant="danger" disabled={busy} onClick={() => run(() => deleteProspect(id), onDeleted)}>Hapus permanen</Button>
+            <Button variant="danger" disabled={busy} onClick={() => run(() => deleteProspect(id), onDeleted, true)}>Hapus permanen</Button>
           </>
         }
       >

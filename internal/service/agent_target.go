@@ -18,6 +18,9 @@ var (
 	ErrInvalidPeriod                = errors.New("tanggal selesai harus sama atau setelah tanggal mulai")
 	ErrInvalidDateFormat            = errors.New("format tanggal tidak valid, gunakan YYYY-MM-DD")
 	ErrTargetAlreadyClosed          = errors.New("periode target sudah ditutup")
+	// ErrTargetPeriodNotEnded: closing a target before its last day needs an explicit early-close confirmation
+	// (force), because a closed target records its achievers and cannot be reopened or edited.
+	ErrTargetPeriodNotEnded = errors.New("periode target belum berakhir. Konfirmasi tutup lebih awal untuk tetap menutupnya; target yang ditutup tidak dapat dibuka kembali")
 	ErrCannotDeleteWithAchievements = errors.New("target tidak dapat dihapus karena sudah memiliki histori pencapaian")
 	ErrTargetNotClosed              = errors.New("reward hanya dapat ditandai jika periode target sudah ditutup")
 )
@@ -78,7 +81,9 @@ type AgentTargetService interface {
 	DeleteTarget(ctx context.Context, tenantID uint64, id uint64) error
 	ListTargets(ctx context.Context, tenantID uint64, statusFilter *string) ([]repository.AgentTarget, error)
 	GetTargetProgress(ctx context.Context, tenantID uint64, targetID uint64) (*TargetProgressResponse, error)
-	CloseTargetPeriod(ctx context.Context, tenantID uint64, targetID uint64, adminUserID uint64) (int, error)
+	// CloseTargetPeriod refuses (ErrTargetPeriodNotEnded) while the period has not ended (today WIB <= period_end)
+	// unless force is set (the admin confirmed an early close).
+	CloseTargetPeriod(ctx context.Context, tenantID uint64, targetID uint64, adminUserID uint64, force bool) (int, error)
 	ListAchievements(ctx context.Context, tenantID uint64, targetID uint64) ([]AchievementDTO, error)
 	MarkRewardGiven(ctx context.Context, tenantID uint64, achievementID uint64, adminUserID uint64, notes *string) error
 	ExportAchievementsCSV(ctx context.Context, tenantID uint64, targetID uint64) ([]byte, error)
@@ -250,13 +255,17 @@ func (s *agentTargetService) GetTargetProgress(ctx context.Context, tenantID uin
 	}, nil
 }
 
-func (s *agentTargetService) CloseTargetPeriod(ctx context.Context, tenantID uint64, targetID uint64, adminUserID uint64) (int, error) {
+func (s *agentTargetService) CloseTargetPeriod(ctx context.Context, tenantID uint64, targetID uint64, adminUserID uint64, force bool) (int, error) {
 	target, err := s.targetRepo.GetByID(ctx, tenantID, targetID)
 	if err != nil {
 		return 0, err
 	}
 	if target.Status == "closed" {
 		return 0, ErrTargetAlreadyClosed
+	}
+	// period_end is the last day of the period (inclusive), as a WIB date.
+	if !force && TodayWIB() <= target.PeriodEnd {
+		return 0, ErrTargetPeriodNotEnded
 	}
 
 	rows, err := s.targetRepo.ListAgentProgress(ctx, tenantID, targetID)

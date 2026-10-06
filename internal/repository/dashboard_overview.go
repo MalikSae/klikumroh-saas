@@ -33,9 +33,13 @@ func queryConversionCohort(ctx context.Context, db *sql.DB, tenantID uint64, win
 
 // UrgentAlertsData holds metrics for urgent actions in the overview.
 type UrgentAlertsData struct {
-	UncontactedProspectsCount int     `json:"uncontacted_prospects_count"`
-	PendingPayoutsCount       int     `json:"pending_payouts_count"`
-	PendingPayoutsTotal       float64 `json:"pending_payouts_total"`
+	UncontactedProspectsCount int `json:"uncontacted_prospects_count"`
+	// PendingPayouts*: payout requests that still need the admin ("Perlu tindakan", same as the Payouts
+	// screen): waiting for review (pending) or approved but not yet transferred (approved).
+	PendingPayoutsCount int     `json:"pending_payouts_count"`
+	PendingPayoutsTotal float64 `json:"pending_payouts_total"`
+	// ApprovedPayoutsCount: the approved-not-transferred part of PendingPayoutsCount.
+	ApprovedPayoutsCount int `json:"approved_payouts_count"`
 }
 
 // OverviewKPIsData holds high-level lead-gen performance metrics.
@@ -194,11 +198,12 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		return nil, err
 	}
 
-	// 1b. Pending payouts in commission_payout_requests
+	// 1b. Payouts needing action: pending review or approved but not transferred yet.
 	err = r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*), COALESCE(SUM(amount_requested), 0) FROM commission_payout_requests WHERE tenant_id = ? AND status = 'pending'`,
+		`SELECT COUNT(*), COALESCE(SUM(amount_requested), 0), COALESCE(SUM(status = 'approved'), 0)
+		 FROM commission_payout_requests WHERE tenant_id = ? AND status IN ('pending', 'approved')`,
 		tenantID,
-	).Scan(&data.Alerts.PendingPayoutsCount, &data.Alerts.PendingPayoutsTotal)
+	).Scan(&data.Alerts.PendingPayoutsCount, &data.Alerts.PendingPayoutsTotal, &data.Alerts.ApprovedPayoutsCount)
 	if err != nil {
 		return nil, err
 	}

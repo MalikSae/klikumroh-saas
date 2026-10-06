@@ -34,9 +34,11 @@
 .ag-ledger li:last-child { border-bottom: 0; }
 .ag-ledger__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ag-ledger__text .ku-muted { font-size: var(--ku-text-sm); }
-.ag-ledger__in, .ag-ledger__out { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: var(--ku-weight-medium); }
+.ag-ledger__in, .ag-ledger__out, .ag-ledger__neutral { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: var(--ku-weight-medium); }
 .ag-ledger__in { color: var(--ku-green-2); }
 .ag-ledger__out { color: var(--ku-ink-2); }
+/* Rejected payout: never left the balance, so no sign and a quieter color. */
+.ag-ledger__neutral { color: var(--ku-ink-3); }
 
 .ag-proof { display: block; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); overflow: hidden; background: var(--ku-soft); }
 .ag-proof img { display: block; width: 100%; max-height: 360px; object-fit: contain; }

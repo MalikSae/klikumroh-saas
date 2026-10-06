@@ -68,6 +68,7 @@ func TestPrivateFiles_AccessRules(t *testing.T) {
 		{"agent another agent's proof", withTenant(handler.ServeAgentPrivateFile, 987654, 4), "/api/agent/files?path=/uploads/987654/agents/3/bukti-transfer.webp", 404},
 		{"agent subscription proof", withTenant(handler.ServeAgentPrivateFile, 987654, 3), "/api/agent/files?path=/uploads/987654/subscription-proofs/abc.webp", 404},
 		{"staff any tenant", http.HandlerFunc(handler.ServeStaffPrivateFile), "/api/staff/files?path=/uploads/987654/subscription-proofs/abc.webp", 200},
+		{"staff agent proof (only via impersonation)", http.HandlerFunc(handler.ServeStaffPrivateFile), "/api/staff/files?path=/uploads/987654/agents/3/bukti-transfer.webp", 404},
 		{"public /uploads private file", handler.PublicUploadsHandler("./uploads"), "/uploads/987654/subscription-proofs/legacy.webp", 404},
 		{"public /uploads directory listing", handler.PublicUploadsHandler("./uploads"), "/uploads/987654/", 404},
 		{"public /uploads package photo", handler.PublicUploadsHandler("./uploads"), "/uploads/987654/packages/1/photo.webp", 200},

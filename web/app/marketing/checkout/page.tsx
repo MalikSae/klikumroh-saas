@@ -9,6 +9,8 @@ export const revalidate = 300;
 export const metadata = {
   title: 'Checkout | KlikUmroh.id',
   description: 'Pendaftaran dan pembayaran sistem KlikUmroh.',
+  // Same checkout as /checkout: point search engines there instead of the homepage (root layout default).
+  alternates: { canonical: 'https://klikumroh.id/checkout' },
 };
 
 export default async function CheckoutPage() {

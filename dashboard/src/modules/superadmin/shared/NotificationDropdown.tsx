@@ -59,6 +59,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [isRinging, setIsRinging] = useState<boolean>(false);
+  // Set once the server answers 401 (expired or revoked token): polling stops until the page reloads.
+  const [unauthorized, setUnauthorized] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const prevLatestIdRef = useRef<number | null>(null);
@@ -79,6 +81,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           Authorization: `Bearer ${token}`,
         },
       });
+      if (res.status === 401) {
+        setUnauthorized(true);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         const items: NotificationItem[] = data.notifications || [];
@@ -124,6 +130,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   }, [apiPrefix, tokenGetter]);
 
   useEffect(() => {
+    if (unauthorized) return;
     fetchNotifications();
 
     // Polling setiap 5 detik agar notifikasi terasa real-time
@@ -147,7 +154,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, unauthorized]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -173,20 +180,32 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     if (!item.read_at) {
       const token = tokenGetter();
       if (token) {
+        // Optimistic: mark read right away and roll back when the server refuses, so the badge
+        // does not drop and then come back on the next poll.
+        const nowStr = new Date().toISOString();
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, read_at: nowStr } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+        const rollback = () => {
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === item.id ? { ...n, read_at: item.read_at ?? null } : n))
+          );
+          setUnreadCount((prev) => prev + 1);
+        };
         try {
-          await fetch(`${API_BASE}${apiPrefix}/${item.id}/read`, {
+          const res = await fetch(`${API_BASE}${apiPrefix}/${item.id}/read`, {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
-          const nowStr = new Date().toISOString();
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === item.id ? { ...n, read_at: nowStr } : n))
-          );
-          setUnreadCount((prev) => Math.max(0, prev - 1));
+          if (!res.ok) {
+            rollback();
+            if (res.status === 401) setUnauthorized(true);
+          }
         } catch {
-          // ignore
+          rollback();
         }
       }
     }
@@ -214,6 +233,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         const nowStr = new Date().toISOString();
         setNotifications((prev) => prev.map((n) => ({ ...n, read_at: n.read_at || nowStr })));
         setUnreadCount(0);
+      } else if (res.status === 401) {
+        setUnauthorized(true);
       }
     } catch {
       // ignore

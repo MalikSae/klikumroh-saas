@@ -22,7 +22,7 @@ import type { PublicTenantInfo } from '../app/page';
 import { MobileContainer } from './MobileContainer';
 import { ProspectModal } from './ProspectModal';
 import { Button } from './Button';
-import { agentPackageLink, canShareFiles, packagePhotoFile, sharePackage } from '../lib/packageShare';
+import { agentPackageLink, canShareFiles, packagePhotoFile, shareCountsAsHabit, sharePackage } from '../lib/packageShare';
 import { logHabit } from '../lib/agentHabits';
 import { ConsultantCard } from './ConsultantCard';
 import { useConsultant } from '../lib/consultant';
@@ -122,8 +122,9 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
 
   const handleShare = async () => {
     const link = referralCode ? agentPackageLink(referralCode, pkg.id) : `${window.location.origin}/paket/${pkg.id}`;
-    if (referralCode) logHabit('share');
     const result = await sharePackage(pkg, link, photoFile);
+    // Logged only after the share really happened, never for a cancelled or failed share sheet.
+    if (referralCode && shareCountsAsHabit(result)) logHabit('share');
     if (result === 'copied' || result === 'failed') {
       setShareMsg(result === 'copied' ? 'Pesan dan link paket tersalin' : 'Gagal membagikan paket');
       setTimeout(() => setShareMsg(null), 2500);

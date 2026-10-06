@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // OpenProspectStatuses are the pipeline stages where a prospect is still being worked on. A jamaah who
@@ -818,8 +819,9 @@ func (r *mysqlProspectRepository) ReleaseMetaPurchase(ctx context.Context, tenan
 // AnonymizedName replaces the jamaah's name after their personal data was removed.
 const AnonymizedName = "Data dihapus (UU PDP)"
 
-// anonymizedMention replaces the jamaah's name inside notification texts.
-const anonymizedMention = "jamaah (data dihapus)"
+// anonymizedMention replaces the jamaah's name inside notification texts; the text keeps the word
+// "jamaah" before it ("... jamaah (data dihapus) sudah bisa dicairkan").
+const anonymizedMention = "(data dihapus)"
 
 // Ledger notes written by Anonymize in place of the admin's free-text reasons.
 const (
@@ -835,7 +837,12 @@ const jamaahNotificationTypes = `'prospect_new', 'prospect_repeat', 'prospect_al
 // its status history and its commission ledger, so the agent's earnings trail stays intact.
 // Free-text notes and linked notifications are deleted because they can contain personal data.
 // Returns ErrNotFound for another tenant's prospect and ErrStatusConflict if already anonymized.
-func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64, id uint64) error {
+//
+// An anonymized prospect can no longer be edited, so one that is still open (baru, dihubungi,
+// tertarik) is moved out of the pipeline to 'tidak_lanjut' with the system category
+// LostCategoryDataDeleted in the same transaction (status history records it as the admin's change).
+// Otherwise it would count in the pipeline, the stale-prospect alert and the agent funnel for good.
+func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -844,9 +851,11 @@ func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64
 
 	// The current name is needed to scrub it from notifications that do not link to this prospect
 	// (e.g. commission notifications linking to the agent's commission history).
-	var oldName string
+	var oldName, status string
+	var agentID sql.NullInt64
 	var anonymized sql.NullTime
-	err = tx.QueryRowContext(ctx, `SELECT name, anonymized_at FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&oldName, &anonymized)
+	err = tx.QueryRowContext(ctx, `SELECT name, status, agent_id, anonymized_at FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).
+		Scan(&oldName, &status, &agentID, &anonymized)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -857,11 +866,19 @@ func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64
 		return ErrStatusConflict
 	}
 
+	newStatus := status
+	var category *string // nil keeps the current category
+	if isOpenProspectStatus(status) {
+		newStatus = "tidak_lanjut"
+		c := LostCategoryDataDeleted
+		category = &c
+	}
 	res, err := tx.ExecContext(ctx, `
 		UPDATE prospects
 		SET name = ?, phone = '', phone_normalized = NULL, email = NULL, domicile = NULL,
-		    fbclid = NULL, meta_fbp = NULL, meta_fbc = NULL, lost_reason = NULL, anonymized_at = NOW()
-		WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL`, AnonymizedName, id, tenantID)
+		    fbclid = NULL, meta_fbp = NULL, meta_fbc = NULL, lost_reason = NULL, anonymized_at = NOW(),
+		    lost_reason_category = COALESCE(?, lost_reason_category), status = ?
+		WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL`, AnonymizedName, category, newStatus, id, tenantID)
 	if err != nil {
 		return err
 	}
@@ -893,17 +910,36 @@ func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64
 		AnonymizedCancelNote, AnonymizedLedgerNote, tenantID, id); err != nil {
 		return err
 	}
-	if err := scrubProspectNotifications(ctx, tx, tenantID, id, oldName); err != nil {
+	if newStatus != status {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO prospect_status_history (tenant_id, prospect_id, changed_by_type, changed_by_id, old_status, new_status)
+			VALUES (?, ?, 'admin', ?, ?, ?)`, tenantID, id, adminUserID, status, newStatus); err != nil {
+			return err
+		}
+	}
+	if err := scrubProspectNotifications(ctx, tx, tenantID, id, oldName, agentID); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
+// LostCategoryDataDeleted is the system 'Tidak Lanjut' category set when an open prospect is
+// anonymized (UU PDP); it is never selectable by an admin or agent (see service.LostReasonCategories).
+const LostCategoryDataDeleted = "data_dihapus"
+
+func isOpenProspectStatus(status string) bool {
+	return status == "baru" || status == "dihubungi" || status == "tertarik"
+}
+
 // scrubProspectNotifications removes the traces of a jamaah from the tenant's notifications when their
 // prospect is anonymized or deleted: notifications linking to the prospect are deleted, and the name is
-// replaced in the other jamaah-related notifications (e.g. commission ones linking to the commission
-// history). Limited to jamaah-related types so unrelated notifications are never touched.
-func scrubProspectNotifications(ctx context.Context, tx *sql.Tx, tenantID, id uint64, name string) error {
+// replaced in the other jamaah-related notifications that can name this jamaah without linking to it
+// (commission ones linking to the commission history). Those are limited to jamaah-related types sent
+// to the agents of this prospect (its owner and every agent with a ledger row for it), and the name is
+// replaced only as a whole word: a short name like "Al" or "Siti" must not rewrite "Alhamdulillah" or
+// "Siti Aminah" in another jamaah's notification. Must run before the prospect (and its cascading
+// ledger rows) is deleted.
+func scrubProspectNotifications(ctx context.Context, tx *sql.Tx, tenantID, id uint64, name string, agentID sql.NullInt64) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM notifications WHERE tenant_id = ? AND link_url IN (?, ?)`,
 		tenantID, fmt.Sprintf("/prospects/%d", id), fmt.Sprintf("/agen/jamaah/%d", id)); err != nil {
 		return err
@@ -912,13 +948,97 @@ func scrubProspectNotifications(ctx context.Context, tx *sql.Tx, tenantID, id ui
 	if name == "" {
 		return nil
 	}
-	_, err := tx.ExecContext(ctx, `
-		UPDATE notifications
-		SET title = REPLACE(title, ?, ?), body = REPLACE(body, ?, ?)
-		WHERE tenant_id = ? AND type IN (`+jamaahNotificationTypes+`) AND (title LIKE ? OR body LIKE ?)`,
-		name, anonymizedMention, name, anonymizedMention, tenantID,
-		"%"+escapeLike(name)+"%", "%"+escapeLike(name)+"%")
-	return err
+	ownerID := uint64(0)
+	if agentID.Valid && agentID.Int64 > 0 {
+		ownerID = uint64(agentID.Int64)
+	}
+	rows, err := tx.QueryContext(ctx, `
+		SELECT n.id, n.title, n.body
+		FROM notifications n
+		WHERE n.tenant_id = ? AND n.recipient_type = 'agent' AND n.type IN (`+jamaahNotificationTypes+`)
+		  AND (n.recipient_id = ? OR n.recipient_id IN (
+			SELECT l.agent_id FROM commission_ledger l WHERE l.tenant_id = ? AND l.prospect_id = ?))
+		  AND (n.title LIKE ? OR n.body LIKE ?)
+		FOR UPDATE`,
+		tenantID, ownerID, tenantID, id, "%"+escapeLike(name)+"%", "%"+escapeLike(name)+"%")
+	if err != nil {
+		return err
+	}
+	type change struct {
+		id          uint64
+		title, body string
+	}
+	var changes []change
+	for rows.Next() {
+		var c change
+		if err := rows.Scan(&c.id, &c.title, &c.body); err != nil {
+			rows.Close()
+			return err
+		}
+		title, t := replaceJamaahMention(c.title, name)
+		body, b := replaceJamaahMention(c.body, name)
+		if t || b {
+			changes = append(changes, change{c.id, title, body})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	for _, c := range changes {
+		if _, err := tx.ExecContext(ctx, `UPDATE notifications SET title = ?, body = ? WHERE id = ? AND tenant_id = ?`,
+			c.title, c.body, c.id, tenantID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// jamaahMentionSuffixes are the texts that follow the jamaah's name in the commission notifications
+// that do not link to the prospect ("... jamaah <name> sudah bisa dicairkan", "... jamaah <name>
+// tercatat", "Jamaah <name> sudah lunas"; service/prospect.go and prospect_closing.go).
+var jamaahMentionSuffixes = []string{" sudah", " tercatat"}
+
+// replaceJamaahMention replaces the jamaah's name in a notification text only where it is the whole
+// name in the "jamaah <name> sudah/tercatat" shape the notifications use. Anonymizing "Siti" therefore
+// leaves "jamaah Siti Aminah sudah ..." of another jamaah alone, and a name like "Al" never rewrites
+// "Alhamdulillah". Case-sensitive for the name, like the stored text.
+func replaceJamaahMention(s, name string) (string, bool) {
+	if name == "" {
+		return s, false
+	}
+	var b strings.Builder
+	changed := false
+	rest := s
+	for {
+		i := strings.Index(rest, name)
+		if i < 0 {
+			b.WriteString(rest)
+			break
+		}
+		end := i + len(name)
+		prefixOK := i >= len("jamaah ") && strings.EqualFold(rest[i-len("jamaah "):i], "jamaah ")
+		suffixOK := false
+		for _, suf := range jamaahMentionSuffixes {
+			if strings.HasPrefix(rest[end:], suf) {
+				suffixOK = true
+				break
+			}
+		}
+		if !prefixOK || !suffixOK {
+			// Not this jamaah's mention: keep it and continue after its first rune.
+			_, size := utf8.DecodeRuneInString(rest[i:])
+			b.WriteString(rest[:i+size])
+			rest = rest[i+size:]
+			continue
+		}
+		b.WriteString(rest[:i])
+		b.WriteString(anonymizedMention)
+		rest = rest[end:]
+		changed = true
+	}
+	return b.String(), changed
 }
 
 // Delete removes a prospect (spam, test data, or a jamaah without commission history asking to be
@@ -931,11 +1051,16 @@ func (r *mysqlProspectRepository) Delete(ctx context.Context, tenantID uint64, i
 	defer func() { _ = tx.Rollback() }()
 
 	var name string
-	err = tx.QueryRowContext(ctx, `SELECT name FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&name)
+	var agentID sql.NullInt64
+	err = tx.QueryRowContext(ctx, `SELECT name, agent_id FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&name, &agentID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
+		return err
+	}
+	// Before the delete: the scrub finds the prospect's agents through its (cascading) ledger rows.
+	if err := scrubProspectNotifications(ctx, tx, tenantID, id, name, agentID); err != nil {
 		return err
 	}
 	// referral_clicks.prospect_id has no ON DELETE rule; detach clicks first so the delete can't fail.
@@ -943,9 +1068,6 @@ func (r *mysqlProspectRepository) Delete(ctx context.Context, tenantID uint64, i
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM prospects WHERE id = ? AND tenant_id = ?`, id, tenantID); err != nil {
-		return err
-	}
-	if err := scrubProspectNotifications(ctx, tx, tenantID, id, name); err != nil {
 		return err
 	}
 	return tx.Commit()
