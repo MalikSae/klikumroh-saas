@@ -72,7 +72,11 @@ export const Faqs: React.FC = () => {
 
   const reload = () =>
     fetchFAQs()
-      .then(setItems)
+      .then((list) => {
+        setItems(list);
+        // A later successful load clears an earlier load error.
+        setError(null);
+      })
       .catch((e) => setError(errorText(e, 'Gagal memuat FAQ')))
       .finally(() => setLoading(false));
 

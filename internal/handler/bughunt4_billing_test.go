@@ -435,9 +435,13 @@ func TestBugHunt4_DomainDailyRecheck(t *testing.T) {
 	}).SetNotifier(notif,
 		&fixedAdmins{list: map[uint64][]repository.AdminUser{80: {{ID: 11, TenantID: 80, Status: "active"}, {ID: 12, TenantID: 80, Status: "inactive"}}}},
 		fixedStaff{{ID: 501, Status: "active"}})
+	clock := time.Date(2026, 10, 6, 2, 0, 0, 0, time.UTC)
+	svc.(interface{ SetClock(func() time.Time) }).SetClock(func() time.Time { return clock })
+	// Each run is one day later (bug hunt 5: a domain is counted at most once per ~day).
+	recheck := func() { clock = clock.Add(24 * time.Hour); svc.RecheckActiveDomains(ctx) }
 
 	for day := 1; day <= 2; day++ {
-		svc.RecheckActiveDomains(ctx)
+		recheck()
 		a := repo.domains["www.travel-a.com"]
 		t.Logf("day %d: www.travel-a.com status=%s check_failures=%d", day, a.Status, a.CheckFailures)
 		if a.Status != "active" || a.CheckFailures != day || len(notif.sent) != 0 {
@@ -447,14 +451,14 @@ func TestBugHunt4_DomainDailyRecheck(t *testing.T) {
 
 	// A success in between resets the count.
 	dns.responses["www.travel-a.com"] = service.ExpectedCNAMETarget + "."
-	svc.RecheckActiveDomains(ctx)
+	recheck()
 	if a := repo.domains["www.travel-a.com"]; a.CheckFailures != 0 || a.Status != "active" {
 		t.Fatalf("a successful check must reset the counter, got %s/%d", a.Status, a.CheckFailures)
 	}
 	delete(dns.responses, "www.travel-a.com")
 
 	for day := 1; day <= 3; day++ {
-		svc.RecheckActiveDomains(ctx)
+		recheck()
 	}
 	a := repo.domains["www.travel-a.com"]
 	t.Logf("after 3 failed days: status=%s check_failures=%d reason=%v notifications=%v", a.Status, a.CheckFailures, *a.VerificationFailureReason, notif.sent)
@@ -464,7 +468,7 @@ func TestBugHunt4_DomainDailyRecheck(t *testing.T) {
 	if b := repo.domains["www.travel-b.com"]; b.Status != "active" || b.CheckFailures != 0 {
 		t.Fatalf("a healthy domain of another travel must be untouched, got %s/%d", b.Status, b.CheckFailures)
 	}
-	want := []string{"admin:11:domain_deactivated:/settings", "staff:501:domain_deactivated:/internal/tenants/80"}
+	want := []string{"admin:11:domain_deactivated:/website/domain", "staff:501:domain_deactivated:/internal/tenants/80"}
 	if strings.Join(notif.sent, ",") != strings.Join(want, ",") {
 		t.Fatalf("notifications: got %v, want %v", notif.sent, want)
 	}
@@ -474,7 +478,7 @@ func TestBugHunt4_DomainDailyRecheck(t *testing.T) {
 		t.Fatal("subdomain must no longer redirect to the deactivated domain")
 	}
 	// A later recheck does not touch it again (it is not active).
-	svc.RecheckActiveDomains(ctx)
+	recheck()
 	if len(notif.sent) != 2 {
 		t.Fatalf("deactivated domain notified again: %v", notif.sent)
 	}

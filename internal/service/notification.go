@@ -16,9 +16,10 @@ type NotificationListResponse struct {
 // NotificationService defines core notification management and delivery.
 type NotificationService interface {
 	CreateNotification(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, notifType, title, body, linkURL string) (*repository.Notification, error)
-	ListNotifications(ctx context.Context, recipientType string, recipientID uint64, limit int) (*NotificationListResponse, error)
-	MarkAsRead(ctx context.Context, recipientType string, recipientID uint64, notifID uint64) error
-	MarkAllAsRead(ctx context.Context, recipientType string, recipientID uint64) error
+	// tenantID scopes the recipient to one travel (admin, agent); only staff recipients pass nil.
+	ListNotifications(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, limit int) (*NotificationListResponse, error)
+	MarkAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, notifID uint64) error
+	MarkAllAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) error
 }
 
 type notificationService struct {
@@ -56,8 +57,8 @@ func (s *notificationService) CreateNotification(ctx context.Context, tenantID *
 	return notif, nil
 }
 
-func (s *notificationService) ListNotifications(ctx context.Context, recipientType string, recipientID uint64, limit int) (*NotificationListResponse, error) {
-	items, err := s.notifRepo.ListByRecipient(ctx, recipientType, recipientID, limit)
+func (s *notificationService) ListNotifications(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, limit int) (*NotificationListResponse, error) {
+	items, err := s.notifRepo.ListByRecipient(ctx, tenantID, recipientType, recipientID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func (s *notificationService) ListNotifications(ctx context.Context, recipientTy
 		items = []repository.Notification{}
 	}
 
-	unread, err := s.notifRepo.CountUnread(ctx, recipientType, recipientID)
+	unread, err := s.notifRepo.CountUnread(ctx, tenantID, recipientType, recipientID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,10 +77,10 @@ func (s *notificationService) ListNotifications(ctx context.Context, recipientTy
 	}, nil
 }
 
-func (s *notificationService) MarkAsRead(ctx context.Context, recipientType string, recipientID uint64, notifID uint64) error {
-	return s.notifRepo.MarkAsRead(ctx, recipientType, recipientID, notifID)
+func (s *notificationService) MarkAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, notifID uint64) error {
+	return s.notifRepo.MarkAsRead(ctx, tenantID, recipientType, recipientID, notifID)
 }
 
-func (s *notificationService) MarkAllAsRead(ctx context.Context, recipientType string, recipientID uint64) error {
-	return s.notifRepo.MarkAllAsRead(ctx, recipientType, recipientID)
+func (s *notificationService) MarkAllAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) error {
+	return s.notifRepo.MarkAllAsRead(ctx, tenantID, recipientType, recipientID)
 }

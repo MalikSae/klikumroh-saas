@@ -34,12 +34,15 @@ export interface ProspectListState {
 
 export const DEFAULT_PAGE_SIZE = 25;
 
+/** Status tabs of the list; a stale or typed ?status outside these falls back to all (no 400 banner). */
+export const PROSPECT_LIST_STATUSES = ['all', 'baru', 'dihubungi', 'tertarik', 'closing', 'tidak_lanjut'] as const;
+
 /** Reads the list state from the URL; missing or invalid values fall back to the defaults. */
 export const prospectListStateFromParams = (params: URLSearchParams, pageSizes: number[]): ProspectListState => {
   const get = (k: string, d: string) => params.get(k) || d;
   const size = Number(get('size', String(DEFAULT_PAGE_SIZE)));
   return {
-    status: get('status', 'all'),
+    status: (PROSPECT_LIST_STATUSES as readonly string[]).includes(get('status', 'all')) ? get('status', 'all') : 'all',
     source: get('source', 'all'),
     pkg: get('package', 'all'),
     agent: get('agent', 'all'),

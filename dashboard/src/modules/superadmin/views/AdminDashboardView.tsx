@@ -25,17 +25,23 @@ export const AdminDashboardView: React.FC = () => {
   const [tenants, setTenants] = useState<StaffTenantItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // A failed tenant list must not read as "everything is fine" in the follow-up panel.
+  const [tenantsError, setTenantsError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
+      setTenantsError(null);
       const [overviewData, tenantsData] = await Promise.all([
         fetchStaffOverview(),
-        fetchStaffTenants('all').catch(() => []),
+        fetchStaffTenants('all').catch((err: unknown) => {
+          setTenantsError(err instanceof Error && err.message ? err.message : 'Gagal memuat daftar travel');
+          return null;
+        }),
       ]);
       setMetrics(overviewData);
-      setTenants(tenantsData);
+      setTenants(tenantsData ?? []);
     } catch (err: any) {
       setError(err.message || 'Gagal memuat performa platform');
     } finally {
@@ -191,7 +197,15 @@ export const AdminDashboardView: React.FC = () => {
           </div>
 
           <div className="sa-table-scroller" style={{ padding: '0' }}>
-            {expiringTenants.length === 0 ? (
+            {tenantsError ? (
+              <div className="sa-panel-empty sa-panel-empty--danger">
+                Daftar travel gagal dimuat ({tenantsError}). Jatuh tempo belum bisa diperiksa; klik Segarkan.
+              </div>
+            ) : loading && tenants.length === 0 ? (
+              <div className="sa-panel-empty">
+                Memuat daftar travel...
+              </div>
+            ) : expiringTenants.length === 0 ? (
               <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--sa-text-muted)', fontSize: '13px' }}>
                 Seluruh travel mitra masih memiliki masa aktif langganan yang aman.
               </div>
@@ -211,7 +225,7 @@ export const AdminDashboardView: React.FC = () => {
                     <tr key={t.id}>
                       <td style={{ fontWeight: 600 }}>{t.name}</td>
                       <td>
-                        <span className="sa-pill sa-pill--neutral">{t.plan_name || 'Pro'}</span>
+                        {t.plan_name ? <span className="sa-pill sa-pill--neutral">{t.plan_name}</span> : <span className="sa-note">Tanpa paket</span>}
                       </td>
                       <td style={{ fontSize: '13px' }}>{formatDate(t.subscription_expires_at)}</td>
                       <td>
@@ -266,7 +280,7 @@ export const AdminDashboardView: React.FC = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Package size={16} style={{ color: 'var(--sa-text-muted)' }} />
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Paket Umroh Terpublikasi</span>
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>Paket Umroh, semua status (travel berlangganan aktif)</span>
               </div>
               <strong style={{ fontFamily: 'var(--sa-font-display)', fontSize: '16px' }}>
                 {metrics?.total_packages ?? 0}
@@ -285,7 +299,7 @@ export const AdminDashboardView: React.FC = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Users size={16} style={{ color: 'var(--sa-text-muted)' }} />
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Total Prospek Jamaah Masuk</span>
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>Prospek Jamaah Masuk (travel berlangganan aktif)</span>
               </div>
               <strong style={{ fontFamily: 'var(--sa-font-display)', fontSize: '16px' }}>
                 {metrics?.total_prospects ?? 0}
@@ -304,7 +318,7 @@ export const AdminDashboardView: React.FC = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <CheckCircle2 size={16} style={{ color: 'var(--sa-text-muted)' }} />
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Jaringan Agen Mitra Aktif</span>
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>Agen Aktif (travel berlangganan aktif)</span>
               </div>
               <strong style={{ fontFamily: 'var(--sa-font-display)', fontSize: '16px' }}>
                 {metrics?.total_active_agents ?? 0}

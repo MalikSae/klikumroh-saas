@@ -469,11 +469,11 @@ export const Sparkline: React.FC<{ values: number[]; trend: 'up' | 'down' | 'fla
 };
 
 /** note: a small line under the value that explains it (e.g. how a rate is made up). */
-export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; note?: React.ReactNode; delta?: { text: string; trend: 'up' | 'down' | 'flat'; suffix: string }; spark?: number[]; to?: string }> = ({ label, value, icon, note, delta, spark, to }) => (
+export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; note?: React.ReactNode; delta?: { text: string; trend: 'up' | 'down' | 'flat'; suffix: string }; spark?: number[]; to?: string; toLabel?: string }> = ({ label, value, icon, note, delta, spark, to, toLabel }) => (
   <div className="ku-card ku-kpi">
     <span className="ku-kpi__label">{label}</span>
     {to && (
-      <Link to={to} className="ku-kpi__go" aria-label={`Buka ${label.toLowerCase()}`}>
+      <Link to={to} className="ku-kpi__go" aria-label={toLabel ?? `Buka ${label.toLowerCase()}`} title={toLabel}>
         <ArrowUpRight className="ku-icon--sm" />
       </Link>
     )}
@@ -638,7 +638,8 @@ export const fmtRupiahShort = (n: number) => {
 };
 export const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }) : '—';
-export const fmtPercent = (n: number) => `${n.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%`;
+/** maxDigits: commission rates can have 2 decimals (2,25%); other percentages show 1. */
+export const fmtPercent = (n: number, maxDigits = 1) => `${n.toLocaleString('id-ID', { maximumFractionDigits: maxDigits })}%`;
 /** "12 mnt lalu", "3 jam lalu", "Kemarin", "4 hari lalu", then the date. */
 export const fmtAgo = (iso: string) => {
   const diff = Date.now() - new Date(iso).getTime();

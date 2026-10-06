@@ -21,7 +21,7 @@ import {
 } from '../../services/api';
 import { formatDateTimeWIB } from '../../utils/datetime';
 import { closingSeatsWarning } from '../../utils/packageSeats';
-import { sourceLabel } from '../../utils/sourceLabel';
+import { sourceLabel, utmValue } from '../../utils/sourceLabel';
 import { closingCommissionNote, closingPayoffNote, lostReasonNote, paidOffDialogNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
   Banner,
@@ -285,7 +285,7 @@ export const ProspectDrawer: React.FC<{
               {(p.utm_source || p.utm_campaign) && (
                 <div>
                   Kampanye iklan
-                  <span className="ku-trail__when">{[sourceLabel(p.utm_source), p.utm_medium, p.utm_campaign].filter(Boolean).join(' · ')}</span>
+                  <span className="ku-trail__when">{[sourceLabel(p.utm_source), utmValue(p.utm_medium), utmValue(p.utm_campaign)].filter(Boolean).join(' · ')}</span>
                 </div>
               )}
               {p.consent_at && (

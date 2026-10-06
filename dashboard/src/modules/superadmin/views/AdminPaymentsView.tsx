@@ -4,6 +4,8 @@ import { RefreshCw, CheckCircle2, AlertCircle, Eye, Phone, Mail } from 'lucide-r
 import { AdminLayout } from '../layout/AdminLayout';
 import { AdminDataGrid, type AdminColumn, type AdminTabOption } from '../components/AdminDataGrid';
 import { AdminProofModal } from '../components/AdminProofModal';
+import { paymentNeedsReview, paymentStatusView } from '../shared/statusLabels';
+import { proofAmountMismatch } from '../../../utils/billingMath';
 import {
   fetchStaffPaymentVerifications,
   approvePaymentVerification,
@@ -61,8 +63,7 @@ export const AdminPaymentsView: React.FC = () => {
 
   const formatDate = (dateStr?: string | null) => formatDateWIB(dateStr);
 
-  const needsReview = (i: PaymentVerificationItem) =>
-    i.status === 'pending' && (Boolean(i.proof_url) || (i.final_amount ?? i.amount) <= 0);
+  const needsReview = (i: PaymentVerificationItem) => paymentNeedsReview(i.status, i.proof_url, i.final_amount ?? i.amount);
   const awaitingTransfer = (i: PaymentVerificationItem) => i.status === 'pending' && !needsReview(i);
 
   const tabs: AdminTabOption[] = [
@@ -105,6 +106,14 @@ export const AdminPaymentsView: React.FC = () => {
     await rejectPaymentVerification(id, reason);
     setSuccessMessage(`Pembayaran #${id} telah ditolak.`);
     loadData();
+  };
+
+  // After a failed reject / plan change / coupon change (e.g. another staff member already approved the
+  // invoice), reload the list and hand the fresh invoice to the open modal so it stops offering actions.
+  const refreshSelected = async (id: number) => {
+    const fresh = await loadData();
+    const updated = fresh?.find((i) => i.id === id);
+    if (updated) setSelectedItem(updated);
   };
 
   const columns: AdminColumn<PaymentVerificationItem>[] = [
@@ -195,6 +204,15 @@ export const AdminPaymentsView: React.FC = () => {
               Kupon: {row.coupon_code}
             </span>
           )}
+          {row.status === 'pending' && proofAmountMismatch(row.proof_url, row.proof_final_amount, row.final_amount) && (
+            <span
+              className="sa-badge sa-badge--pending sa-badge--sm"
+              style={{ alignSelf: 'flex-start' }}
+              title={`Bukti transfer diunggah untuk tagihan ${formatIDR(row.proof_final_amount ?? 0)}`}
+            >
+              Nominal bukti berbeda
+            </span>
+          )}
         </div>
       ),
     },
@@ -211,28 +229,8 @@ export const AdminPaymentsView: React.FC = () => {
       key: 'status',
       label: 'Status',
       render: (row) => (
-        <span
-          className={`sa-badge ${
-            row.status === 'approved'
-              ? 'sa-badge--active'
-              : row.status === 'rejected'
-              ? 'sa-badge--expired'
-              : row.status === 'cancelled'
-              ? 'sa-badge--neutral'
-              : needsReview(row)
-              ? 'sa-badge--pending'
-              : 'sa-badge--neutral'
-          }`}
-        >
-          {row.status === 'approved'
-            ? 'Disetujui'
-            : row.status === 'rejected'
-            ? 'Ditolak'
-            : row.status === 'cancelled'
-            ? 'Dibatalkan'
-            : needsReview(row)
-            ? 'Perlu Verifikasi'
-            : 'Menunggu Transfer'}
+        <span className={`sa-badge ${paymentStatusView(row.status, row.proof_url, row.final_amount ?? row.amount).cls}`}>
+          {paymentStatusView(row.status, row.proof_url, row.final_amount ?? row.amount).label}
         </span>
       ),
     },
@@ -334,6 +332,7 @@ export const AdminPaymentsView: React.FC = () => {
         onClose={() => setSelectedItem(null)}
         onApprove={handleApprove}
         onReject={handleReject}
+        onStale={refreshSelected}
         onPlanUpdated={(updated) => {
           setSelectedItem(updated);
           loadData();

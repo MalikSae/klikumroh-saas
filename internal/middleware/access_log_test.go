@@ -120,7 +120,7 @@ func TestAuthMiddleware_ImpersonationAccessLog(t *testing.T) {
 		if l.TenantID != 100 || l.StaffID != 7 || l.Action != repository.AccessActionImpersonateRequest {
 			t.Fatalf("unexpected log record: %+v", l)
 		}
-		if l.Path == nil || *l.Path != "/api/dashboard/prospects?search=budi" {
+		if l.Path == nil || *l.Path != "/api/dashboard/prospects?search=[REDACTED]" { // bug hunt 5: search values are not logged
 			t.Fatalf("expected path with query string, got %v", l.Path)
 		}
 		if l.SessionID == nil || *l.SessionID != 55 {

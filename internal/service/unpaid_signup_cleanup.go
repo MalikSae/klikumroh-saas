@@ -65,11 +65,13 @@ func StartUnpaidSignupCleanup(ctx context.Context, repo repository.UnpaidSignupR
 			case <-ctx.Done():
 				return
 			case <-timer.C:
-				if n, err := CleanupUnpaidSignups(ctx, repo, uploadsRoot, time.Now()); err != nil {
-					log.Printf("[Signup cleanup] failed: %v", err)
-				} else if n > 0 {
-					log.Printf("[Signup cleanup] removed %d unpaid signup(s)", n)
-				}
+				RunJobSafely("signup-cleanup", func() {
+					if n, err := CleanupUnpaidSignups(ctx, repo, uploadsRoot, time.Now()); err != nil {
+						log.Printf("[Signup cleanup] failed: %v", err)
+					} else if n > 0 {
+						log.Printf("[Signup cleanup] removed %d unpaid signup(s)", n)
+					}
+				})
 				timer.Reset(interval)
 			}
 		}

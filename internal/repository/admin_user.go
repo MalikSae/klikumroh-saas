@@ -154,9 +154,16 @@ func (r *mysqlAdminUserRepository) Update(ctx context.Context, tenantID uint64, 
 	return nil
 }
 
+// Delete removes a team member together with the notifications addressed to them: those name jamaah
+// and agents of this travel and must not outlive the account (a reused id would otherwise inherit them).
 func (r *mysqlAdminUserRepository) Delete(ctx context.Context, tenantID uint64, id uint64) error {
-	query := `DELETE FROM admin_users WHERE id = ? AND tenant_id = ?`
-	res, err := r.db.ExecContext(ctx, query, id, tenantID)
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	res, err := tx.ExecContext(ctx, `DELETE FROM admin_users WHERE id = ? AND tenant_id = ?`, id, tenantID)
 	if err != nil {
 		return err
 	}
@@ -167,7 +174,12 @@ func (r *mysqlAdminUserRepository) Delete(ctx context.Context, tenantID uint64, 
 	if rowsAffected == 0 {
 		return ErrNotFound
 	}
-	return nil
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM notifications WHERE tenant_id = ? AND recipient_type = 'admin' AND recipient_id = ?`,
+		tenantID, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *mysqlAdminUserRepository) FindByTenantAndEmail(ctx context.Context, tenantID uint64, email string) (*AdminUser, error) {

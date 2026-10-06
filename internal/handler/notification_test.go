@@ -32,35 +32,35 @@ func (m *mockNotifRepo) Create(ctx context.Context, n *repository.Notification) 
 	return nil
 }
 
-func (m *mockNotifRepo) ListByRecipient(ctx context.Context, recipientType string, recipientID uint64, limit int) ([]repository.Notification, error) {
+func (m *mockNotifRepo) ListByRecipient(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, limit int) ([]repository.Notification, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var res []repository.Notification
 	for _, n := range m.notifs {
-		if n.RecipientType == recipientType && n.RecipientID == recipientID {
+		if n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) {
 			res = append(res, n)
 		}
 	}
 	return res, nil
 }
 
-func (m *mockNotifRepo) CountUnread(ctx context.Context, recipientType string, recipientID uint64) (int, error) {
+func (m *mockNotifRepo) CountUnread(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	cnt := 0
 	for _, n := range m.notifs {
-		if n.RecipientType == recipientType && n.RecipientID == recipientID && n.ReadAt == nil {
+		if n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) && n.ReadAt == nil {
 			cnt++
 		}
 	}
 	return cnt, nil
 }
 
-func (m *mockNotifRepo) MarkAsRead(ctx context.Context, recipientType string, recipientID uint64, id uint64) error {
+func (m *mockNotifRepo) MarkAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, id uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for i, n := range m.notifs {
-		if n.ID == id && n.RecipientType == recipientType && n.RecipientID == recipientID {
+		if n.ID == id && n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) {
 			now := time.Now()
 			m.notifs[i].ReadAt = &now
 			return nil
@@ -69,12 +69,12 @@ func (m *mockNotifRepo) MarkAsRead(ctx context.Context, recipientType string, re
 	return repository.ErrNotFound
 }
 
-func (m *mockNotifRepo) MarkAllAsRead(ctx context.Context, recipientType string, recipientID uint64) error {
+func (m *mockNotifRepo) MarkAllAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	now := time.Now()
 	for i, n := range m.notifs {
-		if n.RecipientType == recipientType && n.RecipientID == recipientID && n.ReadAt == nil {
+		if n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) && n.ReadAt == nil {
 			m.notifs[i].ReadAt = &now
 		}
 	}
@@ -167,4 +167,8 @@ func TestNotificationHandler_DashboardAndAgentEndpoints(t *testing.T) {
 	if badRR.Code != http.StatusNotFound {
 		t.Errorf("Expected 404 on unauthorized mark read, got %d", badRR.Code)
 	}
+}
+
+func notifTenantMatch(n repository.Notification, tenantID *uint64) bool {
+	return tenantID == nil || (n.TenantID != nil && *n.TenantID == *tenantID)
 }

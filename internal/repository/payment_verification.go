@@ -6,26 +6,31 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 )
 
 // PaymentVerification represents a subscription renewal/purchase verification request.
 type PaymentVerification struct {
-	ID               uint64     `json:"id"`
-	TenantID         uint64     `json:"tenant_id"`
-	PublicToken      string     `json:"public_token"`
-	TenantName       string     `json:"tenant_name,omitempty"`
-	TenantSlug       string     `json:"tenant_slug,omitempty"`
-	TenantWhatsApp   *string    `json:"tenant_whatsapp,omitempty"`
-	TenantEmail      *string    `json:"tenant_email,omitempty"`
-	PlanID           uint64     `json:"plan_id"`
-	PlanName         string     `json:"plan_name,omitempty"`
-	PlanPeriodMonths int        `json:"plan_period_months,omitempty"`
-	CouponCode       *string    `json:"coupon_code"`
-	Amount           float64    `json:"amount"`
-	FinalAmount      float64    `json:"final_amount"`
-	UniqueCode       int        `json:"unique_code"`
-	ProofURL         *string    `json:"proof_url"`
+	ID               uint64  `json:"id"`
+	TenantID         uint64  `json:"tenant_id"`
+	PublicToken      string  `json:"public_token"`
+	TenantName       string  `json:"tenant_name,omitempty"`
+	TenantSlug       string  `json:"tenant_slug,omitempty"`
+	TenantWhatsApp   *string `json:"tenant_whatsapp,omitempty"`
+	TenantEmail      *string `json:"tenant_email,omitempty"`
+	PlanID           uint64  `json:"plan_id"`
+	PlanName         string  `json:"plan_name,omitempty"`
+	PlanPeriodMonths int     `json:"plan_period_months,omitempty"`
+	CouponCode       *string `json:"coupon_code"`
+	Amount           float64 `json:"amount"`
+	FinalAmount      float64 `json:"final_amount"`
+	UniqueCode       int     `json:"unique_code"`
+	ProofURL         *string `json:"proof_url"`
+	// ProofFinalAmount is the invoice final_amount at the moment the current proof was stored (nil without a
+	// proof). Staff-only: never serialized here; the staff handlers expose it as "proof_final_amount" so
+	// the payment modal can warn when staff changed the plan/coupon after the travel transferred.
+	ProofFinalAmount *float64   `json:"-"`
 	Status           string     `json:"status"` // 'pending' | 'approved' | 'rejected'
 	RejectionReason  *string    `json:"rejection_reason"`
 	ReviewedBy       *uint64    `json:"reviewed_by"`
@@ -71,7 +76,7 @@ func (r *mysqlPaymentVerificationRepository) ListByTenant(ctx context.Context, t
 			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
 			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
 			pv.plan_id, p.name, p.period_months,
-			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
+			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.proof_final_amount, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
 		JOIN tenants t ON pv.tenant_id = t.id
@@ -95,7 +100,7 @@ func (r *mysqlPaymentVerificationRepository) ListAll(ctx context.Context, status
 			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
 			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
 			pv.plan_id, p.name, p.period_months,
-			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
+			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.proof_final_amount, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
 		JOIN tenants t ON pv.tenant_id = t.id
@@ -124,7 +129,7 @@ func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uin
 			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
 			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
 			pv.plan_id, p.name, p.period_months,
-			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
+			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.proof_final_amount, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
 		JOIN tenants t ON pv.tenant_id = t.id
@@ -138,10 +143,11 @@ func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uin
 	var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp, tenantEmail sql.NullString
 	var reviewedBy sql.NullInt64
 	var reviewedAt sql.NullTime
+	var proofFinalAmount sql.NullFloat64
 
 	err := row.Scan(
 		&pv.ID, &pv.TenantID, &pv.PublicToken, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &tenantEmail, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
-		&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &pv.Status,
+		&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &proofFinalAmount, &pv.Status,
 		&rejectionReason, &reviewedBy, &reviewedByName, &reviewedAt, &pv.CreatedAt, &pv.UpdatedAt,
 	)
 	if err != nil {
@@ -162,6 +168,10 @@ func (r *mysqlPaymentVerificationRepository) GetByID(ctx context.Context, id uin
 	}
 	if proofURL.Valid {
 		pv.ProofURL = &proofURL.String
+	}
+	if proofFinalAmount.Valid {
+		v := proofFinalAmount.Float64
+		pv.ProofFinalAmount = &v
 	}
 	if rejectionReason.Valid {
 		pv.RejectionReason = &rejectionReason.String
@@ -186,7 +196,7 @@ func (r *mysqlPaymentVerificationRepository) GetByPublicToken(ctx context.Contex
 			pv.id, pv.tenant_id, pv.public_token, t.name, t.slug, t.whatsapp_number,
 			(SELECT email FROM admin_users au WHERE au.tenant_id = pv.tenant_id ORDER BY au.id ASC LIMIT 1) AS tenant_email,
 			pv.plan_id, p.name, p.period_months,
-			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.status,
+			pv.coupon_code, pv.amount, pv.final_amount, pv.unique_code, pv.proof_url, pv.proof_final_amount, pv.status,
 			pv.rejection_reason, pv.reviewed_by, su.name, pv.reviewed_at, pv.created_at, pv.updated_at
 		FROM payment_verifications pv
 		JOIN tenants t ON pv.tenant_id = t.id
@@ -200,10 +210,11 @@ func (r *mysqlPaymentVerificationRepository) GetByPublicToken(ctx context.Contex
 	var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp, tenantEmail sql.NullString
 	var reviewedBy sql.NullInt64
 	var reviewedAt sql.NullTime
+	var proofFinalAmount sql.NullFloat64
 
 	err := row.Scan(
 		&pv.ID, &pv.TenantID, &pv.PublicToken, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &tenantEmail, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
-		&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &pv.Status,
+		&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &proofFinalAmount, &pv.Status,
 		&rejectionReason, &reviewedBy, &reviewedByName, &reviewedAt, &pv.CreatedAt, &pv.UpdatedAt,
 	)
 	if err != nil {
@@ -224,6 +235,10 @@ func (r *mysqlPaymentVerificationRepository) GetByPublicToken(ctx context.Contex
 	}
 	if proofURL.Valid {
 		pv.ProofURL = &proofURL.String
+	}
+	if proofFinalAmount.Valid {
+		v := proofFinalAmount.Float64
+		pv.ProofFinalAmount = &v
 	}
 	if rejectionReason.Valid {
 		pv.RejectionReason = &rejectionReason.String
@@ -251,12 +266,18 @@ func (r *mysqlPaymentVerificationRepository) Create(ctx context.Context, pv *Pay
 
 	query := `
 		INSERT INTO payment_verifications (
-			tenant_id, public_token, plan_id, coupon_code, amount, final_amount, unique_code, proof_url, status, rejection_reason, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+			tenant_id, public_token, plan_id, coupon_code, amount, final_amount, unique_code, proof_url, proof_final_amount, status, rejection_reason, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
 	`
 	status := pv.Status
 	if status == "" {
 		status = "pending"
+	}
+	// A proof stored with the invoice belongs to the amount billed right now.
+	var proofFinalAmount *float64
+	if pv.ProofURL != nil {
+		amount := pv.FinalAmount
+		proofFinalAmount = &amount
 	}
 
 	res, err := r.db.ExecContext(ctx, query,
@@ -268,6 +289,7 @@ func (r *mysqlPaymentVerificationRepository) Create(ctx context.Context, pv *Pay
 		pv.FinalAmount,
 		pv.UniqueCode,
 		pv.ProofURL,
+		proofFinalAmount,
 		status,
 		pv.RejectionReason,
 	)
@@ -282,6 +304,7 @@ func (r *mysqlPaymentVerificationRepository) Create(ctx context.Context, pv *Pay
 
 	pv.ID = uint64(id)
 	pv.Status = status
+	pv.ProofFinalAmount = proofFinalAmount
 	return nil
 }
 
@@ -320,18 +343,63 @@ func (r *mysqlPaymentVerificationRepository) UpdateStatus(
 	return nil
 }
 
-// CancelOpenForTenant closes every invoice of the tenant still waiting for payment, and every rejected one
-// (which a new transfer proof could reopen), as status 'cancelled', e.g. when staff activate the
-// subscription manually. Returns how many were cancelled.
+// CancelOpenForTenant closes every invoice of the tenant still waiting for payment as status 'cancelled',
+// e.g. when staff activate the subscription manually. Returns how many were cancelled. Rejected invoices
+// stay rejected with their own reason and reviewer (bug hunt putaran 5): billing history keeps the real
+// rejection, and reopening one after the manual change is refused instead (SubscriptionChangedSince).
 func (r *mysqlPaymentVerificationRepository) CancelOpenForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error) {
 	res, err := r.db.ExecContext(ctx, `
 		UPDATE payment_verifications
 		SET status = 'cancelled', rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW(), updated_at = NOW()
-		WHERE tenant_id = ? AND status IN ('pending', 'rejected')`, reason, staffUserID, tenantID)
+		WHERE tenant_id = ? AND status = 'pending'`, reason, staffUserID, tenantID)
 	if err != nil {
 		return 0, err
 	}
 	return res.RowsAffected()
+}
+
+// SubscriptionChangedSince reports whether KlikUmroh staff changed the tenant's subscription by hand
+// (access log action AccessActionUpdateSubscription) at or after since. Tenant-scoped.
+func (r *mysqlPaymentVerificationRepository) SubscriptionChangedSince(ctx context.Context, tenantID uint64, since time.Time) (bool, error) {
+	var n int
+	err := r.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM access_logs
+		WHERE tenant_id = ? AND action = ? AND accessed_at >= ?`, tenantID, AccessActionUpdateSubscription, since).Scan(&n)
+	return n > 0, err
+}
+
+// ErrInvoiceLockTimeout is returned when another request of the same tenant holds the invoice lock for
+// too long (see LockTenantInvoices).
+var ErrInvoiceLockTimeout = errors.New("invoice lock timeout")
+
+// LockTenantInvoices serializes the travel-side requests that may open an invoice (a renewal request, or
+// a transfer proof reopening a rejected invoice) per tenant, so two concurrent requests cannot both pass
+// the "no other open invoice" check and leave two pending invoices that would each extend the
+// subscription when approved. The returned unlock must be called (deferred).
+//
+// A MySQL named lock (GET_LOCK) is used instead of SELECT ... FOR UPDATE on the tenant row: the invoice
+// INSERT and the notification rows written meanwhile on other pool connections take a shared lock on that
+// same tenant row through their foreign keys, which would wait on our own exclusive lock.
+func (r *mysqlPaymentVerificationRepository) LockTenantInvoices(ctx context.Context, tenantID uint64) (func(), error) {
+	conn, err := r.db.Conn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	name := fmt.Sprintf("klikumroh_invoice_tenant_%d", tenantID)
+	var got sql.NullInt64
+	if err := conn.QueryRowContext(ctx, `SELECT GET_LOCK(?, 10)`, name).Scan(&got); err != nil {
+		_ = conn.Close()
+		return nil, err
+	}
+	if !got.Valid || got.Int64 != 1 {
+		_ = conn.Close()
+		return nil, ErrInvoiceLockTimeout
+	}
+	return func() {
+		var released sql.NullInt64
+		_ = conn.QueryRowContext(context.Background(), `SELECT RELEASE_LOCK(?)`, name).Scan(&released)
+		_ = conn.Close()
+	}, nil
 }
 
 func (r *mysqlPaymentVerificationRepository) TransitionStatus(
@@ -385,7 +453,7 @@ func (r *mysqlPaymentVerificationRepository) missingOrConflict(ctx context.Conte
 func (r *mysqlPaymentVerificationRepository) UpdateProofURL(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	query := `
 		UPDATE payment_verifications
-		SET proof_url = ?, updated_at = NOW()
+		SET proof_url = ?, proof_final_amount = final_amount, updated_at = NOW()
 		WHERE id = ? AND tenant_id = ? AND status = 'pending'
 	`
 	res, err := r.db.ExecContext(ctx, query, proofURL, id, tenantID)
@@ -422,7 +490,7 @@ func (r *mysqlPaymentVerificationRepository) UpdateProofURL(ctx context.Context,
 func (r *mysqlPaymentVerificationRepository) ResetToPendingWithProof(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	query := `
 		UPDATE payment_verifications
-		SET proof_url = ?, status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
+		SET proof_url = ?, proof_final_amount = final_amount, status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
 		WHERE id = ? AND tenant_id = ? AND status = 'rejected'
 	`
 	res, err := r.db.ExecContext(ctx, query, proofURL, id, tenantID)
@@ -451,18 +519,31 @@ func (r *mysqlPaymentVerificationRepository) ResetToPendingWithProof(ctx context
 
 // UpdateDetails is used by platform staff (plan/coupon correction on any travel's invoice), so it is not
 // tenant-scoped; the staff routes are behind StaffAuthMiddleware.
+// An existing transfer proof is kept together with proof_final_amount (keputusan pendiri 6 Okt 2026: staff
+// upsell); the staff payment modal warns when final_amount no longer matches proof_final_amount.
 func (r *mysqlPaymentVerificationRepository) UpdateDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
-	return r.updateDetails(ctx, "COALESCE(?, proof_url)", nil, id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL)
+	return r.updateDetails(ctx, false, nil, id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL)
 }
 
 func (r *mysqlPaymentVerificationRepository) ReplaceDetails(ctx context.Context, tenantID uint64, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
-	return r.updateDetails(ctx, "?", &tenantID, id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL)
+	return r.updateDetails(ctx, true, &tenantID, id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL)
 }
 
-// updateDetails shares the UPDATE for UpdateDetails/ReplaceDetails; proofExpr is a fixed SQL fragment
-// (never user input) that decides whether an absent proof keeps or clears the stored one.
-func (r *mysqlPaymentVerificationRepository) updateDetails(ctx context.Context, proofExpr string, tenantID *uint64, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
-	args := []interface{}{planID, couponCode, amount, finalAmount, uniqueCode, proofURL, id}
+// updateDetails shares the UPDATE for UpdateDetails/ReplaceDetails. replaceProof=false (staff) keeps the stored
+// proof when proofURL is nil and never touches proof_final_amount; replaceProof=true (travel) writes proof_url
+// exactly as given and records proof_final_amount = the new final_amount for a new proof (NULL when cleared).
+func (r *mysqlPaymentVerificationRepository) updateDetails(ctx context.Context, replaceProof bool, tenantID *uint64, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+	proofSet := "proof_url = COALESCE(?, proof_url)"
+	args := []interface{}{planID, couponCode, amount, finalAmount, uniqueCode, proofURL}
+	if replaceProof {
+		proofSet = "proof_url = ?, proof_final_amount = ?"
+		var proofFinalAmount *float64
+		if proofURL != nil {
+			proofFinalAmount = &finalAmount
+		}
+		args = append(args, proofFinalAmount)
+	}
+	args = append(args, id)
 	tenantClause := ""
 	if tenantID != nil {
 		tenantClause = " AND tenant_id = ?"
@@ -470,7 +551,7 @@ func (r *mysqlPaymentVerificationRepository) updateDetails(ctx context.Context, 
 	}
 	query := `
 		UPDATE payment_verifications
-		SET plan_id = ?, coupon_code = ?, amount = ?, final_amount = ?, unique_code = ?, proof_url = ` + proofExpr + `, status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
+		SET plan_id = ?, coupon_code = ?, amount = ?, final_amount = ?, unique_code = ?, ` + proofSet + `, status = 'pending', rejection_reason = NULL, reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
 		WHERE id = ? AND status = 'pending'` + tenantClause + `
 	`
 	// The status guard keeps a concurrent approve/reject from being silently reverted to 'pending'.
@@ -507,10 +588,11 @@ func (r *mysqlPaymentVerificationRepository) scanList(rows *sql.Rows) ([]Payment
 		var couponCode, proofURL, rejectionReason, reviewedByName, tenantWhatsApp, tenantEmail sql.NullString
 		var reviewedBy sql.NullInt64
 		var reviewedAt sql.NullTime
+		var proofFinalAmount sql.NullFloat64
 
 		if err := rows.Scan(
 			&pv.ID, &pv.TenantID, &pv.PublicToken, &pv.TenantName, &pv.TenantSlug, &tenantWhatsApp, &tenantEmail, &pv.PlanID, &pv.PlanName, &pv.PlanPeriodMonths,
-			&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &pv.Status,
+			&couponCode, &pv.Amount, &pv.FinalAmount, &pv.UniqueCode, &proofURL, &proofFinalAmount, &pv.Status,
 			&rejectionReason, &reviewedBy, &reviewedByName, &reviewedAt, &pv.CreatedAt, &pv.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -528,6 +610,10 @@ func (r *mysqlPaymentVerificationRepository) scanList(rows *sql.Rows) ([]Payment
 		}
 		if proofURL.Valid {
 			pv.ProofURL = &proofURL.String
+		}
+		if proofFinalAmount.Valid {
+			v := proofFinalAmount.Float64
+			pv.ProofFinalAmount = &v
 		}
 		if rejectionReason.Valid {
 			pv.RejectionReason = &rejectionReason.String

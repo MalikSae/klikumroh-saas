@@ -9,6 +9,9 @@ const getBackendBaseUrl = (): string => {
 const PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id', 'klikumroh.local', 'localhost', '127.0.0.1']);
 // /demo runs KlikUmroh's demo login and handoff to the platform dashboard, so it is platform-only too.
 const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing', '/affiliator', '/demo'];
+// Travel-only pages, blocked on KlikUmroh's public production domain (dev hosts are left alone).
+const TRAVEL_ONLY_PATHS = ['/agen', '/paket'];
+const PUBLIC_PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id']);
 
 // Where platform pages live. Unset in development: the dev server would turn a redirect to its own
 // origin (localhost:3000) into a relative one and loop on the travel host, so dev answers 404 instead.
@@ -23,15 +26,26 @@ const getPlatformOrigin = (): string | null =>
 const ATTRIBUTION_COOKIE = 'ku_attr';
 const ATTRIBUTION_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'ad_id'] as const;
 
+// A key repeated in the landing URL (link builder's utm_source plus Meta's appended URL parameters): the
+// LAST value wins (founder decision); an unfilled "{{...}}" placeholder is ignored. Same rule as
+// lastAttributionValue in lib/adAttribution.ts (kept local so proxy.ts has no relative imports).
+const UNFILLED_PLACEHOLDER = /\{\{.*\}\}/;
+
+function lastAttributionValue(params: URLSearchParams, key: string): string | null {
+  const values = params.getAll(key).filter((v) => v.trim() !== '' && !UNFILLED_PLACEHOLDER.test(v));
+  const last = values.at(-1);
+  return last === undefined ? null : last;
+}
+
 function withAttribution(req: NextRequest, res: NextResponse): NextResponse {
   const params = req.nextUrl.searchParams;
-  if (!ATTRIBUTION_KEYS.some((k) => params.get(k))) {
-    return res;
-  }
   const attr: Record<string, string> = {};
   for (const k of ATTRIBUTION_KEYS) {
-    const v = params.get(k);
+    const v = lastAttributionValue(params, k);
     if (v) attr[k] = v.slice(0, 255);
+  }
+  if (Object.keys(attr).length === 0) {
+    return res;
   }
   res.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attr), {
     maxAge: 60 * 60 * 24 * 7,
@@ -124,6 +138,14 @@ export async function proxy(req: NextRequest) {
     return origin
       ? NextResponse.redirect(`${origin}${pathname}${req.nextUrl.search}`, 307)
       : new NextResponse(null, { status: 404 });
+  }
+  // The reverse: travel pages (package catalog, agent portal) have no travel on KlikUmroh's public domain,
+  // where they would only show "Situs belum tersedia" or loop on errors. Send the visitor to the home page.
+  // Only the production apex is blocked; localhost / klikumroh.local dev hosts keep their behavior.
+  const isTravelOnlyPath = TRAVEL_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+  if (isTravelOnlyPath && PUBLIC_PLATFORM_HOSTS.has(hostname)) {
+    const origin = getPlatformOrigin();
+    return origin ? NextResponse.redirect(`${origin}/`, 307) : new NextResponse(null, { status: 404 });
   }
   // Check if current hostname is a default subdomain
   const isDefaultSubdomain =

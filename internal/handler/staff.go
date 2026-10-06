@@ -67,17 +67,17 @@ func (h *StaffHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := middleware.LoginKey("staff", req.Email)
-	if h.loginFailures != nil && h.loginFailures.Blocked(key) {
+	attempt, allowed := h.loginFailures.Begin(key)
+	if !allowed {
 		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": middleware.LoginLockedMessage})
 		return
 	}
+	defer attempt.Done()
 
 	res, err := h.staffService.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrStaffInvalidCredentials) {
-			if h.loginFailures != nil {
-				h.loginFailures.Fail(key)
-			}
+			attempt.Fail()
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Email atau password salah"})
 			return
 		}
@@ -90,9 +90,7 @@ func (h *StaffHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.loginFailures != nil {
-		h.loginFailures.Reset(key)
-	}
+	attempt.Succeed()
 	respondJSON(w, http.StatusOK, res)
 }
 

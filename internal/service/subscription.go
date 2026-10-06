@@ -31,7 +31,35 @@ var (
 	// ErrInvoiceNoLongerValid: a rejected invoice cannot be reopened because its plan, price or coupon no
 	// longer holds under today's rules (answered 409).
 	ErrInvoiceNoLongerValid = errors.New("Tagihan ini sudah tidak berlaku. Buat tagihan baru dari halaman Langganan.")
+	// ErrInvoiceBusy: another request of the same travel is still creating or reopening an invoice
+	// (answered 409; the travel simply tries again).
+	ErrInvoiceBusy = errors.New("Tagihan sedang diproses. Coba lagi sebentar lagi.")
 )
+
+// invoiceLocker is implemented by the MySQL payment verification repository (LockTenantInvoices).
+type invoiceLocker interface {
+	LockTenantInvoices(ctx context.Context, tenantID uint64) (func(), error)
+}
+
+// subscriptionChangeChecker is implemented by the MySQL payment verification repository.
+type subscriptionChangeChecker interface {
+	SubscriptionChangedSince(ctx context.Context, tenantID uint64, since time.Time) (bool, error)
+}
+
+// lockTenantInvoices serializes invoice-opening requests of one travel (bug hunt putaran 5): without it,
+// two concurrent requests could both see "no open invoice" and leave two pending invoices, each extending
+// the subscription when approved. Repositories without the lock (test doubles) run unlocked.
+func (s *subscriptionService) lockTenantInvoices(ctx context.Context, tenantID uint64) (func(), error) {
+	l, ok := s.pvRepo.(invoiceLocker)
+	if !ok {
+		return func() {}, nil
+	}
+	unlock, err := l.LockTenantInvoices(ctx, tenantID)
+	if errors.Is(err, repository.ErrInvoiceLockTimeout) {
+		return nil, ErrInvoiceBusy
+	}
+	return unlock, err
+}
 
 // TenantSubscriptionInfo encapsulates current subscription details and history.
 type TenantSubscriptionInfo struct {
@@ -186,6 +214,9 @@ func (s *subscriptionService) GetSubscriptionInfo(ctx context.Context, tenantID 
 	// Fetch history
 	history, err := s.pvRepo.ListByTenant(ctx, tenantID)
 	if err == nil {
+		for i := range history {
+			HideInvoiceReviewer(&history[i])
+		}
 		info.PaymentVerifications = history
 		for i := range history {
 			if history[i].Status == "pending" {
@@ -214,6 +245,13 @@ func (s *subscriptionService) CreateRenewalRequest(
 
 	baseAmount := plan.Price
 	discountedAmount := baseAmount
+
+	// The open-invoice check below and the insert/update at the end run under the tenant's invoice lock.
+	unlock, err := s.lockTenantInvoices(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
 
 	existingHistory, err := s.pvRepo.ListByTenant(ctx, tenantID)
 	if err != nil {
@@ -314,6 +352,8 @@ func (s *subscriptionService) CreateRenewalRequest(
 					return nil, err
 				}
 				existing.ProofURL = proofURL
+				proofAmount := existing.FinalAmount
+				existing.ProofFinalAmount = &proofAmount
 				s.notifyProofUploaded(ctx, existing)
 			}
 			return existing, nil
@@ -331,6 +371,11 @@ func (s *subscriptionService) CreateRenewalRequest(
 		existing.FinalAmount = finalAmount
 		existing.UniqueCode = uniqueCode
 		existing.ProofURL = proofURL
+		existing.ProofFinalAmount = nil
+		if proofURL != nil {
+			proofAmount := finalAmount
+			existing.ProofFinalAmount = &proofAmount
+		}
 		if proofURL != nil {
 			s.notifyProofUploaded(ctx, existing)
 		}
@@ -413,17 +458,22 @@ func (s *subscriptionService) UploadRenewalProof(
 	}
 	// Reopening a rejected invoice while the travel already has another one waiting would leave two open
 	// invoices; approving both would extend the subscription twice. The proof belongs on the open one.
-	if pv.Status == "rejected" {
+	reopenCheck := func() error {
 		history, err := s.pvRepo.ListByTenant(ctx, tenantID)
 		if err != nil {
-			return "", err
+			return err
 		}
 		for i := range history {
 			if history[i].ID != pv.ID && history[i].Status == "pending" {
-				return "", ErrAnotherInvoiceOpen
+				return ErrAnotherInvoiceOpen
 			}
 		}
-		if err := s.rejectedInvoiceStillValid(ctx, pv, history); err != nil {
+		return s.rejectedInvoiceStillValid(ctx, pv, history)
+	}
+	if pv.Status == "rejected" {
+		// Checked before the image work (fast answer), and again under the invoice lock right before the
+		// reopen (see below).
+		if err := reopenCheck(); err != nil {
 			return "", err
 		}
 	}
@@ -438,6 +488,16 @@ func (s *subscriptionService) UploadRenewalProof(
 	}
 
 	if pv.Status == "rejected" {
+		unlock, err := s.lockTenantInvoices(ctx, tenantID)
+		if err != nil {
+			_ = os.Remove(absPath)
+			return "", err
+		}
+		defer unlock()
+		if err := reopenCheck(); err != nil {
+			_ = os.Remove(absPath)
+			return "", err
+		}
 		if err := s.pvRepo.ResetToPendingWithProof(ctx, tenantID, verificationID, relPath); err != nil {
 			_ = os.Remove(absPath)
 			if errors.Is(err, repository.ErrStatusConflict) {
@@ -455,6 +515,8 @@ func (s *subscriptionService) UploadRenewalProof(
 		}
 	}
 	pv.ProofURL = &relPath
+	proofAmount := pv.FinalAmount
+	pv.ProofFinalAmount = &proofAmount
 	s.notifyProofUploaded(ctx, pv)
 
 	return relPath, nil
@@ -473,6 +535,29 @@ func (s *subscriptionService) UploadRenewalProof(
 //     approved payment (same carry rule as a plan change on the open signup invoice);
 //   - the total does not collide with another open invoice (the unique code must identify one invoice).
 func (s *subscriptionService) rejectedInvoiceStillValid(ctx context.Context, pv *repository.PaymentVerification, history []repository.PaymentVerification) error {
+	// The subscription moved on after this invoice (bug hunt putaran 5): a later invoice was approved, or
+	// staff activated/extended the subscription by hand after the rejection (manual changes no longer
+	// cancel rejected invoices, so their real rejection stays in the billing history). Reopening the old
+	// invoice would extend the subscription a second time.
+	for i := range history {
+		if history[i].ID > pv.ID && history[i].Status == "approved" {
+			return ErrInvoiceNoLongerValid
+		}
+	}
+	if checker, ok := s.pvRepo.(subscriptionChangeChecker); ok {
+		since := pv.CreatedAt
+		if pv.ReviewedAt != nil {
+			since = *pv.ReviewedAt
+		}
+		changed, err := checker.SubscriptionChangedSince(ctx, pv.TenantID, since)
+		if err != nil {
+			return err
+		}
+		if changed {
+			return ErrInvoiceNoLongerValid
+		}
+	}
+
 	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -837,7 +922,7 @@ type pendingInvoiceCanceller interface {
 }
 
 // HandleManualSubscriptionChange runs the side effects of a payment approval when staff activate or
-// extend a subscription by hand: open and rejected invoices are cancelled (the travel must not pay twice, nor reopen an old invoice), a newly
+// extend a subscription by hand: open (pending) invoices are cancelled so the travel does not pay twice (rejected ones keep their reason; reopening them is refused by rejectedInvoiceStillValid), a newly
 // activated travel gets its starter content, and the travel's admins are notified.
 func (s *subscriptionService) HandleManualSubscriptionChange(ctx context.Context, tenantID uint64, wasPending bool, planName string, expiresAt time.Time, staffUserID uint64) {
 	if c, ok := s.pvRepo.(pendingInvoiceCanceller); ok {
@@ -1213,4 +1298,15 @@ func pickUniqueCode(ctx context.Context, repo repository.PaymentVerificationRepo
 		}
 	}
 	return rand.Intn(900) + 100
+}
+
+// HideInvoiceReviewer removes which KlikUmroh staff member reviewed an invoice before it is sent to the
+// travel (bug hunt putaran 5): staff identity (id and name) is internal. Status, reason and review time
+// stay.
+func HideInvoiceReviewer(pv *repository.PaymentVerification) {
+	if pv == nil {
+		return
+	}
+	pv.ReviewedBy = nil
+	pv.ReviewedByName = nil
 }

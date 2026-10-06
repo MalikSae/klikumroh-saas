@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, MessageCircle, MoreHorizontal } from 'lucide-react';
 import {
+  createAgentPayoutRequest,
   fetchAgentCommissions,
   fetchAgentDetail,
   fetchAgentPerformance,
@@ -20,7 +21,7 @@ import { AgentHabits } from './AgentHabits';
 import { resetPasswordProblem } from '../../utils/password';
 import { ledgerSign, ledgerTone } from '../../utils/commissionLedger';
 
-type Dialog = null | 'edit' | 'password' | 'deactivate';
+type Dialog = null | 'edit' | 'password' | 'deactivate' | 'payout';
 const MIN_PASSWORD = 8;
 
 const EditAgentModal: React.FC<{ agent: AgentDashboardDetail; onClose: () => void; onSaved: () => void }> = ({ agent, onClose, onSaved }) => {
@@ -195,6 +196,10 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
   const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
+  // Guards a double click before React re-renders the disabled button.
+  const payoutSubmitting = useRef(false);
 
   // Only the latest request may fill the page: moving from /agents/1 to /agents/2 (back/forward) while
   // agent 1 is still loading must not show agent 1 under agent 2's URL.
@@ -217,6 +222,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
   useEffect(() => {
     setAgent(null);
     setError(null);
+    setNotice(null);
     if (!agentId) {
       loadSeq.current++;
       setError('Agen tidak ditemukan.');
@@ -242,9 +248,33 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
     }
   };
 
+  // Admin-initiated payout for the whole withdrawable balance (the server uses the stored bank details).
+  const submitPayout = async () => {
+    if (!agent || payoutSubmitting.current) return;
+    payoutSubmitting.current = true;
+    setBusy(true);
+    setPayoutError(null);
+    try {
+      const p = await createAgentPayoutRequest(agent.id);
+      setDialog(null);
+      const amount = typeof p.amount_requested === 'number' ? fmtRupiah(p.amount_requested) : 'Saldo siap cair';
+      setNotice(`Pencairan ${amount} diajukan. Proses di Pencairan komisi: setujui, transfer, lalu tandai sudah ditransfer.`);
+      onChanged();
+    } catch (e) {
+      setPayoutError(errorText(e, 'Gagal mengajukan pencairan'));
+    } finally {
+      await load();
+      payoutSubmitting.current = false;
+      setBusy(false);
+    }
+  };
+
   const status = agent ? AGENT_STATUS[agent.status] : null;
   const wa = waHref(agent?.phone);
   const inProcess = (agent?.riwayat_pencairan || []).filter((p) => p.status === 'pending' || p.status === 'approved').reduce((sum, p) => sum + p.amount, 0);
+  const payoutOpen = (agent?.riwayat_pencairan || []).some((p) => p.status === 'pending' || p.status === 'approved');
+  const canRequestPayout = Boolean(agent) && (agent?.saldo_siap_cair ?? 0) > 0 && !payoutOpen;
+  const bankKnown = Boolean(agent?.bank_name?.trim() && agent?.bank_account_number?.trim() && agent?.bank_account_holder?.trim());
   const prospects = perf ? perf.baru + perf.dihubungi + perf.tertarik + perf.closing + perf.tidak_lanjut : 0;
 
   return (
@@ -256,6 +286,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
       </div>
 
       {error && <Banner tone="danger">{error}</Banner>}
+      {notice && <Banner tone="success">{notice}</Banner>}
       {!agent ? (
         !error && <div className="ag-loading" aria-busy="true" />
       ) : (
@@ -349,7 +380,24 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
           </Card>
 
           <div className="ag-page__grid">
-            <Card title="Saldo komisi" className="ag-section">
+            <Card
+              title="Saldo komisi"
+              className="ag-section"
+              actions={
+                canRequestPayout ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setPayoutError(null);
+                      setDialog('payout');
+                    }}
+                  >
+                    Ajukan pencairan
+                  </Button>
+                ) : undefined
+              }
+            >
               <CardBody>
               <dl className="ag-balance">
                 <div>
@@ -391,6 +439,9 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                             {c.held ? ' · tertahan' : ''}
                             {c.source === 'payout' && c.status ? ` · ${PAYOUT_STATUS[c.status]?.label ?? c.status}` : ''}
                           </span>
+                          {c.source === 'payout' && c.status === 'rejected' && c.rejection_reason?.trim() && (
+                            <span className="ku-muted">Alasan: {c.rejection_reason.trim()}</span>
+                          )}
                         </div>
                         <span className={`ag-ledger__${tone}`}>
                           {ledgerSign(tone)}
@@ -431,6 +482,30 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
         />
       )}
       {agent && dialog === 'password' && <ResetPasswordModal agent={agent} onClose={() => setDialog(null)} />}
+      <Modal
+        open={Boolean(agent) && dialog === 'payout'}
+        onClose={() => !busy && setDialog(null)}
+        title="Ajukan pencairan?"
+        description={
+          agent
+            ? `Seluruh saldo siap cair ${fmtRupiah(agent.saldo_siap_cair)} diajukan atas nama ${agent.name}${
+                bankKnown ? ` ke ${agent.bank_name} ${agent.bank_account_number} a.n. ${agent.bank_account_holder}` : ' ke rekening yang tersimpan di profil agen'
+              }. Setelah itu proses di Pencairan komisi seperti pengajuan dari agen.`
+            : undefined
+        }
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDialog(null)} disabled={busy}>
+              Batal
+            </Button>
+            <Button variant="primary" onClick={() => void submitPayout()} disabled={busy || !canRequestPayout}>
+              {busy ? 'Mengajukan...' : 'Ajukan pencairan'}
+            </Button>
+          </>
+        }
+      >
+        {payoutError && <Banner tone="danger">{payoutError}</Banner>}
+      </Modal>
       <Modal
         open={Boolean(agent) && dialog === 'deactivate'}
         onClose={() => setDialog(null)}

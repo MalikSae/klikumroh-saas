@@ -9,6 +9,18 @@ export const ATTRIBUTION_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fb
 
 export const ATTRIBUTION_COOKIE = 'ku_attr';
 
+// An ad link can carry the same key twice: the travel's link builder adds utm_source/utm_campaign and Meta
+// then appends its own "URL parameters" (utm_source={{site_source_name}}, ...). Founder decision: the LAST
+// value wins (Meta appends its own). A value Meta left unfilled ("{{...}}") is ignored. Keep in sync with
+// lastAttributionValue in proxy.ts (test/ad-attribution.test.mjs checks both).
+const UNFILLED_PLACEHOLDER = /\{\{.*\}\}/;
+
+export function lastAttributionValue(params: URLSearchParams, key: string): string | null {
+  const values = params.getAll(key).filter((v) => v.trim() !== '' && !UNFILLED_PLACEHOLDER.test(v));
+  const last = values.at(-1);
+  return last === undefined ? null : last;
+}
+
 /**
  * Attribution for the prospect payload: the current URL's ad parameters win (the visitor just clicked an
  * ad); otherwise the ku_attr cookie set by proxy.ts within the attribution window. Returns null if none.
@@ -17,7 +29,7 @@ export function readAttribution(search: string, cookieHeader: string): Record<st
   const params = new URLSearchParams(search);
   const fromUrl: Record<string, string> = {};
   for (const k of ATTRIBUTION_KEYS) {
-    const v = params.get(k);
+    const v = lastAttributionValue(params, k);
     if (v) fromUrl[k] = v.slice(0, 255);
   }
   if (Object.keys(fromUrl).length > 0) return fromUrl;

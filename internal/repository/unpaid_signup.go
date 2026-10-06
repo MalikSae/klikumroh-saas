@@ -38,11 +38,18 @@ func NewUnpaidSignupRepository(db *sql.DB) UnpaidSignupRepository {
 	return &mysqlUnpaidSignupRepository{db: db}
 }
 
-// staleUnpaidCondition is the safety predicate on tenants t (one ? placeholder: createdBefore):
+// staleUnpaidCondition is the safety predicate on tenants t (two ? placeholders, both the cutoff):
 //   - still pending, not the demo, never activated (no plan, no expiry) and created before the cutoff;
 //   - no payment activity: every invoice is still pending without a transfer proof (an approved,
 //     rejected or cancelled invoice means a proof or staff action happened), no coupon redemption and no
 //     affiliator commission;
+//   - no invoice that needs no transfer (final_amount <= 0, e.g. a 100% coupon): it waits for staff
+//     approval, not for the travel, so the travel already did everything it had to do;
+//   - no invoice touched after it was created (bug hunt putaran 5): a plan or coupon change by the travel
+//     or by staff (PATCH .../payment-verifications/{id}/plan|coupon, which writes no access log) bumps
+//     updated_at, and any review field set means staff handled it;
+//   - no invoice activity since the cutoff: the latest of the tenant's created_at and every invoice's
+//     updated_at must be older than the cutoff, so the 30 days count from the last activity;
 //   - nothing a travel or KlikUmroh staff built on it: no agents, prospects, referral clicks, and no staff
 //     access log (staff who opened the travel may be helping it).
 const staleUnpaidCondition = `
@@ -50,7 +57,12 @@ const staleUnpaidCondition = `
 	AND t.current_plan_id IS NULL AND t.subscription_expires_at IS NULL
 	AND t.created_at < ?
 	AND NOT EXISTS (SELECT 1 FROM payment_verifications pv WHERE pv.tenant_id = t.id
-		AND (pv.status <> 'pending' OR (pv.proof_url IS NOT NULL AND pv.proof_url <> '')))
+		AND (pv.status <> 'pending' OR (pv.proof_url IS NOT NULL AND pv.proof_url <> '')
+			OR pv.final_amount <= 0
+			OR pv.updated_at > pv.created_at
+			OR pv.reviewed_by IS NOT NULL OR pv.reviewed_at IS NOT NULL
+			OR (pv.rejection_reason IS NOT NULL AND pv.rejection_reason <> '')
+			OR pv.updated_at >= ?))
 	AND NOT EXISTS (SELECT 1 FROM coupon_redemptions cr WHERE cr.tenant_id = t.id)
 	AND NOT EXISTS (SELECT 1 FROM affiliator_commissions ac WHERE ac.tenant_id = t.id)
 	AND NOT EXISTS (SELECT 1 FROM agents a WHERE a.tenant_id = t.id)
@@ -63,7 +75,7 @@ func (r *mysqlUnpaidSignupRepository) ListStaleUnpaidSignups(ctx context.Context
 		SELECT t.id, t.slug, t.created_at
 		FROM tenants t
 		WHERE `+staleUnpaidCondition+`
-		ORDER BY t.id`, createdBefore)
+		ORDER BY t.id`, createdBefore, createdBefore)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +114,7 @@ func (r *mysqlUnpaidSignupRepository) DeleteUnpaidSignup(ctx context.Context, te
 	_ = pvRows.Close()
 	var match int
 	err = tx.QueryRowContext(ctx, `SELECT 1 FROM tenants t WHERE t.id = ? AND `+staleUnpaidCondition+` FOR UPDATE`,
-		tenantID, createdBefore).Scan(&match)
+		tenantID, createdBefore, createdBefore).Scan(&match)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}

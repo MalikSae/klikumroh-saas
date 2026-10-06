@@ -16,8 +16,14 @@ export const ImageField: React.FC<{
   onUpload: (file: File) => Promise<string>;
   onRemove: () => Promise<void>;
   onChange: (url: string | null) => void;
-}> = ({ label, hint, url, shape = 'square', maxMB, onUpload, onRemove, onChange }) => {
-  const [busy, setBusy] = useState<'upload' | 'remove' | null>(null);
+  /** Told when an upload/remove starts and ends, so a parent form can wait (e.g. not save mid-upload). */
+  onBusyChange?: (busy: boolean) => void;
+}> = ({ label, hint, url, shape = 'square', maxMB, onUpload, onRemove, onChange, onBusyChange }) => {
+  const [busy, setBusyState] = useState<'upload' | 'remove' | null>(null);
+  const setBusy = (b: 'upload' | 'remove' | null) => {
+    setBusyState(b);
+    onBusyChange?.(b !== null);
+  };
   const [error, setError] = useState<string | null>(null);
   // Set after an upload: fixed-path images (agent poster) keep their URL, so the shown src is versioned.
   const [version, setVersion] = useState<number | null>(null);

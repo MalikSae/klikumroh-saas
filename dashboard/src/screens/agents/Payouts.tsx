@@ -7,7 +7,8 @@ import { CopyText, PAYOUT_STATUS } from './shared';
 import { todayWIB } from '../../utils/datetime';
 
 type View = 'todo' | 'pending' | 'approved' | 'paid' | 'rejected' | 'all';
-type Dialog = null | { kind: 'approve' | 'paid' | 'reject'; item: PayoutRequestItem };
+type DialogKind = 'approve' | 'paid' | 'reject' | 'cancel';
+type Dialog = null | { kind: DialogKind; item: PayoutRequestItem };
 
 export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
   const [items, setItems] = useState<PayoutRequestItem[]>([]);
@@ -20,9 +21,13 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = () =>
+  // keepError: after a failed action the error banner must survive the reload that follows it.
+  const load = (keepError = false) =>
     fetchPayoutRequests()
-      .then(setItems)
+      .then((list) => {
+        setItems(list);
+        if (!keepError) setError(null);
+      })
       .catch((e) => setError(errorText(e, 'Gagal memuat pencairan')))
       .finally(() => setLoading(false));
 
@@ -57,7 +62,7 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
     };
   }, [items]);
 
-  const open = (kind: 'approve' | 'paid' | 'reject', item: PayoutRequestItem) => {
+  const open = (kind: DialogKind, item: PayoutRequestItem) => {
     setReason('');
     setReasonError(null);
     setDialog({ kind, item });
@@ -66,8 +71,8 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
   const confirm = async () => {
     if (!dialog) return;
     const { kind, item } = dialog;
-    if (kind === 'reject' && !reason.trim()) {
-      setReasonError('Alasan penolakan wajib diisi.');
+    if ((kind === 'reject' || kind === 'cancel') && !reason.trim()) {
+      setReasonError(kind === 'cancel' ? 'Alasan pembatalan wajib diisi.' : 'Alasan penolakan wajib diisi.');
       return;
     }
     setBusy(true);
@@ -75,15 +80,17 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
     try {
       if (kind === 'approve') await approvePayoutRequest(item.id);
       if (kind === 'paid') await markPayoutRequestPaid(item.id);
-      if (kind === 'reject') await rejectPayoutRequest(item.id, reason.trim());
+      // Cancelling an approved request uses the same reject endpoint (status 'approved' is allowed, reason required).
+      if (kind === 'reject' || kind === 'cancel') await rejectPayoutRequest(item.id, reason.trim());
       setDialog(null);
       await load();
       onChanged();
     } catch (e) {
       setError(errorText(e, 'Gagal memproses pencairan'));
       setDialog(null);
-      // A 409/404 means another admin already changed this request: reload so the row shows its real status.
-      await load();
+      // A 409/404 means another admin already changed this request, or the agent's balance no longer covers it
+      // (the server text says so): reload so the row shows its real status, keeping the error banner.
+      await load(true);
       onChanged();
     } finally {
       setBusy(false);
@@ -147,22 +154,29 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
             </Button>
           </span>
         ) : p.status === 'approved' ? (
-          <Button size="sm" variant="secondary" onClick={() => open('paid', p)}>
-            Tandai sudah ditransfer
-          </Button>
+          <span className="ag-row-actions">
+            <Button size="sm" variant="ghost" onClick={() => open('cancel', p)}>
+              Batalkan
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => open('paid', p)}>
+              Tandai sudah ditransfer
+            </Button>
+          </span>
         ) : null,
     },
   ];
 
   const d = dialog;
-  const title = !d ? '' : d.kind === 'approve' ? 'Setujui pencairan?' : d.kind === 'paid' ? 'Tandai sudah ditransfer?' : 'Tolak pencairan?';
+  const title = !d ? '' : d.kind === 'approve' ? 'Setujui pencairan?' : d.kind === 'paid' ? 'Tandai sudah ditransfer?' : d.kind === 'cancel' ? 'Batalkan pencairan?' : 'Tolak pencairan?';
   const desc = !d
     ? undefined
     : d.kind === 'approve'
       ? `${fmtRupiah(d.item.amount_requested)} untuk ${d.item.agent_name}. Setelah disetujui, transfer ke rekening agen lalu tandai sudah ditransfer.`
       : d.kind === 'paid'
         ? `Pastikan ${fmtRupiah(d.item.amount_requested)} sudah Anda transfer ke ${d.item.bank_name_snapshot} ${d.item.bank_account_number_snapshot} a.n. ${d.item.bank_account_holder_snapshot}.`
-        : `Saldo ${fmtRupiah(d.item.amount_requested)} kembali ke saldo siap cair ${d.item.agent_name}.`;
+        : d.kind === 'cancel'
+          ? `Pencairan yang sudah disetujui ini dibatalkan dan tidak perlu ditransfer. ${fmtRupiah(d.item.amount_requested)} kembali ke saldo siap cair ${d.item.agent_name}, lalu agen bisa mengajukan ulang.`
+          : `Saldo ${fmtRupiah(d.item.amount_requested)} kembali ke saldo siap cair ${d.item.agent_name}.`;
 
   return (
     <section className="ku-list">
@@ -221,14 +235,14 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
             <Button variant="ghost" onClick={() => setDialog(null)} disabled={busy}>
               Batal
             </Button>
-            <Button variant={d?.kind === 'reject' ? 'danger' : 'primary'} onClick={confirm} disabled={busy}>
-              {busy ? 'Memproses...' : d?.kind === 'approve' ? 'Setujui' : d?.kind === 'paid' ? 'Sudah ditransfer' : 'Tolak pencairan'}
+            <Button variant={d?.kind === 'reject' || d?.kind === 'cancel' ? 'danger' : 'primary'} onClick={confirm} disabled={busy}>
+              {busy ? 'Memproses...' : d?.kind === 'approve' ? 'Setujui' : d?.kind === 'paid' ? 'Sudah ditransfer' : d?.kind === 'cancel' ? 'Batalkan pencairan' : 'Tolak pencairan'}
             </Button>
           </>
         }
       >
-        {d?.kind === 'reject' && (
-          <Field label="Alasan penolakan" error={reasonError} hint="Dikirim ke agen.">
+        {(d?.kind === 'reject' || d?.kind === 'cancel') && (
+          <Field label={d.kind === 'cancel' ? 'Alasan pembatalan' : 'Alasan penolakan'} error={reasonError} hint="Dikirim ke agen.">
             {(id) => <textarea id={id} className="ku-textarea" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={Boolean(reasonError)} />}
           </Field>
         )}

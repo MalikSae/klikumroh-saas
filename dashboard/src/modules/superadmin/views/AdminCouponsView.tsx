@@ -2,7 +2,7 @@ import { formatDateWIB } from '../../../utils/datetime';
 import React, { useState, useEffect } from 'react';
 import { Plus, PowerOff, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
-import { couponState } from '../shared/statusLabels';
+import { couponExhausted, couponState } from '../shared/statusLabels';
 import { AdminDataGrid, type AdminColumn } from '../components/AdminDataGrid';
 import {
   fetchStaffCoupons,
@@ -116,6 +116,12 @@ export const AdminCouponsView: React.FC = () => {
       ),
     },
     {
+      // A coupon bound to one plan (plan_id, settable through the API) only validates for that plan.
+      key: 'plan_name',
+      label: 'Berlaku Untuk',
+      render: (row) => (row.plan_id ? <span>Paket {row.plan_name || `#${row.plan_id}`}</span> : <span className="sa-note">Semua paket</span>),
+    },
+    {
       key: 'usage',
       label: 'Penggunaan / Kuota',
       render: (row) => (
@@ -139,7 +145,11 @@ export const AdminCouponsView: React.FC = () => {
       render: (row) => {
         // Past its expiry day (WIB, like the backend) a coupon is no longer usable even if still "active".
         const st = couponState(row.status, row.expires_at);
-        const view = { active: { cls: 'sa-badge--active', label: 'Aktif' }, expired: { cls: 'sa-badge--expired', label: 'Kedaluwarsa' }, inactive: { cls: 'sa-badge--expired', label: 'Nonaktif' } }[st];
+        // An active coupon that reached its quota is refused by the backend too: show it as used up.
+        const view =
+          st === 'active' && couponExhausted(row.used_count, row.max_uses)
+            ? { cls: 'sa-badge--neutral', label: 'Habis' }
+            : { active: { cls: 'sa-badge--active', label: 'Aktif' }, expired: { cls: 'sa-badge--expired', label: 'Kedaluwarsa' }, inactive: { cls: 'sa-badge--expired', label: 'Nonaktif' } }[st];
         return <span className={`sa-badge ${view.cls}`}>{view.label}</span>;
       },
     },

@@ -8,6 +8,7 @@ import { MetaPixel } from '../components/MetaPixel';
 import { DemoRibbon } from '../components/DemoRibbon';
 import { isPlatformHost } from '../lib/platformHost';
 import { travelSiteFlags } from '../lib/travelSiteState';
+import { backendFetch } from '../lib/backendFetch';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: '--tw-font-heading',
@@ -30,7 +31,7 @@ const getBackendBaseUrl = (): string => {
 async function getTenantInfo(host: string) {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/tenant-info`, {
+    const res = await backendFetch(`${backendUrl}/api/public/tenant-info`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,
@@ -51,7 +52,7 @@ async function getTenantInfo(host: string) {
 // The travel's Meta Pixel ID (set in the dashboard), or '' when none. Never fails the page.
 async function getMetaPixelId(host: string): Promise<string> {
   try {
-    const res = await fetch(`${getBackendBaseUrl()}/api/public/meta-pixel`, {
+    const res = await backendFetch(`${getBackendBaseUrl()}/api/public/meta-pixel`, {
       headers: { Host: host, 'X-Forwarded-Host': host },
       // Same host-dependent URL for every travel: never cache it across requests.
       cache: 'no-store',

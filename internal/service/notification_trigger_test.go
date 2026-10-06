@@ -30,35 +30,35 @@ func (m *mockNotificationRepo) Create(ctx context.Context, notif *repository.Not
 	return nil
 }
 
-func (m *mockNotificationRepo) ListByRecipient(ctx context.Context, recipientType string, recipientID uint64, limit int) ([]repository.Notification, error) {
+func (m *mockNotificationRepo) ListByRecipient(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, limit int) ([]repository.Notification, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var res []repository.Notification
 	for _, n := range m.notifs {
-		if n.RecipientType == recipientType && n.RecipientID == recipientID {
+		if n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) {
 			res = append(res, n)
 		}
 	}
 	return res, nil
 }
 
-func (m *mockNotificationRepo) CountUnread(ctx context.Context, recipientType string, recipientID uint64) (int, error) {
+func (m *mockNotificationRepo) CountUnread(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	count := 0
 	for _, n := range m.notifs {
-		if n.RecipientType == recipientType && n.RecipientID == recipientID && n.ReadAt == nil {
+		if n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) && n.ReadAt == nil {
 			count++
 		}
 	}
 	return count, nil
 }
 
-func (m *mockNotificationRepo) MarkAsRead(ctx context.Context, recipientType string, recipientID uint64, id uint64) error {
+func (m *mockNotificationRepo) MarkAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, id uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for i, n := range m.notifs {
-		if n.ID == id && n.RecipientType == recipientType && n.RecipientID == recipientID {
+		if n.ID == id && n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) {
 			now := time.Now()
 			m.notifs[i].ReadAt = &now
 			return nil
@@ -67,12 +67,12 @@ func (m *mockNotificationRepo) MarkAsRead(ctx context.Context, recipientType str
 	return repository.ErrNotFound
 }
 
-func (m *mockNotificationRepo) MarkAllAsRead(ctx context.Context, recipientType string, recipientID uint64) error {
+func (m *mockNotificationRepo) MarkAllAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	now := time.Now()
 	for i, n := range m.notifs {
-		if n.RecipientType == recipientType && n.RecipientID == recipientID && n.ReadAt == nil {
+		if n.RecipientType == recipientType && n.RecipientID == recipientID && notifTenantMatch(n, tenantID) && n.ReadAt == nil {
 			m.notifs[i].ReadAt = &now
 		}
 	}
@@ -158,7 +158,7 @@ func TestNotificationService_DeliveryAndIsolation(t *testing.T) {
 	}
 
 	// List for Admin 10
-	res10, err := svc.ListNotifications(ctx, "admin", 10, 50)
+	res10, err := svc.ListNotifications(ctx, nil, "admin", 10, 50)
 	if err != nil {
 		t.Fatalf("ListNotifications failed: %v", err)
 	}
@@ -168,18 +168,18 @@ func TestNotificationService_DeliveryAndIsolation(t *testing.T) {
 
 	// Admin 20 cannot mark Admin 10's notification as read
 	notif10ID := res10.Notifications[0].ID
-	err = svc.MarkAsRead(ctx, "admin", 20, notif10ID)
+	err = svc.MarkAsRead(ctx, nil, "admin", 20, notif10ID)
 	if err == nil {
 		t.Errorf("CRITICAL SECURITY: Admin 20 marked Admin 10's notif as read!")
 	}
 
 	// Admin 10 marks own notification
-	err = svc.MarkAsRead(ctx, "admin", 10, notif10ID)
+	err = svc.MarkAsRead(ctx, nil, "admin", 10, notif10ID)
 	if err != nil {
 		t.Fatalf("MarkAsRead failed: %v", err)
 	}
 
-	res10After, _ := svc.ListNotifications(ctx, "admin", 10, 50)
+	res10After, _ := svc.ListNotifications(ctx, nil, "admin", 10, 50)
 	if res10After.UnreadCount != 0 {
 		t.Errorf("Expected 0 unread, got %d", res10After.UnreadCount)
 	}
@@ -227,7 +227,7 @@ func TestNotificationService_OverrideBodyPrivacy(t *testing.T) {
 	}
 
 	// Assert: notif agent langsung (recipientID=100) mengandung nama jamaah ✅
-	res100, err := svc.ListNotifications(ctx, "agent", 100, 10)
+	res100, err := svc.ListNotifications(ctx, nil, "agent", 100, 10)
 	if err != nil {
 		t.Fatalf("ListNotifications (agent 100) failed: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestNotificationService_OverrideBodyPrivacy(t *testing.T) {
 	}
 
 	// Assert: notif parent agent (recipientID=200) TIDAK mengandung nama jamaah ❌ jika bocor
-	res200, err := svc.ListNotifications(ctx, "agent", 200, 10)
+	res200, err := svc.ListNotifications(ctx, nil, "agent", 200, 10)
 	if err != nil {
 		t.Fatalf("ListNotifications (parent agent 200) failed: %v", err)
 	}
@@ -281,7 +281,7 @@ func TestNotificationService_MultiAdminFanOut(t *testing.T) {
 
 	// Assert: MASING-MASING admin menerima tepat 1 notifikasi
 	for _, adminID := range adminIDs {
-		res, err := svc.ListNotifications(ctx, "admin", adminID, 50)
+		res, err := svc.ListNotifications(ctx, nil, "admin", adminID, 50)
 		if err != nil {
 			t.Fatalf("ListNotifications for admin %d failed: %v", adminID, err)
 		}
@@ -294,7 +294,7 @@ func TestNotificationService_MultiAdminFanOut(t *testing.T) {
 	}
 
 	// Assert cross-isolation: Admin 31 tidak bisa lihat notif Admin 32
-	res31, _ := svc.ListNotifications(ctx, "admin", 31, 50)
+	res31, _ := svc.ListNotifications(ctx, nil, "admin", 31, 50)
 	for _, n := range res31.Notifications {
 		if n.RecipientID != 31 {
 			t.Errorf("ISOLATION VIOLATION: Admin 31 melihat notif milik recipient %d", n.RecipientID)
@@ -313,4 +313,8 @@ func notifContains(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func notifTenantMatch(n repository.Notification, tenantID *uint64) bool {
+	return tenantID == nil || (n.TenantID != nil && *n.TenantID == *tenantID)
 }

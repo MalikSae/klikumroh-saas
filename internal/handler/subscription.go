@@ -154,6 +154,8 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 		switch {
 		case errors.Is(err, service.ErrPlanNotFound), errors.Is(err, service.ErrPlanNotAvailable), isCouponClientError(err):
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		case errors.Is(err, service.ErrInvoiceBusy):
+			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 		case errors.Is(err, service.ErrVerificationNotPending), errors.Is(err, service.ErrVerificationAlreadyDone):
 			respondJSON(w, http.StatusConflict, map[string]string{"error": "Tagihan sudah diproses tim KlikUmroh. Muat ulang halaman lalu periksa lagi."})
 		case errors.Is(err, repository.ErrNotFound):
@@ -166,6 +168,7 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 		return
 	}
 
+	service.HideInvoiceReviewer(pv)
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"message":              "Permohonan perpanjangan berhasil diajukan dan sedang menunggu verifikasi",
 		"payment_verification": pv,
@@ -197,6 +200,7 @@ func (h *SubscriptionHandler) GetPaymentVerification(w http.ResponseWriter, r *h
 		return
 	}
 
+	service.HideInvoiceReviewer(pv)
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"payment_verification": pv,
 	})
@@ -243,7 +247,7 @@ func (h *SubscriptionHandler) UploadRenewalProof(w http.ResponseWriter, r *http.
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data tagihan tidak ditemukan"})
 			return
 		}
-		if errors.Is(err, service.ErrAnotherInvoiceOpen) || errors.Is(err, service.ErrInvoiceNoLongerValid) {
+		if errors.Is(err, service.ErrAnotherInvoiceOpen) || errors.Is(err, service.ErrInvoiceNoLongerValid) || errors.Is(err, service.ErrInvoiceBusy) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}

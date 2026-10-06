@@ -12,6 +12,9 @@ var (
 	// ErrStatusConflict is returned when a conditional status transition finds the record in a different
 	// status than expected (e.g. another request already approved it).
 	ErrStatusConflict = errors.New("record status changed concurrently")
+	// ErrDomainInUse is returned when another tenant's unverified domain row cannot be released because a
+	// live (active) domain still depends on it (an active alias redirecting to it).
+	ErrDomainInUse = errors.New("domain still used by another tenant")
 )
 
 // IsDuplicateKey reports a MySQL unique-key violation (error 1062), e.g. two requests racing to create

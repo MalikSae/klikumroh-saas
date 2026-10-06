@@ -96,7 +96,9 @@ export const NotificationMenu: React.FC = () => {
       setUnread((u) => Math.max(0, u - 1));
     }
     setOpen(false);
-    if (it.link_url) navigate(it.link_url);
+    // Domain notifications sent before the fix still carry /settings (Profil); the domain screen is /website/domain.
+    const link = it.type === 'domain_deactivated' && it.link_url === '/settings' ? '/website/domain' : it.link_url;
+    if (link) navigate(link);
   };
 
   const markAll = async () => {

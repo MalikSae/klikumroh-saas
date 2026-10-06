@@ -23,9 +23,9 @@ import {
 } from '../../../lib/scriptData';
 import { matchesQuery, packageFacts, type PackageLike } from '../../../lib/placeholderFill';
 import { copyToClipboard } from '../../../lib/clipboard';
+import { SCRIPT_PROSPECT_NAME_PREFIX, scriptProspectNameKey } from '../../../lib/scriptProspectName';
 
 const FAVORITES_STORAGE_KEY = 'klikumroh_agent_script_favorites';
-const PROSPECT_NAME_STORAGE_KEY = 'klikumroh_agent_script_prospect_name';
 
 type TabType = 'greeting' | 'identification' | 'offer' | 'closing' | 'objection' | 'followup' | 'favorites';
 type PersonalizationMode = 'prospect' | 'manual';
@@ -138,6 +138,9 @@ function ScriptWAContent() {
     setProspectPackageName('');
   };
 
+  // Storage key of this agent's last manual jamaah name (set once /api/agent/me answers).
+  const prospectNameKeyRef = useRef<string | null>(null);
+
   // Load user data and saved state
   useEffect(() => {
     const token = localStorage.getItem('agent_token');
@@ -206,6 +209,18 @@ function ScriptWAContent() {
           const agent = data.agent || data.data?.agent || data;
           const tenant = data.tenant || data.data?.tenant || {};
           if (agent.name) updateAgentName(agent.name);
+          // The manual jamaah name is stored per agent (shared devices); restore this agent's own.
+          const agentKey = agent.id ?? agent.referral_code;
+          if (agentKey !== undefined && agentKey !== null && agentKey !== '') {
+            prospectNameKeyRef.current = scriptProspectNameKey(agentKey);
+            try {
+              localStorage.removeItem(SCRIPT_PROSPECT_NAME_PREFIX); // old unscoped key
+              const savedName = localStorage.getItem(prospectNameKeyRef.current);
+              if (savedName && !initialProspectId) setProspectName((current) => current || savedName);
+            } catch {
+              // Ignore storage error
+            }
+          }
 
           const resolvedTenantName = data.tenant_name || agent.tenant_name || tenant.name;
           if (resolvedTenantName) {
@@ -295,8 +310,6 @@ function ScriptWAContent() {
         const parsed = JSON.parse(savedFavs);
         if (Array.isArray(parsed)) setFavoriteKeys(parsed);
       }
-      const savedName = localStorage.getItem(PROSPECT_NAME_STORAGE_KEY);
-      if (savedName && !initialProspectId) setProspectName(savedName);
     } catch {
       // Ignore storage error
     }
@@ -307,8 +320,10 @@ function ScriptWAContent() {
   // Persist prospect name in manual mode
   const handleManualNameChange = (val: string) => {
     setProspectName(val);
+    // Stored only once the agent is known, under that agent's own key.
+    if (!prospectNameKeyRef.current) return;
     try {
-      localStorage.setItem(PROSPECT_NAME_STORAGE_KEY, val);
+      localStorage.setItem(prospectNameKeyRef.current, val);
     } catch {
       // Ignore storage error
     }

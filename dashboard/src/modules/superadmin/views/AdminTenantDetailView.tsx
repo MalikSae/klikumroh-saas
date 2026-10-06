@@ -1,7 +1,7 @@
 import { formatDateWIB } from '../../../utils/datetime';
 import { addMonthsClampedWIB } from '../../../utils/billingMath';
 import { resetPasswordProblem } from '../../../utils/password';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   RefreshCw,
@@ -59,8 +59,11 @@ export const AdminTenantDetailView: React.FC = () => {
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState(false);
 
+  // Only the latest request may fill the page (moving from tenant A to tenant B via a notification).
+  const loadSeq = useRef(0);
   const loadDetail = async () => {
     if (!id) return;
+    const seq = ++loadSeq.current;
     try {
       setLoading(true);
       setError(null);
@@ -68,19 +71,28 @@ export const AdminTenantDetailView: React.FC = () => {
         fetchStaffTenantDetail(Number(id)),
         fetchPricingPlans().catch(() => []),
       ]);
+      if (seq !== loadSeq.current) return;
       setTenant(data);
       setPlans(pricingData);
       if (pricingData.length > 0) {
         setSelectedPlanId(pricingData[0].id);
       }
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat detail travel');
+      if (seq === loadSeq.current) setError(err.message || 'Gagal memuat detail travel');
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Another tenant: drop the previous tenant's data, banners and open dialogs so nothing acts on it
+    // while the new one loads (the loading screen shows instead).
+    setTenant(null);
+    setActionSuccess(null);
+    setError(null);
+    setShowExtendModal(false);
+    setShowResetModal(false);
+    setShowImpersonateModal(false);
     loadDetail();
   }, [id]);
 
@@ -112,6 +124,13 @@ export const AdminTenantDetailView: React.FC = () => {
       return;
     }
 
+    // Open the tab now, inside the click: strict popup blockers (Safari) block window.open after an await.
+    // It is pointed at the handoff URL once the one-time code arrives.
+    const win = window.open('', '_blank');
+    if (!win) {
+      setImpersonateError('Tab baru diblokir browser. Izinkan pop-up untuk halaman ini, lalu coba lagi.');
+      return;
+    }
     try {
       setImpersonating(true);
       setImpersonateError(null);
@@ -120,8 +139,9 @@ export const AdminTenantDetailView: React.FC = () => {
       // Only a one-time code goes in the URL (fragment, never sent to a server); the new tab trades it
       // for the impersonation session, and only this browser can (main.tsx).
       const handoff = encodeURIComponent(JSON.stringify({ code: res.handoff_code, redirect: '/', source: 'staff' }));
-      window.open(`/#handoff=${handoff}`, '_blank');
+      win.location.href = `/#handoff=${handoff}`;
     } catch (err: any) {
+      win.close();
       setImpersonateError(err.message || 'Gagal impersonasi travel');
     } finally {
       setImpersonating(false);
@@ -679,12 +699,13 @@ export const AdminTenantDetailView: React.FC = () => {
                         <span style={{ fontWeight: 600, color: 'var(--sa-text)' }}>
                           {tenant.subscription_expires_at ? formatDate(tenant.subscription_expires_at) : 'Belum Ada'}
                         </span>
+                        {/* No expiry yet (new or pending travel): nothing has expired, so no red badge. */}
                         <span
                           className={`sa-badge sa-badge--sm ${
-                            isCurrentlyActive ? 'sa-badge--active' : 'sa-badge--expired'
+                            isCurrentlyActive ? 'sa-badge--active' : tenant.subscription_expires_at ? 'sa-badge--expired' : 'sa-badge--neutral'
                           }`}
                         >
-                          {isCurrentlyActive ? 'Aktif' : 'Kedaluwarsa'}
+                          {isCurrentlyActive ? 'Aktif' : tenant.subscription_expires_at ? 'Kedaluwarsa' : 'Belum aktif'}
                         </span>
                       </div>
                     </div>

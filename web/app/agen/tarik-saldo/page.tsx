@@ -6,6 +6,7 @@ import { ArrowLeft, Building2, Clock, CheckCircle2, AlertCircle, RefreshCw, Rece
 import { MobileContainer } from '../../../components/MobileContainer';
 import { BankField } from '../../../components/BankField';
 import { jakartaDateLabel, jakartaTimeLabel } from '../../../lib/jakartaTime';
+import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
 import './TarikSaldo.css';
 
 interface PendingRequest {
@@ -90,7 +91,10 @@ export default function TarikSaldoPage() {
         throw new Error('Gagal memuat data saldo dan pencairan');
       }
 
-      const data: PayoutInfo = await res.json();
+      const data = await readJsonSafe<PayoutInfo>(res);
+      if (!data) {
+        throw new Error('Gagal memuat data saldo dan pencairan');
+      }
       setInfo(data);
 
       // Pre-fill bank details if available
@@ -171,20 +175,22 @@ export default function TarikSaldoPage() {
         }),
       });
 
-      const resJson = await res.json();
+      // A gateway error page (Caddy 502/504) is not JSON: never show "Unexpected token '<'".
+      const resJson = await readJsonSafe(res);
       if (!res.ok) {
         // The balance or a pending request may have changed elsewhere (409/400): show the current numbers.
         if (res.status !== 401) void loadPayoutInfo(true);
-        throw new Error(resJson.error || 'Gagal mengajukan pencairan');
+        setFormError(apiErrorMessage(res.status, resJson, 'Gagal mengajukan pencairan'));
+        return;
       }
 
       setFormSuccess('Pengajuan penarikan terkirim.');
       setEditBank(false);
       setAmountStr('');
       await fetchPayoutInfo();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Terjadi kesalahan saat mengajukan penarikan';
-      setFormError(msg);
+    } catch {
+      // Network failure: fetch throws a TypeError ("Failed to fetch"), never shown as is.
+      setFormError('Gagal terhubung ke server. Periksa koneksi Anda lalu coba lagi.');
     } finally {
       setSubmitting(false);
     }
@@ -258,7 +264,9 @@ export default function TarikSaldoPage() {
               </div>
               <p className="ts-note">
                 <Clock size={16} aria-hidden="true" />
-                Admin travel sedang memverifikasi. Dana ditransfer ke rekening di atas setelah disetujui.
+                {info.pending_request.status === 'approved'
+                  ? 'Disetujui, menunggu transfer. Admin travel akan mentransfer dana ke rekening di atas.'
+                  : 'Admin travel sedang memverifikasi. Dana ditransfer ke rekening di atas setelah disetujui.'}
               </p>
             </section>
             <div className="ts-actions">

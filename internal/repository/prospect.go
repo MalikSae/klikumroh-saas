@@ -897,6 +897,9 @@ func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64
 	if _, err := tx.ExecContext(ctx, `DELETE FROM prospect_notes WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
 		return err
 	}
+	if err := scrubClosingReferenceNotes(ctx, tx, tenantID, id); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE referral_clicks SET prospect_id = NULL, ip_address = NULL WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
 		return err
 	}
@@ -1041,22 +1044,52 @@ func replaceJamaahMention(s, name string) (string, bool) {
 	return b.String(), changed
 }
 
+// ErrProspectNotDeletable: DeleteIfDeletable found the prospect in Closing or with commission rows.
+var ErrProspectNotDeletable = errors.New("prospect is closing or has commission records")
+
 // Delete removes a prospect (spam, test data, or a jamaah without commission history asking to be
 // forgotten), including its notifications and the jamaah's name in other notifications.
 func (r *mysqlProspectRepository) Delete(ctx context.Context, tenantID uint64, id uint64) error {
+	return r.deleteProspect(ctx, tenantID, id, false)
+}
+
+// DeleteIfDeletable is Delete with the "not Closing, no commission rows" rule checked inside the
+// transaction, under the prospect's row lock: a closing booked by another admin between the service's
+// check and the delete would otherwise be removed together with its fresh commission rows.
+// ErrProspectNotDeletable when the rule fails.
+func (r *mysqlProspectRepository) DeleteIfDeletable(ctx context.Context, tenantID uint64, id uint64) error {
+	return r.deleteProspect(ctx, tenantID, id, true)
+}
+
+func (r *mysqlProspectRepository) deleteProspect(ctx context.Context, tenantID uint64, id uint64, guard bool) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var name string
+	var name, status string
 	var agentID sql.NullInt64
-	err = tx.QueryRowContext(ctx, `SELECT name, agent_id FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&name, &agentID)
+	err = tx.QueryRowContext(ctx, `SELECT name, status, agent_id FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`, id, tenantID).Scan(&name, &status, &agentID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
+		return err
+	}
+	if guard {
+		if status == "closing" {
+			return ErrProspectNotDeletable
+		}
+		var ledgerRows int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM commission_ledger WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id).Scan(&ledgerRows); err != nil {
+			return err
+		}
+		if ledgerRows > 0 {
+			return ErrProspectNotDeletable
+		}
+	}
+	if err := scrubClosingReferenceNotes(ctx, tx, tenantID, id); err != nil {
 		return err
 	}
 	// Before the delete: the scrub finds the prospect's agents through its (cascading) ledger rows.
@@ -1310,4 +1343,84 @@ func (r *mysqlProspectRepository) MarkPaidOff(ctx context.Context, tenantID uint
 		return err
 	}
 	return ErrStatusConflict
+}
+
+// closingReferenceMarker is how the duplicate-closing warning (service.flagEarlierClosing) cites the
+// earlier closing on ANOTHER prospect's note: "... di prospek #<id> (<jamaah name>, agen <agent name>). ...".
+const closingReferenceMarker = "di prospek #%d ("
+
+// closingReferenceEnd closes the parenthetical in that warning.
+const closingReferenceEnd = "). Pastikan"
+
+// AnonymizedClosingReference replaces "(<jamaah name>, agen <agent name>)" in that warning once the cited
+// prospect is anonymized or deleted (UU PDP).
+const AnonymizedClosingReference = "(data dihapus (UU PDP))"
+
+// scrubClosingReferenceNotes removes the cited jamaah's name and owning agent's name from the system
+// notes on other prospects of the same travel that refer to prospect id ("prospek #<id> (...)"). The
+// "(" right after the id keeps #12 from matching #123. Only system notes are touched.
+func scrubClosingReferenceNotes(ctx context.Context, tx *sql.Tx, tenantID, id uint64) error {
+	marker := fmt.Sprintf(closingReferenceMarker, id)
+	rows, err := tx.QueryContext(ctx, `
+		SELECT id, note_text FROM prospect_notes
+		WHERE tenant_id = ? AND author_type = 'system' AND prospect_id <> ? AND note_text LIKE ?
+		FOR UPDATE`,
+		tenantID, id, "%"+escapeLike(marker)+"%")
+	if err != nil {
+		return err
+	}
+	type change struct {
+		id   uint64
+		text string
+	}
+	var changes []change
+	for rows.Next() {
+		var noteID uint64
+		var text string
+		if err := rows.Scan(&noteID, &text); err != nil {
+			rows.Close()
+			return err
+		}
+		if scrubbed, ok := scrubClosingReference(text, marker); ok {
+			changes = append(changes, change{noteID, scrubbed})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	rows.Close()
+	for _, c := range changes {
+		if _, err := tx.ExecContext(ctx, `UPDATE prospect_notes SET note_text = ? WHERE id = ? AND tenant_id = ?`, c.text, c.id, tenantID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// scrubClosingReference replaces the parenthetical after each marker (up to "). Pastikan") with
+// AnonymizedClosingReference. Without the closing text the rest of the note after the marker is dropped
+// up to the end, so a name is never left behind.
+func scrubClosingReference(text, marker string) (string, bool) {
+	var b strings.Builder
+	rest := text
+	changed := false
+	for {
+		i := strings.Index(rest, marker)
+		if i < 0 {
+			b.WriteString(rest)
+			break
+		}
+		start := i + len(marker) - 1 // at "("
+		b.WriteString(rest[:start])
+		b.WriteString(AnonymizedClosingReference)
+		changed = true
+		tail := rest[start:]
+		if j := strings.Index(tail, closingReferenceEnd); j >= 0 {
+			rest = tail[j+1:] // keep ". Pastikan ..."
+		} else {
+			rest = ""
+		}
+	}
+	return b.String(), changed
 }

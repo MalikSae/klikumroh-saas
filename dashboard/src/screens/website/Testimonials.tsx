@@ -19,9 +19,12 @@ const TestimonialModal: React.FC<{ item: TestimonialItem | null; nextOrder: numb
   const [errors, setErrors] = useState<{ name?: string; quote?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Saving mid-upload would store the testimonial without its photo (and orphan the uploaded file).
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (photoBusy) return;
     const next: typeof errors = {};
     if (!name.trim()) next.name = 'Nama jamaah wajib diisi.';
     if (!quote.trim()) next.quote = 'Isi testimoni wajib diisi.';
@@ -53,8 +56,8 @@ const TestimonialModal: React.FC<{ item: TestimonialItem | null; nextOrder: numb
           <Button variant="ghost" onClick={onClose} disabled={saving}>
             Batal
           </Button>
-          <Button variant="primary" type="submit" form="ws-testi" disabled={saving}>
-            {saving ? 'Menyimpan...' : 'Simpan'}
+          <Button variant="primary" type="submit" form="ws-testi" disabled={saving || photoBusy}>
+            {saving ? 'Menyimpan...' : photoBusy ? 'Menunggu foto...' : 'Simpan'}
           </Button>
         </>
       }
@@ -71,6 +74,7 @@ const TestimonialModal: React.FC<{ item: TestimonialItem | null; nextOrder: numb
           onUpload={async (file) => (await uploadTestimonialPhoto(file)).avatar_url}
           onRemove={async () => {}}
           onChange={setPhoto}
+          onBusyChange={setPhotoBusy}
         />
         <Field label="Nama jamaah" error={errors.name} hint="Minta izin jamaah sebelum menampilkan nama dan fotonya.">
           {(id) => <input id={id} className="ku-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} aria-invalid={Boolean(errors.name)} />}

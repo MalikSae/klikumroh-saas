@@ -30,6 +30,28 @@ const approveCouponUsedMessage = "Travel ini sudah pernah memakai kupon pada inv
 
 const approveProofRequiredMessage = "Bukti transfer belum diunggah. Tagihan di atas Rp 0 hanya bisa disetujui setelah ada bukti transfer."
 
+// staffPaymentVerification is the staff-facing JSON of an invoice: the shared fields plus proof_final_amount
+// (the total the current transfer proof was uploaded for), which the travel-facing JSON never carries.
+type staffPaymentVerification struct {
+	repository.PaymentVerification
+	ProofFinalAmount *float64 `json:"proof_final_amount"`
+}
+
+func toStaffPaymentVerification(pv *repository.PaymentVerification) *staffPaymentVerification {
+	if pv == nil {
+		return nil
+	}
+	return &staffPaymentVerification{PaymentVerification: *pv, ProofFinalAmount: pv.ProofFinalAmount}
+}
+
+func toStaffPaymentVerifications(list []repository.PaymentVerification) []staffPaymentVerification {
+	out := make([]staffPaymentVerification, 0, len(list))
+	for i := range list {
+		out = append(out, staffPaymentVerification{PaymentVerification: list[i], ProofFinalAmount: list[i].ProofFinalAmount})
+	}
+	return out
+}
+
 // PaymentVerificationHandler handles staff payment verification approval and rejection endpoints.
 type PaymentVerificationHandler struct {
 	subscriptionService service.SubscriptionService
@@ -63,7 +85,7 @@ func (h *PaymentVerificationHandler) List(w http.ResponseWriter, r *http.Request
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"payment_verifications": list,
+		"payment_verifications": toStaffPaymentVerifications(list),
 	})
 }
 
@@ -247,7 +269,7 @@ func (h *PaymentVerificationHandler) UpdatePlan(w http.ResponseWriter, r *http.R
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message":              "Paket berhasil diubah",
-		"payment_verification": updatedPV,
+		"payment_verification": toStaffPaymentVerification(updatedPV),
 	})
 }
 
@@ -301,6 +323,6 @@ func (h *PaymentVerificationHandler) ApplyCoupon(w http.ResponseWriter, r *http.
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message":              "Kupon berhasil diterapkan",
-		"payment_verification": updatedPV,
+		"payment_verification": toStaffPaymentVerification(updatedPV),
 	})
 }

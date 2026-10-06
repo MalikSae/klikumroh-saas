@@ -10,7 +10,7 @@ import (
 
 var (
 	ErrInvalidPlanName   = errors.New("nama plan tidak boleh kosong")
-	ErrInvalidPlanPeriod = errors.New("periode plan harus lebih dari 0 bulan")
+	ErrInvalidPlanPeriod = errors.New("periode plan harus 1 sampai 120 bulan")
 	ErrInvalidPlanPrice  = errors.New("harga plan tidak boleh negatif")
 	// ErrPlanPeriodLocked: the period of a plan cannot change while invoices for it wait for approval
 	// (approval reads the period from the plan, so the change would alter what those invoices deliver).
@@ -63,7 +63,7 @@ func (s *pricingPlanService) Create(ctx context.Context, name string, periodMont
 	if trimmedName == "" {
 		return nil, ErrInvalidPlanName
 	}
-	if periodMonths <= 0 {
+	if periodMonths <= 0 || periodMonths > MaxManualPeriodMonths {
 		return nil, ErrInvalidPlanPeriod
 	}
 	if price < 0 {
@@ -89,7 +89,7 @@ func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string,
 	if trimmedName == "" {
 		return nil, ErrInvalidPlanName
 	}
-	if periodMonths <= 0 {
+	if periodMonths <= 0 || periodMonths > MaxManualPeriodMonths {
 		return nil, ErrInvalidPlanPeriod
 	}
 	if price < 0 {

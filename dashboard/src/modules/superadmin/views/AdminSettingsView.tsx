@@ -70,6 +70,15 @@ export const AdminSettingsView: React.FC = () => {
       setError(null);
       setSuccessMessage(null);
       const updated = await updatePlatformSettingsStaff(formData);
+      // Show what the server stored (it normalizes the WhatsApp number, e.g. 0812... -> 62812...).
+      setFormData((prev) => ({
+        whatsapp_number: updated.whatsapp_number ?? prev.whatsapp_number,
+        bank_name: updated.bank_name ?? prev.bank_name,
+        bank_account_number: updated.bank_account_number ?? prev.bank_account_number,
+        bank_account_holder: updated.bank_account_holder ?? prev.bank_account_holder,
+        terms_url: updated.terms_url ?? prev.terms_url,
+        privacy_url: updated.privacy_url ?? prev.privacy_url,
+      }));
       setMissingFields(updated.missing_fields || []);
       setSuccessMessage('Pengaturan platform berhasil diperbarui');
     } catch (err: any) {

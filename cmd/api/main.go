@@ -177,14 +177,9 @@ func main() {
 	}); ok {
 		dn.SetNotifier(notifService, adminUserRepo, staffRepo)
 	}
-	go func() {
-		ticker := time.NewTicker(24 * time.Hour)
-		defer ticker.Stop()
-		for range ticker.C {
-			checked, failing := domainService.RecheckActiveDomains(context.Background())
-			log.Printf("[Domain] daily recheck: %d active custom domains checked, %d failing", checked, failing)
-		}
-	}()
+	// First run two minutes after start (a daily deploy must not postpone it forever), then daily; each
+	// domain is counted at most once per ~day however often the API restarts.
+	service.StartDailyDomainRecheck(context.Background(), domainService, 2*time.Minute, 24*time.Hour)
 
 	// Initialize handlers
 	notifHandler := handler.NewNotificationHandler(notifService)
@@ -254,6 +249,9 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	// Every request body is capped: 1 MB for JSON/forms, 16 MB for multipart (upload handlers set their own
+	// smaller limit).
+	r.Use(appMiddleware.BodySizeLimit(appMiddleware.MaxJSONBodyBytes, appMiddleware.MaxMultipartBodyBytes))
 
 	// Enable CORS for frontend dashboard and web clients
 	r.Use(func(next http.Handler) http.Handler {
@@ -349,7 +347,9 @@ func main() {
 		protected.Get("/api/dashboard/subscription", subscriptionHandler.GetSubscription)
 		protected.Get("/api/dashboard/pricing-plans", subscriptionHandler.GetPricingPlans)
 		protected.With(couponHandler.TravelValidateLimiters()...).Get("/api/dashboard/coupons/validate", couponHandler.ValidateTravel)
-		protected.Post("/api/dashboard/subscription/renewal-request", subscriptionHandler.CreateRenewalRequest)
+		// Same limiter instances as coupons/validate (shared per-travel and per-IP budget): a renewal request
+		// validates its coupon_code too, so it must not be an unlimited coupon probe.
+		protected.With(couponHandler.TravelValidateLimiters()...).Post("/api/dashboard/subscription/renewal-request", subscriptionHandler.CreateRenewalRequest)
 		protected.Get("/api/dashboard/subscription/payment-verifications/{id}", subscriptionHandler.GetPaymentVerification)
 		protected.Post("/api/dashboard/subscription/payment-verifications/{id}/proof", subscriptionHandler.UploadRenewalProof)
 		protected.Get("/api/dashboard/platform-settings", platformSettingsHandler.GetDashboard)
@@ -423,7 +423,18 @@ func main() {
 	}
 	addr := fmt.Sprintf("%s:%s", host, port)
 	log.Printf("Server running on http://%s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
+		// Slow or stalled clients cannot hold connections forever. ReadTimeout covers the whole body, so it
+		// leaves room for a 10 MB transfer proof on a slow mobile link; WriteTimeout covers CSV exports.
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }

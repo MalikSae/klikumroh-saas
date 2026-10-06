@@ -66,7 +66,7 @@ export const AffiliatorCommissionsView: React.FC = () => {
       },
       { key: 'kind', header: 'Jenis', cell: (c) => (c.kind === 'first' ? 'Pembayaran pertama' : 'Perpanjangan'), mobile: 'labeled' },
       { key: 'base', header: 'Tagihan', cell: (c) => fmtRupiah(c.base_amount), align: 'right' },
-      { key: 'rate', header: 'Persen', cell: (c) => fmtPercent(c.rate), align: 'right' },
+      { key: 'rate', header: 'Persen', cell: (c) => fmtPercent(c.rate, 2), align: 'right' },
       { key: 'amount', header: 'Komisi', cell: (c) => <b>{fmtRupiah(c.amount)}</b>, align: 'right' },
       { key: 'date', header: 'Disetujui', cell: (c) => fmtDate(c.created_at), mobile: 'labeled' },
     ],

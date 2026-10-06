@@ -236,8 +236,8 @@ export const DashboardScreen: React.FC = () => {
 
         {/* Phone: the three KPIs share one compact panel (dashboard.css); the comparison note shows once. */}
         <div className="ku-stack db2-kpis">
-          <KpiCard label="Prospek" icon={<Users className="ku-icon" />} value={data ? fmtNumber(kpi.prospects.value) : '—'} delta={data ? { ...kpi.prospects.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.prospects.spark : undefined} to="/prospects" />
-          <KpiCard label="Jamaah closing" icon={<Handshake className="ku-icon" />} value={data ? fmtNumber(kpi.jamaah.value) : '—'} delta={data ? { ...kpi.jamaah.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.jamaah.spark : undefined} to="/prospects?status=closing" />
+          <KpiCard label="Prospek" icon={<Users className="ku-icon" />} value={data ? fmtNumber(kpi.prospects.value) : '—'} delta={data ? { ...kpi.prospects.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.prospects.spark : undefined} to="/prospects" toLabel="Buka semua prospek (sepanjang waktu, bukan 30 hari)" />
+          <KpiCard label="Jamaah closing" icon={<Handshake className="ku-icon" />} value={data ? fmtNumber(kpi.jamaah.value) : '—'} delta={data ? { ...kpi.jamaah.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.jamaah.spark : undefined} to="/prospects?status=closing" toLabel="Buka semua prospek closing (sepanjang waktu, bukan 30 hari)" />
           <KpiCard
             label="Konversi"
             icon={<Percent className="ku-icon" />}

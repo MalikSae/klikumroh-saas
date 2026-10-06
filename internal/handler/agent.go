@@ -73,6 +73,7 @@ func (h *AgentHandler) RegisterDashboardRoutes(r chi.Router) {
 	r.Patch("/api/dashboard/agents/{id}/toggle-status", h.ToggleAgentStatus)
 	r.Patch("/api/dashboard/agents/{id}/approve", h.ApproveAgent)
 	r.Patch("/api/dashboard/agents/{id}/reject", h.RejectAgent)
+	r.Post("/api/dashboard/agents/{id}/payout-requests", h.CreatePayoutForAgent)
 	r.Get("/api/dashboard/tenant/agent-settings", h.GetAgentSettings)
 	r.Put("/api/dashboard/tenant/agent-settings", h.UpdateAgentSettings)
 	r.Post("/api/dashboard/tenant/agent-settings/poster", h.UploadAgentPoster)
@@ -245,17 +246,17 @@ func (h *AgentHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	key := middleware.LoginKey(strconv.FormatUint(tenantID, 10), req.Email)
-	if h.loginFailures != nil && h.loginFailures.Blocked(key) {
+	attempt, allowed := h.loginFailures.Begin(key)
+	if !allowed {
 		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": middleware.LoginLockedMessage})
 		return
 	}
+	defer attempt.Done()
 
 	res, err := h.agentService.Login(r.Context(), tenantID, req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
-			if h.loginFailures != nil {
-				h.loginFailures.Fail(key)
-			}
+			attempt.Fail()
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "email atau password salah"})
 			return
 		}
@@ -263,9 +264,7 @@ func (h *AgentHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.loginFailures != nil {
-		h.loginFailures.Reset(key)
-	}
+	attempt.Succeed()
 	respondJSON(w, http.StatusOK, res)
 }
 
@@ -298,7 +297,7 @@ func (h *AgentHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	profile, err := h.agentService.GetProfile(r.Context(), tenantID, agentID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -333,7 +332,7 @@ func (h *AgentHandler) GetDashboardSummary(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -392,7 +391,7 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 	profile, err := h.agentService.GetProfile(r.Context(), tenantID, agentID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -544,7 +543,7 @@ func (h *AgentHandler) ApproveAgent(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -554,7 +553,7 @@ func (h *AgentHandler) ApproveAgent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -575,7 +574,7 @@ func (h *AgentHandler) RejectAgent(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -592,7 +591,7 @@ func (h *AgentHandler) RejectAgent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -613,7 +612,7 @@ func (h *AgentHandler) GetDashboardAgentDetail(w http.ResponseWriter, r *http.Re
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -641,7 +640,7 @@ func (h *AgentHandler) GetDashboardAgentCommissions(w http.ResponseWriter, r *ht
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -669,7 +668,7 @@ func (h *AgentHandler) UpdateDashboardAgentProfile(w http.ResponseWriter, r *htt
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -694,7 +693,8 @@ func (h *AgentHandler) UpdateDashboardAgentProfile(w http.ResponseWriter, r *htt
 			return
 		}
 		if errors.Is(err, service.ErrAgentPhoneRequired) || errors.Is(err, service.ErrAgentEmailRequired) || errors.Is(err, service.ErrInvalidAgentPhone) ||
-			errors.Is(err, service.ErrAgentDomisiliTooLong) || errors.Is(err, service.ErrAgentNameTooLong) {
+			errors.Is(err, service.ErrAgentDomisiliTooLong) || errors.Is(err, service.ErrAgentNameTooLong) ||
+			errors.Is(err, service.ErrInvalidAgentEmail) || errors.Is(err, service.ErrAgentFieldTooLong) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -717,7 +717,7 @@ func (h *AgentHandler) ResetAgentPassword(w http.ResponseWriter, r *http.Request
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -757,7 +757,7 @@ func (h *AgentHandler) ToggleAgentStatus(w http.ResponseWriter, r *http.Request)
 	idStr := chi.URLParam(r, "id")
 	agentID, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid agent id"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
 		return
 	}
 
@@ -994,7 +994,7 @@ func (h *AgentHandler) GetPayoutInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -1024,7 +1024,7 @@ func (h *AgentHandler) GetCommissionHistory(w http.ResponseWriter, r *http.Reque
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -1213,12 +1213,13 @@ func (h *AgentHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	profile, err := h.agentService.UpdateProfile(r.Context(), tenantID, agentID, &req)
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateAgentEmail) || errors.Is(err, repository.ErrDuplicateAgentPhone) || errors.Is(err, service.ErrInvalidAgentPhone) ||
-			errors.Is(err, service.ErrAgentDomisiliTooLong) || errors.Is(err, service.ErrAgentNameTooLong) {
+			errors.Is(err, service.ErrAgentDomisiliTooLong) || errors.Is(err, service.ErrAgentNameTooLong) ||
+			errors.Is(err, service.ErrInvalidAgentEmail) || errors.Is(err, service.ErrAgentFieldTooLong) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -1366,7 +1367,7 @@ func (h *AgentHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agent not found"})
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
@@ -1395,4 +1396,35 @@ func respondPayoutError(w http.ResponseWriter, action string, err error) {
 		log.Printf("[Payout] %s failed: %v", action, err)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 	}
+}
+
+// POST /api/dashboard/agents/{id}/payout-requests
+// The travel admin starts a payout for its agent (active or deactivated): the whole withdrawable balance
+// to the agent's stored bank account. No body. 201 with the created request (same shape as the list).
+func (h *AgentHandler) CreatePayoutForAgent(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	adminUserID, ok := middleware.GetAdminUserID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	agentID, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "id agen tidak valid"})
+		return
+	}
+	item, err := h.agentService.CreatePayoutForAgent(r.Context(), tenantID, agentID, adminUserID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "agen tidak ditemukan"})
+			return
+		}
+		respondPayoutError(w, "admin-create", err)
+		return
+	}
+	respondJSON(w, http.StatusCreated, item)
 }

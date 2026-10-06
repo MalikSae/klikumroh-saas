@@ -11,6 +11,19 @@ export const parseRupiah = (v: string): number | null | 'invalid' => {
   return Number(t.replace(/\./g, '').replace(',', '.'));
 };
 
+// A stored amount loaded back into a rupiah field, in the format parseRupiah accepts: 150000 -> "150.000",
+// 150000.5 (DECIMAL column, sent as 150000.5 or "150000.5") -> "150.000,50". Empty, zero or non-numeric is "".
+// Without this, String(150000.5) = "150000.5" is refused on the next save of any other field.
+export const formatRupiahInput = (v: number | string | null | undefined): string => {
+  const n = typeof v === 'number' ? v : Number(String(v ?? '').trim());
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const cents = Math.round(n * 100);
+  const whole = Math.floor(cents / 100);
+  const frac = cents % 100;
+  const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return frac ? `${grouped},${String(frac).padStart(2, '0')}` : grouped;
+};
+
 // Percentages: "2.5" and "2,5" both mean two and a half. Stripping dots here (as parseRupiah does) would
 // turn 2.5% into 25%, and a stored 2.5 is loaded back into the field as the string "2.5".
 export const parsePercent = (v: string): number | null => {

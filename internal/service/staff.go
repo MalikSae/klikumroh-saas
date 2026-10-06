@@ -496,6 +496,24 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 		}
 	}
 
+	// MRR counts what travels actually pay (bug hunt putaran 5): each active travel's latest approved
+	// invoice, after coupon/affiliator discount and without the unique transfer code, spread over its plan
+	// period. A travel active only through a manual (free) activation by staff has no approved invoice and
+	// adds nothing. Without the invoice repository (tests) the plan list price is used.
+	var lastPaid map[uint64]repository.PaymentVerification
+	if s.pvRepo != nil {
+		approved, err := s.pvRepo.ListAll(ctx, "approved")
+		if err != nil {
+			return nil, err
+		}
+		lastPaid = make(map[uint64]repository.PaymentVerification, len(approved))
+		for _, pv := range approved {
+			if cur, ok := lastPaid[pv.TenantID]; !ok || pv.ID > cur.ID {
+				lastPaid[pv.TenantID] = pv
+			}
+		}
+	}
+
 	now := time.Now()
 	metrics := &PlatformOverviewMetrics{}
 
@@ -508,7 +526,14 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 		switch t.SubscriptionStatus {
 		case "active":
 			metrics.ActiveTenants++
-			if t.CurrentPlanID != nil {
+			if lastPaid != nil {
+				if pv, ok := lastPaid[t.ID]; ok && pv.PlanPeriodMonths > 0 {
+					paid := pv.FinalAmount - float64(pv.UniqueCode)
+					if paid > 0 {
+						metrics.EstimatedMRR += paid / float64(pv.PlanPeriodMonths)
+					}
+				}
+			} else if t.CurrentPlanID != nil {
 				if p, ok := plansMap[*t.CurrentPlanID]; ok && p.PeriodMonths > 0 {
 					monthly := p.Price / float64(p.PeriodMonths)
 					metrics.EstimatedMRR += monthly

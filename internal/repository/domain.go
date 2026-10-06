@@ -22,6 +22,9 @@ type Domain struct {
 	LastCheckAt               *time.Time `json:"last_check_at,omitempty"` // legacy alias
 	// CheckFailures counts consecutive failed DNS checks of an active custom domain (reset on success).
 	CheckFailures int `json:"check_failures"`
+	// DailyCheckAt is when the daily DNS job last counted a check of this domain. Only ListActiveCustom
+	// loads it and Update keeps the stored value when it is nil, so manual checks never touch it.
+	DailyCheckAt *time.Time `json:"-"`
 	// RedirectToDomainID is set on an alias (e.g. namatravel.com): its visitors are redirected to this
 	// primary custom domain of the same travel (e.g. www.namatravel.com). Nil on a primary domain.
 	RedirectToDomainID *uint64 `json:"redirect_to_domain_id,omitempty"`
@@ -53,7 +56,9 @@ type DomainRepository interface {
 
 	// ReleaseUnverifiedClaim deletes another tenant's custom-domain row for hostname that was never
 	// verified (pending/failed). SPECIAL EXCEPTION (cross-tenant): an unproven claim must not block the
-	// travel that really controls the domain's DNS. Active domains are never touched.
+	// travel that really controls the domain's DNS. Active domains are never touched, and a non-active
+	// primary that still has an active alias is not released either (ErrDomainInUse): deleting it would
+	// cascade-delete that live alias.
 	ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error
 
 	// ListActiveCustom lists active custom domains of all tenants. SPECIAL EXCEPTION (cross-tenant):
@@ -184,7 +189,8 @@ func (r *mysqlDomainRepository) ListByTenant(ctx context.Context, tenantID uint6
 func (r *mysqlDomainRepository) Update(ctx context.Context, tenantID uint64, domain *Domain) error {
 	query := `
 		UPDATE domains
-		SET hostname = ?, type = ?, status = ?, verification_failure_reason = ?, verified_at = ?, last_check_at = ?, check_failures = ?
+		SET hostname = ?, type = ?, status = ?, verification_failure_reason = ?, verified_at = ?, last_check_at = ?, check_failures = ?,
+			daily_check_at = COALESCE(?, daily_check_at)
 		WHERE id = ? AND tenant_id = ?
 	`
 	if domain.VerifiedAt == nil && domain.DNSVerifiedAt != nil {
@@ -202,6 +208,7 @@ func (r *mysqlDomainRepository) Update(ctx context.Context, tenantID uint64, dom
 		domain.VerifiedAt,
 		domain.LastCheckAt,
 		domain.CheckFailures,
+		domain.DailyCheckAt,
 		domain.ID,
 		tenantID,
 	)
@@ -332,15 +339,45 @@ func (r *mysqlDomainRepository) scanDomain(row *sql.Row) (*Domain, error) {
 }
 
 func (r *mysqlDomainRepository) ReleaseUnverifiedClaim(ctx context.Context, hostname string, exceptTenantID uint64) error {
-	_, err := r.db.ExecContext(ctx,
-		"DELETE FROM domains WHERE hostname = ? AND type = 'custom' AND status <> 'active' AND tenant_id <> ?",
-		hostname, exceptTenantID)
-	return err
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var id uint64
+	var status string
+	err = tx.QueryRowContext(ctx,
+		"SELECT id, status FROM domains WHERE hostname = ? AND type = 'custom' AND tenant_id <> ? FOR UPDATE",
+		hostname, exceptTenantID).Scan(&id, &status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if status == "active" {
+		return nil // never touched (the service refuses an active hostname before calling this)
+	}
+	// An alias row points at its primary with ON DELETE CASCADE: deleting a non-active primary that still
+	// has an ACTIVE alias would take that live site down. Bug hunt putaran 5: refuse instead.
+	var activeAliases int
+	if err := tx.QueryRowContext(ctx,
+		"SELECT COUNT(*) FROM domains WHERE redirect_to_domain_id = ? AND status = 'active' FOR UPDATE", id).Scan(&activeAliases); err != nil {
+		return err
+	}
+	if activeAliases > 0 {
+		return ErrDomainInUse
+	}
+	if _, err := tx.ExecContext(ctx, "DELETE FROM domains WHERE id = ? AND status <> 'active'", id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func (r *mysqlDomainRepository) ListActiveCustom(ctx context.Context) ([]Domain, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, redirect_to_domain_id, created_at, updated_at
+		SELECT id, tenant_id, hostname, type, status, verification_failure_reason, verified_at, last_check_at, check_failures, daily_check_at, redirect_to_domain_id, created_at, updated_at
 		FROM domains
 		WHERE type = 'custom' AND status = 'active'
 		ORDER BY id`)
@@ -352,10 +389,13 @@ func (r *mysqlDomainRepository) ListActiveCustom(ctx context.Context) ([]Domain,
 	for rows.Next() {
 		var d Domain
 		var failureReason sql.NullString
-		var verifiedAt, lastCheckAt sql.NullTime
+		var verifiedAt, lastCheckAt, dailyCheckAt sql.NullTime
 		var redirectTo sql.NullInt64
-		if err := rows.Scan(&d.ID, &d.TenantID, &d.Hostname, &d.Type, &d.Status, &failureReason, &verifiedAt, &lastCheckAt, &d.CheckFailures, &redirectTo, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.TenantID, &d.Hostname, &d.Type, &d.Status, &failureReason, &verifiedAt, &lastCheckAt, &d.CheckFailures, &dailyCheckAt, &redirectTo, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, err
+		}
+		if dailyCheckAt.Valid {
+			d.DailyCheckAt = &dailyCheckAt.Time
 		}
 		if failureReason.Valid {
 			d.VerificationFailureReason = &failureReason.String

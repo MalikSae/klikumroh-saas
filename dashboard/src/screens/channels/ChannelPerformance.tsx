@@ -5,7 +5,7 @@ import { fetchChannelReport, type ChannelReport, type ChannelStat, type DailyTre
 import { Banner, Button, Card, ChannelTag, Checkbox, DataTable, EmptyState, Select, Toolbar, errorText, fmtNumber, fmtPercent, type Channel, type Column } from '../../ui';
 import { ChannelChart } from '../dashboard/ChannelChart';
 import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
-import { sourceLabel } from '../../utils/sourceLabel';
+import { sourceLabel, utmValue } from '../../utils/sourceLabel';
 
 // Iklan = prospects whose landing link carried Meta's ad id (ad_id, from {{ad.id}}); decided by the backend.
 const ADS_TIP = 'Dihitung dari parameter ad_id di link iklan Meta. Angka iklan resmi ada di Meta Ads Manager.';
@@ -125,7 +125,7 @@ export const ChannelPerformance: React.FC = () => {
 
   const campaignColumns: Column<ChannelReport['campaigns'][number]>[] = [
     { key: 'src', header: 'Sumber', cell: (c) => sourceLabel(c.source) || <span className="ku-muted">Tanpa sumber</span> },
-    { key: 'cmp', header: 'Kampanye', cell: (c) => c.campaign || <span className="ku-muted">Tanpa nama kampanye</span> },
+    { key: 'cmp', header: 'Kampanye', cell: (c) => utmValue(c.campaign) || <span className="ku-muted">Tanpa nama kampanye</span> },
     { key: 'p', header: 'Prospek', align: 'right', cell: (c) => fmtNumber(c.prospects) },
     { key: 'c', header: 'Closing', align: 'right', cell: (c) => fmtNumber(c.closing) },
     { key: 'j', header: 'Jamaah', align: 'right', cell: (c) => fmtNumber(c.closing_jamaah) },

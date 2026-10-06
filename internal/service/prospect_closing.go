@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -138,12 +139,22 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 	}
 
 	result := &CancelClosingResult{}
+	// Per agent: what that agent loses, so each one is told only its own amounts.
+	type reversal struct {
+		held, released float64
+		override       bool
+	}
+	reversals := map[uint64]reversal{}
+	var reversalOrder []uint64
 	if s.commissionLedgerRepo != nil {
 		ledgers, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, id)
 		if err != nil {
 			return nil, s.revertCancel(ctx, tenantID, id, prospect.PaidOffAt != nil, err)
 		}
-		type balance struct{ held, released float64 }
+		type balance struct {
+			held, released float64
+			override       bool // the agent's rows include an upline override
+		}
 		perAgent := map[uint64]*balance{}
 		var order []uint64
 		var pkgID *uint64
@@ -153,6 +164,9 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 				b = &balance{}
 				perAgent[l.AgentID] = b
 				order = append(order, l.AgentID)
+			}
+			if l.Type == "override" {
+				b.override = true
 			}
 			if l.ReleasedAt == nil {
 				b.held += l.Amount
@@ -168,14 +182,18 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 		var entries []*repository.CommissionLedger
 		for _, agentID := range order {
 			b := perAgent[agentID]
-			if b.held != 0 {
+			if math.Round(b.held*100) != 0 || math.Round(b.released*100) != 0 {
+				reversals[agentID] = reversal{held: b.held, released: b.released, override: b.override}
+				reversalOrder = append(reversalOrder, agentID)
+			}
+			if math.Round(b.held*100) != 0 {
 				entries = append(entries, &repository.CommissionLedger{
 					TenantID: tenantID, AgentID: agentID, ProspectID: id, PackageID: pkgID,
 					Type: "correction", Amount: -b.held, Notes: &note,
 				})
 				result.ReversedHeld += b.held
 			}
-			if b.released != 0 {
+			if math.Round(b.released*100) != 0 {
 				entries = append(entries, &repository.CommissionLedger{
 					TenantID: tenantID, AgentID: agentID, ProspectID: id, PackageID: pkgID,
 					Type: "correction", Amount: -b.released, Notes: &note, ReleasedAt: &now,
@@ -193,11 +211,34 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 
 	if prospect.AgentID != nil {
 		body := fmt.Sprintf("Closing calon jamaah %s dibatalkan (%s).", prospect.Name, reason)
-		if result.ReversedReleased > 0 {
-			body += fmt.Sprintf(" Komisi Rp %s yang sudah bisa dicairkan akan dipotong dari komisi berikutnya.", util.FormatRupiah(result.ReversedReleased))
+		// Only the agent's own released commission: never the upline's override, which is told separately.
+		if own := reversals[*prospect.AgentID]; math.Round(own.released*100) > 0 {
+			body += fmt.Sprintf(" Komisi Rp %s yang sudah bisa dicairkan akan dipotong dari komisi berikutnya.", util.FormatRupiah(own.released))
 		}
 		s.notifyAgent(ctx, tenantID, *prospect.AgentID, "prospect_closing_cancelled", "Closing dibatalkan", body,
 			fmt.Sprintf("/agen/jamaah/%d", prospect.ID))
+	}
+	// The other agents with commission on this closing (the upline's override): a generic notice without
+	// the jamaah's identity, which belongs to the downline's prospect.
+	for _, agentID := range reversalOrder {
+		if prospect.AgentID != nil && agentID == *prospect.AgentID {
+			continue
+		}
+		r := reversals[agentID]
+		total := r.held + r.released
+		if math.Round(total*100) <= 0 {
+			continue
+		}
+		body := fmt.Sprintf("Sebuah closing di jaringan Anda dibatalkan. Komisi override Rp %s dari closing itu ditarik kembali.", util.FormatRupiah(total))
+		title := "Komisi override dibatalkan"
+		if !r.override {
+			body = fmt.Sprintf("Sebuah closing dibatalkan. Komisi Rp %s dari closing itu ditarik kembali.", util.FormatRupiah(total))
+			title = "Komisi dibatalkan"
+		}
+		if math.Round(r.released*100) > 0 {
+			body += fmt.Sprintf(" Rp %s yang sudah bisa dicairkan akan dipotong dari komisi berikutnya.", util.FormatRupiah(r.released))
+		}
+		s.notifyAgent(ctx, tenantID, agentID, "commission_override_reversed", title, body, "/agen/riwayat-komisi")
 	}
 	return result, nil
 }

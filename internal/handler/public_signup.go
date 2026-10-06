@@ -52,7 +52,9 @@ func (h *PublicSignupHandler) RegisterPublicRoutes(r chi.Router) {
 	// Limited like the slug check: affiliator codes are short and human-readable, so an unlimited
 	// endpoint would let anyone enumerate them.
 	r.With(couponLimiter).Post("/api/public/coupons/validate", h.ValidateCoupon)
-	r.With(signupLimiter).Post("/api/public/tenant-signup", h.TenantSignup)
+	// A signup validates its coupon_code as well, so it shares the coupon budget per IP (a failed coupon
+	// stops the signup before anything is created, which would otherwise be 10 more probes a minute).
+	r.With(signupLimiter, couponLimiter).Post("/api/public/tenant-signup", h.TenantSignup)
 	// No public payment endpoints: after signup the travel logs in and pays from the dashboard billing page.
 }
 

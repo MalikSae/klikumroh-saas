@@ -7,6 +7,7 @@ import { publicSiteUrl, useFrame } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
 import { copyText } from '../../utils/clipboard';
 import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
+import { buildAdLink, isMetaPlatform } from '../../utils/adLink';
 
 const SOURCES = [
   { value: 'facebook', label: 'Facebook' },
@@ -25,7 +26,7 @@ const slug = (v: string) =>
     .slice(0, 60);
 
 const LINK_TIP =
-  'Link ini hanya membawa platform dan nama kampanye (utm_source, utm_campaign). Prospek dihitung sebagai Iklan, dan masuk tabel Kampanye iklan, hanya bila linknya juga membawa ad_id dari Meta. Meta mengisi ad_id otomatis lewat kolom URL parameters di setiap iklan; salin teksnya dari blok Parameter URL iklan Meta. Link dari Google, TikTok, YouTube, atau Meta tanpa ad_id tetap membawa UTM, tetapi prospeknya tercatat sebagai Website.';
+  'Untuk Google, TikTok, dan YouTube, link ini membawa platform dan nama kampanye (utm_source, utm_campaign); prospeknya tercatat sebagai Website. Untuk Facebook dan Instagram, link ini sengaja tanpa utm_source: Meta mengisinya sendiri lewat {{site_source_name}} (Facebook, Instagram, Messenger) dari blok Parameter URL iklan Meta, yang juga membawa ad_id. Prospek dihitung sebagai Iklan, dan masuk tabel Kampanye iklan, hanya bila linknya membawa ad_id itu. Bila nama kampanye juga diisi Meta, nama dari Meta yang dipakai.';
 
 const LinkBuilder: React.FC = () => {
   const frame = useFrame();
@@ -40,14 +41,7 @@ const LinkBuilder: React.FC = () => {
     fetchPackages('published').then(setPackages).catch(() => setPackages([]));
   }, []);
 
-  const url = useMemo(() => {
-    if (!site) return '';
-    const base = page === 'home' ? site + '/' : `${site}/paket/${page}`;
-    const q = new URLSearchParams({ utm_source: source, utm_medium: 'paid' });
-    const c = slug(campaign);
-    if (c) q.set('utm_campaign', c);
-    return `${base}?${q.toString()}`;
-  }, [site, page, source, campaign]);
+  const url = useMemo(() => buildAdLink(site ?? '', page, source, slug(campaign)), [site, page, source, campaign]);
 
   const [copyFailed, setCopyFailed] = useState(false);
   const copy = async () => {
@@ -83,7 +77,9 @@ const LinkBuilder: React.FC = () => {
                 />
               )}
             </Field>
-            <Field label="Platform iklan">{(id) => <Select id={id} label="Platform iklan" value={source} onChange={setSource} options={SOURCES} />}</Field>
+            <Field label="Platform iklan" hint={isMetaPlatform(source) ? 'Tanpa utm_source: Meta mengisinya lewat Parameter URL iklan Meta di bawah.' : undefined}>
+              {(id) => <Select id={id} label="Platform iklan" value={source} onChange={setSource} options={SOURCES} />}
+            </Field>
           </div>
           <Field label="Nama kampanye" optional hint={campaign && slug(campaign) !== campaign ? `Ditulis sebagai "${slug(campaign)}".` : 'Contoh: promo-ramadhan.'}>
             {(id) => <input id={id} className="ku-input" value={campaign} onChange={(e) => setCampaign(e.target.value)} placeholder="promo-ramadhan" maxLength={80} />}
@@ -106,7 +102,7 @@ const LinkBuilder: React.FC = () => {
 const META_URL_PARAMS = 'utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&ad_id={{ad.id}}';
 
 const META_PARAMS_TIP =
-  'Meta mengganti {{ad.id}} dengan ID iklan dan {{campaign.name}} dengan nama kampanye saat iklan diklik. Prospek dihitung sebagai Iklan hanya bila linknya membawa ad_id; fbclid atau utm_medium saja tidak cukup. Kolom ini ada di level iklan, bagian Pelacakan (Tracking).';
+  'Meta mengganti {{ad.id}} dengan ID iklan, {{campaign.name}} dengan nama kampanye, dan {{site_source_name}} dengan tempat iklan tampil (Facebook, Instagram, Messenger) saat iklan diklik. Prospek dihitung sebagai Iklan hanya bila linknya membawa ad_id; fbclid atau utm_medium saja tidak cukup. Kolom ini ada di level iklan, bagian Pelacakan (Tracking).';
 
 const MetaUrlParams: React.FC = () => {
   const [copied, setCopied] = useState(false);
@@ -244,7 +240,6 @@ const MetaSettings: React.FC = () => {
 const EVENTS: Array<{ name: string; when: string; from: string; data: string }> = [
   { name: 'PageView', when: 'Setiap halaman website dibuka (portal agen dan halaman login tidak dihitung).', from: 'Browser', data: 'Alamat halaman.' },
   { name: 'ViewContent', when: 'Calon jamaah membuka halaman detail paket.', from: 'Browser', data: 'ID, nama, dan harga paket.' },
-  { name: 'Contact', when: 'Calon jamaah menekan tombol Chat WhatsApp di menu bawah website.', from: 'Browser', data: 'Kategori umroh.' },
   {
     name: 'Lead',
     when: 'Calon jamaah mengirim form minat dan menjadi prospek baru.',

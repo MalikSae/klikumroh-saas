@@ -1,5 +1,6 @@
 import React from 'react';
 import { headers } from 'next/headers';
+import { backendFetch } from '../lib/backendFetch';
 import { TravelHome } from '../components/home/TravelHome';
 import { SiteUnavailableView } from '../components/SiteUnavailableView';
 import type { PublicPackage } from '../components/publicPackage';
@@ -42,7 +43,7 @@ const getBackendBaseUrl = (): string => {
 async function getPublishedPackages(host: string): Promise<PublicPackage[]> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/packages`, {
+    const res = await backendFetch(`${backendUrl}/api/public/packages`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,
@@ -66,7 +67,7 @@ async function getPublishedPackages(host: string): Promise<PublicPackage[]> {
 async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'down'> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/tenant-info`, {
+    const res = await backendFetch(`${backendUrl}/api/public/tenant-info`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,
@@ -90,7 +91,7 @@ async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'd
 async function getPublishedBanners(host: string): Promise<PublicBannerItem[]> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/banners`, {
+    const res = await backendFetch(`${backendUrl}/api/public/banners`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,
@@ -113,7 +114,7 @@ async function getPublishedBanners(host: string): Promise<PublicBannerItem[]> {
 async function getPublishedTestimonials(host: string): Promise<PublicTestimonialItem[]> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/testimonials`, {
+    const res = await backendFetch(`${backendUrl}/api/public/testimonials`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,
@@ -136,7 +137,7 @@ async function getPublishedTestimonials(host: string): Promise<PublicTestimonial
 async function getPublishedFaqs(host: string): Promise<PublicFAQItem[]> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/faqs`, {
+    const res = await backendFetch(`${backendUrl}/api/public/faqs`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,

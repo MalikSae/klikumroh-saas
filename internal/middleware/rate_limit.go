@@ -67,22 +67,25 @@ func NewKeyedRateLimiter(maxReqs int, window time.Duration, key func(r *http.Req
 	go func() {
 		ticker := time.NewTicker(window * 2)
 		for range ticker.C {
-			rl.mu.Lock()
-			now := time.Now()
-			for ip, timestamps := range rl.limits {
-				var valid []time.Time
-				for _, t := range timestamps {
-					if now.Sub(t) <= window {
-						valid = append(valid, t)
+			func() {
+				defer recoverBackground("rate-limit-cleanup")
+				rl.mu.Lock()
+				defer rl.mu.Unlock()
+				now := time.Now()
+				for ip, timestamps := range rl.limits {
+					var valid []time.Time
+					for _, t := range timestamps {
+						if now.Sub(t) <= window {
+							valid = append(valid, t)
+						}
+					}
+					if len(valid) == 0 {
+						delete(rl.limits, ip)
+					} else {
+						rl.limits[ip] = valid
 					}
 				}
-				if len(valid) == 0 {
-					delete(rl.limits, ip)
-				} else {
-					rl.limits[ip] = valid
-				}
-			}
-			rl.mu.Unlock()
+			}()
 		}
 	}()
 

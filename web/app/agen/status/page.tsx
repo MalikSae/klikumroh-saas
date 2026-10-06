@@ -25,6 +25,7 @@ import { PublicFooter } from '../../../components/PublicFooter';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
 import { copyToClipboard } from '../../../lib/clipboard';
+import { clearScriptProspectNames } from '../../../lib/scriptProspectName';
 import designTokens from '../../../../design-tokens.json';
 import './AgenStatus.css';
 
@@ -63,6 +64,7 @@ interface FooterInfo {
   email?: string | null;
   ppiu_number?: string | null;
   brand_primary_color?: string | null;
+  is_suspended?: boolean;
 }
 
 // The server reads at most 8 MB of request body (internal/handler/agent.go, MaxBytesReader 8<<20), and that
@@ -294,6 +296,7 @@ export default function AgenStatusPage() {
       }).catch(() => {});
     }
     localStorage.removeItem('agent_token');
+    clearScriptProspectNames(localStorage);
     router.push('/agen/login');
   };
 
@@ -401,13 +404,16 @@ export default function AgenStatusPage() {
     `Halo Admin, saya mitra agen ${data?.tenant?.name || 'travel'} ingin menanyakan status kemitraan`
   );
 
+  // No travel contact in the footer while the travel is suspended (founder decision: a suspended site shows
+  // no contact at all), same as /agen/daftar and /agen/login.
+  const travelSuspended = Boolean(footer?.is_suspended);
   const footerEl = (
     <PublicFooter
       tenantName={footer?.name || data?.tenant?.name}
-      address={footer?.address}
-      phone={footer?.phone}
-      whatsappNumber={footer?.whatsapp_number || data?.tenant?.whatsapp_number}
-      email={footer?.email}
+      address={travelSuspended ? undefined : footer?.address}
+      phone={travelSuspended ? undefined : footer?.phone}
+      whatsappNumber={travelSuspended ? undefined : footer?.whatsapp_number || data?.tenant?.whatsapp_number}
+      email={travelSuspended ? undefined : footer?.email}
       ppiuNumber={footer?.ppiu_number}
     />
   );

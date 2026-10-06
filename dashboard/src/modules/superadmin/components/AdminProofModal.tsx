@@ -7,6 +7,7 @@ import {
   type PaymentVerificationItem,
   type PricingPlan,
   type Coupon,
+  fetchAffiliatorSettings,
   fetchPricingPlans,
   fetchStaffCoupons,
   updatePaymentVerificationPlan,
@@ -15,7 +16,9 @@ import {
 } from '../../../services/staffApi';
 import { usePrivateFileURL } from '../../../hooks/usePrivateFile';
 import { CustomDropdown } from '../shared/CustomDropdown';
-import { discountedPrice, impliedDiscountPercentage, planChangeTotal } from '../../../utils/billingMath';
+import { discountedPrice, planChangeCouponPercentage, planChangeTotal, proofAmountMismatch } from '../../../utils/billingMath';
+import { couponExhausted, couponState, paymentStatusView } from '../shared/statusLabels';
+import { formatDateTimeWIB } from '../../../utils/datetime';
 
 const cleanWhatsApp = (num?: string | null) => {
   if (!num) return null;
@@ -39,6 +42,8 @@ export interface AdminProofModalProps {
   onApprove: (item: PaymentVerificationItem) => Promise<void>;
   onReject: (id: number, reason: string) => Promise<void>;
   onPlanUpdated?: (updatedItem: PaymentVerificationItem) => void;
+  /** Reloads the invoice after a failed action (it may have been processed by someone else meanwhile). */
+  onStale?: (id: number) => Promise<void>;
 }
 
 export const AdminProofModal: React.FC<AdminProofModalProps> = ({
@@ -48,6 +53,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   onApprove,
   onReject,
   onPlanUpdated,
+  onStale,
 }) => {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -66,6 +72,13 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [couponInput, setCouponInput] = useState('');
   const [updatingCoupon, setUpdatingCoupon] = useState(false);
+  // Guards Enter pressed again while a coupon request is in flight (state is not updated yet then).
+  const couponBusy = useRef(false);
+  const [confirmRemoveCoupon, setConfirmRemoveCoupon] = useState(false);
+  const [plansError, setPlansError] = useState<string | null>(null);
+  const [plansLoading, setPlansLoading] = useState(true);
+  // Current program discount of affiliator coupons (they are not in the staff coupon list).
+  const [affiliatorCouponDiscount, setAffiliatorCouponDiscount] = useState<number | null>(null);
 
   // Combined success message
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -92,6 +105,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
     setShowApproveConfirm(false);
     setShowUpsellForm(false);
     setShowCouponForm(false);
+    setConfirmRemoveCoupon(false);
     setError(null);
     setSuccessMsg(null);
   }, [item, isOpen]);
@@ -104,9 +118,28 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
     }
   }, [isOpen]);
 
+  // State is only set when the request settles, so the effect below does not set state synchronously.
+  const fetchPlans = () =>
+    fetchPricingPlans()
+      .then((p) => {
+        setPlans(p);
+        setPlansError(null);
+      })
+      .catch((err: unknown) => setPlansError(err instanceof Error && err.message ? err.message : 'Gagal memuat daftar paket'))
+      .finally(() => setPlansLoading(false));
+
+  const retryPlans = () => {
+    setPlansLoading(true);
+    setPlansError(null);
+    void fetchPlans();
+  };
+
   useEffect(() => {
     if (isOpen) {
-      fetchPricingPlans().then(setPlans).catch(() => []);
+      void fetchPlans();
+      fetchAffiliatorSettings()
+        .then((s) => setAffiliatorCouponDiscount(s.coupon_discount))
+        .catch(() => setAffiliatorCouponDiscount(null));
     }
   }, [isOpen]);
 
@@ -115,8 +148,20 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   const isPending = currentItem.status === 'pending';
   const payableAmount = currentItem.final_amount ?? currentItem.amount;
   const missingProof = !currentItem.proof_url && payableAmount > 0;
+  // The proof was uploaded for another total (staff changed the plan or coupon afterwards). Approving stays
+  // allowed: staff check the bank statement and decide (keputusan pendiri 6 Okt 2026).
+  const proofMismatch = isPending && proofAmountMismatch(currentItem.proof_url, currentItem.proof_final_amount, currentItem.final_amount);
   const hasCoupon = !!(currentItem.coupon_code && currentItem.coupon_code.trim() !== '');
   const discountAmount = hasCoupon ? Math.max(0, currentItem.amount - (currentItem.final_amount - (currentItem.unique_code || 0))) : 0;
+
+  // The invoice may have been processed by someone else: reload it so the modal shows the real status.
+  const refreshAfterError = async () => {
+    try {
+      await onStale?.(currentItem.id);
+    } catch {
+      // the error from the action itself stays visible
+    }
+  };
 
   const handleApprove = async () => {
     try {
@@ -148,6 +193,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       onClose();
     } catch (err: any) {
       setError(err.message || 'Gagal menolak verifikasi');
+      await refreshAfterError();
     } finally {
       setProcessing(false);
     }
@@ -170,17 +216,20 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       onPlanUpdated?.(updated);
     } catch (err: any) {
       setError(err.message || 'Gagal mengubah paket');
+      await refreshAfterError();
     } finally {
       setUpdatingPlan(false);
     }
   };
 
   const handleApplyCoupon = async () => {
+    if (couponBusy.current) return;
     const code = couponInput.trim().toUpperCase();
     if (!code) {
       setError('Kode kupon tidak boleh kosong');
       return;
     }
+    couponBusy.current = true;
     try {
       setUpdatingCoupon(true);
       setError(null);
@@ -192,12 +241,17 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       onPlanUpdated?.(updated);
     } catch (err: any) {
       setError(err.message || 'Kupon tidak valid');
+      await refreshAfterError();
     } finally {
+      couponBusy.current = false;
       setUpdatingCoupon(false);
     }
   };
 
   const handleRemoveCoupon = async () => {
+    if (couponBusy.current) return;
+    couponBusy.current = true;
+    setConfirmRemoveCoupon(false);
     try {
       setUpdatingCoupon(true);
       setError(null);
@@ -210,7 +264,9 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
       onPlanUpdated?.(updated);
     } catch (err: any) {
       setError(err.message || 'Gagal menghapus kupon');
+      await refreshAfterError();
     } finally {
+      couponBusy.current = false;
       setUpdatingCoupon(false);
     }
   };
@@ -223,15 +279,20 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   );
 
   const targetPlan = plans.find((p) => p.id === selectedPlanId);
-  // The backend keeps the invoice's coupon on a plan change and re-applies it (UpdateVerificationPlan).
-  // Staff coupons give the exact percentage; an affiliator coupon is not in the staff list, so its
-  // percentage is read back from the invoice amounts.
+  // The backend keeps the invoice's coupon on a plan change and re-applies it (UpdateVerificationPlan)
+  // with the coupon's current percentage. Staff coupons give it exactly; an affiliator coupon is not in the
+  // staff list, so the current program discount is used (staff may have changed it since the invoice).
   const invoiceCoupon = hasCoupon
     ? staffCoupons.find((c) => c.code.toUpperCase() === currentItem.coupon_code!.trim().toUpperCase())
     : undefined;
-  const couponPercentage = hasCoupon
-    ? invoiceCoupon?.discount_percentage ?? impliedDiscountPercentage(currentItem.amount, currentItem.final_amount, currentItem.unique_code)
+  const couponPreview = hasCoupon
+    ? planChangeCouponPercentage(invoiceCoupon?.discount_percentage, affiliatorCouponDiscount, currentItem.amount, currentItem.final_amount, currentItem.unique_code)
     : null;
+  const couponPercentage = couponPreview ? couponPreview.percentage : null;
+  // Removing a coupon reprices the invoice at once; re-entering the same code is refused when the staff
+  // coupon is no longer usable, or when it is an affiliator code (its affiliator may have replaced it).
+  const couponNotReapplicable = hasCoupon && (!invoiceCoupon || couponState(invoiceCoupon.status, invoiceCoupon.expires_at) !== 'active' || couponExhausted(invoiceCoupon.used_count, invoiceCoupon.max_uses));
+  const badge = paymentStatusView(currentItem.status, currentItem.proof_url, payableAmount);
   const couponPlanMismatch = !!(targetPlan && invoiceCoupon?.plan_id && invoiceCoupon.plan_id !== targetPlan.id);
   const previewTotal = targetPlan ? planChangeTotal(targetPlan.price, couponPercentage, currentItem.unique_code) : 0;
 
@@ -303,25 +364,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span
-              className={`sa-badge ${
-                currentItem.status === 'approved'
-                  ? 'sa-badge--active'
-                  : currentItem.status === 'rejected'
-                  ? 'sa-badge--expired'
-                  : currentItem.status === 'cancelled'
-                  ? 'sa-badge--neutral'
-                  : 'sa-badge--pending'
-              }`}
-            >
-              {currentItem.status === 'approved'
-                ? 'Disetujui'
-                : currentItem.status === 'rejected'
-                ? 'Ditolak'
-                : currentItem.status === 'cancelled'
-                ? 'Dibatalkan'
-                : 'Menunggu Review'}
-            </span>
+            {/* Same label as the Payments list (Perlu Verifikasi / Menunggu Transfer). */}
+            <span className={`sa-badge ${badge.cls}`}>{badge.label}</span>
             <button
               type="button"
               onClick={onClose}
@@ -346,6 +390,24 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           {successMsg && (
             <div style={{ backgroundColor: 'var(--sa-green-bg)', border: '1px solid var(--sa-green-border)', color: 'var(--sa-green-text)', padding: '10px 14px', borderRadius: 'var(--sa-radius-sm)', fontSize: '13px', marginBottom: '14px' }}>
               {successMsg}
+            </div>
+          )}
+
+          {/* Who processed the invoice, and why it was rejected (staff side of the review). */}
+          {!isPending && (currentItem.rejection_reason || currentItem.reviewed_by_name || currentItem.reviewed_at) && (
+            <div className={`sa-proof-review${currentItem.status === 'rejected' ? ' sa-proof-review--rejected' : ''}`}>
+              {currentItem.status === 'rejected' && currentItem.rejection_reason && (
+                <div>
+                  Alasan penolakan: <strong>{currentItem.rejection_reason}</strong>
+                </div>
+              )}
+              {(currentItem.reviewed_by_name || currentItem.reviewed_at) && (
+                <div>
+                  {currentItem.status === 'approved' ? 'Disetujui' : currentItem.status === 'rejected' ? 'Ditolak' : 'Diproses'}
+                  {currentItem.reviewed_by_name ? ` oleh ${currentItem.reviewed_by_name}` : ''}
+                  {currentItem.reviewed_at ? `, ${formatDateTimeWIB(currentItem.reviewed_at)}` : ''}
+                </div>
+              )}
             </div>
           )}
 
@@ -417,9 +479,18 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           {showUpsellForm && isPending && (
             <div style={{ border: '1px solid var(--sa-border)', borderRadius: 'var(--sa-radius-sm)', padding: '14px', marginBottom: '12px' }}>
               <span style={labelStyle}>Ubah Paket Langganan</span>
-              {plans.length === 0 ? (
+              {plansError ? (
+                <div className="sa-proof-confirm">
+                  <span className="sa-note sa-note--danger">{plansError}</span>
+                  <div className="sa-proof-confirm__actions">
+                    <button type="button" className="sa-btn sa-btn--secondary sa-btn--sm" onClick={retryPlans} disabled={plansLoading}>
+                      {plansLoading ? 'Memuat...' : 'Coba lagi'}
+                    </button>
+                  </div>
+                </div>
+              ) : plans.length === 0 ? (
                 <div style={{ fontSize: '13px', color: 'var(--sa-text-muted)', marginBottom: '10px' }}>
-                  Memuat daftar paket...
+                  {plansLoading ? 'Memuat daftar paket...' : 'Belum ada paket.'}
                 </div>
               ) : (
                 <div style={{ marginBottom: '10px' }}>
@@ -441,6 +512,11 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
                       <span>Kupon {currentItem.coupon_code} (tetap dipakai)</span>
                       <span>-{formatIDR(targetPlan.price - discountedPrice(targetPlan.price, couponPercentage))}</span>
+                    </div>
+                  )}
+                  {hasCoupon && couponPreview?.estimated && (
+                    <div className="sa-note">
+                      Perkiraan. Diskon kupon affiliator {currentItem.coupon_code} akan dihitung ulang oleh server saat paket disimpan.
                     </div>
                   )}
                   {couponPlanMismatch && (
@@ -485,13 +561,36 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={handleRemoveCoupon}
-                    disabled={updatingCoupon}
+                    onClick={() => setConfirmRemoveCoupon(true)}
+                    disabled={updatingCoupon || confirmRemoveCoupon}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sa-red-text)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 600 }}
                   >
                     <XCircle size={14} />
                     Hapus
                   </button>
+                </div>
+              )}
+              {hasCoupon && confirmRemoveCoupon && (
+                <div className="sa-proof-confirm">
+                  <span>
+                    Hapus kupon {currentItem.coupon_code}? Total tagihan langsung kembali ke harga penuh.
+                    {couponNotReapplicable && (
+                      <strong className="sa-note--danger">
+                        {' '}
+                        {invoiceCoupon
+                          ? 'Kupon ini sudah tidak berlaku (nonaktif, kedaluwarsa, atau kuotanya habis), jadi tidak bisa dipasang lagi.'
+                          : 'Ini kupon affiliator; bila affiliator sudah mengganti kodenya, kupon ini tidak bisa dipasang lagi.'}
+                      </strong>
+                    )}
+                  </span>
+                  <div className="sa-proof-confirm__actions">
+                    <button type="button" className="sa-btn sa-btn--secondary sa-btn--sm" onClick={() => setConfirmRemoveCoupon(false)} disabled={updatingCoupon}>
+                      Batal
+                    </button>
+                    <button type="button" className="sa-btn sa-btn--danger sa-btn--sm" onClick={() => void handleRemoveCoupon()} disabled={updatingCoupon}>
+                      {updatingCoupon ? 'Menghapus...' : 'Ya, hapus kupon'}
+                    </button>
+                  </div>
                 </div>
               )}
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -505,7 +604,11 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                     borderRadius: 'var(--sa-radius-sm)', textTransform: 'uppercase', letterSpacing: '0.04em',
                     boxSizing: 'border-box',
                   }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleApplyCoupon(); }}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    if (!updatingCoupon) void handleApplyCoupon();
+                  }}
                 />
                 <button
                   type="button" className="sa-btn sa-btn--primary" onClick={handleApplyCoupon}
@@ -585,6 +688,32 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             )}
           </div>
 
+          {/* Proof uploaded for a different total: warn above the approve action, without blocking it. */}
+          {proofMismatch && (
+            <div
+              role="alert"
+              style={{
+                marginTop: '14px',
+                padding: '12px 14px',
+                borderRadius: 'var(--sa-radius-sm)',
+                backgroundColor: 'var(--sa-amber-bg)',
+                border: '1px solid var(--sa-amber-border)',
+                color: 'var(--sa-amber-text)',
+                fontSize: '13px',
+                lineHeight: 1.5,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+              }}
+            >
+              <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>
+                Bukti transfer diunggah untuk tagihan <strong>{formatIDR(currentItem.proof_final_amount ?? 0)}</strong>. Total tagihan sekarang{' '}
+                <strong>{formatIDR(currentItem.final_amount)}</strong> - cek mutasi sebelum menyetujui.
+              </span>
+            </div>
+          )}
+
           {/* Approve confirmation (inline, above footer) */}
           {/* A paid invoice without a transfer proof cannot be approved (the backend refuses it too). */}
           {showApproveConfirm && isPending && !missingProof && (
@@ -606,7 +735,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           )}
 
           {/* Reject reason form (inline, above footer) */}
-          {showRejectForm && (
+          {showRejectForm && isPending && (
             <div style={{ marginTop: '14px' }}>
               <label style={{ ...labelStyle }}>Alasan Penolakan</label>
               <textarea

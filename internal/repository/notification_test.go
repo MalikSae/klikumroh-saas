@@ -55,7 +55,7 @@ func TestNotificationRepository_CrossRecipientIsolation(t *testing.T) {
 	}
 
 	// 1. Isolation check: Recipient 1001 cannot see notifB
-	listA, err := notifRepo.ListByRecipient(ctx, "admin", 1001, 50)
+	listA, err := notifRepo.ListByRecipient(ctx, &tenantA.ID, "admin", 1001, 50)
 	if err != nil {
 		t.Fatalf("ListByRecipient(1001) failed: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestNotificationRepository_CrossRecipientIsolation(t *testing.T) {
 	}
 
 	// 2. CountUnread check
-	unreadA, err := notifRepo.CountUnread(ctx, "admin", 1001)
+	unreadA, err := notifRepo.CountUnread(ctx, &tenantA.ID, "admin", 1001)
 	if err != nil {
 		t.Fatalf("CountUnread(1001) failed: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestNotificationRepository_CrossRecipientIsolation(t *testing.T) {
 	}
 
 	// 3. Unauthorized MarkAsRead attempt: Recipient 2002 attempts to mark notifA as read
-	err = notifRepo.MarkAsRead(ctx, "admin", 2002, notifA.ID)
+	err = notifRepo.MarkAsRead(ctx, &tenantB.ID, "admin", 2002, notifA.ID)
 	if err == nil {
 		t.Errorf("CRITICAL SECURITY: Recipient 2002 was able to mark notifA (%d) as read!", notifA.ID)
 	}
@@ -84,11 +84,11 @@ func TestNotificationRepository_CrossRecipientIsolation(t *testing.T) {
 	}
 
 	// 4. Authorized MarkAsRead by Recipient 1001
-	if err := notifRepo.MarkAsRead(ctx, "admin", 1001, notifA.ID); err != nil {
+	if err := notifRepo.MarkAsRead(ctx, &tenantA.ID, "admin", 1001, notifA.ID); err != nil {
 		t.Fatalf("Recipient 1001 failed to mark own notif as read: %v", err)
 	}
 
-	unreadAfter, err := notifRepo.CountUnread(ctx, "admin", 1001)
+	unreadAfter, err := notifRepo.CountUnread(ctx, &tenantA.ID, "admin", 1001)
 	if err != nil {
 		t.Fatalf("CountUnread after mark read failed: %v", err)
 	}
@@ -97,10 +97,10 @@ func TestNotificationRepository_CrossRecipientIsolation(t *testing.T) {
 	}
 
 	// 5. MarkAllAsRead does not affect other recipients
-	if err := notifRepo.MarkAllAsRead(ctx, "admin", 1001); err != nil {
+	if err := notifRepo.MarkAllAsRead(ctx, &tenantA.ID, "admin", 1001); err != nil {
 		t.Fatalf("MarkAllAsRead failed: %v", err)
 	}
-	unreadB, err := notifRepo.CountUnread(ctx, "admin", 2002)
+	unreadB, err := notifRepo.CountUnread(ctx, &tenantB.ID, "admin", 2002)
 	if err != nil {
 		t.Fatalf("CountUnread(2002) failed: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestNotificationRepository_AgentIsolation(t *testing.T) {
 	}
 
 	// Agent 502 cannot mark Agent 501's notification as read
-	err := notifRepo.MarkAsRead(ctx, "agent", 502, notifAgent1.ID)
+	err := notifRepo.MarkAsRead(ctx, &tenant.ID, "agent", 502, notifAgent1.ID)
 	if err == nil {
 		t.Errorf("CRITICAL SECURITY: Agent 502 marked Agent 501's notification as read!")
 	}

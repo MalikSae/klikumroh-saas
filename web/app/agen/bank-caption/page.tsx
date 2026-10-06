@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, X, Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Search, X, Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import './BankCaption.css';
 import { logHabit } from '../../../lib/agentHabits';
+import { copyToClipboard } from '../../../lib/clipboard';
 import {
   getAllCopies,
   getCopywritingCategories,
@@ -40,6 +41,8 @@ export default function BankCaptionPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedPart, setCopiedPart] = useState<string | null>(null);
+  // Caption whose copy the browser refused (in-app browsers): show how to copy by hand.
+  const [copyFailedId, setCopyFailedId] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
 
   const allCopies = useMemo(() => getAllCopies(), []);
@@ -251,32 +254,32 @@ export default function BankCaptionPage() {
   const handleCopyFull = async (copy: CopyItem) => {
     const text = assembleFullCaption(copy, replacements);
     if (text === null) return;
-    // The habit counts the agent's intent, even if the browser refuses the clipboard.
-    logHabit('caption');
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(copy.id);
-      setCopiedPart(null);
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch {
-      // Fallback
+    // copyToClipboard falls back to execCommand for in-app browsers; the habit counts only a real copy.
+    if (!(await copyToClipboard(text))) {
+      setCopyFailedId(copy.id);
+      return;
     }
+    setCopyFailedId(null);
+    logHabit('caption');
+    setCopiedId(copy.id);
+    setCopiedPart(null);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleCopyPart = async (text: string, copyId: string, partName: string) => {
     if (!text) return;
-    logHabit('caption');
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedId(copyId);
-      setCopiedPart(partName);
-      setTimeout(() => {
-        setCopiedId(null);
-        setCopiedPart(null);
-      }, 2000);
-    } catch {
-      // Fallback
+    if (!(await copyToClipboard(text))) {
+      setCopyFailedId(copyId);
+      return;
     }
+    setCopyFailedId(null);
+    logHabit('caption');
+    setCopiedId(copyId);
+    setCopiedPart(partName);
+    setTimeout(() => {
+      setCopiedId(null);
+      setCopiedPart(null);
+    }, 2000);
   };
 
   // WhatsApp share
@@ -426,6 +429,12 @@ export default function BankCaptionPage() {
                     <span>Kirim ke WA</span>
                   </button>
                 </div>
+                {copyFailedId === copy.id && (
+                  <p className="bc-copy-failed" role="alert">
+                    <AlertCircle size={16} aria-hidden="true" />
+                    <span>Browser ini menolak menyalin otomatis. Pakai &quot;Kirim ke WA&quot;, atau tekan lama teks caption di atas untuk menyalin manual.</span>
+                  </p>
+                )}
               </article>
             );
           })}

@@ -13,6 +13,7 @@ import {
   type TenantSubscriptionInfo,
 } from '../../services/api';
 import { Banner, Button, DataTable, EmptyState, Field, Pill, fmtDate, fmtRupiah, type Column, type PillTone, errorText } from '../../ui';
+import { isCouponRejectedStatus } from '../../utils/billingMath';
 
 export const INVOICE_STATUS: Record<PaymentVerification['status'], { label: string; tone: PillTone }> = {
   pending: { label: 'Menunggu pembayaran', tone: 'amber' },
@@ -73,6 +74,9 @@ export const BillingSettings: React.FC = () => {
 
   // Only the latest coupon check may update the form (the plan can change while one is in flight).
   const checkSeq = useRef(0);
+  // Whether the last failed check was the server rejecting the coupon itself (not 429, 5xx or network).
+  const lastRejected = useRef(false);
+  const [couponRejected, setCouponRejected] = useState(false);
 
   useEffect(() => {
     Promise.all([fetchTenantSubscription(true), fetchPricingPlansForRenewal()])
@@ -103,6 +107,8 @@ export const BillingSettings: React.FC = () => {
     const seq = ++checkSeq.current;
     setChecking(true);
     setCouponError(null);
+    lastRejected.current = false;
+    setCouponRejected(false);
     try {
       const r = await validateCoupon(c, pid);
       const d = { code: r.code, pct: r.discount_percentage };
@@ -112,6 +118,8 @@ export const BillingSettings: React.FC = () => {
       if (seq === checkSeq.current) {
         setDiscount(null);
         setCouponError(errorText(e, 'Kupon tidak valid'));
+        lastRejected.current = isCouponRejectedStatus((e as { status?: number } | null)?.status);
+        setCouponRejected(lastRejected.current);
       }
       return null;
     } finally {
@@ -145,10 +153,11 @@ export const BillingSettings: React.FC = () => {
       const d = await checkCoupon(coupon, planId);
       if (d) {
         code = d.code;
-      } else if (isCarriedCoupon) {
-        // The open invoice's own coupon no longer validates on its own (e.g. the affiliator replaced its
-        // code). Send none: the backend then applies its carry-over rule for the signup affiliator coupon
-        // (judged at the invoice date) instead of the plan change being blocked.
+      } else if (isCarriedCoupon && lastRejected.current) {
+        // The server says the open invoice's own coupon no longer validates on its own (e.g. the affiliator
+        // replaced its code). Send none: the backend then applies its carry-over rule for the signup
+        // affiliator coupon (judged at the invoice date) instead of the plan change being blocked.
+        // A rate limit, server error or network error is NOT this case: the error stays and the invoice waits.
         code = undefined;
       } else {
         return;
@@ -300,7 +309,7 @@ export const BillingSettings: React.FC = () => {
                 </div>
               </dl>
               <p className="st-muted">
-                {isCarriedCoupon && couponError ? 'Kupon dari tagihan sebelumnya tetap dipakai bila masih berlaku; total akhir tampil di halaman pembayaran. ' : ''}
+                {isCarriedCoupon && couponError && couponRejected ? 'Kupon dari tagihan sebelumnya tetap dipakai bila masih berlaku; total akhir tampil di halaman pembayaran. ' : ''}
                 {open ? "Tagihan sebelumnya yang belum dibayar akan diganti. " : ""}Total transfer ditambah kode unik 3 digit agar pembayaran Anda mudah dicocokkan.
               </p>
               <div className="st-checkout__actions">

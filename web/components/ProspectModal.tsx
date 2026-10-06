@@ -9,6 +9,7 @@ import { jakartaMonthOptions } from '../lib/jakartaTime';
 import { getMetaBrowserContext, isMetaPixelActive, trackMetaEvent } from '../lib/metaPixel';
 import { readAttribution } from '../lib/adAttribution';
 import { apiErrorMessage } from '../lib/safeJson';
+import { agentPhoneError } from '../lib/agentPhone';
 import './ProspectModal.css';
 
 const WhatsAppIcon: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = '' }) => (
@@ -112,9 +113,11 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
       setErrorMessage('Nomor WhatsApp / telepon wajib diisi');
       return;
     }
-    const cleanDigits = phone.replace(/\D/g, '');
-    if (cleanDigits.length < 10 || cleanDigits.length > 15) {
-      setErrorMessage('Nomor WhatsApp tidak valid (10-15 digit angka, contoh: 081234567890)');
+    // Same rule as the backend (prospect_validation.go validateProspectPhone, mirrored in lib/agentPhone.ts):
+    // an Indonesian number starting 08, 62 or +62, so the visitor learns what is wrong before sending.
+    const phoneError = agentPhoneError(phone);
+    if (phoneError) {
+      setErrorMessage(phoneError);
       return;
     }
     if (!consent) {

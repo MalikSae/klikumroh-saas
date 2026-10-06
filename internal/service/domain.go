@@ -40,7 +40,14 @@ var (
 	ErrDomainNotCustom       = errors.New("hanya custom domain yang dapat diverifikasi")
 	ErrAliasNotPossible      = errors.New("alias tanpa www hanya bisa untuk domain seperti www.namatravel.com")
 	ErrPlatformHostname      = errors.New("domain dengan suffix klikumroh.id adalah domain bawaan sistem, bukan custom domain")
+	// ErrDomainStillUsed: another travel's unverified row for this hostname still has a live (active) alias
+	// pointing at it, so it cannot be released (answered 409).
+	ErrDomainStillUsed = errors.New("Domain ini masih dipakai travel lain.")
 )
+
+// dailyCheckMinInterval: the daily DNS job counts at most one check per domain in this interval, so API
+// restarts (the job also runs shortly after start) never speed up the "3 failed days in a row" rule.
+const dailyCheckMinInterval = 20 * time.Hour
 
 var hostnameRegex = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$`)
 
@@ -102,6 +109,20 @@ type domainService struct {
 	notif  NotificationService
 	admins repository.AdminUserRepository
 	staff  StaffLister
+	// now is the clock of the daily job (tests advance it, see SetClock).
+	now func() time.Time
+}
+
+// SetClock replaces the clock used by the daily DNS job (tests only).
+func (s *domainService) SetClock(now func() time.Time) {
+	s.now = now
+}
+
+func (s *domainService) clock() time.Time {
+	if s.now != nil {
+		return s.now()
+	}
+	return time.Now()
 }
 
 // NewDomainService creates a new DomainService instance.
@@ -144,7 +165,13 @@ func (s *domainService) claimable(ctx context.Context, tenantID uint64, hostname
 		if existing.Status == "active" || existing.Type != "custom" || existing.TenantID == tenantID {
 			return fmt.Errorf("%w: %s", ErrDomainAlreadyUsed, hostname)
 		}
-		return s.domainRepo.ReleaseUnverifiedClaim(ctx, hostname, tenantID)
+		if err := s.domainRepo.ReleaseUnverifiedClaim(ctx, hostname, tenantID); err != nil {
+			if errors.Is(err, repository.ErrDomainInUse) {
+				return ErrDomainStillUsed
+			}
+			return err
+		}
+		return nil
 	}
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return err
@@ -296,7 +323,10 @@ func (s *domainService) cnameOK(hostname string) (bool, string) {
 	addrs, err := s.resolver.LookupIP(hostname)
 	if err != nil || len(addrs) == 0 {
 		if cnameErr != nil {
-			return false, fmt.Sprintf("DNS lookup gagal: %v", cnameErr)
+			// The resolver error text names the server's own DNS resolver (e.g. "lookup x on
+			// 127.0.0.53:53"); it is logged, never stored or shown to the travel.
+			log.Printf("[Domain] DNS lookup %s: %v", hostname, cnameErr)
+			return false, "DNS domain belum bisa ditemukan (belum diatur, salah ketik, atau perubahan DNS belum menyebar). Coba lagi beberapa saat lagi."
 		}
 		return false, fmt.Sprintf("domain belum mengarah ke KlikUmroh (CNAME ke '%s' atau A record ke IP server)", ExpectedCNAMETarget)
 	}
@@ -368,7 +398,7 @@ func (s *domainService) VerifyDomain(ctx context.Context, tenantID uint64, domai
 
 func (s *domainService) verifyPrimary(ctx context.Context, tenantID uint64, domain *repository.Domain) (*repository.Domain, error) {
 	if domain.Status == "active" {
-		return s.recordCheck(ctx, domain)
+		return s.manualCheck(ctx, domain)
 	}
 
 	now := time.Now()
@@ -408,7 +438,7 @@ func (s *domainService) verifyPrimary(ctx context.Context, tenantID uint64, doma
 // so the alias needs no TXT of its own; it must be exactly the primary without "www.".
 func (s *domainService) verifyAlias(ctx context.Context, tenantID uint64, alias, primary *repository.Domain) (*repository.Domain, error) {
 	if alias.Status == "active" {
-		return s.recordCheck(ctx, alias)
+		return s.manualCheck(ctx, alias)
 	}
 	now := time.Now()
 	alias.LastCheckAt = &now
@@ -442,13 +472,35 @@ func (s *domainService) verifyAlias(ctx context.Context, tenantID uint64, alias,
 	return alias, nil
 }
 
-// recordCheck re-checks the CNAME of an active domain. A failure only increments check_failures and keeps
-// the domain active (a DNS hiccup must not take a travel's site offline); after MaxDomainCheckFailures in
-// a row the default subdomain stops redirecting to it. A success resets the counter.
-func (s *domainService) recordCheck(ctx context.Context, domain *repository.Domain) (*repository.Domain, error) {
+// manualCheck re-checks the CNAME of an active domain when the travel clicks "Verifikasi". It only
+// reports (bug hunt putaran 5): a failure never increments check_failures, which counts the daily job's
+// checks only ("gagal 3 hari berturut-turut"). A success resets the counter, so a travel that fixed its DNS
+// gets the subdomain redirect back right away.
+func (s *domainService) manualCheck(ctx context.Context, domain *repository.Domain) (*repository.Domain, error) {
 	now := time.Now()
 	domain.LastCheckAt = &now
 	domain.LastVerificationAttemptAt = &now
+	domain.DailyCheckAt = nil // keep the stored daily-check time (Update keeps it when nil)
+	if ok, reason := s.cnameOK(domain.Hostname); ok {
+		domain.CheckFailures = 0
+		domain.VerificationFailureReason = nil
+	} else {
+		domain.VerificationFailureReason = &reason
+	}
+	if err := s.domainRepo.Update(ctx, domain.TenantID, domain); err != nil {
+		return nil, err
+	}
+	return domain, nil
+}
+
+// dailyCheck re-checks the CNAME of an active domain for the daily job. A failure only increments
+// check_failures and keeps the domain active (a DNS hiccup must not take a travel's site offline); after
+// MaxDomainCheckFailures in a row the default subdomain stops redirecting to it. A success resets the
+// counter. The check time is stored in daily_check_at.
+func (s *domainService) dailyCheck(ctx context.Context, domain *repository.Domain, now time.Time) (*repository.Domain, error) {
+	domain.LastCheckAt = &now
+	domain.LastVerificationAttemptAt = &now
+	domain.DailyCheckAt = &now
 	if ok, reason := s.cnameOK(domain.Hostname); ok {
 		domain.CheckFailures = 0
 		domain.VerificationFailureReason = nil
@@ -463,19 +515,30 @@ func (s *domainService) recordCheck(ctx context.Context, domain *repository.Doma
 }
 
 // RecheckActiveDomains is the daily job: it re-checks the CNAME of every active custom domain
-// (recordCheck). A domain whose check fails MaxDomainCheckFailures times in a row (a success resets the
-// count) is set to 'failed' (keputusan pendiri 6 Okt 2026): it is no longer served, the Caddy ask
-// endpoint (active custom domains only) stops approving certificates for it, another travel that now
-// owns the domain can claim it, and the travel can verify it again once DNS is fixed. The travel's admins
+// (dailyCheck). A domain already counted less than dailyCheckMinInterval ago is skipped, so the run shortly
+// after every API start never counts the same day twice. A domain whose check fails
+// MaxDomainCheckFailures times in a row (a success resets the count) is set to 'failed' (keputusan
+// pendiri 6 Okt 2026): it is no longer served, the Caddy ask endpoint (active custom domains only) stops
+// approving certificates for it, and the travel can verify it again once DNS is fixed. The travel's admins
 // and KlikUmroh staff are notified.
 func (s *domainService) RecheckActiveDomains(ctx context.Context) (checked int, failing int) {
 	domains, err := s.domainRepo.ListActiveCustom(ctx)
 	if err != nil {
+		log.Printf("[Domain] daily recheck: cannot list active domains: %v", err)
 		return 0, 0
 	}
+	now := s.clock()
+	deactivated := map[uint64]bool{}
 	for i := range domains {
-		d, err := s.recordCheck(ctx, &domains[i])
+		if deactivated[domains[i].ID] {
+			continue // alias already deactivated together with its primary in this run
+		}
+		if last := domains[i].DailyCheckAt; last != nil && now.Sub(*last) < dailyCheckMinInterval {
+			continue
+		}
+		d, err := s.dailyCheck(ctx, &domains[i], now)
 		if err != nil {
+			log.Printf("[Domain] daily recheck of %s failed: %v", domains[i].Hostname, err)
 			continue
 		}
 		checked++
@@ -483,34 +546,79 @@ func (s *domainService) RecheckActiveDomains(ctx context.Context) (checked int, 
 			failing++
 		}
 		if d.CheckFailures >= MaxDomainCheckFailures {
-			s.deactivateFailingDomain(ctx, d)
+			for _, id := range s.deactivateFailingDomain(ctx, d) {
+				deactivated[id] = true
+			}
 		}
 	}
 	return checked, failing
 }
 
-// deactivateFailingDomain sets an active custom domain whose DNS check kept failing to 'failed'.
-func (s *domainService) deactivateFailingDomain(ctx context.Context, d *repository.Domain) {
+// deactivateFailingDomain sets an active custom domain whose DNS check kept failing to 'failed', and
+// returns the ids it deactivated.
+//
+// Its active aliases go with it (bug hunt putaran 5, chosen over keeping them online): an alias is proven
+// only through its primary's TXT record and has no verification of its own, so once the primary is
+// deactivated nothing proves the travel still controls the zone. Keeping the alias live would also leave
+// an active row hanging off a non-active primary, the state that let another travel's claim cascade-delete
+// a live alias. The travel re-verifies the pair with one "Verifikasi" click once DNS is fixed (VerifyDomain
+// checks the primary and its aliases together), and the site stays reachable on its subdomain meanwhile.
+func (s *domainService) deactivateFailingDomain(ctx context.Context, d *repository.Domain) []uint64 {
+	days := d.CheckFailures
 	detail := ""
 	if d.VerificationFailureReason != nil {
 		detail = ": " + *d.VerificationFailureReason
 	}
-	reason := fmt.Sprintf("DNS domain tidak lagi mengarah ke KlikUmroh dalam %d pemeriksaan harian berturut-turut%s. Perbaiki DNS lalu verifikasi ulang.", d.CheckFailures, detail)
+	reason := fmt.Sprintf("DNS domain tidak lagi mengarah ke KlikUmroh dalam %d pemeriksaan harian berturut-turut%s. Perbaiki DNS lalu verifikasi ulang.", days, detail)
 	d.Status = "failed"
 	d.VerificationFailureReason = &reason
 	if err := s.domainRepo.Update(ctx, d.TenantID, d); err != nil {
-		log.Printf("[Domain] tenant %d: cannot deactivate %s after %d failed checks: %v", d.TenantID, d.Hostname, d.CheckFailures, err)
-		return
+		log.Printf("[Domain] tenant %d: cannot deactivate %s after %d failed checks: %v", d.TenantID, d.Hostname, days, err)
+		return nil
 	}
-	log.Printf("[Domain] tenant %d: %s deactivated after %d failed daily DNS checks", d.TenantID, d.Hostname, d.CheckFailures)
+	log.Printf("[Domain] tenant %d: %s deactivated after %d failed daily DNS checks", d.TenantID, d.Hostname, days)
+	ids := []uint64{d.ID}
+	hosts := []string{d.Hostname}
 
+	if d.RedirectToDomainID == nil {
+		all, err := s.domainRepo.ListByTenant(ctx, d.TenantID)
+		if err != nil {
+			log.Printf("[Domain] tenant %d: cannot list aliases of %s: %v", d.TenantID, d.Hostname, err)
+		}
+		for i := range all {
+			a := &all[i]
+			if a.RedirectToDomainID == nil || *a.RedirectToDomainID != d.ID || a.Status != "active" {
+				continue
+			}
+			aliasReason := fmt.Sprintf("Domain utama %s dinonaktifkan karena DNS-nya tidak lagi mengarah ke KlikUmroh dalam %d pemeriksaan harian berturut-turut. Perbaiki DNS lalu verifikasi ulang.", d.Hostname, days)
+			a.Status = "failed"
+			a.VerificationFailureReason = &aliasReason
+			a.DailyCheckAt = nil
+			if err := s.domainRepo.Update(ctx, d.TenantID, a); err != nil {
+				log.Printf("[Domain] tenant %d: cannot deactivate alias %s: %v", d.TenantID, a.Hostname, err)
+				continue
+			}
+			log.Printf("[Domain] tenant %d: alias %s deactivated together with %s", d.TenantID, a.Hostname, d.Hostname)
+			ids = append(ids, a.ID)
+			hosts = append(hosts, a.Hostname)
+		}
+	}
+
+	named := hosts[0]
+	if len(hosts) > 1 {
+		named = fmt.Sprintf("%s (beserta %s)", hosts[0], strings.Join(hosts[1:], ", "))
+	}
 	title := "Domain kustom dinonaktifkan"
-	body := fmt.Sprintf("Domain %s tidak lagi mengarah ke KlikUmroh selama %d pemeriksaan harian berturut-turut, jadi dinonaktifkan. Website tetap bisa dibuka lewat subdomain KlikUmroh. Perbaiki DNS domain lalu verifikasi ulang di Pengaturan.", d.Hostname, d.CheckFailures)
-	s.notifyDomain(ctx, d.TenantID, "admin", title, body, "/settings")
+	body := fmt.Sprintf("Domain %s tidak lagi mengarah ke KlikUmroh selama %d hari pemeriksaan berturut-turut, jadi dinonaktifkan. Website tetap bisa dibuka lewat subdomain KlikUmroh. Perbaiki DNS domain lalu verifikasi ulang di menu Website > Domain.", named, days)
+	s.notifyDomain(ctx, d.TenantID, "admin", title, body, DomainSettingsLink)
 	s.notifyDomain(ctx, d.TenantID, "staff", title,
-		fmt.Sprintf("Domain %s milik travel #%d dinonaktifkan setelah %d pemeriksaan DNS harian gagal berturut-turut.", d.Hostname, d.TenantID, d.CheckFailures),
+		fmt.Sprintf("Domain %s milik travel #%d dinonaktifkan setelah %d pemeriksaan DNS harian gagal berturut-turut.", named, d.TenantID, days),
 		fmt.Sprintf("/internal/tenants/%d", d.TenantID))
+	return ids
 }
+
+// DomainSettingsLink is the travel dashboard page that manages custom domains.
+const DomainSettingsLink = "/website/domain"
 
 // SetNotifier enables notifications for domains taken offline by the daily recheck (wired in main).
 func (s *domainService) SetNotifier(notif NotificationService, admins repository.AdminUserRepository, staff StaffLister) {

@@ -15,6 +15,7 @@ import { isBlankPassword, newPasswordError } from '../../../lib/passwordRules';
 import { agentPhoneError } from '../../../lib/agentPhone';
 import { copyToClipboard } from '../../../lib/clipboard';
 import { apiErrorMessage } from '../../../lib/safeJson';
+import { clearScriptProspectNames } from '../../../lib/scriptProspectName';
 import './AgenProfil.css';
 
 interface AgentProfileData {
@@ -420,6 +421,8 @@ export default function AgenProfilPage() {
     localStorage.removeItem('agent_token');
     localStorage.removeItem('klikumroh_agent_tenant_name');
     localStorage.removeItem('klikumroh_agent_name');
+    // Shared device: the next agent must not see this agent's jamaah name in Script WA.
+    clearScriptProspectNames(localStorage);
     router.push('/agen/login');
   };
 

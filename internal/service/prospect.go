@@ -343,6 +343,10 @@ type prospectDetailFiller interface {
 	FillMissingDetails(ctx context.Context, tenantID uint64, id uint64, packageID *uint64, jumlahJamaah *int, departurePlan, domicile *string, consentAt, metaDisclosedAt *time.Time) error
 }
 
+type guardedProspectDeleter interface {
+	DeleteIfDeletable(ctx context.Context, tenantID uint64, id uint64) error
+}
+
 type prospectAnonymizer interface {
 	Anonymize(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
 }
@@ -516,9 +520,9 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 		ConsentAt:       &consentAt,
 		Email:           emailPtr,
 		SourceChannel:   sourceChannel,
-		UTMSource:       truncatedPtr(attribution.UTMSource, 100),
-		UTMMedium:       truncatedPtr(attribution.UTMMedium, 100),
-		UTMCampaign:     truncatedPtr(attribution.UTMCampaign, 150),
+		UTMSource:       utmValuePtr(attribution.UTMSource, 100),
+		UTMMedium:       utmValuePtr(attribution.UTMMedium, 100),
+		UTMCampaign:     utmValuePtr(attribution.UTMCampaign, 150),
 		Fbclid:          truncatedPtr(attribution.Fbclid, 255),
 		Status:          "baru", // Force initial status to 'baru' server-side
 	}
@@ -886,6 +890,15 @@ type ledgerBatchCreator interface {
 }
 
 func (s *prospectService) createLedgers(ctx context.Context, tenantID uint64, entries []*repository.CommissionLedger) error {
+	// A correction that rounds to Rp 0,00 changes nothing and only confuses the history: never write it.
+	kept := entries[:0:0]
+	for _, e := range entries {
+		if e.Type == "correction" && math.Round(e.Amount*100) == 0 {
+			continue
+		}
+		kept = append(kept, e)
+	}
+	entries = kept
 	if s.commissionLedgerRepo == nil || len(entries) == 0 {
 		return nil
 	}
@@ -1197,6 +1210,12 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 	}
 	var entries []*repository.CommissionLedger
 	addCorrection := func(corrAgentID uint64, diff float64) {
+		// Work in whole cents: the DECIMAL(15,2) totals and the float targets differ by tiny residues
+		// (e.g. 2.9e-11) that must not become "Koreksi komisi Rp 0,00" rows.
+		diff = math.Round(diff*100) / 100
+		if diff == 0 {
+			return
+		}
 		if diff < 0 && releasedAt != nil {
 			if held := math.Round(heldNet[corrAgentID]*100) / 100; held > 0 {
 				part := math.Min(-diff, held)
@@ -1226,14 +1245,14 @@ func (s *prospectService) correctClosedCommission(ctx context.Context, tenantID 
 		}
 		entries = append(entries, &repository.CommissionLedger{
 			TenantID: tenantID, AgentID: corrAgentID, ProspectID: prospect.ID, PackageID: pkgID,
-			Type: "correction", Amount: diff, Notes: &reason, ReleasedAt: releasedAt,
+			Type: "correction", Amount: math.Round(diff*100) / 100, Notes: &reason, ReleasedAt: releasedAt,
 		})
 	}
-	if diff := targetDirect - directTotal; diff != 0 {
+	if diff := targetDirect - directTotal; math.Round(diff*100) != 0 {
 		addCorrection(agentID, diff)
 	}
 	if overrideAgentID != nil {
-		if diff := targetOverride - overrideTotal; diff != 0 {
+		if diff := targetOverride - overrideTotal; math.Round(diff*100) != 0 {
 			addCorrection(*overrideAgentID, diff)
 		}
 	}
@@ -1478,6 +1497,17 @@ func (s *prospectService) Delete(ctx context.Context, tenantID uint64, id uint64
 		if len(ledgers) > 0 {
 			return ErrProspectCannotDelete
 		}
+	}
+	// Re-checked inside the delete transaction: a closing booked meanwhile must not be deleted with its
+	// fresh commission rows.
+	if guarded, ok := s.prospectRepo.(guardedProspectDeleter); ok {
+		if err := guarded.DeleteIfDeletable(ctx, tenantID, id); err != nil {
+			if errors.Is(err, repository.ErrProspectNotDeletable) {
+				return ErrProspectCannotDelete
+			}
+			return err
+		}
+		return nil
 	}
 	return s.prospectRepo.Delete(ctx, tenantID, id)
 }

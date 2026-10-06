@@ -44,3 +44,45 @@ export const planChangeTotal = (newPlanPrice: number, discountPercentage: number
   if (discounted <= 0) return 0;
   return discounted + (uniqueCode && uniqueCode > 0 ? uniqueCode : 0);
 };
+
+/**
+ * True when a coupon check failed because the server judged the coupon itself (400/404/422), as opposed
+ * to a rate limit (429), a server error (5xx) or a network error (no status). Only then may the open
+ * invoice's carried coupon be dropped and left to the server's carry-over rule.
+ */
+export const isCouponRejectedStatus = (status: number | null | undefined): boolean => status === 400 || status === 404 || status === 422;
+
+/**
+ * Coupon percentage for the "Ubah Paket" preview. A staff coupon gives its exact percentage. An affiliator
+ * coupon is not in the staff list: the server re-applies the coupon row's current percentage, which follows
+ * the program's "Diskon kupon affiliator" setting, so that is used when known; otherwise the percentage
+ * implied by the invoice amounts. Affiliator previews are marked estimated (the server recalculates).
+ */
+export const planChangeCouponPercentage = (
+  staffCouponPercentage: number | null | undefined,
+  affiliatorProgramDiscount: number | null | undefined,
+  amount: number,
+  finalAmount: number,
+  uniqueCode: number | null | undefined,
+): { percentage: number; estimated: boolean } => {
+  if (typeof staffCouponPercentage === 'number') return { percentage: staffCouponPercentage, estimated: false };
+  if (typeof affiliatorProgramDiscount === 'number') return { percentage: affiliatorProgramDiscount, estimated: true };
+  return { percentage: impliedDiscountPercentage(amount, finalAmount, uniqueCode), estimated: true };
+};
+
+/**
+ * True when an invoice carries a transfer proof that was uploaded for a different total than the one billed
+ * now (staff changed the plan or coupon after the travel transferred; keputusan pendiri 6 Okt 2026). Compared
+ * in whole cents so float noise from DECIMAL(15,2) never raises a false warning. No proof, or an older proof
+ * without a recorded amount (null), never warns.
+ */
+export const proofAmountMismatch = (
+  proofUrl: string | null | undefined,
+  proofFinalAmount: number | null | undefined,
+  finalAmount: number | null | undefined,
+): boolean => {
+  if (!proofUrl || proofUrl.trim() === '') return false;
+  if (proofFinalAmount == null || finalAmount == null) return false;
+  if (!Number.isFinite(proofFinalAmount) || !Number.isFinite(finalAmount)) return false;
+  return Math.round(proofFinalAmount * 100) !== Math.round(finalAmount * 100);
+};

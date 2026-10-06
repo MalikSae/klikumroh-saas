@@ -65,6 +65,47 @@ const (
 )
 
 // validateAgentProfileLengths refuses values longer than their column.
+// ErrAgentFieldTooLong: a profile field is longer than its column; the message names the field.
+type agentFieldTooLongError struct{ msg string }
+
+func (e *agentFieldTooLongError) Error() string { return e.msg }
+
+// ErrAgentFieldTooLong matches every agentFieldTooLongError with errors.Is.
+var ErrAgentFieldTooLong = errors.New("data agen terlalu panjang")
+
+func (e *agentFieldTooLongError) Is(target error) bool { return target == ErrAgentFieldTooLong }
+
+// validateAgentContactFields checks a submitted (non-blank) email like Register does, and the email and
+// bank fields against their column sizes (email 255, bank 100, account number 50, holder 150), so bad
+// input is a 400 instead of a database error or an unusable login.
+func validateAgentContactFields(email, bankName, accountNumber, accountHolder *string) error {
+	if email != nil {
+		if e := strings.TrimSpace(*email); e != "" {
+			if len(e) > 255 {
+				return &agentFieldTooLongError{"email maksimal 255 karakter"}
+			}
+			if addr, err := mail.ParseAddress(e); err != nil || addr.Address != e {
+				return ErrInvalidAgentEmail
+			}
+		}
+	}
+	limits := []struct {
+		v   *string
+		max int
+		msg string
+	}{
+		{bankName, 100, "nama bank maksimal 100 karakter"},
+		{accountNumber, 50, "nomor rekening maksimal 50 karakter"},
+		{accountHolder, 150, "nama pemilik rekening maksimal 150 karakter"},
+	}
+	for _, l := range limits {
+		if l.v != nil && utf8.RuneCountInString(strings.TrimSpace(*l.v)) > l.max {
+			return &agentFieldTooLongError{l.msg}
+		}
+	}
+	return nil
+}
+
 func validateAgentProfileLengths(name, domisili *string) error {
 	if name != nil && utf8.RuneCountInString(strings.TrimSpace(*name)) > maxAgentNameLength {
 		return ErrAgentNameTooLong
@@ -231,6 +272,9 @@ type CommissionHistoryItem struct {
 	// CountsAgainstBalance is sent only as false, on a rejected payout request: it never left the balance,
 	// so clients show it neutrally instead of as a deduction. Absent means the row counts as usual.
 	CountsAgainstBalance *bool `json:"counts_against_balance,omitempty"`
+	// RejectionReason: the travel admin's reason on a rejected payout request (also an approved one the
+	// admin cancelled after a failed transfer). Payout rows only, always the agent's own; omitted otherwise.
+	RejectionReason *string `json:"rejection_reason,omitempty"`
 	// ProspectID: the prospect a ledger entry belongs to. For override entries that is a downline agent's
 	// prospect, so the agent view clears it; the admin view keeps it to link the entry to the prospect.
 	ProspectID uint64 `json:"prospect_id,omitempty"`
@@ -265,6 +309,8 @@ type AgentPayoutHistoryItem struct {
 	CreatedAt time.Time `json:"created_at"`
 	Amount    float64   `json:"amount"`
 	Status    string    `json:"status"`
+	// RejectionReason: set on rejected requests (also approved ones cancelled by the admin).
+	RejectionReason *string `json:"rejection_reason,omitempty"`
 }
 
 type AgentDashboardDetail struct {
@@ -290,6 +336,11 @@ type AgentDashboardDetail struct {
 	SaldoTertahan      float64                       `json:"saldo_tertahan"`
 	RiwayatPencairan   []AgentPayoutHistoryItem      `json:"riwayat_pencairan"`
 	RiwayatKomisi      []CommissionHistoryItem       `json:"riwayat_komisi"`
+	// The agent's stored bank details, shown only to its own travel's admins (e.g. when the admin starts a
+	// payout for the agent). Omitted when not set.
+	BankName          *string `json:"bank_name,omitempty"`
+	BankAccountNumber *string `json:"bank_account_number,omitempty"`
+	BankAccountHolder *string `json:"bank_account_holder,omitempty"`
 }
 
 type UpdateDashboardAgentRequest struct {
@@ -325,7 +376,10 @@ type AgentService interface {
 	ListPayoutRequests(ctx context.Context, tenantID uint64, statusFilter *string) ([]repository.CommissionPayoutRequestItem, error)
 	ApprovePayoutRequest(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
 	MarkPayoutRequestPaid(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error
+	// RejectPayoutRequest rejects a pending request or cancels an approved one (transfer failed).
 	RejectPayoutRequest(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, reason string) error
+	// CreatePayoutForAgent: the travel admin starts a payout of the agent's whole withdrawable balance.
+	CreatePayoutForAgent(ctx context.Context, tenantID uint64, agentID uint64, adminUserID uint64) (*repository.CommissionPayoutRequestItem, error)
 	// GetLeaderboard ranks active agents by closed jamaah. period: LeaderboardPeriodMonth, LeaderboardPeriodYear
 	// or "" / LeaderboardPeriodAll (since joining).
 	GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64, period string) ([]LeaderboardEntry, error)
@@ -767,6 +821,7 @@ func (s *agentService) UpdatePaymentProof(ctx context.Context, tenantID uint64, 
 		return nil, ErrInvalidPaymentState
 	}
 
+	wasRejected := agent.Status == "rejected"
 	if agent.Status == "rejected" {
 		if err := s.agentRepo.ResetToPendingWithProof(ctx, tenantID, agentID, proofURL); err != nil {
 			return nil, err
@@ -781,6 +836,13 @@ func (s *agentService) UpdatePaymentProof(ctx context.Context, tenantID uint64, 
 
 	agent.PaymentProofURL = &proofURL
 	agent.PaymentStatus = "pending_verification"
+
+	// The admins verify the proof: tell them it arrived (a rejected agent re-applying goes back to pending).
+	title, body := "Bukti pembayaran agen masuk", fmt.Sprintf("%s mengunggah bukti pembayaran pendaftaran agen. Periksa lalu setujui atau tolak.", agent.Name)
+	if wasRejected {
+		title, body = "Agen mendaftar ulang", fmt.Sprintf("%s mengunggah ulang bukti pembayaran setelah ditolak. Periksa lalu setujui atau tolak.", agent.Name)
+	}
+	s.notifyAgentAdmins(ctx, tenantID, "agent_payment_proof_uploaded", title, body, "/agents/pending")
 
 	tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
 	if err != nil {
@@ -1344,7 +1406,66 @@ func (s *agentService) ListPayoutRequests(ctx context.Context, tenantID uint64, 
 	if s.payoutRepo == nil {
 		return []repository.CommissionPayoutRequestItem{}, nil
 	}
-	return s.payoutRepo.List(ctx, tenantID, statusFilter)
+	items, err := s.payoutRepo.List(ctx, tenantID, statusFilter)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		// An empty list is [] in JSON, never null.
+		items = []repository.CommissionPayoutRequestItem{}
+	}
+	return items, nil
+}
+
+// payoutStatusLabels are the words the travel admin sees for a payout status (never the raw keys).
+var payoutStatusLabels = map[string]string{
+	"pending":  "menunggu persetujuan",
+	"approved": "sudah disetujui",
+	"rejected": "sudah ditolak",
+	"paid":     "sudah ditransfer",
+}
+
+func payoutStatusLabel(status string) string {
+	if l, ok := payoutStatusLabels[status]; ok {
+		return l
+	}
+	return "sudah berubah"
+}
+
+// payoutWithdrawableExcluding is the agent's withdrawable balance with the given request left out: the
+// same math as calculateAgentBalances (released commission minus pending/approved/paid payouts), plus
+// the request's own amount back since it is one of those payouts. Must run under withPayoutLock.
+func (s *agentService) payoutWithdrawableExcluding(ctx context.Context, tenantID uint64, req *repository.CommissionPayoutRequest) (float64, error) {
+	released, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, req.AgentID)
+	if err != nil {
+		return 0, err
+	}
+	reserved, err := s.payoutRepo.SumPendingApprovedPaidByAgent(ctx, tenantID, req.AgentID)
+	if err != nil {
+		return 0, err
+	}
+	if req.Status == "pending" || req.Status == "approved" || req.Status == "paid" {
+		reserved -= req.AmountRequested
+	}
+	available := released - reserved
+	if available < 0 {
+		available = 0
+	}
+	return available, nil
+}
+
+// checkPayoutStillCovered refuses an approve or mark-paid when the agent's commission no longer covers
+// the request (for example a closing was cancelled after the request was made), so the travel does not
+// pay money that is no longer owed.
+func (s *agentService) checkPayoutStillCovered(ctx context.Context, tenantID uint64, req *repository.CommissionPayoutRequest) error {
+	available, err := s.payoutWithdrawableExcluding(ctx, tenantID, req)
+	if err != nil {
+		return err
+	}
+	if math.Round(req.AmountRequested*100) > math.Round(available*100) {
+		return payoutStatusConflict(fmt.Sprintf("Saldo agen sudah tidak cukup untuk pengajuan ini (saldo tersedia Rp %s). Tolak pengajuan ini.", util.FormatRupiah(available)))
+	}
+	return nil
 }
 
 func (s *agentService) ApprovePayoutRequest(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error {
@@ -1355,35 +1476,33 @@ func (s *agentService) ApprovePayoutRequest(ctx context.Context, tenantID uint64
 	if err != nil {
 		return err
 	}
-	if req.Status != "pending" {
-		return payoutStatusConflict(fmt.Sprintf("pengajuan tidak dapat disetujui karena status saat ini adalah '%s' (harus 'pending')", req.Status))
-	}
-	now := time.Now().UTC()
-	if err := s.payoutRepo.UpdateStatus(ctx, tenantID, id, "pending", "approved", &adminUserID, &now, nil); err != nil {
+	err = s.withPayoutLock(ctx, tenantID, req.AgentID, func() error {
+		// Re-read under the lock: the status and the balance are checked against the current state.
+		req, err = s.payoutRepo.GetByID(ctx, tenantID, id)
+		if err != nil {
+			return err
+		}
+		if req.Status != "pending" {
+			return payoutStatusConflict(fmt.Sprintf("Pengajuan ini tidak bisa disetujui karena statusnya %s.", payoutStatusLabel(req.Status)))
+		}
+		if err := s.checkPayoutStillCovered(ctx, tenantID, req); err != nil {
+			return err
+		}
+		now := time.Now().UTC()
+		return s.payoutRepo.UpdateStatus(ctx, tenantID, id, "pending", "approved", &adminUserID, &now, nil)
+	})
+	if err != nil {
 		return err
 	}
 
 	// Trigger 5: In-app notification to agent on payout approval
-	if s.notifService != nil {
-		tID := tenantID
-		_, notifErr := s.notifService.CreateNotification(
-			ctx,
-			&tID,
-			"agent",
-			req.AgentID,
-			"payout_approved",
-			"Pengajuan pencairan disetujui",
-			fmt.Sprintf("Pengajuan pencairan dana sebesar Rp %s telah disetujui", util.FormatRupiah(req.AmountRequested)),
-			"/agen/riwayat-komisi",
-		)
-		if notifErr != nil {
-			log.Printf("[Notification] Failed to notify agent %d of payout approval: %v", req.AgentID, notifErr)
-		}
-	}
-
+	s.notifyPayoutAgent(ctx, tenantID, req.AgentID, "payout_approved", "Pengajuan pencairan disetujui",
+		fmt.Sprintf("Pengajuan pencairan dana sebesar Rp %s telah disetujui", util.FormatRupiah(req.AmountRequested)))
 	return nil
 }
 
+// MarkPayoutRequestPaid records that the approved amount was transferred. Only the status changes: the
+// approval's reviewed_by/reviewed_at stay, so the record keeps who approved the payout.
 func (s *agentService) MarkPayoutRequestPaid(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64) error {
 	if s.payoutRepo == nil {
 		return errors.New("payout repository not initialized")
@@ -1392,13 +1511,32 @@ func (s *agentService) MarkPayoutRequestPaid(ctx context.Context, tenantID uint6
 	if err != nil {
 		return err
 	}
-	if req.Status != "approved" {
-		return payoutStatusConflict(fmt.Sprintf("pengajuan tidak dapat ditandai dibayar karena status saat ini adalah '%s' (harus 'approved')", req.Status))
+	err = s.withPayoutLock(ctx, tenantID, req.AgentID, func() error {
+		req, err = s.payoutRepo.GetByID(ctx, tenantID, id)
+		if err != nil {
+			return err
+		}
+		if req.Status != "approved" {
+			return payoutStatusConflict(fmt.Sprintf("Pengajuan ini tidak bisa ditandai sudah ditransfer karena statusnya %s. Hanya pengajuan yang sudah disetujui yang bisa ditandai sudah ditransfer.", payoutStatusLabel(req.Status)))
+		}
+		if err := s.checkPayoutStillCovered(ctx, tenantID, req); err != nil {
+			return err
+		}
+		return s.payoutRepo.UpdateStatus(ctx, tenantID, id, "approved", "paid", req.ReviewedBy, req.ReviewedAt, req.RejectionReason)
+	})
+	if err != nil {
+		return err
 	}
-	now := time.Now().UTC()
-	return s.payoutRepo.UpdateStatus(ctx, tenantID, id, "approved", "paid", &adminUserID, &now, nil)
+	log.Printf("[Payout] request %d (tenant %d, agent %d) marked paid by admin %d", id, tenantID, req.AgentID, adminUserID)
+
+	s.notifyPayoutAgent(ctx, tenantID, req.AgentID, "payout_paid", "Pencairan sudah ditransfer",
+		fmt.Sprintf("Pencairan dana sebesar Rp %s sudah ditransfer ke rekening %s a.n. %s.",
+			util.FormatRupiah(req.AmountRequested), req.BankNameSnapshot, req.BankAccountHolderSnapshot))
+	return nil
 }
 
+// RejectPayoutRequest rejects a pending request, or cancels an approved one whose transfer failed (for
+// example wrong account details). Either way the reserved amount is freed and the agent is told why.
 func (s *agentService) RejectPayoutRequest(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, reason string) error {
 	if s.payoutRepo == nil {
 		return errors.New("payout repository not initialized")
@@ -1411,33 +1549,117 @@ func (s *agentService) RejectPayoutRequest(ctx context.Context, tenantID uint64,
 	if err != nil {
 		return err
 	}
-	if req.Status != "pending" {
-		return payoutStatusConflict(fmt.Sprintf("pengajuan tidak dapat ditolak karena status saat ini adalah '%s' (harus 'pending')", req.Status))
+	if req.Status != "pending" && req.Status != "approved" {
+		return payoutStatusConflict(fmt.Sprintf("Pengajuan ini tidak bisa ditolak karena statusnya %s.", payoutStatusLabel(req.Status)))
 	}
+	fromStatus := req.Status
 	now := time.Now().UTC()
-	if err := s.payoutRepo.UpdateStatus(ctx, tenantID, id, "pending", "rejected", &adminUserID, &now, &trimmedReason); err != nil {
+	if err := s.payoutRepo.UpdateStatus(ctx, tenantID, id, fromStatus, "rejected", &adminUserID, &now, &trimmedReason); err != nil {
 		return err
 	}
 
-	// Trigger 5: In-app notification to agent on payout rejection
-	if s.notifService != nil {
-		tID := tenantID
-		_, notifErr := s.notifService.CreateNotification(
-			ctx,
-			&tID,
-			"agent",
-			req.AgentID,
-			"payout_rejected",
-			"Pengajuan pencairan ditolak",
-			fmt.Sprintf("Pengajuan pencairan dana sebesar Rp %s ditolak: %s", util.FormatRupiah(req.AmountRequested), trimmedReason),
-			"/agen/riwayat-komisi",
-		)
-		if notifErr != nil {
-			log.Printf("[Notification] Failed to notify agent %d of payout rejection: %v", req.AgentID, notifErr)
-		}
+	title := "Pengajuan pencairan ditolak"
+	body := fmt.Sprintf("Pengajuan pencairan dana sebesar Rp %s ditolak: %s", util.FormatRupiah(req.AmountRequested), trimmedReason)
+	if fromStatus == "approved" {
+		log.Printf("[Payout] approved request %d (tenant %d, agent %d) cancelled by admin %d", id, tenantID, req.AgentID, adminUserID)
+		title = "Pencairan dibatalkan"
+		body = fmt.Sprintf("Pencairan dana sebesar Rp %s yang sudah disetujui dibatalkan: %s. Saldo kembali dan bisa diajukan lagi.", util.FormatRupiah(req.AmountRequested), trimmedReason)
 	}
-
+	// Trigger 5: In-app notification to agent on payout rejection
+	s.notifyPayoutAgent(ctx, tenantID, req.AgentID, "payout_rejected", title, body)
 	return nil
+}
+
+// Errors of the travel-admin-initiated payout (CreatePayoutForAgent).
+var (
+	ErrAdminPayoutActiveExists = payoutStatusConflict("Masih ada pencairan yang sedang diproses untuk agen ini.")
+	ErrAdminPayoutNoBalance    = payoutInvalid("Tidak ada komisi yang bisa dicairkan.")
+	ErrAdminPayoutBankMissing  = payoutInvalid("Data rekening agen belum lengkap.")
+)
+
+// CreatePayoutForAgent lets the travel admin start a payout for one of its agents, active or
+// deactivated (a deactivated agent cannot request one itself). The amount is the agent's whole
+// withdrawable balance and the bank snapshot is the agent's stored bank details; the program's minimum
+// payout does not apply. The request then follows the normal approve and mark-paid flow.
+func (s *agentService) CreatePayoutForAgent(ctx context.Context, tenantID uint64, agentID uint64, adminUserID uint64) (*repository.CommissionPayoutRequestItem, error) {
+	if s.payoutRepo == nil {
+		return nil, errors.New("payout repository not initialized")
+	}
+	agent, err := s.agentRepo.GetByID(ctx, tenantID, agentID)
+	if err != nil {
+		return nil, err
+	}
+	bankName := strings.TrimSpace(derefString(agent.BankName))
+	accountNumber := strings.TrimSpace(derefString(agent.BankAccountNumber))
+	accountHolder := strings.TrimSpace(derefString(agent.BankAccountHolder))
+
+	payoutReq := &repository.CommissionPayoutRequest{
+		TenantID:                  tenantID,
+		AgentID:                   agentID,
+		Status:                    "pending",
+		BankNameSnapshot:          bankName,
+		BankAccountNumberSnapshot: accountNumber,
+		BankAccountHolderSnapshot: accountHolder,
+	}
+	err = s.withPayoutLock(ctx, tenantID, agentID, func() error {
+		active, err := s.payoutRepo.GetActiveRequestByAgent(ctx, tenantID, agentID)
+		if err != nil {
+			return err
+		}
+		if active != nil {
+			return ErrAdminPayoutActiveExists
+		}
+		released, err := s.commissionLedgerRepo.SumReleasedByAgent(ctx, tenantID, agentID)
+		if err != nil {
+			return err
+		}
+		reserved, err := s.payoutRepo.SumPendingApprovedPaidByAgent(ctx, tenantID, agentID)
+		if err != nil {
+			return err
+		}
+		amount := math.Round((released-reserved)*100) / 100
+		if amount <= 0 {
+			return ErrAdminPayoutNoBalance
+		}
+		if bankName == "" || accountNumber == "" || accountHolder == "" ||
+			utf8.RuneCountInString(bankName) > 100 || utf8.RuneCountInString(accountNumber) > 50 ||
+			utf8.RuneCountInString(accountHolder) > 150 {
+			return ErrAdminPayoutBankMissing
+		}
+		payoutReq.AmountRequested = amount
+		return s.payoutRepo.Create(ctx, tenantID, payoutReq)
+	})
+	if err != nil {
+		return nil, err
+	}
+	// No column records who asked (no migration): the admin is logged.
+	log.Printf("[Payout] request %d (tenant %d, agent %d, Rp %.2f) created by admin %d on the agent's behalf",
+		payoutReq.ID, tenantID, agentID, payoutReq.AmountRequested, adminUserID)
+
+	s.notifyPayoutAgent(ctx, tenantID, agentID, "payout_requested_by_admin", "Pencairan diajukan admin travel",
+		fmt.Sprintf("Admin travel mengajukan pencairan komisi Anda sebesar Rp %s ke rekening %s a.n. %s.",
+			util.FormatRupiah(payoutReq.AmountRequested), bankName, accountHolder))
+
+	item := &repository.CommissionPayoutRequestItem{CommissionPayoutRequest: *payoutReq, AgentName: agent.Name, AgentPhone: agent.Phone}
+	return item, nil
+}
+
+func derefString(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+// notifyPayoutAgent sends a payout notification to the agent; a failure is logged, never returned.
+func (s *agentService) notifyPayoutAgent(ctx context.Context, tenantID, agentID uint64, kind, title, body string) {
+	if s.notifService == nil {
+		return
+	}
+	tID := tenantID
+	if _, err := s.notifService.CreateNotification(ctx, &tID, "agent", agentID, kind, title, body, "/agen/riwayat-komisi"); err != nil {
+		log.Printf("[Notification] Failed to notify agent %d (%s): %v", agentID, kind, err)
+	}
 }
 
 func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect, payouts []repository.CommissionPayoutRequest) []CommissionHistoryItem {
@@ -1485,10 +1707,12 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 	}
 
 	for _, p := range payouts {
+		var reason *string
 		var counts *bool
 		if p.Status == "rejected" {
 			f := false
 			counts = &f
+			reason = nonBlank(p.RejectionReason)
 		}
 		items = append(items, CommissionHistoryItem{
 			ID:          p.ID,
@@ -1501,6 +1725,7 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 			CreatedAt:   p.CreatedAt,
 
 			CountsAgainstBalance: counts,
+			RejectionReason:      reason,
 		})
 	}
 
@@ -1590,6 +1815,9 @@ func validateAgentPhone(raw string) error {
 
 func (s *agentService) UpdateProfile(ctx context.Context, tenantID uint64, agentID uint64, req *UpdateProfileRequest) (*AgentProfileResult, error) {
 	if err := validateAgentProfileLengths(req.Name, req.Domisili); err != nil {
+		return nil, err
+	}
+	if err := validateAgentContactFields(req.Email, req.BankName, req.BankAccountNumber, req.BankAccountHolder); err != nil {
 		return nil, err
 	}
 	if req.Phone != nil && strings.TrimSpace(*req.Phone) != "" {
@@ -1784,10 +2012,11 @@ func (s *agentService) GetDashboardAgentDetail(ctx context.Context, tenantID uin
 			riwayatPencairan = make([]AgentPayoutHistoryItem, len(payouts))
 			for i, p := range payouts {
 				riwayatPencairan[i] = AgentPayoutHistoryItem{
-					ID:        p.ID,
-					CreatedAt: p.CreatedAt,
-					Amount:    p.AmountRequested,
-					Status:    p.Status,
+					ID:              p.ID,
+					CreatedAt:       p.CreatedAt,
+					Amount:          p.AmountRequested,
+					Status:          p.Status,
+					RejectionReason: rejectionReasonOf(p),
 				}
 			}
 		}
@@ -1832,6 +2061,9 @@ func (s *agentService) GetDashboardAgentDetail(ctx context.Context, tenantID uin
 		SaldoTertahan:      s.heldCommission(ctx, tenantID, agentID),
 		RiwayatPencairan:   riwayatPencairan,
 		RiwayatKomisi:      recentKomisi,
+		BankName:           nonBlank(agent.BankName),
+		BankAccountNumber:  nonBlank(agent.BankAccountNumber),
+		BankAccountHolder:  nonBlank(agent.BankAccountHolder),
 	}, nil
 }
 
@@ -1845,6 +2077,9 @@ func (s *agentService) UpdateDashboardAgentProfile(ctx context.Context, tenantID
 		return nil, ErrAgentEmailRequired
 	}
 	if err := validateAgentProfileLengths(req.Name, req.Domisili); err != nil {
+		return nil, err
+	}
+	if err := validateAgentContactFields(req.Email, nil, nil, nil); err != nil {
 		return nil, err
 	}
 	if req.Phone != nil {
@@ -1945,4 +2180,41 @@ func closingRank(stats []repository.AgentClosingStat, agentID uint64) int {
 		}
 	}
 	return rank
+}
+
+// nonBlank returns nil for a nil or whitespace-only value, so an unset field is omitted from JSON.
+func nonBlank(p *string) *string {
+	if p == nil || strings.TrimSpace(*p) == "" {
+		return nil
+	}
+	return p
+}
+
+// notifyAgentAdmins sends an in-app notification to every active admin of the travel; failures are logged.
+func (s *agentService) notifyAgentAdmins(ctx context.Context, tenantID uint64, kind, title, body, link string) {
+	if s.notifService == nil || s.adminUserRepo == nil {
+		return
+	}
+	admins, err := s.adminUserRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		log.Printf("[Notification] Failed to list admins for tenant %d: %v", tenantID, err)
+		return
+	}
+	for _, admin := range admins {
+		if admin.Status != "active" {
+			continue
+		}
+		tID := tenantID
+		if _, err := s.notifService.CreateNotification(ctx, &tID, "admin", admin.ID, kind, title, body, link); err != nil {
+			log.Printf("[Notification] Failed to notify admin %d (%s): %v", admin.ID, kind, err)
+		}
+	}
+}
+
+// rejectionReasonOf returns the admin's reason of a rejected payout request, nil for any other status.
+func rejectionReasonOf(p repository.CommissionPayoutRequest) *string {
+	if p.Status != "rejected" {
+		return nil
+	}
+	return nonBlank(p.RejectionReason)
 }

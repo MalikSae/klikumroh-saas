@@ -53,6 +53,11 @@ func (h *NotificationHandler) ListAdminNotifications(w http.ResponseWriter, r *h
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	tenantPtr, ok := notificationTenant(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
 	limit := 50
 	if lStr := r.URL.Query().Get("limit"); lStr != "" {
@@ -61,7 +66,7 @@ func (h *NotificationHandler) ListAdminNotifications(w http.ResponseWriter, r *h
 		}
 	}
 
-	resp, err := h.notifService.ListNotifications(r.Context(), "admin", adminUserID, limit)
+	resp, err := h.notifService.ListNotifications(r.Context(), tenantPtr, "admin", adminUserID, limit)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list notifications"})
 		return
@@ -76,6 +81,11 @@ func (h *NotificationHandler) MarkAdminNotificationRead(w http.ResponseWriter, r
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	tenantPtr, ok := notificationTenant(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
 	idStr := chi.URLParam(r, "id")
 	notifID, err := strconv.ParseUint(idStr, 10, 64)
@@ -84,7 +94,7 @@ func (h *NotificationHandler) MarkAdminNotificationRead(w http.ResponseWriter, r
 		return
 	}
 
-	if err := h.notifService.MarkAsRead(r.Context(), "admin", adminUserID, notifID); err != nil {
+	if err := h.notifService.MarkAsRead(r.Context(), tenantPtr, "admin", adminUserID, notifID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "notification not found"})
 			return
@@ -102,8 +112,13 @@ func (h *NotificationHandler) MarkAdminAllNotificationsRead(w http.ResponseWrite
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	tenantPtr, ok := notificationTenant(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
-	if err := h.notifService.MarkAllAsRead(r.Context(), "admin", adminUserID); err != nil {
+	if err := h.notifService.MarkAllAsRead(r.Context(), tenantPtr, "admin", adminUserID); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mark all notifications read"})
 		return
 	}
@@ -119,6 +134,11 @@ func (h *NotificationHandler) ListAgentNotifications(w http.ResponseWriter, r *h
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	tenantPtr, ok := notificationTenant(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
 	limit := 50
 	if lStr := r.URL.Query().Get("limit"); lStr != "" {
@@ -127,7 +147,7 @@ func (h *NotificationHandler) ListAgentNotifications(w http.ResponseWriter, r *h
 		}
 	}
 
-	resp, err := h.notifService.ListNotifications(r.Context(), "agent", agentID, limit)
+	resp, err := h.notifService.ListNotifications(r.Context(), tenantPtr, "agent", agentID, limit)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list notifications"})
 		return
@@ -142,6 +162,11 @@ func (h *NotificationHandler) MarkAgentNotificationRead(w http.ResponseWriter, r
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	tenantPtr, ok := notificationTenant(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
 	idStr := chi.URLParam(r, "id")
 	notifID, err := strconv.ParseUint(idStr, 10, 64)
@@ -150,7 +175,7 @@ func (h *NotificationHandler) MarkAgentNotificationRead(w http.ResponseWriter, r
 		return
 	}
 
-	if err := h.notifService.MarkAsRead(r.Context(), "agent", agentID, notifID); err != nil {
+	if err := h.notifService.MarkAsRead(r.Context(), tenantPtr, "agent", agentID, notifID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "notification not found"})
 			return
@@ -168,8 +193,13 @@ func (h *NotificationHandler) MarkAgentAllNotificationsRead(w http.ResponseWrite
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
+	tenantPtr, ok := notificationTenant(r)
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
 
-	if err := h.notifService.MarkAllAsRead(r.Context(), "agent", agentID); err != nil {
+	if err := h.notifService.MarkAllAsRead(r.Context(), tenantPtr, "agent", agentID); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mark all notifications read"})
 		return
 	}
@@ -193,7 +223,7 @@ func (h *NotificationHandler) ListStaffNotifications(w http.ResponseWriter, r *h
 		}
 	}
 
-	resp, err := h.notifService.ListNotifications(r.Context(), "staff", staffUserID, limit)
+	resp, err := h.notifService.ListNotifications(r.Context(), nil, "staff", staffUserID, limit)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to list notifications"})
 		return
@@ -216,7 +246,7 @@ func (h *NotificationHandler) MarkStaffNotificationRead(w http.ResponseWriter, r
 		return
 	}
 
-	if err := h.notifService.MarkAsRead(r.Context(), "staff", staffUserID, notifID); err != nil {
+	if err := h.notifService.MarkAsRead(r.Context(), nil, "staff", staffUserID, notifID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "notification not found"})
 			return
@@ -235,10 +265,20 @@ func (h *NotificationHandler) MarkStaffAllNotificationsRead(w http.ResponseWrite
 		return
 	}
 
-	if err := h.notifService.MarkAllAsRead(r.Context(), "staff", staffUserID); err != nil {
+	if err := h.notifService.MarkAllAsRead(r.Context(), nil, "staff", staffUserID); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to mark all notifications read"})
 		return
 	}
 
 	respondJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+// notificationTenant returns the travel of the signed-in admin or agent: their notifications are always
+// read and updated within that travel only (AGENTS.md 3.1).
+func notificationTenant(r *http.Request) (*uint64, bool) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok || tenantID == 0 {
+		return nil, false
+	}
+	return &tenantID, true
 }

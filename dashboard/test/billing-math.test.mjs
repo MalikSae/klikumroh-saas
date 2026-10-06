@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { addMonthsClampedWIB, discountedPrice, impliedDiscountPercentage, planChangeTotal } from '../src/utils/billingMath.ts';
+import { addMonthsClampedWIB, discountedPrice, impliedDiscountPercentage, planChangeTotal, proofAmountMismatch } from '../src/utils/billingMath.ts';
 import { resetPasswordProblem } from '../src/utils/password.ts';
 import { fitsUploadLimit, multipartOverhead } from '../src/utils/uploadLimit.ts';
 
@@ -59,5 +59,20 @@ assert.strictEqual(fitsUploadLimit(photo(5 * 1024 * 1024), 'photo', LIMIT), true
   const real = `--${B}\r\nContent-Disposition: form-data; name="photo"; filename="${f.name}"\r\nContent-Type: ${f.type}\r\n\r\n` + `\r\n--${B}--\r\n`;
   assert.ok(multipartOverhead('photo', f) >= new TextEncoder().encode(real).length);
 }
+
+
+// Staff payment modal warning: the proof was uploaded for another total than the one billed now.
+assert.strictEqual(proofAmountMismatch('/uploads/1/subscription-proofs/a.webp', 1_500_123, 2_500_123), true);
+assert.strictEqual(proofAmountMismatch('/uploads/1/subscription-proofs/a.webp', 1_500_123, 1_500_123), false);
+// Compared in cents: float noise is not a mismatch, one cent is.
+assert.strictEqual(proofAmountMismatch('p', 0.1 + 0.2, 0.3), false);
+assert.strictEqual(proofAmountMismatch('p', 1_500_123.01, 1_500_123), true);
+// No proof, an empty proof, or an older proof without a recorded amount never warns.
+assert.strictEqual(proofAmountMismatch(null, 1_500_123, 2_500_123), false);
+assert.strictEqual(proofAmountMismatch('  ', 1_500_123, 2_500_123), false);
+assert.strictEqual(proofAmountMismatch('p', null, 2_500_123), false);
+assert.strictEqual(proofAmountMismatch('p', undefined, 2_500_123), false);
+// A coupon that made the invoice free after the transfer still warns (Rp 0 vs the transferred total).
+assert.strictEqual(proofAmountMismatch('p', 1_500_123, 0), true);
 
 console.log('billing-math: all assertions passed');

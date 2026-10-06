@@ -88,7 +88,7 @@ func recordImpersonationAccess(r *http.Request, logRepo repository.AccessLogRepo
 	// so it is logged and part of the read dedup key: two different files are two rows.
 	path := r.URL.Path
 	if r.URL.RawQuery != "" {
-		path += "?" + r.URL.RawQuery
+		path += "?" + redactAccessLogQuery(r.URL.RawQuery)
 	}
 	if len(path) > maxAccessLogPathLength {
 		path = path[:maxAccessLogPathLength]

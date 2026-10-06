@@ -13,6 +13,7 @@ import regenciesData from '../../../data/indonesia-regencies.json';
 import designTokens from '../../../../design-tokens.json';
 import { newPasswordError } from '../../../lib/passwordRules';
 import { agentPhoneError } from '../../../lib/agentPhone';
+import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
 import './AgenDaftar.css';
 
 interface RegistrationInfo {
@@ -233,27 +234,31 @@ export default function AgenDaftarPage() {
         }),
       });
 
-      const json = await res.json();
+      // A gateway error page (Caddy 502/504) is not JSON: never show "Unexpected token '<'".
+      const json = await readJsonSafe<{ error?: string; token?: string; data?: { token?: string } }>(res);
 
       if (!res.ok) {
-        if (res.status === 409) {
-          setSubmitError(json.error || 'Email atau nomor telepon sudah terdaftar');
-        } else {
-          setSubmitError(json.error || 'Gagal mendaftar agen. Silakan coba lagi.');
-        }
+        setSubmitError(
+          apiErrorMessage(
+            res.status,
+            json,
+            res.status === 409 ? 'Email atau nomor telepon sudah terdaftar' : 'Gagal mendaftar agen. Silakan coba lagi.'
+          )
+        );
         return;
       }
 
       // Auto login
-      const token = json.token || json.data?.token;
+      const token = json?.token || json?.data?.token;
       if (token) {
         localStorage.setItem('agent_token', token);
         router.push('/agen/status');
       } else {
         router.push('/agen/login');
       }
-    } catch (err: unknown) {
-      setSubmitError((err instanceof Error && err.message) || 'Terjadi kesalahan koneksi. Silakan coba lagi.');
+    } catch {
+      // Network failure (fetch throws a TypeError such as "Failed to fetch"): show our own text.
+      setSubmitError('Terjadi kesalahan koneksi. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }

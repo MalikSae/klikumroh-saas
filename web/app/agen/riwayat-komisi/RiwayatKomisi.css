@@ -197,6 +197,17 @@
 }
 
 
+/* "Sudah ditarik" card: approved requests still waiting for the transfer. */
+.rk-stat__note {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.9;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* Segmented filter */
 .rk-tabs {
   display: grid;

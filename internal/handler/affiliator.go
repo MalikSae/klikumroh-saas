@@ -142,19 +142,21 @@ func (h *AffiliatorHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := middleware.LoginKey("affiliator", strings.ToLower(strings.TrimSpace(req.Email)))
-	if h.loginFailures.Blocked(key) {
+	attempt, allowed := h.loginFailures.Begin(key)
+	if !allowed {
 		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": middleware.LoginLockedMessage})
 		return
 	}
+	defer attempt.Done()
 	res, err := h.svc.Login(r.Context(), req.Email, req.Password, middleware.ClientIP(r))
 	if err != nil {
 		if errors.Is(err, service.ErrAffiliatorInvalidCredentials) {
-			h.loginFailures.Fail(key)
+			attempt.Fail()
 		}
 		respondAffiliatorError(w, err)
 		return
 	}
-	h.loginFailures.Reset(key)
+	attempt.Succeed()
 	respondJSON(w, http.StatusOK, res)
 }
 

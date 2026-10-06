@@ -299,9 +299,11 @@ func TestDomainHandler_VerifyDNS_MockResolver(t *testing.T) {
 		}
 	})
 
-	// D3/D4: re-checking an active domain during a DNS failure keeps it active; after 3 failures in a row
-	// the default subdomain stops redirecting to it, and one success resets the counter.
-	t.Run("failed re-check of an active domain keeps it active and counts failures", func(t *testing.T) {
+	// D3/D4 (revised in bug hunt 5): a manual re-check of an active domain during a DNS failure keeps it
+	// active and only reports the reason; it never counts toward the daily-failure counter. After 3 failed
+	// DAILY checks (simulated on the counter) the default subdomain stops redirecting, and one successful
+	// manual check resets the counter.
+	t.Run("failed manual re-check of an active domain keeps it active and does not count", func(t *testing.T) {
 		sub := &repository.Domain{TenantID: tenantID, Hostname: "berkah.klikumroh.id", Type: "subdomain", Status: "active"}
 		_ = repo.Create(context.Background(), tenantID, sub)
 		target := func() *repository.Domain {
@@ -313,15 +315,19 @@ func TestDomainHandler_VerifyDNS_MockResolver(t *testing.T) {
 		}
 
 		dnsResolver.responses["umroh.berkah.com"] = "somewhere-else.example."
-		for i := 1; i <= service.MaxDomainCheckFailures; i++ {
+		for i := 1; i <= service.MaxDomainCheckFailures+2; i++ {
 			resp := verify(t)
-			if resp.Status != "active" || resp.CheckFailures != i {
-				t.Fatalf("check %d: expected active with %d failures, got %s / %d", i, i, resp.Status, resp.CheckFailures)
+			if resp.Status != "active" || resp.CheckFailures != 0 || resp.VerificationFailureReason == nil {
+				t.Fatalf("manual check %d: expected active, 0 counted failures and a reason, got %s / %d / %v", i, resp.Status, resp.CheckFailures, resp.VerificationFailureReason)
 			}
-			if i < service.MaxDomainCheckFailures && target() == nil {
-				t.Fatalf("redirect stopped too early after %d failures", i)
+			if target() == nil {
+				t.Fatalf("manual checks must never stop the redirect (stopped after %d clicks)", i)
 			}
 		}
+		// Three failed daily checks (the job's counter).
+		repo.mu.Lock()
+		repo.domains[customDom.ID].CheckFailures = service.MaxDomainCheckFailures
+		repo.mu.Unlock()
 		if target() != nil {
 			t.Fatal("expected subdomain redirect to stop after repeated DNS failures")
 		}

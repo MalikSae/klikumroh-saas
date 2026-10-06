@@ -81,9 +81,13 @@ const RegistrationDrawer: React.FC<{ agent: AgentItem; parentName: string | null
                 Tolak
               </Button>
             )}
-            <Button variant="primary" onClick={() => setDialog('approve')} disabled={busy}>
-              Setujui agen
-            </Button>
+            {/* The server approves only pending or rejected registrations; once another admin approved the
+                agent (409 then reload), the button is gone instead of failing on every click. */}
+            {(agent.status === 'pending' || agent.status === 'rejected') && (
+              <Button variant="primary" onClick={() => setDialog('approve')} disabled={busy}>
+                Setujui agen
+              </Button>
+            )}
           </>
         }
       >
@@ -191,7 +195,11 @@ export const Registrations: React.FC<{ onChanged: () => void }> = ({ onChanged }
 
   const load = () =>
     fetchDashboardAgents()
-      .then(setAll)
+      .then((list) => {
+        setAll(list);
+        // A later successful load clears an earlier load error.
+        setError(null);
+      })
       .catch((e) => setError(errorText(e, 'Gagal memuat pendaftaran')))
       .finally(() => setLoading(false));
 

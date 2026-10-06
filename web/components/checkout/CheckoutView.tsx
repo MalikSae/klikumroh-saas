@@ -30,6 +30,7 @@ import {
   storeDashboardSession,
 } from '@/lib/dashboardSession';
 import { newPasswordError } from '../../lib/passwordRules';
+import { readJsonSafe, apiErrorMessage } from '@/lib/safeJson';
 import styles from './CheckoutView.module.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ interface CouponResult {
   code: string;
   discount_percentage: number;
   plan_id?: number;
+  validatedForPlanId: number; // the plan the code was checked against
 }
 
 interface FormErrors {
@@ -238,6 +240,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                         onPlanChange(plan);
                         setIsPlanAccordionOpen(false);
                       }}
+                      // No plan change while a coupon is being checked for the current plan.
+                      disabled={couponLoading}
                       aria-pressed={isSelected}
                     >
                       <div className={styles.planOptionRadioCircle}>
@@ -430,7 +434,16 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     [plans, selectedPlanId]
   );
 
+  // The plan on screen right now: a coupon answer for another plan (the plan changed while the request was
+  // in flight) is ignored, so a discount never sticks to a plan it was not validated for.
+  const selectedPlanIdRef = useRef<number | undefined>(selectedPlan?.id);
+  useEffect(() => {
+    selectedPlanIdRef.current = selectedPlan?.id;
+  }, [selectedPlan?.id]);
+
   const handlePlanChange = (plan: PricingPlan) => {
+    // Set at once (not on the next render) so a coupon answer still in flight is recognised as stale.
+    selectedPlanIdRef.current = plan.id;
     setActivePlanId(plan.id);
     setCoupon(null);
     setCouponCode('');
@@ -455,7 +468,12 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const { settings: platformSettings, loaded: settingsLoaded } = usePlatformSettings();
+  const {
+    settings: platformSettings,
+    loaded: settingsLoaded,
+    failed: settingsFailed,
+    retry: retrySettings,
+  } = usePlatformSettings();
   const legalReady = hasLegalDocuments(platformSettings);
 
   // Validation
@@ -483,7 +501,11 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     [travelName, slug, adminName, adminWhatsApp, adminEmail, adminPassword, agreeTerms]
   );
 
+  // Only the newest slug check may set the status: an older check answering late must not show its
+  // "sudah digunakan" / "tersedia" under the slug typed since.
+  const slugCheckSeqRef = useRef(0);
   const checkSlugAvailability = useCallback(async (candidate: string) => {
+    const seq = ++slugCheckSeqRef.current;
     if (!candidate || candidate.length < 3) {
       setSlugStatus('idle');
       return;
@@ -496,10 +518,12 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       );
       // A 429 or gateway error may not be JSON; it is "could not check", never "already taken".
       const data = await res.json().catch(() => null);
+      if (seq !== slugCheckSeqRef.current) return;
       const outcome = slugCheckOutcome(res.status, data);
       setSlugStatus(outcome.status);
       setSlugReason(outcome.reason);
     } catch {
+      if (seq !== slugCheckSeqRef.current) return;
       setSlugStatus('idle');
     }
   }, [setSlugStatus, setSlugReason]);
@@ -513,6 +537,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     setTouched((t) => ({ ...t, slug: true }));
 
     if (slugDebounceRef.current) clearTimeout(slugDebounceRef.current);
+    slugCheckSeqRef.current++; // the slug changed: drop any check still in flight
+    setSlugStatus('idle');
     if (cleaned.length >= 3) {
       slugDebounceRef.current = setTimeout(() => {
         checkSlugAvailability(cleaned);
@@ -534,6 +560,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         .slice(0, 50);
       setSlug(autoSlug);
       if (slugDebounceRef.current) clearTimeout(slugDebounceRef.current);
+      slugCheckSeqRef.current++; // the slug changed: drop any check still in flight
+      setSlugStatus('idle');
       if (autoSlug.length >= 3) {
         slugDebounceRef.current = setTimeout(() => {
           checkSlugAvailability(autoSlug);
@@ -562,6 +590,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
+    const requestedPlanId = selectedPlan.id;
     setCouponLoading(true);
     setCouponError(null);
     try {
@@ -570,15 +599,17 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: couponCode.trim().toUpperCase(),
-          plan_id: selectedPlan.id,
+          plan_id: requestedPlanId,
         }),
       });
       const data = await res.json().catch(() => null);
+      if (selectedPlanIdRef.current !== requestedPlanId) return;
       if (res.ok && data?.valid) {
         setCoupon({
           code: couponCode.trim().toUpperCase(),
           discount_percentage: data.discount_percentage,
           plan_id: data.plan_id,
+          validatedForPlanId: requestedPlanId,
         });
         setCouponError(null);
       } else {
@@ -587,6 +618,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         setCouponError(couponErrorMessage(res.status, data));
       }
     } catch {
+      if (selectedPlanIdRef.current !== requestedPlanId) return;
       setCoupon(null);
       setCouponError('Gagal memvalidasi kupon. Coba lagi.');
     } finally {
@@ -644,6 +676,22 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       return;
     }
 
+    // A code typed but never applied would be dropped silently and the travel billed at full price.
+    if (!coupon && couponCode.trim()) {
+      setSubmitError(
+        couponLoading
+          ? 'Kupon sedang diperiksa. Tunggu sebentar lalu tekan lagi.'
+          : 'Kode kupon belum dipakai. Tekan "Pakai" untuk memakainya, atau kosongkan kolom kupon.'
+      );
+      return;
+    }
+    // Never send a coupon checked for another plan (the backend would reject a plan-restricted one).
+    if (coupon && coupon.validatedForPlanId !== selectedPlan.id) {
+      setCoupon(null);
+      setSubmitError('Kupon perlu diperiksa ulang untuk paket ini. Tekan "Pakai" sekali lagi.');
+      return;
+    }
+
     setSubmitting(true);
     // Set once the browser is navigating away after a successful signup: the button stays disabled.
     let leavingPage = false;
@@ -669,9 +717,9 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await readJsonSafe<{ payment_verification_id?: number; error?: string; message?: string }>(res);
 
-      if (res.ok) {
+      if (res.ok && data) {
         // Standard SaaS flow: sign the new account in and open its billing page in the dashboard.
         const loginRes = await fetch('/api/auth/login', {
           method: 'POST',
@@ -691,7 +739,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         return;
       } else {
         setSubmitError(
-          data.error || data.message || 'Terjadi kesalahan saat memproses pendaftaran.'
+          apiErrorMessage(res.status, data, data?.message || 'Terjadi kesalahan saat memproses pendaftaran.')
         );
       }
     } catch {
@@ -959,6 +1007,15 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                         KlikUmroh.
                       </span>
                     </label>
+                  ) : settingsFailed ? (
+                    // The settings request failed: never claim the documents are missing; offer a retry.
+                    <div className={styles.alertError} role="alert">
+                      <AlertCircle size={18} />
+                      <span>Pengaturan belum bisa dimuat, coba lagi.</span>
+                      <button type="button" className={styles.changePlanBtn} onClick={retrySettings}>
+                        Coba lagi
+                      </button>
+                    </div>
                   ) : (
                     settingsLoaded && (
                       <div className={styles.alertError} role="alert">

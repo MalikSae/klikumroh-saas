@@ -68,7 +68,7 @@ func (h *DomainHandler) RegisterCustomDomain(w http.ResponseWriter, r *http.Requ
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, service.ErrDomainAlreadyUsed) {
+		if errors.Is(err, service.ErrDomainAlreadyUsed) || errors.Is(err, service.ErrDomainStillUsed) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return
 		}

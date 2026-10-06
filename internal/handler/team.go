@@ -233,17 +233,17 @@ func (h *TeamHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 
 	// Keyed by the account, not the IP: changing IP does not reset it.
 	failKey := middleware.LoginKey("me-password", strconv.FormatUint(tenantID, 10), strconv.FormatUint(adminUserID, 10))
-	if h.passwordFailures != nil && h.passwordFailures.Blocked(failKey) {
+	attempt, allowed := h.passwordFailures.Begin(failKey)
+	if !allowed {
 		respondJSON(w, http.StatusTooManyRequests, map[string]string{"error": PasswordChangeLockedMessage})
 		return
 	}
+	defer attempt.Done()
 
 	err := h.teamService.UpdateMyPassword(r.Context(), tenantID, adminUserID, payload.CurrentPassword, payload.NewPassword, bearerToken(r))
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCurrentPassword) {
-			if h.passwordFailures != nil {
-				h.passwordFailures.Fail(failKey)
-			}
+			attempt.Fail()
 			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
 			return
 		}
@@ -259,9 +259,7 @@ func (h *TeamHandler) UpdateMyPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.passwordFailures != nil {
-		h.passwordFailures.Reset(failKey)
-	}
+	attempt.Succeed()
 	respondJSON(w, http.StatusOK, map[string]string{"message": "password berhasil diperbarui"})
 }
 

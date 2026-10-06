@@ -11,6 +11,10 @@ import (
 // ErrPlanInUse is returned when attempting to delete a pricing plan currently assigned to one or more tenants.
 var ErrPlanInUse = errors.New("plan harga sedang digunakan oleh travel dan tidak dapat dihapus")
 
+// ErrPlanUsedByCoupon is returned when deleting a pricing plan that an active (or affiliator) coupon is
+// bound to.
+var ErrPlanUsedByCoupon = errors.New("plan harga masih dipakai kupon dan tidak dapat dihapus")
+
 // PricingPlan represents a subscription plan package in the pricing_plans table.
 // Notice: There is NO tenant_id because pricing plans are platform-wide.
 type PricingPlan struct {
@@ -180,6 +184,17 @@ func (r *mysqlPricingPlanRepository) Delete(ctx context.Context, id uint64) erro
 	}
 	if count > 0 {
 		return ErrPlanInUse
+	}
+	// coupons.plan_id is ON DELETE SET NULL: deleting the plan would silently turn a plan-bound coupon into
+	// an all-plans coupon (bug hunt putaran 5). Refused while a coupon that can still be honored (active, or
+	// any affiliator coupon, honored after the affiliator replaced its code) is bound to this plan.
+	var coupons int
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM coupons WHERE plan_id = ? AND (status = 'active' OR affiliator_id IS NOT NULL)`, id).Scan(&coupons); err != nil {
+		return err
+	}
+	if coupons > 0 {
+		return ErrPlanUsedByCoupon
 	}
 
 	res, err := r.db.ExecContext(ctx, "DELETE FROM pricing_plans WHERE id = ?", id)

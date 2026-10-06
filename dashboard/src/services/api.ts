@@ -1735,6 +1735,24 @@ export const rejectPayoutRequest = async (id: number, rejection_reason: string):
   }
 };
 
+/**
+ * Admin submits a payout on the agent's behalf (also for inactive agents): the server takes the agent's
+ * whole withdrawable balance and the bank details stored on the agent profile. No body.
+ * 409: a payout is still being processed; 400: nothing to withdraw or bank details incomplete.
+ */
+export const createAgentPayoutRequest = async (agentId: number): Promise<Partial<PayoutRequestItem>> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/agents/${agentId}/payout-requests`, {
+    method: 'POST',
+    headers,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal mengajukan pencairan' }));
+    throw new Error(err.error || 'Gagal mengajukan pencairan');
+  }
+  return await res.json().catch(() => ({}));
+};
+
 export interface AgentPayoutHistoryItem {
   id: number;
   created_at: string;
@@ -1752,6 +1770,8 @@ export interface CommissionHistoryItem {
   /** Newer backends: false when the row does not change the balance (rejected payout). */
   counts_against_balance?: boolean;
   status?: string; // 'pending' | 'approved' | 'rejected' | 'paid'
+  /** Why a payout was rejected or cancelled after approval. */
+  rejection_reason?: string | null;
   /** Ledger entry not withdrawable yet (jamaah belum lunas). */
   held?: boolean;
   /** Prospect of a ledger entry (admin view only; for override it is the downline agent's prospect). */
@@ -1787,6 +1807,10 @@ export interface AgentDashboardDetail {
   saldo_tertunda: number;
   /** Komisi dari jamaah yang sudah DP tapi belum ditandai lunas. */
   saldo_tertahan?: number;
+  /** Stored bank details; only present when the server sends them. */
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  bank_account_holder?: string | null;
   riwayat_pencairan: AgentPayoutHistoryItem[];
   riwayat_komisi?: CommissionHistoryItem[];
 }
@@ -2326,9 +2350,10 @@ export const validateCoupon = async (code: string, planId?: number): Promise<{ v
     url += `&plan_id=${planId}`;
   }
   const res = await dashboardFetch(url, { headers });
-  const json = await res.json().catch(() => ({ error: 'Gagal validasi kupon' }));
+  const json = await res.json().catch(() => ({ error: res.ok ? 'Gagal validasi kupon' : `Gagal memeriksa kupon (${res.status}). Coba lagi.` }));
   if (!res.ok) {
-    throw new Error(json.error || 'Kupon tidak valid');
+    // The status tells "coupon invalid" (400) apart from a rate limit (429) or a server error.
+    throw Object.assign(new Error(json.error || 'Kupon tidak valid'), { status: res.status });
   }
   return json;
 };

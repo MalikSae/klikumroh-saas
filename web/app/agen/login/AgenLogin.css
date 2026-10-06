@@ -111,6 +111,15 @@
   min-height: 44px;
 }
 
+/* Suspended travel: neutral help text in place of the wa.me link (no travel contact). */
+.tw-agen-login-help-note {
+  margin: 0;
+  align-self: center;
+  font-size: 14px;
+  color: var(--tw-neutral-600);
+  text-align: center;
+}
+
 .tw-agen-login-register {
   margin: 0;
   padding-top: 20px;

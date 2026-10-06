@@ -155,11 +155,13 @@ func (s *subscriptionService) StartRenewalReminderLoop(ctx context.Context, inte
 			case <-ctx.Done():
 				return
 			case <-timer.C:
-				if n, err := s.SendRenewalReminders(ctx, time.Now()); err != nil {
-					log.Printf("[Subscription] renewal reminders failed: %v", err)
-				} else if n > 0 {
-					log.Printf("[Subscription] renewal reminders sent to %d travel(s)", n)
-				}
+				RunJobSafely("renewal-reminders", func() {
+					if n, err := s.SendRenewalReminders(ctx, time.Now()); err != nil {
+						log.Printf("[Subscription] renewal reminders failed: %v", err)
+					} else if n > 0 {
+						log.Printf("[Subscription] renewal reminders sent to %d travel(s)", n)
+					}
+				})
 				timer.Reset(interval)
 			}
 		}

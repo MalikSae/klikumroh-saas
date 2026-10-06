@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import { backendFetch } from '../../lib/backendFetch';
 import { AffiliatorProgramView, type AffiliatorProgram } from '../../components/marketing-v3/AffiliatorProgramView';
 
 // Affiliator KlikUmroh: how the program works and its terms, read before the signup form (platform host
@@ -16,7 +17,7 @@ const backendUrl = () => process.env.BACKEND_INTERNAL_URL || process.env.API_BAS
 
 async function getProgram(): Promise<AffiliatorProgram | null> {
   try {
-    const res = await fetch(`${backendUrl()}/api/public/affiliator-program`, { cache: 'no-store' });
+    const res = await backendFetch(`${backendUrl()}/api/public/affiliator-program`, { cache: 'no-store' });
     return res.ok ? ((await res.json()) as AffiliatorProgram) : null;
   } catch {
     return null;

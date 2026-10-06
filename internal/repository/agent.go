@@ -169,16 +169,7 @@ func (r *mysqlAgentRepository) Create(ctx context.Context, tenantID uint64, agen
 	if err != nil {
 		// Two concurrent sign-ups (double submit) both pass the checks above; the unique indexes then
 		// refuse the second insert. Report it like the explicit check so the caller answers 409, not 500.
-		var mysqlErr *mysql.MySQLError
-		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-			switch {
-			case strings.Contains(mysqlErr.Message, "unique_tenant_email"):
-				return ErrDuplicateAgentEmail
-			case strings.Contains(mysqlErr.Message, "unique_tenant_phone"):
-				return ErrDuplicateAgentPhone
-			}
-		}
-		return err
+		return mapAgentDuplicate(err)
 	}
 
 	id, err := result.LastInsertId()
@@ -505,7 +496,7 @@ func (r *mysqlAgentRepository) UpdateProfile(ctx context.Context, tenantID uint6
 		tenantID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapAgentDuplicate(err)
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
@@ -794,4 +785,20 @@ func (r *mysqlAgentRepository) CountActiveByTenant(ctx context.Context, tenantID
 		return 0, err
 	}
 	return count, nil
+}
+
+// mapAgentDuplicate turns a unique-index violation on the agent's email or phone (two requests racing
+// past the explicit duplicate checks) into the same error as those checks, so callers answer 400/409
+// instead of 500.
+func mapAgentDuplicate(err error) error {
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+		switch {
+		case strings.Contains(mysqlErr.Message, "unique_tenant_email"):
+			return ErrDuplicateAgentEmail
+		case strings.Contains(mysqlErr.Message, "unique_tenant_phone"):
+			return ErrDuplicateAgentPhone
+		}
+	}
+	return err
 }

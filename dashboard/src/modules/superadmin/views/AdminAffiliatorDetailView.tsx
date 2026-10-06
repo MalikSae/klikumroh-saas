@@ -20,13 +20,9 @@ import { PayoutDialogs } from './AdminAffiliatorsView';
 import { PAYOUT_PILL, formatDateID, formatIDR } from './affiliatorFormat';
 import { resetPasswordProblem } from '../../../utils/password';
 import { parsePercent } from '../../../screens/programs/numberInput';
+import { subscriptionStatusView } from '../shared/subscriptionStatus';
 import './AdminAffiliators.css';
 
-const TENANT_PILL: Record<string, { label: string; cls: string }> = {
-  pending: { label: 'Menunggu pembayaran', cls: 'sa-pill--amber' },
-  active: { label: 'Aktif', cls: 'sa-pill--green' },
-  inactive: { label: 'Nonaktif', cls: 'sa-pill--neutral' },
-};
 
 const rateText = (n: number) => `${n.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`;
 
@@ -161,7 +157,7 @@ export const AdminAffiliatorDetailView: React.FC = () => {
 
   const tenantColumns: AdminColumn<AffiliatorTenant>[] = [
     { key: 'name', label: 'Travel', render: (t) => <span className="sa-aff-name">{t.name}</span> },
-    { key: 'status', label: 'Status', render: (t) => { const s = TENANT_PILL[t.status] ?? { label: t.status, cls: 'sa-pill--neutral' }; return <span className={`sa-pill ${s.cls}`}>{s.label}</span>; } },
+    { key: 'status', label: 'Status', render: (t) => { const s = subscriptionStatusView(t.status); return <span className={`sa-pill sa-pill--${s.tone}`}>{s.label}</span>; } },
     { key: 'source', label: 'Lewat', render: (t) => (t.source === 'coupon' ? 'Kupon' : 'Link') },
     { key: 'affiliated_at', label: 'Mendaftar', render: (t) => formatDateID(t.affiliated_at) },
     { key: 'subscription_expires_at', label: 'Aktif sampai', render: (t) => formatDateID(t.subscription_expires_at) },

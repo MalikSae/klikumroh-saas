@@ -77,6 +77,8 @@ export const PackageEditor: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  // Notice to show after "Kembalikan ke draf" once the admin confirmed saving the unsaved edits with it.
+  const [confirmDraft, setConfirmDraft] = useState<string | null>(null);
   // Blocks a second save/archive/delete while one is running (the menu items are not disabled by `saving`,
   // and a fast second click lands before the re-render): two PUTs at once could leave the form out of step.
   const busyRef = useRef(false);
@@ -221,6 +223,13 @@ export const PackageEditor: React.FC = () => {
     else save('archived', 'Paket diarsipkan.');
   };
 
+  // Un-publishing / un-archiving also saves the whole form: same confirmation as archiving.
+  const toDraft = (notice: string) => {
+    if (busyRef.current) return;
+    if (dirty) setConfirmDraft(notice);
+    else save('draft', notice);
+  };
+
   if (loading) return <div className="st-loading" aria-busy="true" />;
   if (!isNew && !pkg) {
     return (
@@ -240,8 +249,8 @@ export const PackageEditor: React.FC = () => {
   const commissionPct = form.price && form.commission ? Math.round((form.commission / form.price) * 1000) / 10 : null;
 
   const menuItems = [
-    ...(status === 'published' ? [{ label: 'Kembalikan ke draf', onClick: () => save('draft', 'Paket dijadikan draf dan tidak tampil di website.') }] : []),
-    ...(status !== 'archived' ? [{ label: 'Arsipkan', onClick: archive }] : [{ label: 'Kembalikan ke draf', onClick: () => save('draft', 'Paket dikembalikan ke draf.') }]),
+    ...(status === 'published' ? [{ label: 'Kembalikan ke draf', onClick: () => toDraft('Paket dijadikan draf dan tidak tampil di website.') }] : []),
+    ...(status !== 'archived' ? [{ label: 'Arsipkan', onClick: archive }] : [{ label: 'Kembalikan ke draf', onClick: () => toDraft('Paket dikembalikan ke draf.') }]),
     { label: 'Hapus paket', danger: true, onClick: () => setConfirmDelete(true) },
   ];
 
@@ -415,6 +424,31 @@ export const PackageEditor: React.FC = () => {
               }}
             >
               Simpan dan arsipkan
+            </Button>
+          </>
+        }
+      />
+
+      <Modal
+        open={confirmDraft !== null}
+        onClose={() => setConfirmDraft(null)}
+        title="Kembalikan ke draf?"
+        description="Ada perubahan yang belum disimpan. Perubahan itu ikut disimpan saat paket dikembalikan ke draf. Pilih Batal untuk memeriksanya dulu."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmDraft(null)} disabled={saving}>
+              Batal
+            </Button>
+            <Button
+              variant="primary"
+              disabled={saving}
+              onClick={() => {
+                const notice = confirmDraft ?? 'Paket dikembalikan ke draf.';
+                setConfirmDraft(null);
+                void save('draft', notice);
+              }}
+            >
+              Simpan dan jadikan draf
             </Button>
           </>
         }

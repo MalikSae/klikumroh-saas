@@ -340,3 +340,16 @@ func truncate(v string, max int) string {
 	}
 	return ""
 }
+
+// metaPlaceholderPattern is an unfilled Meta URL-parameter macro such as "{{site_source_name}}" or
+// "{{campaign.name}}": Meta leaves it as-is when the ad (or a preview/test link) did not fill it.
+var metaPlaceholderPattern = regexp.MustCompile(`\{\{[^{}]*\}\}`)
+
+// utmValuePtr stores a utm_* value like truncatedPtr, but ignores an unfilled Meta macro the same way an
+// unfilled {{ad.id}} is ignored: it is not a real source/medium/campaign and would only split reports.
+func utmValuePtr(v string, max int) *string {
+	if metaPlaceholderPattern.MatchString(v) {
+		return nil
+	}
+	return truncatedPtr(v, max)
+}

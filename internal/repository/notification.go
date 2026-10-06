@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -21,12 +22,31 @@ type Notification struct {
 }
 
 // NotificationRepository defines access methods for notifications.
+//
+// tenantID scopes every read and write (AGENTS.md 3.1): admin and agent recipients must pass their
+// travel's id, so a notification of another travel is never visible even if a recipient id were reused.
+// Only staff recipients (platform users; their notifications carry the travel they are about) pass nil.
 type NotificationRepository interface {
 	Create(ctx context.Context, notif *Notification) error
-	ListByRecipient(ctx context.Context, recipientType string, recipientID uint64, limit int) ([]Notification, error)
-	CountUnread(ctx context.Context, recipientType string, recipientID uint64) (int, error)
-	MarkAsRead(ctx context.Context, recipientType string, recipientID uint64, id uint64) error
-	MarkAllAsRead(ctx context.Context, recipientType string, recipientID uint64) error
+	ListByRecipient(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, limit int) ([]Notification, error)
+	CountUnread(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) (int, error)
+	MarkAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, id uint64) error
+	MarkAllAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) error
+}
+
+// ErrNotificationTenantRequired: an admin or agent notification query without a tenant id.
+var ErrNotificationTenantRequired = errors.New("notification query needs a tenant id")
+
+// notificationScope returns the tenant clause and its args for a recipient. Staff see their
+// notifications across travels (nil tenant); every other recipient must be scoped to one travel.
+func notificationScope(tenantID *uint64, recipientType string) (string, []interface{}, error) {
+	if tenantID == nil {
+		if recipientType != "staff" {
+			return "", nil, ErrNotificationTenantRequired
+		}
+		return "", nil, nil
+	}
+	return " AND tenant_id = ?", []interface{}{*tenantID}, nil
 }
 
 type mysqlNotificationRepository struct {
@@ -64,18 +84,24 @@ func (r *mysqlNotificationRepository) Create(ctx context.Context, notif *Notific
 	return nil
 }
 
-func (r *mysqlNotificationRepository) ListByRecipient(ctx context.Context, recipientType string, recipientID uint64, limit int) ([]Notification, error) {
+func (r *mysqlNotificationRepository) ListByRecipient(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, limit int) ([]Notification, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
+	}
+	scope, scopeArgs, err := notificationScope(tenantID, recipientType)
+	if err != nil {
+		return nil, err
 	}
 	query := `
 		SELECT id, tenant_id, recipient_type, recipient_id, type, title, body, link_url, read_at, created_at
 		FROM notifications
-		WHERE recipient_type = ? AND recipient_id = ?
+		WHERE recipient_type = ? AND recipient_id = ?` + scope + `
 		ORDER BY created_at DESC
 		LIMIT ?
 	`
-	rows, err := r.db.QueryContext(ctx, query, recipientType, recipientID, limit)
+	args := append([]interface{}{recipientType, recipientID}, scopeArgs...)
+	args = append(args, limit)
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,24 +132,31 @@ func (r *mysqlNotificationRepository) ListByRecipient(ctx context.Context, recip
 	return list, nil
 }
 
-func (r *mysqlNotificationRepository) CountUnread(ctx context.Context, recipientType string, recipientID uint64) (int, error) {
+func (r *mysqlNotificationRepository) CountUnread(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) (int, error) {
+	scope, scopeArgs, err := notificationScope(tenantID, recipientType)
+	if err != nil {
+		return 0, err
+	}
 	query := `
 		SELECT COUNT(*)
 		FROM notifications
-		WHERE recipient_type = ? AND recipient_id = ? AND read_at IS NULL
-	`
+		WHERE recipient_type = ? AND recipient_id = ? AND read_at IS NULL` + scope
 	var count int
-	err := r.db.QueryRowContext(ctx, query, recipientType, recipientID).Scan(&count)
+	err = r.db.QueryRowContext(ctx, query, append([]interface{}{recipientType, recipientID}, scopeArgs...)...).Scan(&count)
 	return count, err
 }
 
-func (r *mysqlNotificationRepository) MarkAsRead(ctx context.Context, recipientType string, recipientID uint64, id uint64) error {
+func (r *mysqlNotificationRepository) MarkAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64, id uint64) error {
+	scope, scopeArgs, err := notificationScope(tenantID, recipientType)
+	if err != nil {
+		return err
+	}
+	args := append([]interface{}{id, recipientType, recipientID}, scopeArgs...)
 	query := `
 		UPDATE notifications
 		SET read_at = CURRENT_TIMESTAMP
-		WHERE id = ? AND recipient_type = ? AND recipient_id = ? AND read_at IS NULL
-	`
-	res, err := r.db.ExecContext(ctx, query, id, recipientType, recipientID)
+		WHERE id = ? AND recipient_type = ? AND recipient_id = ? AND read_at IS NULL` + scope
+	res, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -133,7 +166,7 @@ func (r *mysqlNotificationRepository) MarkAsRead(ctx context.Context, recipientT
 	}
 	if rowsAffected == 0 {
 		var exists int
-		chkErr := r.db.QueryRowContext(ctx, `SELECT 1 FROM notifications WHERE id = ? AND recipient_type = ? AND recipient_id = ?`, id, recipientType, recipientID).Scan(&exists)
+		chkErr := r.db.QueryRowContext(ctx, `SELECT 1 FROM notifications WHERE id = ? AND recipient_type = ? AND recipient_id = ?`+scope, args...).Scan(&exists)
 		if chkErr != nil {
 			return ErrNotFound
 		}
@@ -141,12 +174,15 @@ func (r *mysqlNotificationRepository) MarkAsRead(ctx context.Context, recipientT
 	return nil
 }
 
-func (r *mysqlNotificationRepository) MarkAllAsRead(ctx context.Context, recipientType string, recipientID uint64) error {
+func (r *mysqlNotificationRepository) MarkAllAsRead(ctx context.Context, tenantID *uint64, recipientType string, recipientID uint64) error {
+	scope, scopeArgs, err := notificationScope(tenantID, recipientType)
+	if err != nil {
+		return err
+	}
 	query := `
 		UPDATE notifications
 		SET read_at = CURRENT_TIMESTAMP
-		WHERE recipient_type = ? AND recipient_id = ? AND read_at IS NULL
-	`
-	_, err := r.db.ExecContext(ctx, query, recipientType, recipientID)
+		WHERE recipient_type = ? AND recipient_id = ? AND read_at IS NULL` + scope
+	_, err = r.db.ExecContext(ctx, query, append([]interface{}{recipientType, recipientID}, scopeArgs...)...)
 	return err
 }

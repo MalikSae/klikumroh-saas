@@ -86,7 +86,7 @@ export const AffiliatorHomeView: React.FC = () => {
         </Button>
       </section>
 
-      <Card title="Bagikan" description={`Travel yang berlangganan lewat link atau kupon Anda memberi komisi ${fmtPercent(data.first_rate)} dari pembayaran pertama dan ${fmtPercent(data.renewal_rate)} dari setiap perpanjangan.`}>
+      <Card title="Bagikan" description={`Travel yang berlangganan lewat link atau kupon Anda memberi komisi ${fmtPercent(data.first_rate, 2)} dari pembayaran pertama dan ${fmtPercent(data.renewal_rate, 2)} dari setiap perpanjangan.`}>
         <CardBody>
           <div className="af-share">
             <div className="af-share__row">
@@ -99,7 +99,7 @@ export const AffiliatorHomeView: React.FC = () => {
 
             <div className="af-share__row">
               <div className="af-share__text">
-                <div className="af-share__label">Kupon diskon {fmtPercent(data.coupon_discount)} untuk travel baru</div>
+                <div className="af-share__label">Kupon diskon {fmtPercent(data.coupon_discount, 2)} untuk travel baru</div>
                 {data.coupon_code ? <div className="af-share__value">{data.coupon_code}</div> : <div className="af-muted">Belum ada kupon.</div>}
               </div>
               {data.coupon_code && !editing && (

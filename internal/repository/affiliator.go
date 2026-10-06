@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"math"
+	"net"
 	"strings"
 	"time"
 
@@ -461,13 +462,41 @@ func (r *mysqlAffiliatorRepository) RecordLogin(ctx context.Context, affiliatorI
 }
 
 func (r *mysqlAffiliatorRepository) HasLoginFromIP(ctx context.Context, affiliatorID uint64, ip string, withinDays int) (bool, error) {
-	// The window is computed by MySQL (NOW()), the same clock that filled logged_in_at.
-	var n int
-	err := r.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM affiliator_logins
-		WHERE affiliator_id = ? AND ip_address = ? AND logged_in_at >= NOW() - INTERVAL ? DAY`,
-		affiliatorID, ip, withinDays).Scan(&n)
-	return n > 0, err
+	// The window is computed by MySQL (NOW()), the same clock that filled logged_in_at. IPv6 addresses
+	// match by /64 (bug hunt putaran 5): privacy addresses rotate inside the prefix one household or phone
+	// controls, so an exact match would almost never catch a self-referral on IPv6 mobile networks.
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT DISTINCT ip_address FROM affiliator_logins
+		WHERE affiliator_id = ? AND ip_address IS NOT NULL AND logged_in_at >= NOW() - INTERVAL ? DAY`,
+		affiliatorID, withinDays)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var stored string
+		if err := rows.Scan(&stored); err != nil {
+			return false, err
+		}
+		if SameClientNetwork(stored, ip) {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
+}
+
+// SameClientNetwork reports whether two client addresses belong to the same client: equal IPv4 addresses
+// (IPv4-mapped IPv6 included), or IPv6 addresses in the same /64.
+func SameClientNetwork(a, b string) bool {
+	ipA, ipB := net.ParseIP(strings.TrimSpace(a)), net.ParseIP(strings.TrimSpace(b))
+	if ipA == nil || ipB == nil {
+		return strings.TrimSpace(a) != "" && strings.TrimSpace(a) == strings.TrimSpace(b)
+	}
+	if v4a, v4b := ipA.To4(), ipB.To4(); v4a != nil || v4b != nil {
+		return v4a != nil && v4b != nil && v4a.Equal(v4b)
+	}
+	mask := net.CIDRMask(64, 128)
+	return ipA.Mask(mask).Equal(ipB.Mask(mask))
 }
 
 func (r *mysqlAffiliatorRepository) RecordClick(ctx context.Context, affiliatorID uint64, ip string) error {

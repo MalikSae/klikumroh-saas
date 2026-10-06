@@ -78,8 +78,8 @@ func (h *PricingPlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Nama plan tidak boleh kosong"})
 		return
 	}
-	if req.PeriodMonths <= 0 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Durasi periode harus lebih dari 0 bulan"})
+	if req.PeriodMonths <= 0 || req.PeriodMonths > service.MaxManualPeriodMonths {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Durasi periode harus 1 sampai 120 bulan"})
 		return
 	}
 	if req.Price < 0 {
@@ -124,8 +124,8 @@ func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Nama plan tidak boleh kosong"})
 		return
 	}
-	if req.PeriodMonths <= 0 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Durasi periode harus lebih dari 0 bulan"})
+	if req.PeriodMonths <= 0 || req.PeriodMonths > service.MaxManualPeriodMonths {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Durasi periode harus 1 sampai 120 bulan"})
 		return
 	}
 	if req.Price < 0 {
@@ -172,6 +172,12 @@ func (h *PricingPlanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, repository.ErrPlanInUse) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{
 				"error": "Plan harga sedang digunakan oleh travel dan tidak dapat dihapus",
+			})
+			return
+		}
+		if errors.Is(err, repository.ErrPlanUsedByCoupon) {
+			respondJSON(w, http.StatusConflict, map[string]string{
+				"error": "Plan harga masih dipakai kupon khusus paket ini. Nonaktifkan kupon tersebut dulu, lalu hapus plan.",
 			})
 			return
 		}

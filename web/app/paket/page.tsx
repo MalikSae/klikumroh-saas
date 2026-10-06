@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata, ResolvingMetadata } from 'next';
 import { headers } from 'next/headers';
+import { backendFetch } from '../../lib/backendFetch';
 import { PaketClientView } from '../../components/PaketClientView';
 import type { PublicPackage } from '../../components/publicPackage';
 
@@ -16,7 +17,7 @@ const getBackendBaseUrl = (): string => {
 async function getPublishedPackages(host: string): Promise<PublicPackage[]> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/packages`, {
+    const res = await backendFetch(`${backendUrl}/api/public/packages`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,
@@ -40,7 +41,7 @@ async function getPublishedPackages(host: string): Promise<PublicPackage[]> {
 async function getTenantInfo(host: string): Promise<PublicTenantInfo | null | 'down'> {
   const backendUrl = getBackendBaseUrl();
   try {
-    const res = await fetch(`${backendUrl}/api/public/tenant-info`, {
+    const res = await backendFetch(`${backendUrl}/api/public/tenant-info`, {
       headers: {
         Host: host,
         'X-Forwarded-Host': host,

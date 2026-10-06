@@ -95,6 +95,19 @@ export const logoutStaff = async (): Promise<void> => {
   clearStaffAuthSession();
 };
 
+/**
+ * Reads a JSON body without throwing on a non-JSON response (a 502 HTML page from the proxy, a plain-text
+ * 404/405): an error status then gets a readable message instead of "Unexpected token '<'".
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const readStaffJson = async (res: Response): Promise<any> => {
+  try {
+    return await res.json();
+  } catch {
+    return res.ok ? {} : { error: `Server tidak merespons dengan benar (HTTP ${res.status}). Coba lagi.` };
+  }
+};
+
 export const getStaffAuthHeader = (): Record<string, string> => {
   const token = getStoredStaffToken();
   if (token) {
@@ -112,7 +125,7 @@ export const loginStaff = async (email: string, password: string): Promise<{ tok
     body: JSON.stringify({ email, password }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     throw new Error(json.error || 'Login staff gagal');
   }
@@ -129,7 +142,7 @@ export const fetchStaffMe = async (): Promise<StaffUser> => {
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -148,7 +161,7 @@ export const fetchStaffTenants = async (status?: string): Promise<StaffTenantIte
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -166,7 +179,7 @@ export const fetchPricingPlans = async (): Promise<PricingPlan[]> => {
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -187,7 +200,7 @@ export const createPricingPlan = async (input: PricingPlanInput): Promise<Pricin
     body: JSON.stringify(input),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -208,7 +221,7 @@ export const updatePricingPlan = async (id: number, input: PricingPlanInput): Pr
     body: JSON.stringify(input),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -227,7 +240,7 @@ export const deletePricingPlan = async (id: number): Promise<void> => {
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -273,6 +286,9 @@ export interface PaymentVerificationItem {
   final_amount: number;
   unique_code?: number;
   proof_url: string | null;
+  // Invoice total at the moment the current proof was stored (staff-only; null without a proof or for an
+  // older proof). Differs from final_amount when staff changed the plan/coupon after the transfer.
+  proof_final_amount?: number | null;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   rejection_reason: string | null;
   reviewed_by: number | null;
@@ -289,7 +305,7 @@ export const fetchStaffCoupons = async (): Promise<Coupon[]> => {
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -310,7 +326,7 @@ export const createStaffCoupon = async (input: CouponInput): Promise<Coupon> => 
     body: JSON.stringify(input),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -329,7 +345,7 @@ export const deactivateStaffCoupon = async (id: number): Promise<void> => {
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -353,7 +369,7 @@ export const fetchStaffPaymentVerifications = async (status?: string, tenantId?:
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -412,7 +428,7 @@ export const rejectPaymentVerification = async (id: number, rejectionReason: str
     body: JSON.stringify({ rejection_reason: rejectionReason }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -434,7 +450,7 @@ export const updatePaymentVerificationPlan = async (
     body: JSON.stringify({ plan_id: planId }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -458,7 +474,7 @@ export const updatePaymentVerificationCoupon = async (
     body: JSON.stringify({ coupon_code: couponCode }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -529,7 +545,7 @@ export const fetchStaffTenantDetail = async (id: number): Promise<StaffTenantDet
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -554,7 +570,7 @@ export const resetTenantAdminPassword = async (
     body: JSON.stringify({ new_password: newPassword }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -590,7 +606,7 @@ export const fetchPlatformSettingsStaff = async (): Promise<PlatformSettings> =>
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -611,7 +627,7 @@ export const updatePlatformSettingsStaff = async (input: PlatformSettingsInput):
     body: JSON.stringify(input),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -647,7 +663,7 @@ export const fetchStaffOverview = async (): Promise<PlatformOverviewMetrics> => 
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -685,7 +701,7 @@ export const impersonateTenant = async (tenantId: number, reason: string): Promi
     body: JSON.stringify({ reason }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -713,7 +729,7 @@ export const updateTenantSubscription = async (
     }),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -731,7 +747,7 @@ export const fetchStaffUsers = async (): Promise<StaffUser[]> => {
     },
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -755,7 +771,7 @@ export const createStaffUser = async (data: StaffUserInput): Promise<StaffUser> 
     body: JSON.stringify(data),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();
@@ -776,7 +792,7 @@ export const updateStaffUser = async (id: number, data: StaffUserInput): Promise
     body: JSON.stringify(data),
   });
 
-  const json = await res.json();
+  const json = await readStaffJson(res);
   if (!res.ok) {
     if (res.status === 401) {
       clearStaffAuthSession();

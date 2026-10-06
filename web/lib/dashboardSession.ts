@@ -15,11 +15,16 @@ const isLocalHost = (): boolean =>
     window.location.hostname === '127.0.0.1' ||
     window.location.hostname.endsWith('.local'));
 
+// Older versions also wrote the admin bearer token to a readable (non-HttpOnly) klikumroh_token cookie that
+// nothing reads (the dashboard on app.klikumroh.id uses the one-time handoff code). It is no longer
+// written; every login, signup and logout expires one left over from before.
+const EXPIRED_TOKEN_COOKIE = 'klikumroh_token=; path=/; max-age=0; SameSite=Lax';
+
 export function storeDashboardSession(data: LoginResponse): void {
   if (typeof window === 'undefined') return;
+  document.cookie = EXPIRED_TOKEN_COOKIE;
   if (data.token) {
     localStorage.setItem('klikumroh_token', data.token);
-    document.cookie = `klikumroh_token=${encodeURIComponent(data.token)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
   }
   if (data.user) {
     localStorage.setItem('klikumroh_user', JSON.stringify({ ...data.user, tenant_status: data.tenant_status }));
@@ -34,22 +39,8 @@ export function clearDashboardSession(): void {
     localStorage.removeItem('klikumroh_token');
     localStorage.removeItem('klikumroh_user');
     localStorage.removeItem('klikumroh_travel_name');
-    document.cookie = 'klikumroh_token=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = EXPIRED_TOKEN_COOKIE;
   } catch {}
-}
-
-// The session saved by an earlier login/signup in this browser, if any.
-export function storedDashboardSession(): LoginResponse | null {
-  try {
-    if (typeof window === 'undefined') return null;
-    const token = localStorage.getItem('klikumroh_token');
-    if (!token) return null;
-    const rawUser = localStorage.getItem('klikumroh_user');
-    const user = rawUser ? JSON.parse(rawUser) : undefined;
-    return { token, tenant_status: user?.tenant_status, user };
-  } catch {
-    return null;
-  }
 }
 
 // `path` is a dashboard route such as '/' or '/settings/subscription/payment/12'. A pending travel

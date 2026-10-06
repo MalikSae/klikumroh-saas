@@ -15,8 +15,10 @@ import (
 
 // Bug hunt putaran 4 (billing), real database. Every test tenant is purged by createDummyTenant's cleanup.
 
-// M1: a manual activation by staff cancels rejected invoices too (a new proof could otherwise reopen an
-// old invoice with its old price and coupon); another travel's rejected invoice is untouched.
+// M1 (revised in bug hunt 5): a manual activation by staff cancels the travel's open invoice, but a
+// rejected invoice keeps its own status, reason and reviewer (billing history); reopening it afterwards is
+// refused by the service (TestBugHunt5_RejectedReopenAfterManualChange). Another travel's invoices are
+// untouched.
 func TestBugHunt4_ManualChangeCancelsRejectedInvoices(t *testing.T) {
 	db := setupTestDB(t)
 	t.Cleanup(func() { _ = db.Close() })
@@ -47,6 +49,10 @@ func TestBugHunt4_ManualChangeCancelsRejectedInvoices(t *testing.T) {
 		return pv.ID
 	}
 	rejA, rejB := reject(a.ID), reject(b.ID)
+	openA := &repository.PaymentVerification{TenantID: a.ID, PlanID: planID, Amount: 1000, FinalAmount: 1456, UniqueCode: 456}
+	if err := pvRepo.Create(ctx, openA); err != nil {
+		t.Fatalf("open invoice: %v", err)
+	}
 
 	couponRepo := repository.NewCouponRepository(db)
 	sub := service.NewSubscriptionService(pvRepo, couponRepo, service.NewCouponService(couponRepo),
@@ -54,10 +60,14 @@ func TestBugHunt4_ManualChangeCancelsRejectedInvoices(t *testing.T) {
 	sub.(service.ManualSubscriptionHook).HandleManualSubscriptionChange(ctx, a.ID, false, "Paket", time.Now().AddDate(0, 3, 0), staffID)
 
 	gotA, _ := pvRepo.GetByID(ctx, rejA)
+	gotOpen, _ := pvRepo.GetByID(ctx, openA.ID)
 	gotB, _ := pvRepo.GetByID(ctx, rejB)
-	t.Logf("tenant A invoice %d: status=%s reason=%v; tenant B invoice %d: status=%s", rejA, gotA.Status, *gotA.RejectionReason, rejB, gotB.Status)
-	if gotA.Status != "cancelled" || *gotA.RejectionReason != service.ManualCancelReason {
-		t.Fatalf("rejected invoice of the activated travel must be cancelled, got %s %v", gotA.Status, *gotA.RejectionReason)
+	t.Logf("tenant A rejected %d: status=%s reason=%v; open %d: status=%s; tenant B %d: status=%s", rejA, gotA.Status, *gotA.RejectionReason, openA.ID, gotOpen.Status, rejB, gotB.Status)
+	if gotA.Status != "rejected" || gotA.RejectionReason == nil || *gotA.RejectionReason != "bukti buram" || gotA.ReviewedBy == nil || *gotA.ReviewedBy != staffID {
+		t.Fatalf("rejected invoice must keep its rejection, got %s %v %v", gotA.Status, gotA.RejectionReason, gotA.ReviewedBy)
+	}
+	if gotOpen.Status != "cancelled" || gotOpen.RejectionReason == nil || *gotOpen.RejectionReason != service.ManualCancelReason {
+		t.Fatalf("open invoice of the activated travel must be cancelled, got %s", gotOpen.Status)
 	}
 	if gotB.Status != "rejected" {
 		t.Fatalf("CROSS-TENANT: another travel's rejected invoice changed to %s", gotB.Status)
@@ -164,6 +174,10 @@ func TestBugHunt4_UnpaidSignupCleanup(t *testing.T) {
 		pv := &repository.PaymentVerification{TenantID: tn.ID, PlanID: planID, Amount: 1000, FinalAmount: 1123, UniqueCode: 123}
 		if err := pvRepo.Create(ctx, pv); err != nil {
 			t.Fatalf("invoice: %v", err)
+		}
+		// The signup invoice is as old as the signup (bug hunt 5: recent invoice activity keeps a travel).
+		if _, err := db.Exec(`UPDATE payment_verifications SET created_at = ?, updated_at = ? WHERE id = ?`, now.Add(-age), now.Add(-age), pv.ID); err != nil {
+			t.Fatalf("age invoice: %v", err)
 		}
 		if err := domainRepo.Create(ctx, tn.ID, &repository.Domain{TenantID: tn.ID, Hostname: tn.Slug + ".klikumroh.id", Type: "subdomain", Status: "active"}); err != nil {
 			t.Fatalf("domain: %v", err)

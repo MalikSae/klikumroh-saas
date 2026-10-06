@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { TerminalSquare } from 'lucide-react';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/700.css';
 import { loginStaff } from '../../../services/staffApi';
+import { staffLoginTarget, type FromLocation } from '../shared/loginRedirect';
 import './AdminLoginView.css';
 
 // Login typed like a terminal session: one prompt at a time, Enter to continue, no form boxes or buttons.
@@ -13,6 +14,9 @@ type LogLine = { kind: 'echo' | 'error'; prompt?: string; text: string };
 
 export const AdminLoginView: React.FC = () => {
   const navigate = useNavigate();
+  // Deep link the auth guard sent us from (e.g. a notification link opened while logged out).
+  const location = useLocation();
+  const target = staffLoginTarget((location.state as { from?: FromLocation } | null)?.from);
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,7 +49,7 @@ export const AdminLoginView: React.FC = () => {
     setStep('verifying');
     try {
       await loginStaff(email.trim(), password);
-      navigate('/internal/dashboard', { replace: true });
+      navigate(target, { replace: true });
     } catch (err: any) {
       // fetch() rejects with a TypeError when the server cannot be reached.
       const text =

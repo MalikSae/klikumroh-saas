@@ -126,7 +126,7 @@ func SweepOrphanTestimonialPhotos(ctx context.Context, content ContentService, u
 // and then every interval.
 func StartBannerFileSweep(ctx context.Context, content ContentService, uploadsRoot string, interval time.Duration) {
 	go func() {
-		run := func() {
+		sweep := func() {
 			n, err := SweepOrphanBannerFiles(ctx, content, uploadsRoot, BannerOrphanMinAge, time.Now())
 			if err != nil {
 				log.Printf("[Banner] sweep failed: %v", err)
@@ -141,6 +141,7 @@ func StartBannerFileSweep(ctx context.Context, content ContentService, uploadsRo
 				log.Printf("[Testimonial] sweep: removed %d unused photos", t)
 			}
 		}
+		run := func() { RunJobSafely("banner-sweep", sweep) }
 		select {
 		case <-ctx.Done():
 			return

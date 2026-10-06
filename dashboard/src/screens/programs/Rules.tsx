@@ -18,7 +18,7 @@ import {
 import { Banner, Button, Checkbox, Field, errorText, fmtRupiah } from '../../ui';
 import { SettingsSection } from '../settings/Section';
 import { ImageField } from '../website/ImageField';
-import { parsePercent, parseRupiah } from './numberInput';
+import { formatRupiahInput, parsePercent, parseRupiah } from './numberInput';
 import '../website/website.css';
 import './programs.css';
 
@@ -55,8 +55,8 @@ export const Rules: React.FC = () => {
           overrideOn: c.commission_override_enabled,
           overridePct: c.commission_override_percentage != null ? String(c.commission_override_percentage) : '',
           releaseOn: r,
-          minPayout: a.minimum_payout_amount ? String(a.minimum_payout_amount) : '',
-          fee: a.agent_registration_fee ? String(a.agent_registration_fee) : '',
+          minPayout: formatRupiahInput(a.minimum_payout_amount),
+          fee: formatRupiahInput(a.agent_registration_fee),
           bankName: a.agent_bank_name || '',
           bankNumber: a.agent_bank_account_number || '',
           bankHolder: a.agent_bank_account_holder || '',

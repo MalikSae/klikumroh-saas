@@ -20,6 +20,7 @@ interface CommissionHistoryItem {
   direction: string; // 'masuk' | 'keluar'
   status?: string; // 'pending' | 'approved' | 'rejected' | 'paid'
   held?: boolean; // ledger entry not withdrawable yet (jamaah belum lunas)
+  rejection_reason?: string | null; // why a payout was rejected or cancelled by the travel admin
   created_at: string;
 }
 
@@ -229,6 +230,10 @@ export default function RiwayatKomisiPage() {
                     <strong className={`rk-stat__value${formatRupiah(card.value).length > 14 ? ' rk-stat__value--long' : ''}`}>
                       {formatRupiah(card.value)}
                     </strong>
+                    {/* Approved by the travel but not transferred yet: not counted as withdrawn. */}
+                    {card.key === 'done' && summary.menungguTransfer > 0 && (
+                      <span className="rk-stat__note">Menunggu transfer {formatRupiah(summary.menungguTransfer)}</span>
+                    )}
                   </button>
                 );
               })}
@@ -346,6 +351,12 @@ export default function RiwayatKomisiPage() {
                 <dt>Status</dt>
                 <dd className={`rk-status rk-status--${statusOf(detail).tone}`}>{statusOf(detail).text || '-'}</dd>
               </div>
+              {detail.source === 'payout' && detail.status === 'rejected' && detail.rejection_reason?.trim() && (
+                <div>
+                  <dt>Alasan</dt>
+                  <dd>{detail.rejection_reason.trim()}</dd>
+                </div>
+              )}
               <div>
                 <dt>Waktu</dt>
                 <dd>{fullDateTime(detail.created_at)}</dd>

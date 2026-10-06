@@ -1300,3 +1300,13 @@
   accent-color: var(--sa-accent);
   cursor: pointer;
 }
+
+/* Small secondary text in staff tables and the payment modal (round 5). */
+.sa-note { font-size: var(--ku-text-md); color: var(--sa-text-muted); }
+.sa-note--danger { color: var(--sa-red-text); }
+.sa-proof-review { margin-bottom: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-4); border-radius: var(--sa-radius-sm); border: 1px solid var(--sa-border); background: var(--sa-surface); font-size: var(--ku-text-md); color: var(--sa-text-secondary); line-height: 1.5; }
+.sa-proof-review--rejected { border-color: var(--sa-red-border); background: var(--sa-red-bg); color: var(--sa-red-text); }
+.sa-proof-confirm { margin-top: var(--ku-space-2); display: flex; flex-direction: column; gap: var(--ku-space-2); font-size: var(--ku-text-md); color: var(--sa-text-secondary); }
+.sa-proof-confirm__actions { display: flex; justify-content: flex-end; gap: var(--ku-space-2); }
+.sa-panel-empty { padding: var(--ku-space-8) var(--ku-space-5); text-align: center; font-size: var(--ku-text-md); color: var(--sa-text-muted); }
+.sa-panel-empty--danger { color: var(--sa-red-text); }

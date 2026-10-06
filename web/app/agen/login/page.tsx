@@ -26,6 +26,7 @@ interface TenantInfo {
   phone?: string;
   email?: string;
   is_demo?: boolean;
+  is_suspended?: boolean;
 }
 
 interface AgentAuthJson {
@@ -154,10 +155,12 @@ export default function AgenLoginPage() {
     ? { '--tw-brand-primary': tenantInfo.brand_primary_color }
     : {};
 
+  // A suspended travel shows no contact at all (founder decision): no footer contact, no wa.me help link.
+  const travelSuspended = Boolean(tenantInfo?.is_suspended);
   // No travel WhatsApp number -> hide the help link instead of pointing to a placeholder number.
   const travelLabel = tenantInfo?.name || 'travel';
   const helpWaUrl = whatsappLink(
-    tenantInfo?.whatsapp_number,
+    travelSuspended ? undefined : tenantInfo?.whatsapp_number,
     email.trim()
       ? `Halo Admin, saya mitra agen ${travelLabel} lupa password / tidak bisa masuk (email: ${email.trim()})`
       : `Halo Admin, saya mitra agen ${travelLabel} lupa password / tidak bisa masuk`
@@ -245,6 +248,9 @@ export default function AgenLoginPage() {
                 Lupa password? Hubungi admin
               </a>
             )}
+            {travelSuspended && !tenantInfo?.is_demo && (
+              <p className="tw-agen-login-help-note">Lupa password? Hubungi admin travel Anda.</p>
+            )}
           </form>
 
           <p className="tw-agen-login-register">
@@ -257,10 +263,10 @@ export default function AgenLoginPage() {
 
         <PublicFooter
           tenantName={tenantInfo?.name}
-          address={tenantInfo?.address}
-          phone={tenantInfo?.phone}
-          whatsappNumber={tenantInfo?.whatsapp_number}
-          email={tenantInfo?.email}
+          address={travelSuspended ? undefined : tenantInfo?.address}
+          phone={travelSuspended ? undefined : tenantInfo?.phone}
+          whatsappNumber={travelSuspended ? undefined : tenantInfo?.whatsapp_number}
+          email={travelSuspended ? undefined : tenantInfo?.email}
           ppiuNumber={tenantInfo?.ppiu_number}
         />
       </MobileContainer>
