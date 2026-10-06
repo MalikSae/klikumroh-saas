@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"regexp"
@@ -21,7 +22,7 @@ const ExpectedCNAMETarget = "cname.klikumroh.id"
 const VerificationTXTPrefix = "_klikumroh-verify."
 
 // MaxDomainCheckFailures: after this many failed DNS checks in a row, the default subdomain stops
-// redirecting to the custom domain (the domain itself stays active until DNS is fixed or it is removed).
+// redirecting to the custom domain, and the daily recheck sets the domain to 'failed' (RecheckActiveDomains).
 const MaxDomainCheckFailures = 3
 
 // DomainVerificationToken is the TXT value that proves a travel controls hostname's DNS. It is bound to
@@ -97,6 +98,10 @@ type DomainService interface {
 type domainService struct {
 	domainRepo repository.DomainRepository
 	resolver   DNSResolver
+	// Notifications when the daily recheck takes a domain offline (optional, see SetNotifier).
+	notif  NotificationService
+	admins repository.AdminUserRepository
+	staff  StaffLister
 }
 
 // NewDomainService creates a new DomainService instance.
@@ -457,6 +462,12 @@ func (s *domainService) recordCheck(ctx context.Context, domain *repository.Doma
 	return domain, nil
 }
 
+// RecheckActiveDomains is the daily job: it re-checks the CNAME of every active custom domain
+// (recordCheck). A domain whose check fails MaxDomainCheckFailures times in a row (a success resets the
+// count) is set to 'failed' (keputusan pendiri 6 Okt 2026): it is no longer served, the Caddy ask
+// endpoint (active custom domains only) stops approving certificates for it, another travel that now
+// owns the domain can claim it, and the travel can verify it again once DNS is fixed. The travel's admins
+// and KlikUmroh staff are notified.
 func (s *domainService) RecheckActiveDomains(ctx context.Context) (checked int, failing int) {
 	domains, err := s.domainRepo.ListActiveCustom(ctx)
 	if err != nil {
@@ -471,8 +482,86 @@ func (s *domainService) RecheckActiveDomains(ctx context.Context) (checked int, 
 		if d.CheckFailures > 0 {
 			failing++
 		}
+		if d.CheckFailures >= MaxDomainCheckFailures {
+			s.deactivateFailingDomain(ctx, d)
+		}
 	}
 	return checked, failing
+}
+
+// deactivateFailingDomain sets an active custom domain whose DNS check kept failing to 'failed'.
+func (s *domainService) deactivateFailingDomain(ctx context.Context, d *repository.Domain) {
+	detail := ""
+	if d.VerificationFailureReason != nil {
+		detail = ": " + *d.VerificationFailureReason
+	}
+	reason := fmt.Sprintf("DNS domain tidak lagi mengarah ke KlikUmroh dalam %d pemeriksaan harian berturut-turut%s. Perbaiki DNS lalu verifikasi ulang.", d.CheckFailures, detail)
+	d.Status = "failed"
+	d.VerificationFailureReason = &reason
+	if err := s.domainRepo.Update(ctx, d.TenantID, d); err != nil {
+		log.Printf("[Domain] tenant %d: cannot deactivate %s after %d failed checks: %v", d.TenantID, d.Hostname, d.CheckFailures, err)
+		return
+	}
+	log.Printf("[Domain] tenant %d: %s deactivated after %d failed daily DNS checks", d.TenantID, d.Hostname, d.CheckFailures)
+
+	title := "Domain kustom dinonaktifkan"
+	body := fmt.Sprintf("Domain %s tidak lagi mengarah ke KlikUmroh selama %d pemeriksaan harian berturut-turut, jadi dinonaktifkan. Website tetap bisa dibuka lewat subdomain KlikUmroh. Perbaiki DNS domain lalu verifikasi ulang di Pengaturan.", d.Hostname, d.CheckFailures)
+	s.notifyDomain(ctx, d.TenantID, "admin", title, body, "/settings")
+	s.notifyDomain(ctx, d.TenantID, "staff", title,
+		fmt.Sprintf("Domain %s milik travel #%d dinonaktifkan setelah %d pemeriksaan DNS harian gagal berturut-turut.", d.Hostname, d.TenantID, d.CheckFailures),
+		fmt.Sprintf("/internal/tenants/%d", d.TenantID))
+}
+
+// SetNotifier enables notifications for domains taken offline by the daily recheck (wired in main).
+func (s *domainService) SetNotifier(notif NotificationService, admins repository.AdminUserRepository, staff StaffLister) {
+	s.notif = notif
+	s.admins = admins
+	s.staff = staff
+}
+
+// notifyDomain notifies the travel's active admins (recipient "admin") or every active staff member
+// ("staff") about a domain of tenantID.
+func (s *domainService) notifyDomain(ctx context.Context, tenantID uint64, recipient, title, body, link string) {
+	if s.notif == nil {
+		return
+	}
+	tID := tenantID
+	switch recipient {
+	case "admin":
+		if s.admins == nil {
+			return
+		}
+		admins, err := s.admins.ListByTenant(ctx, tenantID)
+		if err != nil {
+			log.Printf("[Domain] cannot list admins of tenant %d: %v", tenantID, err)
+			return
+		}
+		for _, a := range admins {
+			if a.Status != "active" {
+				continue
+			}
+			if _, err := s.notif.CreateNotification(ctx, &tID, "admin", a.ID, "domain_deactivated", title, body, link); err != nil {
+				log.Printf("[Domain] cannot notify admin %d: %v", a.ID, err)
+			}
+		}
+	case "staff":
+		if s.staff == nil {
+			return
+		}
+		staff, err := s.staff.ListStaffUsers(ctx)
+		if err != nil {
+			log.Printf("[Domain] cannot list staff: %v", err)
+			return
+		}
+		for _, u := range staff {
+			if u.Status != "active" {
+				continue
+			}
+			if _, err := s.notif.CreateNotification(ctx, &tID, "staff", u.ID, "domain_deactivated", title, body, link); err != nil {
+				log.Printf("[Domain] cannot notify staff %d: %v", u.ID, err)
+			}
+		}
+	}
 }
 
 func (s *domainService) DeleteDomain(ctx context.Context, tenantID uint64, domainID uint64) error {

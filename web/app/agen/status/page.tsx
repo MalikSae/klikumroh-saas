@@ -331,9 +331,13 @@ export default function AgenStatusPage() {
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
-      const json = await res.json();
+      // A busy image server (503) or a gateway error may not be JSON: show the server's message when there is one.
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setUploadError(json.error || 'Gagal mengunggah bukti transfer.');
+        setUploadError(
+          json.error ||
+            (res.status === 503 ? 'Server sedang sibuk memproses gambar. Coba lagi sebentar.' : 'Gagal mengunggah bukti transfer.')
+        );
         return;
       }
 

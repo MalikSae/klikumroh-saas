@@ -319,6 +319,7 @@ export const AdminCouponsView: React.FC = () => {
                   type="number"
                   min={1}
                   max={100}
+                  step="any"
                   required
                   value={formData.discount_percentage}
                   onChange={(e) => setFormData({ ...formData, discount_percentage: Number(e.target.value) })}

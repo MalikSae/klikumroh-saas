@@ -188,6 +188,7 @@ type AgentDashboardSummary struct {
 }
 
 type LeaderboardEntry struct {
+	// Rank: tied agents share a rank (1, 1, 3); 0 means no rank (no closed jamaah in the period).
 	Rank               int    `json:"rank"`
 	Name               string `json:"name"`
 	TotalJamaahClosing int    `json:"total_jamaah_closing"`
@@ -1069,6 +1070,7 @@ func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, curr
 		}
 	}
 
+	ranks := leaderboardRanks(stats)
 	entries := make([]LeaderboardEntry, 0, len(stats))
 	for i, stat := range stats {
 		name := agentNameMap[stat.AgentID]
@@ -1077,7 +1079,7 @@ func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, curr
 		}
 
 		entries = append(entries, LeaderboardEntry{
-			Rank:               i + 1,
+			Rank:               ranks[i],
 			Name:               name,
 			TotalJamaahClosing: stat.TotalJamaah,
 			IsMe:               stat.AgentID == currentAgentID,
@@ -1087,6 +1089,24 @@ func (s *agentService) GetLeaderboard(ctx context.Context, tenantID uint64, curr
 	}
 
 	return entries, nil
+}
+
+// leaderboardRanks gives each leaderboard row the same rank as the home tile (closingRank): agents with
+// the same total share a rank (1 + the number of agents with strictly more), and an agent without any
+// closed jamaah gets 0 (no rank). stats is ordered by total_jamaah DESC, so a shared rank is the position
+// of the first agent with that total.
+func leaderboardRanks(stats []repository.AgentClosingStat) []int {
+	ranks := make([]int, len(stats))
+	rank := 0
+	for i, st := range stats {
+		if i == 0 || st.TotalJamaah != stats[i-1].TotalJamaah {
+			rank = i + 1
+		}
+		if st.TotalJamaah > 0 {
+			ranks[i] = rank
+		}
+	}
+	return ranks
 }
 
 func formatPeriodLabel(startStr, endStr string) string {

@@ -78,6 +78,10 @@ func (h *PackageHandler) UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "packages", fmt.Sprintf("%d", packageID), fileName)
 
 	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

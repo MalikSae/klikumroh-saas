@@ -320,13 +320,14 @@ func (r *mysqlPaymentVerificationRepository) UpdateStatus(
 	return nil
 }
 
-// CancelPendingForTenant closes every invoice of the tenant still waiting for payment (status
-// 'cancelled'), e.g. when staff activate the subscription manually. Returns how many were cancelled.
-func (r *mysqlPaymentVerificationRepository) CancelPendingForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error) {
+// CancelOpenForTenant closes every invoice of the tenant still waiting for payment, and every rejected one
+// (which a new transfer proof could reopen), as status 'cancelled', e.g. when staff activate the
+// subscription manually. Returns how many were cancelled.
+func (r *mysqlPaymentVerificationRepository) CancelOpenForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error) {
 	res, err := r.db.ExecContext(ctx, `
 		UPDATE payment_verifications
 		SET status = 'cancelled', rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW(), updated_at = NOW()
-		WHERE tenant_id = ? AND status = 'pending'`, reason, staffUserID, tenantID)
+		WHERE tenant_id = ? AND status IN ('pending', 'rejected')`, reason, staffUserID, tenantID)
 	if err != nil {
 		return 0, err
 	}

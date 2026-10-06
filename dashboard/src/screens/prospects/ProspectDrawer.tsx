@@ -117,8 +117,9 @@ export const ProspectDrawer: React.FC<{
   const p = data?.prospect;
   const anonymized = !!p?.anonymized_at;
   const isClosing = p?.status === 'closing';
-  // A closing (or a cancelled closing) keeps commission history, so the prospect cannot be deleted.
-  const hasCommissionHistory = isClosing || data?.info_komisi?.type === 'dibatalkan';
+  // A closing, a cancelled closing or any prospect with ledger rows keeps commission history:
+  // it cannot be deleted (the server answers 409), only its personal data can be anonymized.
+  const hasCommissionHistory = isClosing || data?.info_komisi?.type === 'dibatalkan' || data?.info_komisi?.has_ledger === true;
   const statusLocked = isClosing || (anonymized && !isClosing);
   const pkg = data?.package ?? (p?.package_id ? packages.find((x) => x.id === p.package_id) : undefined);
   const commissionGap = !data?.agent ? null : !data.package ? 'Prospek ini belum punya paket' : !data.package.commission_amount || data.package.commission_amount <= 0 ? `Komisi paket ${data.package.name} belum diatur` : null;
@@ -256,10 +257,10 @@ export const ProspectDrawer: React.FC<{
                 <div className="ku-facts__v">{fmtRupiah(pkg.price * (p.jumlah_jamaah && p.jumlah_jamaah > 0 ? p.jumlah_jamaah : 1))}</div>
               </div>
             ) : null}
-            {komisi?.type === 'final' && (komisi.held_amount || komisi.released_amount) ? (
+            {komisi?.type === 'final' && (komisi.agent_held_amount || komisi.agent_released_amount) ? (
               <div>
                 <div className="ku-facts__k">Tertahan / siap cair</div>
-                <div className="ku-facts__v">{fmtRupiah(komisi.held_amount ?? 0)} / {fmtRupiah(komisi.released_amount ?? 0)}</div>
+                <div className="ku-facts__v">{fmtRupiah(komisi.agent_held_amount ?? 0)} / {fmtRupiah(komisi.agent_released_amount ?? 0)}</div>
               </div>
             ) : null}
           </section>
@@ -326,7 +327,7 @@ export const ProspectDrawer: React.FC<{
                   {h.old_status && (
                     <>
                       {PROSPECT_STATUS[h.old_status]?.label ?? h.old_status}{' '}
-                      <ArrowRight size={14} aria-label="menjadi" style={{ verticalAlign: 'middle' }} />{' '}
+                      <ArrowRight className="ku-icon--sm pr-history-arrow" aria-label="menjadi" />{' '}
                     </>
                   )}
                   {PROSPECT_STATUS[h.new_status]?.label ?? h.new_status}

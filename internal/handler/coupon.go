@@ -31,6 +31,19 @@ type CouponHandler struct {
 	// affiliatorCoupons decides whether a travel may use an affiliator coupon from the dashboard (only
 	// its own affiliator's, before its first approved payment). Without it, affiliator coupons are refused.
 	affiliatorCoupons AffiliatorCouponChecker
+	// validateLimiters cap GET /api/dashboard/coupons/validate per travel and per IP: its answers tell
+	// "not found" apart from a real code, so unlimited calls would let anyone (a self-signup travel can
+	// log in while pending) enumerate staff promo codes.
+	validateLimiters []func(http.Handler) http.Handler
+}
+
+// Coupon checks allowed per minute from the travel dashboard, per travel and per IP.
+const travelCouponValidatePerMinute = 20
+
+// TravelValidateLimiters returns the middlewares to mount on GET /api/dashboard/coupons/validate (after
+// AuthMiddleware, which sets the travel the per-travel limit keys on).
+func (h *CouponHandler) TravelValidateLimiters() []func(http.Handler) http.Handler {
+	return h.validateLimiters
 }
 
 // AffiliatorCouponChecker is implemented by the subscription service.
@@ -62,7 +75,13 @@ func (h *CouponHandler) SetAffiliatorCouponChecker(c AffiliatorCouponChecker) {
 
 // NewCouponHandler creates a new CouponHandler instance.
 func NewCouponHandler(couponService service.CouponService) *CouponHandler {
-	return &CouponHandler{couponService: couponService}
+	return &CouponHandler{
+		couponService: couponService,
+		validateLimiters: []func(http.Handler) http.Handler{
+			middleware.NewIPRateLimiter(travelCouponValidatePerMinute, time.Minute),
+			middleware.NewKeyedRateLimiter(travelCouponValidatePerMinute, time.Minute, middleware.TenantRateKey),
+		},
+	}
 }
 
 // ListStaff handles GET /api/staff/coupons.

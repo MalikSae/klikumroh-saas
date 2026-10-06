@@ -509,3 +509,25 @@ Lima agen baca-saja (regresi, backend prospek/komisi, backend langganan/affiliat
   - Tidak dikerjakan: habit "sumber" dihapus lalu ditandai lagi tetap terhitung (butuh skema riwayat)
 - [ ] Pendiri cek visual kelompok B & desain super admin: sidebar/tabel/modal super admin (font 13px, input 16px), tooltip Iklan di Laporan Kanal, blok Parameter URL di Iklan & pelacakan, halaman travel ditangguhkan, editor paket ganti paket, poster agen, kupon kedaluwarsa, peringkat agen, halaman daftar agen saat info gagal
 - [ ] Pendiri cek visual kelompok A: Pembayaran (tanpa tombol Setujui bila belum ada bukti, pesan 409), teks komisi di drawer prospek per kebijakan, catatan alasan, dialog sesi berganti, travel pending setelah ganti paket, notifikasi agen, form daftar agen (hint referral, pesan nomor)
+
+### Bug Hunt Putaran 4 (6 Oktober 2026)
+
+Agen baca-saja per area (regresi, backend prospek/komisi, backend langganan/keamanan, dashboard travel, super admin, web). Tidak ada HIGH, tidak ada regresi berat dari putaran 3, isolasi tenant bersih. Temuan: 15 MEDIUM, sekitar 55 LOW.
+
+- [x] Kelompok A, 6 Okt 2026 (empat agen paralel + verifikasi menyeluruh):
+  - Invoice ditolak dicek ulang terhadap aturan hari ini sebelum dibuka lagi (paket, harga, kupon, kode unik, paket tidak diedit sejak ditolak); bila tidak berlaku 409 "Tagihan ini sudah tidak berlaku..."; aktivasi manual staf juga membatalkan invoice ditolak
+  - Batas percobaan cek kupon dashboard (20/menit per travel & IP) dan ubah kupon affiliator (10/menit per affiliator & IP)
+  - Maksimal 2 gambar diproses bersamaan (503 bila sibuk); ukuran hasil decode dibatasi 256 MB (gambar 16-bit dihitung dua kali)
+  - Form minat publik mengabaikan `agent_id` (atribusi hanya lewat kode referral)
+  - Keputusan pendiri: target "Agen baru direkrut" menghitung agen yang didaftarkan di periode itu dan sudah disetujui
+  - Keputusan pendiri: KPI Konversi = prospek yang masuk 30 hari terakhir dan sekarang Closing (`conversion_cohort`), maksimal 100%; perbandingan periode sebelumnya di kartu Konversi dihapus
+  - Executive Cockpit hanya menghitung invoice yang bisa diverifikasi (ada bukti atau total 0)
+  - Drawer prospek memakai komisi agen saja (tanpa override upline); prospek dengan riwayat komisi (`has_ledger`) menawarkan Hapus data pribadi (UU PDP), bukan Hapus
+  - Detail jamaah portal agen tidak lagi menulis "lunas" bila belum; tombol Tarik saldo aktif saat travel ditangguhkan; `/ref/KODE` mempertahankan parameter iklan (fbclid, ad_id, utm)
+  - Aturan agen menolak nominal yang tidak jelas ("150rb", "150.000,-") alih-alih menyimpannya kosong; generator link iklan menjelaskan hanya iklan Meta dengan ad_id yang dihitung Iklan; form super admin tidak lagi diblokir validasi step browser
+  - Peringkat seri berbagi angka dan 0 bila belum closing, sama di beranda dan leaderboard; unggah ulang bukti agen hanya dari status ditolak
+  - Keputusan pendiri: signup tanpa aktivitas pembayaran apa pun dihapus otomatis setelah 30 hari (job harian; tidak menyentuh travel aktif/demo/yang punya agen, prospek, bukti, atau pernah dibuka staf)
+  - Keputusan pendiri: paket tersembunyi (`pricing_plans.is_public`, migrasi 000064); travel hanya melihat paket publik plus paket yang sedang dipakai; toggle "Tampil untuk travel" di super admin
+  - Keputusan pendiri: domain custom dicek ulang harian; gagal 3 hari berturut-turut dinonaktifkan dan travel + staf diberi notifikasi `domain_deactivated`; ask endpoint tidak berubah
+- [ ] Kelompok B (LOW, sekitar 55 item): menunggu permintaan pendiri
+- [ ] Pendiri cek visual kelompok A: kartu Konversi, menu drawer prospek (UU PDP), pesan Aturan agen, teks Iklan & pelacakan, toggle paket tersembunyi, panel komisi detail jamaah agen, tombol Tarik saldo, leaderboard dengan nilai seri, pesan checkout saat dibatasi

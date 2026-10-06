@@ -9,6 +9,7 @@ import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { CustomDropdown } from '../../../components/CustomDropdown';
 import { HabitBadge } from '../../../components/HabitBadge';
+import { hasRank, medalTier, myRankText, podiumEntries, podiumScreenOrder, rankCellText } from '../../../lib/leaderboardRank';
 import './Leaderboard.css';
 
 interface LeaderboardEntry {
@@ -31,8 +32,6 @@ type PeriodKey = (typeof PERIODS)[number]['key'];
 
 const PAGE_SIZE = 10;
 
-// Podium order on screen: 2nd left, 1st in the middle (tallest), 3rd right.
-const PODIUM_ORDER = [1, 0, 2];
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
 const initial = (name: string) => (name.trim()[0] || '?').toUpperCase();
 
@@ -135,8 +134,11 @@ export default function AgenLeaderboardPage() {
     return () => clearTimeout(t);
   }, [jumpPending, visibleCount]);
 
-  // Nobody closed in the period: every total is 0, so a ranking means nothing yet.
-  const allZero = leaderboard.length > 0 && leaderboard.every((e) => e.total_jamaah_closing === 0);
+  // Podium: first up to 3 agents that have a rank (ties keep their shared rank; rank 0 = no closing).
+  const podium = useMemo(() => podiumScreenOrder(podiumEntries(leaderboard)), [leaderboard]);
+  // Nobody closed in the period (no ranked agent), so a ranking means nothing yet.
+  const allZero = leaderboard.length > 0 && podium.length === 0;
+  const myIndex = myEntry ? leaderboard.indexOf(myEntry) : -1;
 
   return (
     <MobileContainer>
@@ -183,13 +185,13 @@ export default function AgenLeaderboardPage() {
                   type="button"
                   className="lb-hero"
                   onClick={jumpToMe}
-                  aria-label={`Peringkat Anda #${myEntry.rank} dari ${leaderboard.length} agen, ${myEntry.total_jamaah_closing} jamaah closing. Lihat di daftar`}
+                  aria-label={`Peringkat Anda ${myRankText(myEntry.rank)} dari ${leaderboard.length} agen, ${myEntry.total_jamaah_closing} jamaah closing. Lihat di daftar`}
                 >
                   <span className="lb-podium" aria-hidden="true">
-                    {PODIUM_ORDER.filter((i) => leaderboard[i]).map((i) => {
-                      const e = leaderboard[i];
+                    {podium.map(({ entry: e, place }) => {
+                      // Slot class follows the podium place (layout); the block shows the shared rank.
                       return (
-                        <span key={e.rank} className={`lb-podium__slot lb-podium__slot--${e.rank}${e.is_me ? ' lb-podium__slot--me' : ''}`}>
+                        <span key={place} className={`lb-podium__slot lb-podium__slot--${place}${e.is_me ? ' lb-podium__slot--me' : ''}`}>
                           {e.rank === 1 && <Crown size={22} className="lb-podium__crown" />}
                           <span className="lb-podium__avatar">
                             {e.photo_url ? (
@@ -208,7 +210,7 @@ export default function AgenLeaderboardPage() {
                   </span>
                   <span className="lb-hero__me">
                     <span>
-                      Peringkat Anda <strong>#{myEntry.rank}</strong> dari {leaderboard.length} agen
+                      Peringkat Anda <strong>{myRankText(myEntry.rank)}</strong> dari {leaderboard.length} agen
                     </span>
                     <span>
                       <strong>{myEntry.total_jamaah_closing}</strong> jamaah
@@ -216,7 +218,7 @@ export default function AgenLeaderboardPage() {
                   </span>
                 </button>
             {/* Only needed when your row is not on the first page of the list. */}
-                {myEntry.rank > PAGE_SIZE && (
+                {myIndex >= PAGE_SIZE && (
                   <button type="button" className="lb-link" onClick={jumpToMe}>
                     Lihat posisi saya di daftar
                   </button>
@@ -227,14 +229,21 @@ export default function AgenLeaderboardPage() {
             )}
 
             <ol className="lb-list">
-              {displayed.map((item) => (
+              {displayed.map((item, index) => {
+                // Ranks can repeat (ties) and the API sends no agent id: the list position is the stable key.
+                const medal = medalTier(item.rank);
+                return (
                 <li
-                  key={`${item.rank}-${item.name}`}
+                  key={index}
                   id={item.is_me ? 'lb-row-me' : undefined}
                   className={`lb-row${item.is_me ? ' lb-row--me' : ''}${item.is_me && flashMe ? ' lb-row--flash' : ''}`}
                 >
-                  <span className={`lb-row__rank${item.rank <= 3 ? ` lb-row__rank--${item.rank}` : ''}`}>
-                    {item.rank <= 3 ? <Medal size={20} aria-label={`Peringkat ${item.rank}`} /> : item.rank}
+                  <span className={`lb-row__rank${medal ? ` lb-row__rank--${medal}` : ''}`}>
+                    {medal ? (
+                      <Medal size={20} aria-label={`Peringkat ${medal}`} />
+                    ) : (
+                      <span aria-label={hasRank(item.rank) ? `Peringkat ${item.rank}` : 'Belum closing'}>{rankCellText(item.rank)}</span>
+                    )}
                   </span>
                   <span className="lb-row__name">
                     {item.name}
@@ -245,7 +254,8 @@ export default function AgenLeaderboardPage() {
                     <strong>{item.total_jamaah_closing}</strong> jamaah
                   </span>
                 </li>
-              ))}
+                );
+              })}
             </ol>
 
             {hasMore && (

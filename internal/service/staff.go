@@ -566,6 +566,11 @@ func (s *staffService) GetPlatformOverview(ctx context.Context) (*PlatformOvervi
 				if demoTenants[pv.TenantID] {
 					continue
 				}
+				// Only invoices staff can act on now, like the Payments "Perlu Verifikasi" tab: a transfer proof
+				// was uploaded, or nothing is owed. An invoice still waiting for the travel to pay is not a review.
+				if !InvoiceReviewable(&pv) {
+					continue
+				}
 				metrics.PendingVerificationsCount++
 				metrics.PendingVerificationsTotal += pv.FinalAmount
 			}
@@ -899,4 +904,13 @@ func pickPrimaryCustomDomain(domains []repository.Domain) *repository.Domain {
 		}
 	}
 	return alias
+}
+
+// InvoiceReviewable: a pending invoice staff can verify now (proof uploaded, or a final total of Rp 0 or
+// less, which needs no proof). Same rule as the super admin Payments "Perlu Verifikasi" tab.
+func InvoiceReviewable(pv *repository.PaymentVerification) bool {
+	if pv == nil {
+		return false
+	}
+	return pv.FinalAmount <= 0 || (pv.ProofURL != nil && strings.TrimSpace(*pv.ProofURL) != "")
 }

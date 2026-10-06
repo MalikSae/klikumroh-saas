@@ -1284,3 +1284,36 @@
     padding: 12px 10px;
   }
 }
+
+/* Plan catalog: plan name with the "Tersembunyi" badge, and the "Tampil untuk travel" checkbox in the plan form. */
+.sa-plan-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.sa-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.sa-check__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sa-text);
+  cursor: pointer;
+}
+
+.sa-check__label input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--sa-accent);
+  cursor: pointer;
+}

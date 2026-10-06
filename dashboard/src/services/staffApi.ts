@@ -38,6 +38,8 @@ export interface PricingPlan {
   name: string;
   period_months: number;
   price: number;
+  /** Shown to travels on the Langganan page. Missing on an older server: treated as public. */
+  is_public?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +48,7 @@ export interface PricingPlanInput {
   name: string;
   period_months: number;
   price: number;
+  is_public: boolean;
 }
 
 const STAFF_TOKEN_KEY = 'staff_token';

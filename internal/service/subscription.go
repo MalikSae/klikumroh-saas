@@ -26,6 +26,11 @@ var (
 	ErrAnotherInvoiceOpen      = errors.New("masih ada tagihan lain yang menunggu pembayaran; unggah bukti transfer pada tagihan tersebut")
 	// ErrVerificationChanged: the invoice plan/amount differ from what the staff member reviewed.
 	ErrVerificationChanged = errors.New("Tagihan sudah diubah oleh travel. Muat ulang lalu periksa lagi.")
+	// ErrPlanNotAvailable: the plan is hidden (pricing_plans.is_public = FALSE) and is not the travel's own plan.
+	ErrPlanNotAvailable = errors.New("Paket ini tidak tersedia.")
+	// ErrInvoiceNoLongerValid: a rejected invoice cannot be reopened because its plan, price or coupon no
+	// longer holds under today's rules (answered 409).
+	ErrInvoiceNoLongerValid = errors.New("Tagihan ini sudah tidak berlaku. Buat tagihan baru dari halaman Langganan.")
 )
 
 // TenantSubscriptionInfo encapsulates current subscription details and history.
@@ -221,6 +226,18 @@ func (s *subscriptionService) CreateRenewalRequest(
 			break
 		}
 	}
+	// A hidden plan is only for the travel already on it (renewal), or the plan staff put on its open invoice.
+	if plan.Hidden && (pending == nil || pending.PlanID != plan.ID) {
+		var current *uint64
+		if tenant, err := s.tenantRepo.GetByID(ctx, tenantID); err == nil && tenant != nil {
+			current = tenant.CurrentPlanID
+		} else if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+		if !PlanAvailableToTravel(plan, current) {
+			return nil, ErrPlanNotAvailable
+		}
+	}
 
 	var coupon *repository.Coupon
 	if couponCode != nil && strings.TrimSpace(*couponCode) != "" {
@@ -406,6 +423,9 @@ func (s *subscriptionService) UploadRenewalProof(
 				return "", ErrAnotherInvoiceOpen
 			}
 		}
+		if err := s.rejectedInvoiceStillValid(ctx, pv, history); err != nil {
+			return "", err
+		}
 	}
 
 	fileName := uuid.New().String() + ".webp"
@@ -438,6 +458,118 @@ func (s *subscriptionService) UploadRenewalProof(
 	s.notifyProofUploaded(ctx, pv)
 
 	return relPath, nil
+}
+
+// rejectedInvoiceStillValid decides whether a rejected invoice may be reopened by a new transfer proof.
+// The invoice keeps its old price, coupon and unique code, so it is only reopened when all of them still
+// hold under today's rules; otherwise ErrInvoiceNoLongerValid and the travel makes a new invoice:
+//   - the plan still exists, is still available to the travel (public, or its own current plan), its
+//     price equals the invoice amount, and it was not edited after the rejection (the period is read from
+//     the plan at approval and is not stored on the invoice, so any later edit could change what the
+//     invoice delivers);
+//   - the coupon, if any, is usable today: active (or a replaced code of a still-active affiliator, as at
+//     approval), not past its last day (WIB), uses left, valid for the
+//     plan, not already used by this travel, and an affiliator coupon only before the travel's first
+//     approved payment (same carry rule as a plan change on the open signup invoice);
+//   - the total does not collide with another open invoice (the unique code must identify one invoice).
+func (s *subscriptionService) rejectedInvoiceStillValid(ctx context.Context, pv *repository.PaymentVerification, history []repository.PaymentVerification) error {
+	plan, err := s.planRepo.GetByID(ctx, pv.PlanID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrInvoiceNoLongerValid
+		}
+		return err
+	}
+	if math.Round(plan.Price*100) != math.Round(pv.Amount*100) {
+		return ErrInvoiceNoLongerValid
+	}
+	if pv.ReviewedAt != nil && plan.UpdatedAt.After(*pv.ReviewedAt) {
+		return ErrInvoiceNoLongerValid
+	}
+	if plan.Hidden {
+		var current *uint64
+		if tenant, err := s.tenantRepo.GetByID(ctx, pv.TenantID); err == nil && tenant != nil {
+			current = tenant.CurrentPlanID
+		} else if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return err
+		}
+		if !PlanAvailableToTravel(plan, current) {
+			return ErrInvoiceNoLongerValid
+		}
+	}
+
+	if pv.CouponCode != nil && strings.TrimSpace(*pv.CouponCode) != "" {
+		coupon, err := s.couponRepo.FindByCode(ctx, strings.TrimSpace(*pv.CouponCode))
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return ErrInvoiceNoLongerValid
+			}
+			return err
+		}
+		if coupon.Status != "active" {
+			// Same as approval: an affiliator that replaced its code still honors the old one while the
+			// affiliator itself is active; a platform coupon switched off by staff is not honored.
+			if coupon.AffiliatorID == nil || s.affiliators == nil {
+				return ErrInvoiceNoLongerValid
+			}
+			active, err := s.affiliators.IsAffiliatorActive(ctx, *coupon.AffiliatorID)
+			if err != nil {
+				return err
+			}
+			if !active {
+				return ErrInvoiceNoLongerValid
+			}
+		}
+		if coupon.ExpiresAt != nil && time.Now().After(couponEndOfDay(*coupon.ExpiresAt)) {
+			return ErrInvoiceNoLongerValid
+		}
+		if coupon.MaxUses != nil && coupon.UsedCount >= *coupon.MaxUses {
+			return ErrInvoiceNoLongerValid
+		}
+		if coupon.PlanID != nil && *coupon.PlanID != plan.ID {
+			return ErrInvoiceNoLongerValid
+		}
+		if coupon.AffiliatorID != nil {
+			allowed, err := s.affiliatorCouponCarryAllowed(ctx, pv.TenantID, coupon, history)
+			if err != nil {
+				return err
+			}
+			if !allowed {
+				return ErrInvoiceNoLongerValid
+			}
+		}
+		if err := s.couponUsedByTenant(ctx, pv.TenantID, coupon, history, pv.ID, true); err != nil {
+			if errors.Is(err, ErrCouponUsedByTenant) {
+				return ErrInvoiceNoLongerValid
+			}
+			return err
+		}
+		// The discount must be the coupon's current one: the invoice amount is not repriced on reopen.
+		expected := math.Round(plan.Price - (coupon.DiscountPercentage/100.0)*plan.Price)
+		if expected < 0 {
+			expected = 0
+		}
+		if math.Round((pv.FinalAmount-float64(pv.UniqueCode))*100) != math.Round(expected*100) {
+			return ErrInvoiceNoLongerValid
+		}
+	} else if math.Round((pv.FinalAmount-float64(pv.UniqueCode))*100) != math.Round(plan.Price*100) {
+		return ErrInvoiceNoLongerValid
+	}
+
+	if pv.FinalAmount > 0 {
+		if lister, ok := s.pvRepo.(pendingAmountLister); ok {
+			taken, err := lister.PendingFinalAmounts(ctx, pv.FinalAmount, pv.FinalAmount, pv.ID)
+			if err != nil {
+				return err
+			}
+			for _, v := range taken {
+				if math.Round(v*100) == math.Round(pv.FinalAmount*100) {
+					return ErrInvoiceNoLongerValid
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (s *subscriptionService) ListStaffVerifications(ctx context.Context, statusFilter string, tenantID ...uint64) ([]repository.PaymentVerification, error) {
@@ -701,15 +833,15 @@ func (s *subscriptionService) seedStarterContent(ctx context.Context, tenantID u
 const ManualCancelReason = "Dibatalkan: langganan diaktifkan manual oleh tim KlikUmroh"
 
 type pendingInvoiceCanceller interface {
-	CancelPendingForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error)
+	CancelOpenForTenant(ctx context.Context, tenantID uint64, reason string, staffUserID uint64) (int64, error)
 }
 
 // HandleManualSubscriptionChange runs the side effects of a payment approval when staff activate or
-// extend a subscription by hand: open invoices are cancelled (the travel must not pay twice), a newly
+// extend a subscription by hand: open and rejected invoices are cancelled (the travel must not pay twice, nor reopen an old invoice), a newly
 // activated travel gets its starter content, and the travel's admins are notified.
 func (s *subscriptionService) HandleManualSubscriptionChange(ctx context.Context, tenantID uint64, wasPending bool, planName string, expiresAt time.Time, staffUserID uint64) {
 	if c, ok := s.pvRepo.(pendingInvoiceCanceller); ok {
-		if n, err := c.CancelPendingForTenant(ctx, tenantID, ManualCancelReason, staffUserID); err != nil {
+		if n, err := c.CancelOpenForTenant(ctx, tenantID, ManualCancelReason, staffUserID); err != nil {
 			log.Printf("[Subscription] tenant %d: cannot cancel open invoices after manual change: %v", tenantID, err)
 		} else if n > 0 {
 			log.Printf("[Subscription] tenant %d: %d open invoice(s) cancelled after manual change", tenantID, n)

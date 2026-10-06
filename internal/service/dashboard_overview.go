@@ -119,6 +119,8 @@ type DashboardOverviewResponse struct {
 	// KPIDaily: 60 consecutive days, oldest first (current 30 days vs the 30 before, and sparklines).
 	KPIDaily        []KPIDayDTO        `json:"kpi_daily"`
 	PendingPipeline PendingPipelineDTO `json:"pending_pipeline"`
+	// ConversionCohort: prospects created in the last 30 days and how many of them are Closing now.
+	ConversionCohort repository.ConversionCohort `json:"conversion_cohort"`
 }
 
 // DashboardOverviewService provides business logic for the admin overview.
@@ -357,5 +359,6 @@ func (s *dashboardOverviewService) GetOverview(ctx context.Context, tenantID uin
 		ProspectTrends:     prospectTrends,
 		PendingPipeline:    pendingPipeline,
 		KPIDaily:           kpiDaily,
+		ConversionCohort:   raw.ConversionCohort,
 	}, nil
 }

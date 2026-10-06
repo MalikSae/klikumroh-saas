@@ -6,11 +6,36 @@ import (
 	"time"
 )
 
+// ConversionCohortWindowDays is the window of the "Konversi" KPI: the last 30 WIB days including today,
+// the same window as the dashboard's current-period KPIs (kpi_daily, last 30 entries).
+const ConversionCohortWindowDays = 30
+
+// ConversionCohort is the "Konversi" KPI as a cohort (founder decision 6 Oct 2026): Prospects counts
+// the prospects that came in (created_at) during the window, Closings counts how many of THOSE are in
+// status 'closing' now. Closings can never exceed Prospects, so the rate stays at or below 100%.
+type ConversionCohort struct {
+	Prospects  int `json:"prospects"`
+	Closings   int `json:"closings"`
+	WindowDays int `json:"window_days"`
+}
+
+// queryConversionCohort computes the cohort for one tenant over the last windowDays days (WIB, the
+// session time_zone), today included. Shared by the dashboard overview and the prospects summary.
+func queryConversionCohort(ctx context.Context, db *sql.DB, tenantID uint64, windowDays int) (ConversionCohort, error) {
+	c := ConversionCohort{WindowDays: windowDays}
+	err := db.QueryRowContext(ctx, `
+		SELECT COUNT(*), COALESCE(SUM(status = 'closing'), 0)
+		FROM prospects
+		WHERE tenant_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
+		tenantID, windowDays-1).Scan(&c.Prospects, &c.Closings)
+	return c, err
+}
+
 // UrgentAlertsData holds metrics for urgent actions in the overview.
 type UrgentAlertsData struct {
 	UncontactedProspectsCount int     `json:"uncontacted_prospects_count"`
-	PendingPayoutsCount        int     `json:"pending_payouts_count"`
-	PendingPayoutsTotal        float64 `json:"pending_payouts_total"`
+	PendingPayoutsCount       int     `json:"pending_payouts_count"`
+	PendingPayoutsTotal       float64 `json:"pending_payouts_total"`
 }
 
 // OverviewKPIsData holds high-level lead-gen performance metrics.
@@ -129,6 +154,7 @@ type DashboardOverviewRawData struct {
 	ProspectTrends   []ProspectTrendRaw
 	PendingPipeline  PendingPipelineRaw
 	KPIDaily         []KPIDayRaw
+	ConversionCohort ConversionCohort
 }
 
 // DashboardOverviewRepository defines data access for dashboard overview.
@@ -530,6 +556,12 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 	}
 	for _, v := range days {
 		data.KPIDaily = append(data.KPIDaily, *v)
+	}
+
+	// 12. Conversion cohort over the same 30-day window as the current-period KPIs.
+	data.ConversionCohort, err = queryConversionCohort(ctx, r.db, tenantID, ConversionCohortWindowDays)
+	if err != nil {
+		return nil, err
 	}
 
 	return data, nil

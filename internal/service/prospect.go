@@ -87,11 +87,13 @@ type AgentCreateProspectInput struct {
 // PublicProspectInput is the payload submitted by leads on the public web portal.
 // source_channel is decided server-side (referral agent / ad attribution); a client value is ignored.
 type PublicProspectInput struct {
-	Name          string               `json:"name"`
-	Phone         string               `json:"phone"`
-	Email         *string              `json:"email"`
-	PackageID     *uint64              `json:"package_id"`
-	AgentID       *uint64              `json:"agent_id"`
+	Name      string  `json:"name"`
+	Phone     string  `json:"phone"`
+	Email     *string `json:"email"`
+	PackageID *uint64 `json:"package_id"`
+	// There is deliberately no agent_id field: a public lead is attributed only through a valid referral
+	// code. A client-chosen agent id would let anyone attribute leads to any agent and harvest every
+	// agent's WhatsApp number from the redirect URL. An agent_id in the JSON body is ignored.
 	ReferralCode  *string              `json:"referral_code"`
 	JumlahJamaah  *int                 `json:"jumlah_jamaah"`
 	SourceChannel string               `json:"source_channel"`
@@ -153,6 +155,9 @@ type ProspectCommissionInfo struct {
 	// The owning agent's own share only (without the upline's override): what the agent sees.
 	AgentHeldAmount     float64 `json:"agent_held_amount"`
 	AgentReleasedAmount float64 `json:"agent_released_amount"`
+	// HasLedger: commission_ledger rows exist for this prospect (any status, reversed rows included).
+	// Such a prospect cannot be deleted, only anonymized (UU PDP).
+	HasLedger bool `json:"has_ledger"`
 }
 
 // CancelClosingResult tells the admin what happened to the commission of a cancelled closing.
@@ -468,17 +473,12 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 		}
 	}
 
-	// Referral agent (must be active and of this tenant)
+	// Referral agent (must be active and of this tenant). The referral code is the only attribution path.
 	var referralAgent *repository.Agent
 	if s.agentRepo != nil {
 		if input.ReferralCode != nil && strings.TrimSpace(*input.ReferralCode) != "" {
 			agent, err := s.agentRepo.GetByReferralCode(ctx, strings.TrimSpace(*input.ReferralCode))
 			if err == nil && agent != nil && agent.TenantID == tenantID && agent.Status == "active" {
-				referralAgent = agent
-			}
-		} else if input.AgentID != nil {
-			agent, err := s.agentRepo.GetByID(ctx, tenantID, *input.AgentID)
-			if err == nil && agent != nil && agent.Status == "active" {
 				referralAgent = agent
 			}
 		}
@@ -1297,9 +1297,20 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 			jamaah = *prospect.JumlahJamaah
 		}
 
-		if (prospect.Status == "closing" || prospect.Status == "tidak_lanjut") && s.commissionLedgerRepo != nil {
-			ledgers, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, id)
-			if err == nil && len(ledgers) > 0 {
+		// Ledger rows of any status. A prospect reopened after "batal setelah DP" is back in an open
+		// status but keeps its (reversed) rows: Delete refuses it, so has_ledger tells the dashboard to
+		// offer the UU PDP anonymization instead.
+		// (Delete still checks the ledger itself, so a failed read here only hides the hint.)
+		var ledgers []repository.CommissionLedger
+		if s.commissionLedgerRepo != nil {
+			if l, err := s.commissionLedgerRepo.ListByProspect(ctx, tenantID, id); err == nil {
+				ledgers = l
+			}
+		}
+		hasLedger := len(ledgers) > 0
+
+		if prospect.Status == "closing" || prospect.Status == "tidak_lanjut" {
+			if len(ledgers) > 0 {
 				var directTotal, overrideTotal, heldTotal, releasedTotal, agentHeld, agentReleased float64
 				for _, l := range ledgers {
 					if l.ReleasedAt == nil {
@@ -1345,6 +1356,7 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 					ReleasedAmount:      releasedTotal,
 					AgentHeldAmount:     agentHeld,
 					AgentReleasedAmount: agentReleased,
+					HasLedger:           true,
 				}
 			}
 		}
@@ -1371,6 +1383,7 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 				OverrideAmount: overridePotential,
 				TotalAmount:    directPotential + overridePotential,
 				RatePerJamaah:  rate,
+				HasLedger:      hasLedger,
 			}
 		}
 	}

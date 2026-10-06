@@ -164,6 +164,10 @@ func (h *ContentHandler) UploadBannerImage(w http.ResponseWriter, r *http.Reques
 
 	// Convert and save to WebP with max width 1600 and quality 82
 	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 82); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -744,6 +748,10 @@ func (h *ContentHandler) UploadTestimonialPhoto(w http.ResponseWriter, r *http.R
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "testimonials", fileName)
 
 	if err := util.ConvertAndSaveSquareWebP(fileBytes, absPath, 400, 82); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

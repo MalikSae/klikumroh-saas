@@ -58,7 +58,7 @@ func (h *PublicSignupHandler) RegisterPublicRoutes(r chi.Router) {
 
 // ListPricingPlans handles GET /api/public/pricing-plans.
 func (h *PublicSignupHandler) ListPricingPlans(w http.ResponseWriter, r *http.Request) {
-	plans, err := h.planService.List(r.Context())
+	plans, err := h.planService.ListForTravel(r.Context(), nil)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memuat daftar paket harga"})
 		return
@@ -176,6 +176,7 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 			errors.Is(err, service.ErrInvalidAdminWhatsApp) ||
 			errors.Is(err, service.ErrPasswordTooShort) ||
 			errors.Is(err, service.ErrPlanNotFound) ||
+			errors.Is(err, service.ErrPlanNotAvailable) ||
 			isCouponClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

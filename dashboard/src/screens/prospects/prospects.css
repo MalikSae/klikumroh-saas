@@ -36,3 +36,6 @@
   .pr-detail { gap: var(--ku-space-6); }
   .pr-note-form > .ku-btn { width: 100%; }
 }
+
+/* Status history: arrow between old and new status, aligned with the text. */
+.pr-history-arrow { vertical-align: middle; }

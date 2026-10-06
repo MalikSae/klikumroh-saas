@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildRefRedirectPath } from '../../../lib/refRedirect';
 
 export async function GET(
   request: NextRequest,
@@ -7,10 +8,9 @@ export async function GET(
   const { code } = await context.params;
   const proto = request.headers.get('x-forwarded-proto') || 'http';
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host;
-  // Optional landing page: only a package detail on this same site (?to=/paket/123), never another host.
-  const to = request.nextUrl.searchParams.get('to') || '';
-  const landing = /^\/paket\/\d+$/.test(to) ? to : '/';
-  const targetUrl = `${proto}://${host}${landing}?ref=${encodeURIComponent(code)}`;
+  // Landing is "/" or a package detail on this same host (?to=/paket/123); all other query
+  // parameters (utm_*, fbclid, ad_id, ...) are kept, `to` is consumed and `ref` is set once to the code.
+  const targetUrl = `${proto}://${host}${buildRefRedirectPath(code, request.nextUrl.searchParams)}`;
   const response = NextResponse.redirect(targetUrl);
   
   response.cookies.set('ref_code', code, {

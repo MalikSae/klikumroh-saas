@@ -237,6 +237,10 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		}
 		return nil, err
 	}
+	// A hidden plan (pricing_plans.is_public = FALSE) is never offered at signup.
+	if !PlanAvailableToTravel(plan, nil) {
+		return nil, ErrPlanNotAvailable
+	}
 
 	var couponCodePtr *string
 	baseAmount := plan.Price

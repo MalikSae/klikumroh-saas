@@ -618,11 +618,14 @@ func (r *mysqlAgentRepository) Reject(ctx context.Context, tenantID uint64, id u
 	return nil
 }
 
+// ResetToPendingWithProof reopens a REJECTED registration with a new payment proof. The status condition
+// sits in the UPDATE, so an agent approved (or otherwise changed) after the caller's read is never pushed
+// back to pending: that returns ErrStatusConflict; an agent of another tenant / unknown id ErrNotFound.
 func (r *mysqlAgentRepository) ResetToPendingWithProof(ctx context.Context, tenantID uint64, id uint64, proofURL string) error {
 	query := `
 		UPDATE agents
 		SET status = 'pending', payment_status = 'pending_verification', payment_proof_url = ?, rejection_reason = NULL, updated_at = NOW()
-		WHERE id = ? AND tenant_id = ?
+		WHERE id = ? AND tenant_id = ? AND status = 'rejected'
 	`
 	res, err := r.db.ExecContext(ctx, query, proofURL, id, tenantID)
 	if err != nil {
@@ -632,10 +635,18 @@ func (r *mysqlAgentRepository) ResetToPendingWithProof(ctx context.Context, tena
 	if err != nil {
 		return err
 	}
-	if rowsAffected == 0 {
+	if rowsAffected > 0 {
+		return nil
+	}
+	var status string
+	err = r.db.QueryRowContext(ctx, `SELECT status FROM agents WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	return ErrStatusConflict
 }
 
 func (r *mysqlAgentRepository) UpdateStatus(ctx context.Context, tenantID uint64, id uint64, status string) error {

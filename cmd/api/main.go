@@ -164,8 +164,19 @@ func main() {
 	// Unused banner images (form cancelled, image replaced before saving) are removed after a day.
 	service.StartBannerFileSweep(context.Background(), contentService, filepath.Join(".", "uploads"), 6*time.Hour)
 
+	// Self-signup travels still pending 30 days after signup with no payment activity at all are removed
+	// daily, freeing their slug, admin email and WhatsApp number (keputusan pendiri 6 Okt 2026).
+	service.StartUnpaidSignupCleanup(context.Background(), repository.NewUnpaidSignupRepository(db), filepath.Join(".", "uploads"), 24*time.Hour)
+
 	// Daily DNS recheck of active custom domains: a domain whose CNAME keeps failing stops receiving the
-	// subdomain redirect (the site stays reachable on its subdomain) until DNS is fixed.
+	// subdomain redirect (the site stays reachable on its subdomain); after MaxDomainCheckFailures failed
+	// daily checks in a row it is set to failed (no longer served, no new certificate) and the travel's
+	// admins and staff are notified (keputusan pendiri 6 Okt 2026).
+	if dn, ok := domainService.(interface {
+		SetNotifier(service.NotificationService, repository.AdminUserRepository, service.StaffLister)
+	}); ok {
+		dn.SetNotifier(notifService, adminUserRepo, staffRepo)
+	}
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
@@ -337,7 +348,7 @@ func main() {
 		// Subscription & Renewal Routes
 		protected.Get("/api/dashboard/subscription", subscriptionHandler.GetSubscription)
 		protected.Get("/api/dashboard/pricing-plans", subscriptionHandler.GetPricingPlans)
-		protected.Get("/api/dashboard/coupons/validate", couponHandler.ValidateTravel)
+		protected.With(couponHandler.TravelValidateLimiters()...).Get("/api/dashboard/coupons/validate", couponHandler.ValidateTravel)
 		protected.Post("/api/dashboard/subscription/renewal-request", subscriptionHandler.CreateRenewalRequest)
 		protected.Get("/api/dashboard/subscription/payment-verifications/{id}", subscriptionHandler.GetPaymentVerification)
 		protected.Post("/api/dashboard/subscription/payment-verifications/{id}/proof", subscriptionHandler.UploadRenewalProof)

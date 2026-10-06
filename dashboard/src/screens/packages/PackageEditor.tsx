@@ -155,19 +155,22 @@ export const PackageEditor: React.FC = () => {
       if (isNew) {
         const created = await createPackage(body);
         let failed = 0;
+        // The server reason of the last failure (e.g. 503 "Server sedang memproses gambar lain") is shown with the count.
+        let failReason = '';
         for (const [i, file] of pending.entries()) {
           setProgress(`Mengunggah foto ${i + 1} dari ${pending.length}...`);
           try {
             await uploadPackagePhoto(created.id, file);
-          } catch {
+          } catch (e) {
             failed++;
+            failReason = errorText(e, '');
           }
         }
         navigate(`/packages/${created.id}`, {
           replace: true,
           state: {
             notice: status === 'published' ? 'Paket dibuat dan tayang di website.' : 'Paket disimpan sebagai draf.',
-            photoError: failed ? `${failed} foto gagal diunggah. Tambahkan lagi di bagian Foto.` : undefined,
+            photoError: failed ? `${failed} foto gagal diunggah.${failReason ? ` ${failReason.replace(/\.?$/, '.')}` : ''} Tambahkan lagi di bagian Foto.` : undefined,
           },
         });
         return;

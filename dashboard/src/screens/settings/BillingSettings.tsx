@@ -49,6 +49,13 @@ function planState(sub: TenantSubscriptionInfo): { label: string; tone: PillTone
   return { label: sub.is_active ? 'Aktif' : 'Tidak aktif', tone: sub.is_active ? 'green' : 'gray', text: '' };
 }
 
+/** The first preferred plan that is in the list the server offers (public plans plus the travel's current
+ *  plan), else the first listed one. A plan staff hid since (e.g. the open invoice's) is never preselected. */
+const pickPlanId = (plans: SubscriptionPricingPlan[], ...preferred: Array<number | null | undefined>): number | null => {
+  for (const id of preferred) if (id && plans.some((p) => p.id === id)) return id;
+  return plans[0]?.id ?? null;
+};
+
 export const BillingSettings: React.FC = () => {
   const navigate = useNavigate();
   const frame = useFrame();
@@ -72,7 +79,7 @@ export const BillingSettings: React.FC = () => {
       .then(([s, p]) => {
         setSub(s);
         setPlans(p);
-        setPlanId(s.pending_verification?.plan_id ?? s.current_plan_id ?? p[0]?.id ?? null);
+        setPlanId(pickPlanId(p, s.pending_verification?.plan_id, s.current_plan_id));
         // Replacing the open invoice must keep its coupon: prefill it (validated when the picker opens).
         const openCoupon = s.pending_verification?.coupon_code?.trim();
         if (openCoupon) setCoupon(openCoupon.toUpperCase());
@@ -156,6 +163,17 @@ export const BillingSettings: React.FC = () => {
     } catch (e) {
       setError(errorText(e, 'Gagal membuat tagihan'));
       setCreating(false);
+      // 400 "Paket ini tidak tersedia.": staff hid the plan after this page loaded. Reload the list (it keeps
+      // the travel's current plan) so the hidden plan disappears and another one is preselected.
+      if (e instanceof Error && /tidak tersedia/i.test(e.message)) {
+        fetchPricingPlansForRenewal()
+          .then((p) => {
+            setPlans(p);
+            setPlanId(pickPlanId(p, sub?.current_plan_id));
+            setDiscount(null);
+          })
+          .catch(() => {});
+      }
     }
   };
 

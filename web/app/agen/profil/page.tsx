@@ -159,9 +159,13 @@ export default function AgenProfilPage() {
         body: formData,
       });
 
-      const json = await res.json();
+      // A busy image server (503) or a gateway error may not be JSON: show the server's message when there is one.
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json.error || 'Gagal mengunggah foto profil');
+        throw new Error(
+          json.error ||
+            (res.status === 503 ? 'Server sedang sibuk memproses gambar. Coba lagi sebentar.' : 'Gagal mengunggah foto profil')
+        );
       }
 
       const updated = json.agent || json.data?.agent || json;

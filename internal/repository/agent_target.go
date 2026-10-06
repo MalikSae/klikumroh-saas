@@ -324,17 +324,21 @@ const latestClosingInPeriod = `(
 	WHERE h.tenant_id = p.tenant_id AND h.prospect_id = p.id AND h.new_status = 'closing'
 ) < DATE_ADD(?, INTERVAL 1 DAY)`
 
+// recruitedInPeriod (for a downline agent aliased d, with two args: period start and end dates, WIB) is
+// the "Agen baru direkrut" (mitra_baru_count) rule, founder decision 6 Oct 2026: a downline counts when
+// it REGISTERED inside the period (agents.created_at, both dates inclusive; the session time_zone is
+// WIB) and was approved (status 'active'). Closings play no part: an old downline closing in the period
+// is not a recruit, and a new recruit without a closing is. Pending, rejected and inactive downlines
+// are not counted. CloseTargetPeriod and MarkRewardGiven go through these same queries.
+const recruitedInPeriod = `d.status = 'active' AND d.created_at >= ? AND d.created_at < DATE_ADD(?, INTERVAL 1 DAY)`
+
 func (r *mysqlAgentTargetRepository) GetAgentProgress(ctx context.Context, tenantID uint64, agentID uint64, metricType string, periodStart, periodEnd string) (int, error) {
 	if metricType == "mitra_baru_count" {
 		query := `
 			SELECT COUNT(DISTINCT d.id)
 			FROM agents d
 			WHERE d.tenant_id = ? AND d.parent_agent_id = ?
-			  AND EXISTS (
-			    SELECT 1 FROM prospects p
-			    WHERE p.tenant_id = d.tenant_id AND p.agent_id = d.id AND p.status = 'closing'
-			      AND ` + latestClosingInPeriod + `
-			  )
+			  AND ` + recruitedInPeriod + `
 		`
 		var count int
 		err := r.db.QueryRowContext(ctx, query, tenantID, agentID, periodStart, periodEnd).Scan(&count)
@@ -385,11 +389,7 @@ func (r *mysqlAgentTargetRepository) ListAgentProgress(ctx context.Context, tena
 			    FROM agents d
 			    WHERE d.tenant_id = ? 
 			      AND d.parent_agent_id IS NOT NULL
-			      AND EXISTS (
-			        SELECT 1 FROM prospects p
-			        WHERE p.tenant_id = d.tenant_id AND p.agent_id = d.id AND p.status = 'closing'
-			          AND ` + latestClosingInPeriod + `
-			      )
+			      AND ` + recruitedInPeriod + `
 			    GROUP BY d.parent_agent_id
 			) prog ON prog.parent_agent_id = a.id
 			LEFT JOIN agent_target_achievements ata ON ata.tenant_id = a.tenant_id AND ata.target_id = ? AND ata.agent_id = a.id

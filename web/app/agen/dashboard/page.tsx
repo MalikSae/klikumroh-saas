@@ -432,7 +432,8 @@ export default function AgenDashboardPage() {
   const rank = homeRank(summary.leaderboard_preview?.rank_saya, summary.funnel_ringkasan?.closing);
 
   const menu = [
-    { key: 'tarik', icon: <ArrowDownToLine size={22} aria-hidden="true" />, label: 'Tarik saldo', href: summary.travel_suspended ? undefined : '/agen/tarik-saldo' },
+    // Stays enabled while the travel is suspended: payout requests are still allowed then (see the notice above).
+    { key: 'tarik', icon: <ArrowDownToLine size={22} aria-hidden="true" />, label: 'Tarik saldo', href: '/agen/tarik-saldo' },
     { key: 'riwayat', icon: <History size={22} aria-hidden="true" />, label: 'Riwayat', href: '/agen/riwayat-komisi' },
     { key: 'salin', icon: copied ? <Check size={22} aria-hidden="true" /> : <Copy size={22} aria-hidden="true" />, label: copied ? 'Tersalin' : 'Salin link', onClick: handleCopyLink },
     { key: 'wa', icon: <Share2 size={22} aria-hidden="true" />, label: 'Bagikan', external: getWhatsAppShareUrl() },

@@ -7,6 +7,7 @@ import {
   downloadProspectsCSV,
   fetchCommissionReleasePolicy,
   fetchDashboardAgents,
+  cohortRate,
   fetchDashboardOverview,
   type DashboardOverviewData,
   fetchPackages,
@@ -225,12 +226,14 @@ export const ProspectsScreen: React.FC = () => {
     if (!overview) return null;
     const days = overview.kpi_daily ?? [];
     const prospects = compare(days, (d) => d.prospects);
-    const closings = compare(days, (d) => d.closings).cur;
+    // Cohort conversion: prospects created in the window and how many of them are Closing now.
+    // Missing on an older server: the value is hidden rather than mixing two groups (could exceed 100%).
+    const cohort = overview.conversion_cohort ?? null;
     return {
       prospects,
       jamaah: compare(days, (d) => d.closing_jamaah),
-      closings,
-      rate: prospects.cur ? (closings / prospects.cur) * 100 : 0,
+      cohort,
+      rate: cohortRate(cohort),
       pipeline: overview.pending_pipeline,
     };
   }, [overview]);
@@ -245,7 +248,7 @@ export const ProspectsScreen: React.FC = () => {
       <div className="ku-kpi-row">
         <KpiCard label="Prospek masuk" icon={<Users className="ku-icon" />} value={kpi ? fmtNumber(kpi.prospects.cur) : '—'} delta={kpi ? { ...delta(kpi.prospects.cur, kpi.prospects.prev), suffix: 'vs 30 hari sebelumnya' } : undefined} note="30 hari terakhir" />
         <KpiCard label="Jamaah closing" icon={<Handshake className="ku-icon" />} value={kpi ? fmtNumber(kpi.jamaah.cur) : '—'} delta={kpi ? { ...delta(kpi.jamaah.cur, kpi.jamaah.prev), suffix: 'vs 30 hari sebelumnya' } : undefined} note="30 hari terakhir" />
-        <KpiCard label="Konversi" icon={<Percent className="ku-icon" />} value={kpi ? fmtPercent(kpi.rate) : '—'} note={kpi ? `${fmtNumber(kpi.closings)} dari ${fmtNumber(kpi.prospects.cur)} prospek closing` : undefined} />
+        <KpiCard label="Konversi" icon={<Percent className="ku-icon" />} value={kpi && kpi.rate !== null ? fmtPercent(kpi.rate) : '—'} note={kpi?.cohort ? `${fmtNumber(kpi.cohort.closings)} dari ${fmtNumber(kpi.cohort.prospects)} prospek baru sudah closing` : undefined} />
         <KpiCard label="Potensi pipeline" icon={<Banknote className="ku-icon" />} value={kpi ? fmtRupiahShort(kpi.pipeline.total_value) : '—'} note={kpi ? `${fmtNumber(kpi.pipeline.total_prospects)} prospek berjalan · ${fmtNumber(kpi.pipeline.total_pax)} jamaah` : undefined} />
       </div>
       {summary && summary.stale_baru > 0 && status !== 'baru' && (

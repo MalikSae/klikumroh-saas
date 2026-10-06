@@ -259,7 +259,7 @@ export const AdminStaffView: React.FC = () => {
       key: 'role',
       label: 'Peran',
       render: (row) => (
-        <span className="sa-pill sa-pill--neutral" style={{ fontSize: '13px' }}>
+        <span className="sa-pill sa-pill--neutral">
           {row.role === 'owner' ? 'Pemilik' : 'Admin'}
         </span>
       ),

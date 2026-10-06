@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,33 @@ type ipRateLimiter struct {
 
 // NewIPRateLimiter creates an in-memory IP rate limiter middleware.
 func NewIPRateLimiter(maxReqs int, window time.Duration) func(http.Handler) http.Handler {
+	return NewKeyedRateLimiter(maxReqs, window, func(r *http.Request) (string, bool) {
+		return getClientIP(r), true
+	})
+}
+
+// TenantRateKey keys a limiter on the travel of the authenticated dashboard session (AuthMiddleware).
+func TenantRateKey(r *http.Request) (string, bool) {
+	id, ok := GetTenantID(r.Context())
+	if !ok {
+		return "", false
+	}
+	return "tenant:" + strconv.FormatUint(id, 10), true
+}
+
+// AffiliatorRateKey keys a limiter on the affiliator of the portal session (AffiliatorAuthMiddleware).
+func AffiliatorRateKey(r *http.Request) (string, bool) {
+	id, ok := GetAffiliatorID(r.Context())
+	if !ok {
+		return "", false
+	}
+	return "affiliator:" + strconv.FormatUint(id, 10), true
+}
+
+// NewKeyedRateLimiter is NewIPRateLimiter with a caller-chosen key (e.g. the tenant or affiliator of the
+// session), so an endpoint can be limited per account as well as per IP. A request for which key reports
+// false is not limited by this middleware.
+func NewKeyedRateLimiter(maxReqs int, window time.Duration, key func(r *http.Request) (string, bool)) func(http.Handler) http.Handler {
 	rl := &ipRateLimiter{
 		limits:  make(map[string][]time.Time),
 		maxReqs: maxReqs,
@@ -49,7 +77,11 @@ func NewIPRateLimiter(maxReqs int, window time.Duration) func(http.Handler) http
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip := getClientIP(r)
+			ip, ok := key(r)
+			if !ok {
+				next.ServeHTTP(w, r)
+				return
+			}
 			rl.mu.Lock()
 			now := time.Now()
 			timestamps := rl.limits[ip]

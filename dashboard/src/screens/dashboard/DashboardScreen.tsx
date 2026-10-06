@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Banknote, CalendarDays, Clock, Flame, Handshake, Inbox, Percent, Rocket, UserPlus, Users, Wallet } from 'lucide-react';
 import {
+  cohortRate,
   fetchDashboardAgents,
   fetchDashboardOverview,
   fetchProspectPage,
@@ -96,31 +97,18 @@ export const DashboardScreen: React.FC = () => {
   const kpi = useMemo(() => {
     const p = compare(days, (d) => d.prospects);
     const c = compare(days, (d) => d.closing_jamaah);
-    const cc = compare(days, (d) => d.closings);
-    const rate = p.cur ? (cc.cur / p.cur) * 100 : 0;
-    const prevRate = p.prev ? (cc.prev / p.prev) * 100 : 0;
-    const rateDiff = rate - prevRate;
     const v = compare(days, (d) => d.closing_value ?? 0);
     return {
       value: { value: v.cur, delta: delta(v.cur, v.prev), spark: weekly(days, (d) => d.closing_value ?? 0) },
-      closings: cc.cur,
-      prospectCount: p.cur,
       prospects: { value: p.cur, delta: delta(p.cur, p.prev), spark: weekly(days, (d) => d.prospects) },
       jamaah: { value: c.cur, delta: delta(c.cur, c.prev), spark: weekly(days, (d) => d.closing_jamaah) },
-      rate: {
-        value: rate,
-        delta: {
-          text: `${rateDiff > 0 ? '+' : ''}${rateDiff.toLocaleString('id-ID', { maximumFractionDigits: 1 })} poin`,
-          trend: (rateDiff > 0.05 ? 'up' : rateDiff < -0.05 ? 'down' : 'flat') as 'up' | 'down' | 'flat',
-        },
-        spark: [0, 1, 2, 3].map((w) => {
-          const wk = days.slice(-28).slice(w * 7, w * 7 + 7);
-          const pr = wk.reduce((a, d) => a + d.prospects, 0);
-          return pr ? (wk.reduce((a, d) => a + d.closings, 0) / pr) * 100 : 0;
-        }),
-      },
     };
   }, [days]);
+  // Conversion is a cohort figure: prospects created in the window and how many of them are Closing now.
+  // Dividing closings-by-date by new prospects mixed two groups and could exceed 100%, so there is no
+  // previous-period delta or sparkline for it. An older server without the cohort hides the value.
+  const cohort = data?.conversion_cohort ?? null;
+  const conversionRate = cohortRate(cohort);
 
   const notice = subscriptionNotice(frame?.subscription ?? null);
   const totalProspects = data?.kpis.total_prospects ?? 0;
@@ -253,8 +241,8 @@ export const DashboardScreen: React.FC = () => {
           <KpiCard
             label="Konversi"
             icon={<Percent className="ku-icon" />}
-            value={data ? fmtPercent(kpi.rate.value) : '—'}
-            note={data ? `${fmtNumber(kpi.closings)} dari ${fmtNumber(kpi.prospectCount)} prospek closing` : undefined} delta={data ? { ...kpi.rate.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.rate.spark : undefined} />
+            value={conversionRate !== null ? fmtPercent(conversionRate) : '—'}
+            note={cohort ? `${fmtNumber(cohort.closings)} dari ${fmtNumber(cohort.prospects)} prospek baru sudah closing` : undefined} />
           <KpiCard label="Estimasi omzet" icon={<Banknote className="ku-icon" />} value={data ? fmtRupiahShort(kpi.value.value) : '—'} note="Harga paket x jamaah closing" delta={data ? { ...kpi.value.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.value.spark : undefined} />
           <p className="db2-kpis__note">30 hari terakhir, dibanding 30 hari sebelumnya</p>
         </div>

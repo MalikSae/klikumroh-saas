@@ -23,7 +23,13 @@ type AffiliatorHandler struct {
 	loginFailures *middleware.LoginFailureLimiter
 	authLimiter   func(http.Handler) http.Handler
 	clickLimiter  func(http.Handler) http.Handler
+	// couponLimiters cap PUT /api/affiliator/coupon per affiliator and per IP: a taken code answers 409, so
+	// unlimited tries would let a self-registered affiliator enumerate platform promo codes.
+	couponLimiters []func(http.Handler) http.Handler
 }
+
+// Coupon code changes allowed per minute from the affiliator portal, per affiliator and per IP.
+const affiliatorCouponSetPerMinute = 10
 
 // NewAffiliatorHandler creates the affiliator handler.
 func NewAffiliatorHandler(svc service.AffiliatorService) *AffiliatorHandler {
@@ -32,6 +38,10 @@ func NewAffiliatorHandler(svc service.AffiliatorService) *AffiliatorHandler {
 		loginFailures: middleware.NewLoginFailureLimiter(5, 15*time.Minute),
 		authLimiter:   middleware.NewIPRateLimiter(20, time.Minute),
 		clickLimiter:  middleware.NewIPRateLimiter(60, time.Minute),
+		couponLimiters: []func(http.Handler) http.Handler{
+			middleware.NewIPRateLimiter(affiliatorCouponSetPerMinute, time.Minute),
+			middleware.NewKeyedRateLimiter(affiliatorCouponSetPerMinute, time.Minute, middleware.AffiliatorRateKey),
+		},
 	}
 }
 
@@ -47,7 +57,7 @@ func (h *AffiliatorHandler) RegisterPublicRoutes(r chi.Router) {
 // RegisterProtectedRoutes mounts the portal endpoints; the router must use AffiliatorAuthMiddleware.
 func (h *AffiliatorHandler) RegisterProtectedRoutes(r chi.Router) {
 	r.Get("/api/affiliator/me", h.Overview)
-	r.Put("/api/affiliator/coupon", h.SetCoupon)
+	r.With(h.couponLimiters...).Put("/api/affiliator/coupon", h.SetCoupon)
 	r.Put("/api/affiliator/bank", h.UpdateBank)
 	r.With(h.authLimiter).Put("/api/affiliator/password", h.ChangePassword)
 	r.Get("/api/affiliator/tenants", h.ListTenants)

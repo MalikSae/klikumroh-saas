@@ -23,6 +23,7 @@ import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSetting
 import { toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
 import { validateWhatsApp } from '@/lib/signupWhatsApp';
 import { discountedPrice } from '@/lib/checkoutPricing';
+import { slugCheckOutcome, couponErrorMessage } from '@/lib/checkoutChecks';
 import {
   dashboardUrl,
   openDashboard,
@@ -441,7 +442,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   // Form State
   const [travelName, setTravelName] = useState('');
   const [slug, setSlug] = useState('');
-  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable' | 'unknown'>('idle');
   const [slugReason, setSlugReason] = useState('');
   const slugDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -490,13 +491,11 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       const res = await fetch(
         `/api/public/check-slug?slug=${encodeURIComponent(candidate)}`
       );
-      const data = await res.json();
-      if (data.available) {
-        setSlugStatus('available');
-      } else {
-        setSlugStatus('unavailable');
-        setSlugReason(data.reason || 'Subdomain sudah digunakan');
-      }
+      // A 429 or gateway error may not be JSON; it is "could not check", never "already taken".
+      const data = await res.json().catch(() => null);
+      const outcome = slugCheckOutcome(res.status, data);
+      setSlugStatus(outcome.status);
+      setSlugReason(outcome.reason);
     } catch {
       setSlugStatus('idle');
     }
@@ -571,8 +570,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
           plan_id: selectedPlan.id,
         }),
       });
-      const data = await res.json();
-      if (res.ok && data.valid) {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.valid) {
         setCoupon({
           code: couponCode.trim().toUpperCase(),
           discount_percentage: data.discount_percentage,
@@ -581,8 +580,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         setCouponError(null);
       } else {
         setCoupon(null);
-        // The API returns the reason in `error` (e.g. "kode kupon tidak ditemukan").
-        setCouponError(data.error || data.message || 'Kupon tidak valid atau sudah kedaluwarsa');
+        // 429 gets the rate-limit text; otherwise the API's reason in `error` (e.g. "kode kupon tidak ditemukan").
+        setCouponError(couponErrorMessage(res.status, data));
       }
     } catch {
       setCoupon(null);
@@ -820,6 +819,9 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                     )}
                     {slugStatus === 'unavailable' && (
                       <span className={styles.statusUnavailable}>{slugReason}</span>
+                    )}
+                    {slugStatus === 'unknown' && (
+                      <span className={styles.statusChecking}>{slugReason}</span>
                     )}
                     {touched.slug && liveErrors.slug && slugStatus !== 'unavailable' && (
                       <span className={styles.errorText}>{liveErrors.slug}</span>

@@ -448,6 +448,10 @@ func (h *AgentHandler) UploadPaymentProof(w http.ResponseWriter, r *http.Request
 
 	if err := util.ConvertAndSaveWebP(fileBytes, tmpPath, 1600, 80); err != nil {
 		_ = os.Remove(tmpPath)
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -878,6 +882,10 @@ func (h *AgentHandler) UploadAgentPoster(w http.ResponseWriter, r *http.Request)
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "agent", "poster.webp")
 
 	if err := util.ConvertAndSaveSquareWebP(fileBytes, absPath, 1000, 85); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -1271,6 +1279,10 @@ func (h *AgentHandler) UploadProfilePhoto(w http.ResponseWriter, r *http.Request
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "agents", fmt.Sprintf("%d", agentID), "photo.webp")
 
 	if err := util.ConvertAndSaveWebP(fileBytes, absPath, 800, 80); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

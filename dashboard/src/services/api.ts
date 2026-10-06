@@ -115,7 +115,21 @@ export interface ProspectStatusSummary {
   awaiting_payoff_with_agent: number;
   /** Tidak Lanjut prospects per lost-reason category (uncategorised counted as "lainnya"). */
   lost_reasons?: Record<string, number>;
+  /** Cohort conversion: prospects created in the window and how many of them are now Closing (missing on older servers). */
+  conversion_cohort?: ConversionCohort;
 }
+
+export interface ConversionCohort {
+  prospects: number;
+  closings: number;
+  window_days: number;
+}
+
+/** Cohort conversion rate in percent, or null when the server did not send the cohort (the KPI is hidden then). */
+export const cohortRate = (c: ConversionCohort | null | undefined): number | null => {
+  if (!c) return null;
+  return c.prospects > 0 ? (c.closings / c.prospects) * 100 : 0;
+};
 
 export interface ProspectStatusHistoryItem {
   id: number;
@@ -149,6 +163,11 @@ export interface ProspectCommissionInfo {
   /** Final commission only: part still held (jamaah belum lunas) and part withdrawable. */
   held_amount?: number;
   released_amount?: number;
+  /** Agent-only held / withdrawable figures (held_amount also counts the upline override). */
+  agent_held_amount?: number;
+  agent_released_amount?: number;
+  /** True when ledger rows exist for this prospect (also outside Closing): it can only be anonymized, not deleted. */
+  has_ledger?: boolean;
 }
 
 export interface ProspectDetailResponse {
@@ -2168,6 +2187,8 @@ export interface DashboardOverviewData {
   pending_pipeline: PendingPipelineData;
   /** 60 consecutive days, oldest first: current 30 days vs the 30 before, and sparklines. */
   kpi_daily?: KPIDay[];
+  /** Cohort conversion (prospects created in the window, closings among them); missing on older servers. */
+  conversion_cohort?: ConversionCohort;
 }
 
 export interface KPIDay {

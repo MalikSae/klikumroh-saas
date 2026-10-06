@@ -24,7 +24,7 @@ const slug = (v: string) =>
     .slice(0, 60);
 
 const LINK_TIP =
-  'Link ini hanya membawa platform dan nama kampanye (utm_source, utm_campaign). Prospek baru dihitung sebagai Iklan, dan muncul di tabel Kampanye iklan, bila linknya juga membawa ad_id dari Meta. Meta mengisi ad_id otomatis lewat kolom URL parameters di setiap iklan; salin teksnya dari blok Parameter URL iklan Meta. Tanpa ad_id, prospek tercatat sebagai Website.';
+  'Link ini hanya membawa platform dan nama kampanye (utm_source, utm_campaign). Prospek dihitung sebagai Iklan, dan masuk tabel Kampanye iklan, hanya bila linknya juga membawa ad_id dari Meta. Meta mengisi ad_id otomatis lewat kolom URL parameters di setiap iklan; salin teksnya dari blok Parameter URL iklan Meta. Link dari Google, TikTok, YouTube, atau Meta tanpa ad_id tetap membawa UTM, tetapi prospeknya tercatat sebagai Website.';
 
 const LinkBuilder: React.FC = () => {
   const frame = useFrame();
@@ -62,7 +62,7 @@ const LinkBuilder: React.FC = () => {
       title="Link iklan"
       description={
         <>
-          Link ini mencatat nama kampanye (UTM). Agar prospek dihitung sebagai Iklan, iklannya juga perlu Parameter URL iklan Meta di bawah.{' '}
+          Hanya iklan Meta yang memakai Parameter URL iklan Meta (ad_id) di bawah yang dihitung sebagai Iklan. Platform lain tercatat sebagai Website.{' '}
           <Tooltip content={LINK_TIP} />
         </>
       }
@@ -85,7 +85,7 @@ const LinkBuilder: React.FC = () => {
             </Field>
             <Field label="Platform iklan">{(id) => <Select id={id} label="Platform iklan" value={source} onChange={setSource} options={SOURCES} />}</Field>
           </div>
-          <Field label="Nama kampanye" optional hint={campaign && slug(campaign) !== campaign ? `Ditulis sebagai "${slug(campaign)}".` : 'Contoh: promo-ramadhan. Nama ini muncul di tabel Kampanye iklan.'}>
+          <Field label="Nama kampanye" optional hint={campaign && slug(campaign) !== campaign ? `Ditulis sebagai "${slug(campaign)}".` : 'Contoh: promo-ramadhan.'}>
             {(id) => <input id={id} className="ku-input" value={campaign} onChange={(e) => setCampaign(e.target.value)} placeholder="promo-ramadhan" maxLength={80} />}
           </Field>
           <div className="ch-link">

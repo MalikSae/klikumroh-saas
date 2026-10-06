@@ -21,8 +21,12 @@ var (
 type PricingPlanService interface {
 	List(ctx context.Context) ([]repository.PricingPlan, error)
 	GetByID(ctx context.Context, id uint64) (*repository.PricingPlan, error)
-	Create(ctx context.Context, name string, periodMonths int, price float64) (*repository.PricingPlan, error)
-	Update(ctx context.Context, id uint64, name string, periodMonths int, price float64) (*repository.PricingPlan, error)
+	// ListForTravel lists the plans a travel may pick: public plans, plus its own current plan (hidden or
+	// not) so it can still renew it. currentPlanID is nil for a travel without a plan (public signup).
+	ListForTravel(ctx context.Context, currentPlanID *uint64) ([]repository.PricingPlan, error)
+	Create(ctx context.Context, name string, periodMonths int, price float64, isPublic bool) (*repository.PricingPlan, error)
+	// Update changes a plan; isPublic nil keeps the current visibility.
+	Update(ctx context.Context, id uint64, name string, periodMonths int, price float64, isPublic *bool) (*repository.PricingPlan, error)
 	Delete(ctx context.Context, id uint64) error
 }
 
@@ -54,7 +58,7 @@ func (s *pricingPlanService) GetByID(ctx context.Context, id uint64) (*repositor
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *pricingPlanService) Create(ctx context.Context, name string, periodMonths int, price float64) (*repository.PricingPlan, error) {
+func (s *pricingPlanService) Create(ctx context.Context, name string, periodMonths int, price float64, isPublic bool) (*repository.PricingPlan, error) {
 	trimmedName := strings.TrimSpace(name)
 	if trimmedName == "" {
 		return nil, ErrInvalidPlanName
@@ -70,6 +74,7 @@ func (s *pricingPlanService) Create(ctx context.Context, name string, periodMont
 		Name:         trimmedName,
 		PeriodMonths: periodMonths,
 		Price:        price,
+		Hidden:       !isPublic,
 	}
 
 	if err := s.repo.Create(ctx, plan); err != nil {
@@ -79,7 +84,7 @@ func (s *pricingPlanService) Create(ctx context.Context, name string, periodMont
 	return plan, nil
 }
 
-func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string, periodMonths int, price float64) (*repository.PricingPlan, error) {
+func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string, periodMonths int, price float64, isPublic *bool) (*repository.PricingPlan, error) {
 	trimmedName := strings.TrimSpace(name)
 	if trimmedName == "" {
 		return nil, ErrInvalidPlanName
@@ -92,30 +97,34 @@ func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string,
 	}
 
 	// Name and price may change at any time (an open invoice keeps its own amount), but the period is
-	// read from the plan at approval, so it is locked while invoices for this plan are pending.
-	if s.invoices != nil {
-		current, err := s.repo.GetByID(ctx, id)
+	// read from the plan at approval, so it is locked while invoices for this plan are pending. A rejected
+	// invoice is not counted: reopening it (UploadRenewalProof) refuses a plan changed after the rejection.
+	current, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if s.invoices != nil && current.PeriodMonths != periodMonths {
+		pending, err := s.invoices.ListAll(ctx, "pending")
 		if err != nil {
 			return nil, err
 		}
-		if current.PeriodMonths != periodMonths {
-			pending, err := s.invoices.ListAll(ctx, "pending")
-			if err != nil {
-				return nil, err
-			}
-			for i := range pending {
-				if pending[i].PlanID == id {
-					return nil, ErrPlanPeriodLocked
-				}
+		for i := range pending {
+			if pending[i].PlanID == id {
+				return nil, ErrPlanPeriodLocked
 			}
 		}
 	}
 
+	hidden := current.Hidden
+	if isPublic != nil {
+		hidden = !*isPublic
+	}
 	plan := &repository.PricingPlan{
 		ID:           id,
 		Name:         trimmedName,
 		PeriodMonths: periodMonths,
 		Price:        price,
+		Hidden:       hidden,
 	}
 
 	if err := s.repo.Update(ctx, plan); err != nil {
@@ -127,4 +136,28 @@ func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string,
 
 func (s *pricingPlanService) Delete(ctx context.Context, id uint64) error {
 	return s.repo.Delete(ctx, id)
+}
+
+// ListForTravel: public plans, plus the travel's own current plan when it is hidden.
+func (s *pricingPlanService) ListForTravel(ctx context.Context, currentPlanID *uint64) ([]repository.PricingPlan, error) {
+	all, err := s.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]repository.PricingPlan, 0, len(all))
+	for _, p := range all {
+		if PlanAvailableToTravel(&p, currentPlanID) {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
+// PlanAvailableToTravel: a travel may pick a public plan, or its own current plan (renewal) even when
+// that plan was hidden later (keputusan pendiri 6 Okt 2026).
+func PlanAvailableToTravel(plan *repository.PricingPlan, currentPlanID *uint64) bool {
+	if plan == nil {
+		return false
+	}
+	return !plan.Hidden || (currentPlanID != nil && *currentPlanID == plan.ID)
 }

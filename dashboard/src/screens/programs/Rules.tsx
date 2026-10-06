@@ -82,17 +82,22 @@ export const Rules: React.FC = () => {
   };
   const input = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(k, e.target.value as never);
 
-  const fee = num(form.fee) ?? 0;
+  const feeParsed = num(form.fee);
+  const fee = typeof feeParsed === 'number' ? feeParsed : 0;
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: typeof fieldErrors = {};
     const pct = pctNum(form.overridePct);
     if (form.overrideOn && (pct === null || pct <= 0 || pct > 100)) errs.overridePct = 'Isi persentase antara 0 dan 100.';
-    const minPayout = num(form.minPayout);
-    if (minPayout !== null && minPayout < 0) errs.minPayout = 'Tidak boleh negatif.';
-    const feeVal = num(form.fee);
-    if (feeVal !== null && feeVal < 0) errs.fee = 'Tidak boleh negatif.';
+    // Only digits with dot thousands separators are accepted; anything else blocks saving (never saved as empty).
+    const rupiahError = 'Isi angka saja, contoh 150000 atau 150.000. Kosongkan jika tidak ada.';
+    const minPayoutParsed = num(form.minPayout);
+    if (minPayoutParsed === 'invalid') errs.minPayout = rupiahError;
+    const feeValParsed = num(form.fee);
+    if (feeValParsed === 'invalid') errs.fee = rupiahError;
+    const minPayout = minPayoutParsed === 'invalid' ? null : minPayoutParsed;
+    const feeVal = feeValParsed === 'invalid' ? null : feeValParsed;
     if ((feeVal ?? 0) > 0) {
       if (!form.bankName.trim()) errs.bankName = 'Wajib diisi jika ada biaya pendaftaran.';
       if (!form.bankNumber.trim()) errs.bankNumber = 'Wajib diisi jika ada biaya pendaftaran.';

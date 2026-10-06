@@ -88,6 +88,9 @@ type ProspectStatusSummary struct {
 	AwaitingPayoffWithAgent int `json:"awaiting_payoff_with_agent"`
 	// LostReasons counts 'tidak_lanjut' prospects per reason category (see service.LostReasonCategories).
 	LostReasons map[string]int `json:"lost_reasons"`
+	// ConversionCohort: prospects created in the last 30 days and how many of them are Closing now
+	// (same contract and window as the dashboard overview's conversion_cohort).
+	ConversionCohort ConversionCohort `json:"conversion_cohort"`
 }
 
 // AgentProspectItem represents a prospect row in the agent jamaah list with package details.
@@ -555,6 +558,10 @@ func (r *mysqlProspectRepository) StatusSummary(ctx context.Context, tenantID ui
 		s.LostReasons[category] = n
 	}
 	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	s.ConversionCohort, err = queryConversionCohort(ctx, r.db, tenantID, ConversionCohortWindowDays)
+	if err != nil {
 		return nil, err
 	}
 	return &s, nil

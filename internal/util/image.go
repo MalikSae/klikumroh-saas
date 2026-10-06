@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"image/jpeg"
 	"image/png"
@@ -12,6 +13,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/skrashevich/go-webp"
@@ -24,18 +27,63 @@ var (
 	// ErrImageTooLarge: the image declares more pixels than the server will decode. Handlers answer 400
 	// with this message.
 	ErrImageTooLarge = errors.New("resolusi gambar terlalu besar (maksimal 12.000 piksel per sisi dan 40 megapiksel), perkecil gambar lalu unggah lagi")
+	// ErrImageTooHeavy: a high bit-depth image (16 bits per channel) whose decoded size would pass
+	// MaxDecodedImageBytes although its pixel count is within MaxImagePixels. Answered 400.
+	ErrImageTooHeavy = errors.New("gambar 16-bit ini terlalu besar untuk diproses, simpan ulang sebagai JPG atau PNG 8-bit lalu unggah lagi")
+	// ErrImageBusy: every decode slot stayed taken for imageDecodeWait. Handlers answer 503 with this message.
+	ErrImageBusy = errors.New("Server sedang memproses gambar lain, coba lagi sebentar.")
 )
 
 // Pixel limits checked from the image header before decoding. A small compressed file (e.g. a ~200 KB
 // PNG declaring 40000x40000) would otherwise decode into gigabytes of RAM and take the API down for
 // every tenant. 40 MP is far above any phone camera photo (~12-50 MP sensors are downscaled by apps).
+// MaxDecodedImageBytes also caps the decoded size: a 16-bit PNG decodes to 8 bytes per pixel, so 40 MP
+// of it would be ~320 MB from a file of a few KB.
 const (
-	MaxImageSide   = 12000
-	MaxImagePixels = 40_000_000
+	MaxImageSide         = 12000
+	MaxImagePixels       = 40_000_000
+	MaxDecodedImageBytes = 256 << 20
 )
 
+// Decode concurrency: at most maxConcurrentImageDecodes conversions hold a decoded image at a time
+// (each can use up to MaxDecodedImageBytes plus resize/encode buffers), so parallel uploads cannot push
+// the shared API out of memory. A request waits up to imageDecodeWait for a slot, then gets ErrImageBusy.
+const maxConcurrentImageDecodes = 2
+
+var (
+	imageDecodeSlots = make(chan struct{}, maxConcurrentImageDecodes)
+	imageDecodeWait  = 10 * time.Second
+)
+
+// acquireImageDecodeSlot takes a decode slot, waiting at most imageDecodeWait.
+func acquireImageDecodeSlot() (func(), error) {
+	select {
+	case imageDecodeSlots <- struct{}{}:
+	default:
+		timer := time.NewTimer(imageDecodeWait)
+		defer timer.Stop()
+		select {
+		case imageDecodeSlots <- struct{}{}:
+		case <-timer.C:
+			return nil, ErrImageBusy
+		}
+	}
+	var once sync.Once
+	return func() { once.Do(func() { <-imageDecodeSlots }) }, nil
+}
+
+// decodedBytesPerPixel is what one pixel costs in RAM once decoded. 16-bit-per-channel models use 8
+// bytes; everything else is counted as 4, since the pipeline converts to NRGBA/RGBA (4 bytes) anyway.
+func decodedBytesPerPixel(m color.Model) int64 {
+	switch m {
+	case color.RGBA64Model, color.NRGBA64Model:
+		return 8
+	}
+	return 4
+}
+
 // checkImageDimensions reads only the image header (image.DecodeConfig) and refuses images whose
-// declared size exceeds MaxImageSide or MaxImagePixels.
+// declared size exceeds MaxImageSide or MaxImagePixels, or whose decoded size exceeds MaxDecodedImageBytes.
 func checkImageDimensions(fileBytes []byte) error {
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(fileBytes))
 	if err != nil {
@@ -44,44 +92,60 @@ func checkImageDimensions(fileBytes []byte) error {
 	if cfg.Width <= 0 || cfg.Height <= 0 {
 		return ErrCorruptImage
 	}
-	if cfg.Width > MaxImageSide || cfg.Height > MaxImageSide ||
-		int64(cfg.Width)*int64(cfg.Height) > MaxImagePixels {
+	pixels := int64(cfg.Width) * int64(cfg.Height)
+	if cfg.Width > MaxImageSide || cfg.Height > MaxImageSide || pixels > MaxImagePixels {
 		return ErrImageTooLarge
+	}
+	if pixels*decodedBytesPerPixel(cfg.ColorModel) > MaxDecodedImageBytes {
+		return ErrImageTooHeavy
 	}
 	return nil
 }
 
 // decodeUpload validates the format (JPEG/PNG/WebP), checks the declared pixel size before allocating
-// anything, then decodes with EXIF auto-orientation.
-func decodeUpload(fileBytes []byte) (image.Image, error) {
+// anything, takes a decode slot, then decodes with EXIF auto-orientation. The caller must call release
+// once it no longer holds the decoded image (after encoding); release is nil when err is not.
+func decodeUpload(fileBytes []byte) (image.Image, func(), error) {
 	contentType := http.DetectContentType(fileBytes)
 	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		return nil, ErrInvalidImageFormat
+		return nil, nil, ErrInvalidImageFormat
 	}
 	if err := checkImageDimensions(fileBytes); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	release, err := acquireImageDecodeSlot()
+	if err != nil {
+		return nil, nil, err
 	}
 	img, err := imaging.Decode(bytes.NewReader(fileBytes), imaging.AutoOrientation(true))
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrCorruptImage, err)
+		release()
+		return nil, nil, fmt.Errorf("%w: %v", ErrCorruptImage, err)
 	}
-	return img, nil
+	return img, release, nil
 }
 
 // IsImageClientError reports whether an image conversion error is the uploader's fault (wrong format,
 // corrupt file, too many pixels) and should be answered 400 with err.Error().
 func IsImageClientError(err error) bool {
-	return errors.Is(err, ErrInvalidImageFormat) || errors.Is(err, ErrCorruptImage) || errors.Is(err, ErrImageTooLarge)
+	return errors.Is(err, ErrInvalidImageFormat) || errors.Is(err, ErrCorruptImage) || errors.Is(err, ErrImageTooLarge) ||
+		errors.Is(err, ErrImageTooHeavy)
+}
+
+// IsImageBusyError reports ErrImageBusy: answered 503 with err.Error() (the upload can be retried).
+func IsImageBusyError(err error) bool {
+	return errors.Is(err, ErrImageBusy)
 }
 
 // ConvertAndSaveWebP validates image format (JPEG/PNG/WebP), auto-orients,
 // resizes if wider than maxWidth (default 1600), converts to RGBA,
 // and encodes to WebP at destinationPath with the specified quality (default 80).
 func ConvertAndSaveWebP(fileBytes []byte, destinationPath string, maxWidth int, quality float32) error {
-	img, err := decodeUpload(fileBytes)
+	img, release, err := decodeUpload(fileBytes)
 	if err != nil {
 		return err
 	}
+	defer release()
 
 	if maxWidth <= 0 {
 		maxWidth = 1600
@@ -109,10 +173,11 @@ func ConvertAndSaveWebP(fileBytes []byte, destinationPath string, maxWidth int, 
 // crops/resizes into a 1:1 square of size x size (default 1000x1000) using center anchor,
 // converts to RGBA, and encodes to WebP at destinationPath.
 func ConvertAndSaveSquareWebP(fileBytes []byte, destinationPath string, size int, quality float32) error {
-	img, err := decodeUpload(fileBytes)
+	img, release, err := decodeUpload(fileBytes)
 	if err != nil {
 		return err
 	}
+	defer release()
 
 	if size <= 0 {
 		size = 1000
@@ -139,10 +204,11 @@ func ConvertAndSaveSquareWebP(fileBytes []byte, destinationPath string, size int
 // center-crops to a 1:1 square of size x size (default 256x256),
 // and encodes to PNG with BestCompression to serve as a crisp, lightweight favicon/icon.
 func ConvertAndSavePNGIcon(fileBytes []byte, destinationPath string, size int) error {
-	img, err := decodeUpload(fileBytes)
+	img, release, err := decodeUpload(fileBytes)
 	if err != nil {
 		return err
 	}
+	defer release()
 
 	if size <= 0 {
 		size = 256
@@ -167,10 +233,11 @@ func ConvertAndSavePNGIcon(fileBytes []byte, destinationPath string, size int) e
 // resizes proportionally if wider than maxWidth (default 600px),
 // and encodes to PNG with BestCompression to preserve crisp alpha transparency for headers.
 func ConvertAndSavePNGLogo(fileBytes []byte, destinationPath string, maxWidth int) error {
-	img, err := decodeUpload(fileBytes)
+	img, release, err := decodeUpload(fileBytes)
 	if err != nil {
 		return err
 	}
+	defer release()
 
 	if maxWidth <= 0 {
 		maxWidth = 600
@@ -200,10 +267,11 @@ const OGImageJPEGQuality = 85
 // resizes proportionally to fit within maxWidth x maxHeight (default 1200x630, standard 1.91:1 OG image),
 // flattens any transparency onto white, and encodes to JPEG for the WhatsApp & social share preview card.
 func ConvertAndSaveJPEGOGImage(fileBytes []byte, destinationPath string, maxWidth, maxHeight int) error {
-	img, err := decodeUpload(fileBytes)
+	img, release, err := decodeUpload(fileBytes)
 	if err != nil {
 		return err
 	}
+	defer release()
 
 	if maxWidth <= 0 {
 		maxWidth = 1200

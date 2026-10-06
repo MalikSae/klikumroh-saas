@@ -478,6 +478,10 @@ func (h *TenantHandler) UploadBrandIcon(w http.ResponseWriter, r *http.Request) 
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "branding", fileName)
 
 	if err := util.ConvertAndSavePNGIcon(fileBytes, absPath, 256); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -560,6 +564,10 @@ func (h *TenantHandler) UploadBrandLogo(w http.ResponseWriter, r *http.Request) 
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "branding", fileName)
 
 	if err := util.ConvertAndSavePNGLogo(fileBytes, absPath, 600); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -690,6 +698,10 @@ func (h *TenantHandler) UploadBrandOGImage(w http.ResponseWriter, r *http.Reques
 	absPath := filepath.Join(".", "uploads", fmt.Sprintf("%d", tenantID), "branding", fileName)
 
 	if err := util.ConvertAndSaveJPEGOGImage(fileBytes, absPath, 1200, 630); err != nil {
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
 		if util.IsImageClientError(err) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return

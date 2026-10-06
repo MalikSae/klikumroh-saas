@@ -55,13 +55,18 @@ func (h *SubscriptionHandler) GetSubscription(w http.ResponseWriter, r *http.Req
 
 // GetPricingPlans handles GET /api/dashboard/pricing-plans.
 func (h *SubscriptionHandler) GetPricingPlans(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetTenantID(r.Context())
+	tenantID, ok := middleware.GetTenantID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
 
-	plans, err := h.planService.List(r.Context())
+	// Public plans, plus the travel's own current plan when staff hid it (it can still renew it).
+	var currentPlanID *uint64
+	if info, err := h.subscriptionService.GetSubscriptionInfo(r.Context(), tenantID); err == nil && info != nil {
+		currentPlanID = info.CurrentPlanID
+	}
+	plans, err := h.planService.ListForTravel(r.Context(), currentPlanID)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memuat daftar paket langganan"})
 		return
@@ -125,6 +130,10 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 		absPath := util.PrivateUploadAbsPath(relPath)
 
 		if err := util.ConvertAndSaveWebP(fileBytes, absPath, 1600, 80); err != nil {
+			if util.IsImageBusyError(err) {
+				respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+				return
+			}
 			if util.IsImageClientError(err) {
 				respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 				return
@@ -143,7 +152,7 @@ func (h *SubscriptionHandler) CreateRenewalRequest(w http.ResponseWriter, r *htt
 			_ = os.Remove(savedProofAbsPath)
 		}
 		switch {
-		case errors.Is(err, service.ErrPlanNotFound), isCouponClientError(err):
+		case errors.Is(err, service.ErrPlanNotFound), errors.Is(err, service.ErrPlanNotAvailable), isCouponClientError(err):
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		case errors.Is(err, service.ErrVerificationNotPending), errors.Is(err, service.ErrVerificationAlreadyDone):
 			respondJSON(w, http.StatusConflict, map[string]string{"error": "Tagihan sudah diproses tim KlikUmroh. Muat ulang halaman lalu periksa lagi."})
@@ -234,8 +243,12 @@ func (h *SubscriptionHandler) UploadRenewalProof(w http.ResponseWriter, r *http.
 			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Data tagihan tidak ditemukan"})
 			return
 		}
-		if errors.Is(err, service.ErrAnotherInvoiceOpen) {
+		if errors.Is(err, service.ErrAnotherInvoiceOpen) || errors.Is(err, service.ErrInvoiceNoLongerValid) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+		if util.IsImageBusyError(err) {
+			respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, service.ErrVerificationNotPending) ||

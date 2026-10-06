@@ -10,6 +10,7 @@ import {
   type PricingPlan,
   type PricingPlanInput,
 } from '../../../services/staffApi';
+import { Tooltip } from '../shared/Tooltip';
 
 export const AdminPlansView: React.FC = () => {
   const [plans, setPlans] = useState<PricingPlan[]>([]);
@@ -24,6 +25,7 @@ export const AdminPlansView: React.FC = () => {
     name: '',
     period_months: 1,
     price: 0,
+    is_public: true,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,7 +56,7 @@ export const AdminPlansView: React.FC = () => {
 
   const handleOpenCreate = () => {
     setEditingPlan(null);
-    setFormData({ name: '', period_months: 1, price: 0 });
+    setFormData({ name: '', period_months: 1, price: 0, is_public: true });
     setShowModal(true);
   };
 
@@ -64,6 +66,7 @@ export const AdminPlansView: React.FC = () => {
       name: plan.name,
       period_months: plan.period_months,
       price: plan.price,
+      is_public: plan.is_public !== false,
     });
     setShowModal(true);
   };
@@ -123,8 +126,9 @@ export const AdminPlansView: React.FC = () => {
       key: 'name',
       label: 'Nama Paket',
       render: (row) => (
-        <span style={{ fontWeight: 600, color: 'var(--sa-text)' }}>
-          {row.name}
+        <span className="sa-plan-name">
+          <span style={{ fontWeight: 600, color: 'var(--sa-text)' }}>{row.name}</span>
+          {row.is_public === false && <span className="sa-badge sa-badge--neutral">Tersembunyi</span>}
         </span>
       ),
     },
@@ -335,14 +339,14 @@ export const AdminPlansView: React.FC = () => {
                 />
               </div>
 
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                   Harga Langganan (IDR):
                 </label>
                 <input
                   type="number"
                   min={0}
-                  step={1000}
+                  step="any"
                   required
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
@@ -356,6 +360,21 @@ export const AdminPlansView: React.FC = () => {
                     outline: 'none',
                     boxSizing: 'border-box',
                   }}
+                />
+              </div>
+
+              <div className="sa-check">
+                <label className="sa-check__label">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_public}
+                    onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
+                  />
+                  <span>Tampil untuk travel</span>
+                </label>
+                <Tooltip
+                  align="left"
+                  content="Paket tersembunyi tidak muncul di halaman Langganan travel dan tidak bisa dipilih travel. Travel yang sedang memakai paket ini tetap melihatnya dan bisa memperpanjang. Cocok untuk paket khusus satu travel (gratis, uji coba, harga khusus)."
                 />
               </div>
 

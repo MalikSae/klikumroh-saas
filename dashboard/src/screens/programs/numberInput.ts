@@ -1,9 +1,14 @@
-// Parsers for the commission & registration settings form (Aturan agen). Empty or invalid input → null.
+// Parsers for the commission & registration settings form (Aturan agen).
 
-// Rupiah amounts: dots are thousands separators ("100.000"), a comma is the decimal mark.
-export const parseRupiah = (v: string): number | null => {
-  const n = Number(v.replace(/\./g, '').replace(',', '.'));
-  return v.trim() === '' || Number.isNaN(n) ? null : n;
+// Rupiah amounts: plain digits ("150000") or dots as thousands separators in groups of three ("150.000"),
+// optionally with a comma decimal part of one or two digits ("150.000,50"). Empty input is null (not set).
+// Anything else ("150.000,-", "1,500,000", "150rb", "1.5", "-5") is 'invalid', so the form shows an error
+// instead of silently saving the field as empty.
+export const parseRupiah = (v: string): number | null | 'invalid' => {
+  const t = v.trim();
+  if (t === '') return null;
+  if (!/^(\d+|\d{1,3}(\.\d{3})+)(,\d{1,2})?$/.test(t)) return 'invalid';
+  return Number(t.replace(/\./g, '').replace(',', '.'));
 };
 
 // Percentages: "2.5" and "2,5" both mean two and a half. Stripping dots here (as parseRupiah does) would

@@ -318,7 +318,7 @@ export const AdminAffiliatorsView: React.FC = () => {
             <FormInput type="text" inputMode="decimal" label="Komisi perpanjangan (%)" value={settings.renewal_rate} onChange={num('renewal_rate')} tooltip="Persen dari setiap pembayaran perpanjangan berikutnya, selama travel terus berlangganan." />
             <FormInput type="text" inputMode="decimal" label="Diskon kupon affiliator (%)" value={settings.coupon_discount} onChange={num('coupon_discount')} tooltip="Sama untuk semua affiliator. Mengubahnya langsung berlaku untuk semua kupon affiliator yang aktif. Kupon affiliator hanya untuk pendaftaran travel baru." />
             <FormInput type="number" label="Masa tahan komisi (hari)" min={0} max={365} step={1} value={settings.hold_days} onChange={num('hold_days')} tooltip="Komisi baru bisa diajukan pencairan setelah sekian hari sejak pembayaran disetujui." />
-            <FormInput type="number" label="Minimal pencairan (Rp)" min={0} step={10000} value={settings.min_payout} onChange={num('min_payout')} />
+            <FormInput type="number" label="Minimal pencairan (Rp)" min={0} step={1} value={settings.min_payout} onChange={num('min_payout')} />
           </div>
           <p className="sa-aff-modal-text">Persen khusus per affiliator diatur di halaman detail affiliator.</p>
           <div className="sa-aff-settings__foot">

@@ -68,3 +68,23 @@ test('Email Validation - Invalid emails', () => {
   assert.ok(validateEmail('admin@travel.c')); // TLD too short
   assert.ok(validateEmail('admin travel@domain.com'));
 });
+
+// Round 4 L3: a rate-limited or failed live check is never read as "taken" / "invalid".
+import { slugCheckOutcome, couponErrorMessage, TOO_MANY_ATTEMPTS_MESSAGE } from '../lib/checkoutChecks.ts';
+
+test('slug check: 429 and server errors are "unknown", not "unavailable"', () => {
+  assert.deepEqual(slugCheckOutcome(429, { error: 'Terlalu banyak permintaan.' }), { status: 'unknown', reason: TOO_MANY_ATTEMPTS_MESSAGE });
+  assert.equal(slugCheckOutcome(500, { error: 'x' }).status, 'unknown');
+  assert.equal(slugCheckOutcome(502, null).status, 'unknown');
+  assert.equal(slugCheckOutcome(200, {}).status, 'unknown');
+  assert.deepEqual(slugCheckOutcome(200, { available: true }), { status: 'available', reason: '' });
+  assert.deepEqual(slugCheckOutcome(200, { available: false }), { status: 'unavailable', reason: 'Subdomain sudah digunakan' });
+  assert.deepEqual(slugCheckOutcome(200, { available: false, reason: 'Subdomain dicadangkan' }), { status: 'unavailable', reason: 'Subdomain dicadangkan' });
+});
+
+test('coupon check: 429 shows the rate-limit text, other errors keep the API reason', () => {
+  assert.equal(couponErrorMessage(429, { error: 'Terlalu banyak permintaan.' }), TOO_MANY_ATTEMPTS_MESSAGE);
+  assert.equal(couponErrorMessage(400, { error: 'kode kupon tidak ditemukan' }), 'kode kupon tidak ditemukan');
+  assert.equal(couponErrorMessage(200, { valid: false }), 'Kupon tidak valid atau sudah kedaluwarsa');
+  assert.equal(couponErrorMessage(502, null), 'Gagal memvalidasi kupon. Coba lagi.');
+});

@@ -18,12 +18,16 @@ type createPricingPlanRequest struct {
 	Name         string  `json:"name"`
 	PeriodMonths int     `json:"period_months"`
 	Price        float64 `json:"price"`
+	// IsPublic: omitted = true (offered to travels).
+	IsPublic *bool `json:"is_public"`
 }
 
 type updatePricingPlanRequest struct {
 	Name         string  `json:"name"`
 	PeriodMonths int     `json:"period_months"`
 	Price        float64 `json:"price"`
+	// IsPublic: omitted = keep the current visibility.
+	IsPublic *bool `json:"is_public"`
 }
 
 // PricingPlanHandler handles HTTP endpoints for managing subscription pricing plans.
@@ -83,7 +87,7 @@ func (h *PricingPlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plan, err := h.service.Create(r.Context(), req.Name, req.PeriodMonths, req.Price)
+	plan, err := h.service.Create(r.Context(), req.Name, req.PeriodMonths, req.Price, req.IsPublic == nil || *req.IsPublic)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal membuat plan harga baru"})
 		return
@@ -129,7 +133,7 @@ func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plan, err := h.service.Update(r.Context(), id, req.Name, req.PeriodMonths, req.Price)
+	plan, err := h.service.Update(r.Context(), id, req.Name, req.PeriodMonths, req.Price, req.IsPublic)
 	if err != nil {
 		if errors.Is(err, service.ErrPlanPeriodLocked) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": "Durasi paket tidak bisa diubah karena masih ada tagihan paket ini yang menunggu verifikasi. Setujui atau tolak tagihan tersebut dulu, atau buat paket baru. Nama dan harga tetap bisa diubah."})

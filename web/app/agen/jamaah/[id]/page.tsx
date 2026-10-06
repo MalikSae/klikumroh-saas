@@ -377,12 +377,26 @@ export default function AgenJamaahDetailPage() {
       ? [lostCategoryLabel, prospect.lost_reason?.trim() || ''].filter(Boolean).join(' · ')
       : '';
   const pax = prospect.jumlah_jamaah || 1;
-  // Commission state: potential (before closing), held (DP paid), withdrawable (paid off).
-  const komisiState = !isClosing
-    ? { text: 'Potensi', tone: 'muted' }
-    : prospect.paid_off_at || (info_komisi?.held_amount || 0) <= 0
-    ? { text: 'Siap ditarik', tone: 'ok' }
-    : { text: 'Tertahan', tone: 'wait' };
+  // Commission state. Before closing: potential. After closing: held until lunas, withdrawable
+  // (paid off, or released at DP under the travel's "cair saat DP" policy while not yet lunas),
+  // or none booked (closing without commission ledger rows). "Lunas" only when paid_off_at is set.
+  const heldAmount = info_komisi?.held_amount || 0;
+  const releasedAmount = info_komisi?.released_amount || 0;
+  const komisiState: { text: string; tone: 'muted' | 'ok' | 'wait'; note: string } = !isClosing
+    ? { text: 'Potensi', tone: 'muted', note: 'Komisi tercatat saat jamaah membayar DP (closing).' }
+    : heldAmount > 0
+    ? { text: 'Tertahan', tone: 'wait', note: 'Jamaah sudah membayar DP. Komisi bisa ditarik setelah admin menandai jamaah lunas.' }
+    : releasedAmount <= 0
+    ? { text: 'Tidak ada komisi', tone: 'muted', note: 'Tidak ada komisi yang tercatat untuk jamaah ini.' }
+    : prospect.paid_off_at
+    ? { text: 'Siap ditarik', tone: 'ok', note: 'Jamaah sudah lunas. Komisi ini sudah bisa Anda tarik.' }
+    : {
+        text: 'Siap ditarik',
+        tone: 'ok',
+        note: 'Komisi sudah bisa ditarik (travel mencairkan komisi saat DP). Jamaah belum ditandai lunas.',
+      };
+  // A closing with no commission rows (info_komisi null) still gets the panel, with the neutral note.
+  const showKomisi = info_komisi ? info_komisi.type !== 'dibatalkan' : isClosing;
 
   return (
     <MobileContainer>
@@ -423,26 +437,20 @@ export default function AgenJamaahDetailPage() {
         </section>
 
         {/* Commission for this jamaah. */}
-        {info_komisi && info_komisi.type !== 'dibatalkan' && (
+        {showKomisi && (
           <section className="jd-panel" aria-labelledby="jd-komisi">
             <div className="jd-panel__head">
               <h2 id="jd-komisi" className="jd-panel__title">Komisi</h2>
               <span className={`jd-tag jd-tag--${komisiState.tone}`}>{komisiState.text}</span>
             </div>
             {/* Amount, then the per-jamaah breakdown on its own line (it wrapped awkwardly next to the 22px amount). */}
-            <p className="jd-amount">{formatRupiah(info_komisi.total_amount)}</p>
-            {info_komisi.rate_per_jamaah > 0 && pax > 1 && (
+            {info_komisi && <p className="jd-amount">{formatRupiah(info_komisi.total_amount)}</p>}
+            {info_komisi && info_komisi.rate_per_jamaah > 0 && pax > 1 && (
               <p className="jd-amount__calc">
                 {formatRupiah(info_komisi.rate_per_jamaah)} x {pax} jamaah
               </p>
             )}
-            <p className="jd-muted">
-              {!isClosing
-                ? 'Komisi tercatat saat jamaah membayar DP (closing).'
-                : komisiState.tone === 'ok'
-                ? 'Jamaah sudah lunas. Komisi ini sudah bisa Anda tarik.'
-                : 'Jamaah sudah membayar DP. Komisi bisa ditarik setelah admin menandai jamaah lunas.'}
-            </p>
+            <p className="jd-muted">{komisiState.note}</p>
           </section>
         )}
 
