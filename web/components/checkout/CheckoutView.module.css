@@ -94,6 +94,8 @@
 .intro { max-width: var(--km-checkout-content-width); margin: auto; padding: var(--km-v2-space-8) var(--km-v3-gutter) 0; display: flex; flex-direction: column; gap: var(--km-v2-space-6); }
 
 .billingNote { margin: 0; }
+/* Plan promo line under the billing period (7 Oct 2026). */
+.promoNote { margin: var(--km-v2-space-2) 0 0; font-size: var(--km-v2-type-label); color: var(--km-ink); font-weight: 500; }
 
 /* Coupon field collapsed behind a text link. */
 .couponToggle { display: inline-flex; align-items: center; gap: var(--km-v2-space-2); width: fit-content; min-height: var(--km-v2-touch-target); padding: 0; border: none; background: transparent; color: var(--km-ink); font: 500 var(--km-v2-type-small) var(--font-body); text-decoration: underline; text-underline-offset: var(--km-v2-space-1); cursor: pointer; }

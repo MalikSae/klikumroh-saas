@@ -23,7 +23,7 @@ import {
 import { useSearchParams, useRouter } from 'next/navigation';
 import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSettings';
-import { toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
+import { formatPromoDay, payablePrice, toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
 import { validateWhatsApp } from '@/lib/signupWhatsApp';
 import { discountedPrice } from '@/lib/checkoutPricing';
 import { slugCheckOutcome, couponErrorMessage } from '@/lib/checkoutChecks';
@@ -60,6 +60,10 @@ interface PricingPlan {
   discount_label?: string;
   discount_badge?: string;
   popular?: boolean;
+  /** Plan promo for a new travel (founder decision 7 Oct 2026): price after it and its last day. */
+  promoPercent?: number;
+  promoPrice?: number;
+  promoEndsAt?: string | null;
 }
 
 interface CouponResult {
@@ -190,13 +194,15 @@ const PlanChooser: React.FC<PlanChooserProps> = ({ id, plans, selectedPlan, onPl
               <div className={styles.planOptionTop}>
                 <span className={styles.planOptionTitle}>{plan.name}</span>
                 {plan.popular && <span className={styles.planOptionPopularTag}>Direkomendasikan</span>}
-                {plan.discount_badge && !plan.popular && (
+                {plan.promoPercent ? (
+                  <span className={styles.planOptionDiscountTag}>Promo {plan.promoPercent}%</span>
+                ) : plan.discount_badge && !plan.popular && (
                   <span className={styles.planOptionDiscountTag}>{plan.discount_badge}</span>
                 )}
               </div>
               <div className={styles.planOptionPrice}>
                 <span>{formatRupiah(plan.monthly_equivalent)}/bln</span>
-                <span className={styles.planOptionTotal}>(Total {formatRupiah(plan.price)})</span>
+                <span className={styles.planOptionTotal}>(Total {formatRupiah(payablePrice(plan))})</span>
               </div>
             </div>
           </button>
@@ -241,8 +247,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 }) => {
   const [couponOpened, setCouponOpened] = useState(false);
   // Same rounding as the backend invoice.
-  const { discount, finalAmount } = discountedPrice(selectedPlan.price, coupon ? coupon.discount_percentage : 0);
-  const breakdown = showCouponBreakdown(!!coupon);
+  // The plan promo comes off first, then the coupon from the promo price (backend public_signup.go).
+  const payable = payablePrice(selectedPlan);
+  const promoCut = selectedPlan.price - payable;
+  const { discount, finalAmount } = discountedPrice(payable, coupon ? coupon.discount_percentage : 0);
+  const breakdown = showCouponBreakdown(!!coupon) || promoCut > 0;
   const couponOpen = isCouponFieldOpen({ opened: couponOpened, couponApplied: !!coupon, couponError, couponCode });
 
   return (
@@ -292,6 +301,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           </div>
           {/* Billing period under the monthly price (the amount itself appears once, in the total) */}
           <p className={styles.billingNote}>{billingPeriodNote(selectedPlan.period_months)}</p>
+          {selectedPlan.promoPercent ? (
+            <p className={styles.promoNote}>
+              Promo {selectedPlan.promoPercent}% untuk travel baru{selectedPlan.promoEndsAt ? `, sampai ${formatPromoDay(selectedPlan.promoEndsAt)}` : ''}. Perpanjangan memakai harga normal.
+            </p>
+          ) : null}
 
           {/* Accordion: Opsi Pilihan Paket */}
           {planChooserOpen && plans.length > 1 && (
@@ -409,12 +423,20 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 <span className={styles.subtotalLabel}>Subtotal</span>
                 <span className={styles.subtotalValue}>{formatRupiah(selectedPlan.price)}</span>
               </div>
-              <div className={styles.totalRow}>
-                <span className={styles.discountLabel}>Diskon</span>
-                <span className={styles.discountValue}>
-                  {discount > 0 ? `− ${formatRupiah(discount)}` : 'Rp0'}
-                </span>
-              </div>
+              {promoCut > 0 && (
+                <div className={styles.totalRow}>
+                  <span className={styles.discountLabel}>Promo {selectedPlan.promoPercent}%</span>
+                  <span className={styles.discountValue}>− {formatRupiah(promoCut)}</span>
+                </div>
+              )}
+              {coupon && (
+                <div className={styles.totalRow}>
+                  <span className={styles.discountLabel}>{promoCut > 0 ? `Kupon ${coupon.discount_percentage}%` : 'Diskon'}</span>
+                  <span className={styles.discountValue}>
+                    {discount > 0 ? `− ${formatRupiah(discount)}` : 'Rp0'}
+                  </span>
+                </div>
+              )}
             </>
           )}
           <div className={`${styles.grandTotalRow} ${breakdown ? styles.grandTotalRowRuled : ''}`}>
@@ -461,6 +483,9 @@ const toCheckoutPlans = (tiers: PlanTier[]): PricingPlan[] =>
     discount_label: t.discountLabel,
     discount_badge: t.discountBadge,
     popular: t.popular,
+    promoPercent: t.promoPercent,
+    promoPrice: t.promoPrice,
+    promoEndsAt: t.promoEndsAt,
   }));
 
 export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialPlans = [] }) => {
@@ -775,6 +800,24 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     // Set once the browser is navigating away after a successful signup: the button stays disabled.
     let leavingPage = false;
 
+    // The plan list may be minutes old (server cache, or a tab left open while a promo started or ended):
+    // check the current price first, so the travel never submits for a total that is no longer true.
+    try {
+      const fresh = await fetch('/api/public/pricing-plans', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null));
+      if (fresh && Array.isArray(fresh.plans)) {
+        const latest = toCheckoutPlans(toPlanTiers(fresh.plans));
+        const now = latest.find((p) => p.id === selectedPlan.id);
+        if (now && payablePrice(now) !== payablePrice(selectedPlan)) {
+          setPlans(latest);
+          setSubmitError(`Harga paket baru saja berubah menjadi ${formatRupiah(payablePrice(now))}. Periksa total pembayaran, lalu tekan lagi.`);
+          setSubmitting(false);
+          return;
+        }
+      }
+    } catch {
+      // Offline check failed: the server still bills the current price.
+    }
+
     try {
       const cleanedWA = adminWhatsApp.trim().replace(/[\s\-()]/g, '');
       const payload = {
@@ -841,7 +884,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   }
 
   // Amount after the coupon, for the compact summary line (same rounding as the backend invoice).
-  const compactTotal = discountedPrice(selectedPlan.price, coupon ? coupon.discount_percentage : 0).finalAmount;
+  const compactTotal = discountedPrice(payablePrice(selectedPlan), coupon ? coupon.discount_percentage : 0).finalAmount;
 
   // ─── Main Checkout View ───
   return (

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Instrument_Serif } from 'next/font/google';
 import { ArrowRight, Check, ChevronDown, Menu, Quote, X } from 'lucide-react';
-import type { PlanTier } from '../../lib/pricingPlans';
+import { formatPromoDay, payablePrice, type PlanTier } from '../../lib/pricingPlans';
 import pipelineShot from '../../public/landing/pipeline.png';
 import agentShot from '../../public/landing/portal-agen.png';
 import heroShot from '../../public/landing/hero.png';
@@ -135,10 +135,10 @@ export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
             {plans.length > 0 ? <><div className={styles.plans}>{plans.map((plan) => {
               const bestValue = plan.monthlyEquivalent === lowestMonthly && Boolean(plan.discountBadge);
               return <article className={`${styles.plan} ${bestValue ? styles.bestValue : ''}`} key={plan.id}>
-                <div className={styles.planHeader}><h3>{plan.periodMonths} bulan</h3>{plan.discountBadge && <span className={styles.discountBadge}>{plan.discountBadge}</span>}</div>
+                <div className={styles.planHeader}><h3>{plan.periodMonths} bulan</h3>{plan.promoPercent ? <span className={styles.discountBadge}>Promo {plan.promoPercent}%</span> : plan.discountBadge && <span className={styles.discountBadge}>{plan.discountBadge}</span>}</div>
                 <p className={styles.monthly}>{money(plan.monthlyEquivalent)}<span> / bulan</span></p>
-                <p className={styles.planNote}>{bestValue ? 'Biaya per bulan paling rendah' : plan.discountBadge ? 'Lebih hemat dari paket 3 bulan' : 'Durasi langganan paling singkat'}</p>
-                <dl className={styles.total}><dt>Total pembayaran</dt><dd>{money(plan.price)}</dd></dl>
+                <p className={styles.planNote}>{plan.promoPercent ? `Promo travel baru${plan.promoEndsAt ? ` sampai ${formatPromoDay(plan.promoEndsAt)}` : ''}` : bestValue ? 'Biaya per bulan paling rendah' : plan.discountBadge ? 'Lebih hemat dari paket 3 bulan' : 'Durasi langganan paling singkat'}</p>
+                <dl className={styles.total}><dt>Total pembayaran</dt><dd>{plan.promoPrice != null && <s className={styles.oldPrice}>{money(plan.price)}</s>}{money(payablePrice(plan))}</dd></dl>
                 <ul className={styles.planBenefits}><li><Check aria-hidden="true" /> Website travel dan form minat</li><li><Check aria-hidden="true" /> Dashboard prospek dan komisi</li><li><Check aria-hidden="true" /> Portal agen dan materi promosi</li><li><Check aria-hidden="true" /> Jumlah agen tidak dibatasi</li></ul>
                 <Link href={`/marketing/checkout?plan_id=${plan.id}`} className={styles.planLink}>Berlangganan {plan.periodMonths} bulan <ArrowRight aria-hidden="true" /></Link>
               </article>;
