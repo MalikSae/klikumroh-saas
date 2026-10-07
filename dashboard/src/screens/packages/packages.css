@@ -46,3 +46,13 @@
   /* Card shows just "4 / 30"; the bar stays in the desktop table. */
   .ku-mcard__stats .pk-seats__bar { display: none; }
 }
+/* Phone card: status pill + date under the name; two money stats; seats as one line with its bar. */
+.pk-meta { display: none; }
+@media (max-width: 768px) {
+  .pk-list .pk-meta { display: flex; align-items: center; gap: var(--ku-space-2); margin-top: var(--ku-space-1); }
+  .pk-list .pk-meta .ku-muted { font-size: var(--ku-text-sm); }
+  .pk-list .ku-mcard__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pk-list .ku-mcard__labeled { display: flex; align-items: center; gap: var(--ku-space-3); }
+  .pk-list .ku-mcard__labeled .pk-seats { flex: 1; flex-direction: row; align-items: center; gap: var(--ku-space-3); }
+  .pk-list .ku-mcard__labeled .pk-seats__bar { flex: 1; }
+}

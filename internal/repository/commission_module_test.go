@@ -435,7 +435,7 @@ func TestCommissionModule_CrossTenantAndCalculations(t *testing.T) {
 			t.Fatalf("Failed to create organic prospect: %v", err)
 		}
 
-		err := prospectSvc.UpdateStatus(ctx, tenantA.ID, organicProspect.ID, adminUserA.ID, "closing", nil, nil)
+		err := prospectSvc.UpdateStatus(ctx, tenantA.ID, organicProspect.ID, adminUserA.ID, "closing", nil, nil, service.StatusDetails{JumlahJamaah: iptr(1)})
 		if err != nil {
 			t.Fatalf("Failed to update status to closing: %v", err)
 		}

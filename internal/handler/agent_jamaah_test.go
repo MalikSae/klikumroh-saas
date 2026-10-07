@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -753,4 +754,63 @@ func (m *mockDomainRepoForJamaah) ReleaseUnverifiedClaim(ctx context.Context, ho
 
 func (m *mockDomainRepoForJamaah) ListActiveCustom(ctx context.Context) ([]repository.Domain, error) {
 	return nil, nil
+}
+
+// An agent moving a jamaah to Tertarik must give a package and a jamaah count; a package of another
+// tenant is never accepted, and a rejected change leaves the jamaah untouched.
+func TestAgentJamaah_UpdateStatus_TertarikRequiresDetails(t *testing.T) {
+	r, _, agentRepo, sessionRepo, prospectRepo, pkgRepo, _, _, t1, t2 := setupAgentJamaahTestEnv()
+	ctx := context.Background()
+
+	agA := &repository.Agent{TenantID: t1.ID, Name: "Agen A", Email: strPtr("a@travel.com"), Status: "active"}
+	_ = agentRepo.Create(ctx, t1.ID, agA)
+	_ = sessionRepo.Create(ctx, &repository.AgentSession{TenantID: t1.ID, AgentID: agA.ID, Token: "token-ag-a", ExpiresAt: time.Now().Add(24 * time.Hour)})
+
+	pkgOwn := &repository.Package{ID: 901, Name: "Paket Travel 1", Status: "published"}
+	_ = pkgRepo.Create(ctx, t1.ID, pkgOwn)
+	pkgOther := &repository.Package{ID: 902, Name: "Paket Travel 2", Status: "published"}
+	_ = pkgRepo.Create(ctx, t2.ID, pkgOther)
+	departed := time.Now().AddDate(0, 0, -2)
+	_ = pkgRepo.Create(ctx, t1.ID, &repository.Package{ID: 903, Name: "Paket Sudah Berangkat", Status: "published", DepartureDate: &departed})
+
+	p := &repository.Prospect{TenantID: t1.ID, AgentID: &agA.ID, Name: "Jamaah A", Phone: "08123", Status: "dihubungi", SourceChannel: "agen", EntryMethod: "agent_manual"}
+	_ = prospectRepo.Create(ctx, t1.ID, p)
+
+	send := func(payload string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/agent/jamaah/%d/status", p.ID), bytes.NewBufferString(payload))
+		req.Header.Set("Authorization", "Bearer token-ag-a")
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+		return rec
+	}
+
+	for _, tc := range []struct{ name, payload, want string }{
+		{"no details", `{"status":"tertarik"}`, "paket dan jumlah jamaah wajib diisi"},
+		{"package only", `{"status":"tertarik","package_id":901}`, "paket dan jumlah jamaah wajib diisi"},
+		{"CRITICAL: package of another tenant", `{"status":"tertarik","package_id":902,"jumlah_jamaah":2}`, "paket tidak ditemukan"},
+		{"departed package", `{"status":"tertarik","package_id":903,"jumlah_jamaah":2}`, "tidak sedang dijual"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := send(tc.payload)
+			if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), tc.want) {
+				t.Fatalf("expected 400 with %q, got %d: %s", tc.want, rec.Code, rec.Body.String())
+			}
+			saved, _ := prospectRepo.GetByID(ctx, t1.ID, p.ID)
+			if saved.Status != "dihubungi" || saved.PackageID != nil || saved.JumlahJamaah != nil {
+				t.Fatalf("rejected change must leave the jamaah untouched, got %+v", saved)
+			}
+		})
+	}
+
+	t.Run("package and jamaah count of own travel -> 200, both saved", func(t *testing.T) {
+		rec := send(`{"status":"tertarik","package_id":901,"jumlah_jamaah":3}`)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+		saved, _ := prospectRepo.GetByID(ctx, t1.ID, p.ID)
+		if saved.Status != "tertarik" || saved.PackageID == nil || *saved.PackageID != 901 || saved.JumlahJamaah == nil || *saved.JumlahJamaah != 3 {
+			t.Fatalf("expected tertarik with package 901 and 3 jamaah, got %+v", saved)
+		}
+	})
 }

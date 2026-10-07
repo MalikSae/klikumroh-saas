@@ -18,6 +18,9 @@ type updateAgentJamaahStatusPayload struct {
 	Status             string  `json:"status"`
 	LostReason         *string `json:"lost_reason"`
 	LostReasonCategory *string `json:"lost_reason_category"`
+	// Package and jamaah count for a prospect that has none yet (required from Tertarik on).
+	PackageID    *uint64 `json:"package_id"`
+	JumlahJamaah *int    `json:"jumlah_jamaah"`
 }
 
 type addAgentJamaahNotePayload struct {
@@ -167,7 +170,7 @@ func (h *AgentJamaahHandler) UpdateStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := h.prospectService.UpdateStatusByAgent(r.Context(), tenantID, agentID, id, payload.Status, payload.LostReason, payload.LostReasonCategory); err != nil {
+	if err := h.prospectService.UpdateStatusByAgent(r.Context(), tenantID, agentID, id, payload.Status, payload.LostReason, payload.LostReasonCategory, service.StatusDetails{PackageID: payload.PackageID, JumlahJamaah: payload.JumlahJamaah}); err != nil {
 		if errors.Is(err, service.ErrAgentNotActive) {
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": "akun agen belum aktif atau ditangguhkan"})
 			return

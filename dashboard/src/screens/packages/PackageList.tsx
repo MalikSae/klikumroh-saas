@@ -1,13 +1,28 @@
 // Paket list: search, status filter, seats taken; row opens the editor.
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Armchair, Banknote, CalendarDays, ImageOff, Package, Plus } from 'lucide-react';
+import { ImageOff, Plus } from 'lucide-react';
 import { fetchPackages, getFullImageUrl, type PackageItem } from '../../services/api';
-import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, KpiCard, Pill, SearchField, Select, Toolbar, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
-import { PACKAGE_STATUS } from './packageUtil';
+import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, Metric, MetricStrip, Pill, SearchField, Select, Toolbar, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
+import { isDeparted, packageStatusLabel } from './packageUtil';
 import { todayWIB } from '../../utils/datetime';
 
-type View = 'current' | 'published' | 'draft' | 'archived' | 'all';
+/** "29 Nov": day and month only, for the one-line note under Sisa kursi (full date in its tooltip). */
+const fmtDayMonth = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }) : '—';
+
+type View = 'current' | 'published' | 'departed' | 'draft' | 'archived' | 'all';
+
+const thumb = (p: PackageItem) => {
+  const photo = p.photos?.[0];
+  return photo ? (
+    <img className="pk-thumb" src={getFullImageUrl(photo.file_path)} alt="" loading="lazy" />
+  ) : (
+    <span className="pk-thumb pk-thumb--empty" aria-hidden="true">
+      <ImageOff className="ku-icon--sm" />
+    </span>
+  );
+};
 
 const Seats: React.FC<{ p: PackageItem }> = ({ p }) => {
   const taken = p.seats_taken ?? 0;
@@ -44,7 +59,13 @@ export const PackageList: React.FC = () => {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return items
-      .filter((p) => (view === 'all' ? true : view === 'current' ? p.status !== 'archived' : p.status === view))
+      // Departed packages have their own view: they are off the website, so not 'Tayang' any more.
+      .filter((p) => {
+        if (view === 'all') return true;
+        if (view === 'departed') return isDeparted(p);
+        if (isDeparted(p)) return false;
+        return view === 'current' ? p.status !== 'archived' : p.status === view;
+      })
       .filter((p) => !q || p.name.toLowerCase().includes(q))
       .sort((a, b) => {
         // Upcoming departures first, packages without a date last.
@@ -76,17 +97,23 @@ export const PackageList: React.FC = () => {
     {
       key: 'name',
       header: 'Paket',
+      // Phone: departure date then status under the name, so the name keeps the card width.
+      mobileCell: (p) => (
+        <span className="pk-cell">
+          {thumb(p)}
+          <span className="ag-name">
+            {p.name}
+            <span className="pk-meta">
+              <span className="ku-muted">{p.departure_date ? fmtDate(p.departure_date) : 'Tanggal belum diisi'}</span>
+              <Pill tone={packageStatusLabel(p).tone}>{packageStatusLabel(p).label}</Pill>
+            </span>
+          </span>
+        </span>
+      ),
       cell: (p) => {
-        const photo = p.photos?.[0];
         return (
           <span className="pk-cell">
-            {photo ? (
-              <img className="pk-thumb" src={getFullImageUrl(photo.file_path)} alt="" loading="lazy" />
-            ) : (
-              <span className="pk-thumb pk-thumb--empty" aria-hidden="true">
-                <ImageOff className="ku-icon--sm" />
-              </span>
-            )}
+            {thumb(p)}
             <span className="ag-name">
               {p.name}
               <span className="ku-muted">{p.departure_date ? `Berangkat ${fmtDate(p.departure_date)}` : 'Tanggal berangkat belum diisi'}</span>
@@ -97,19 +124,29 @@ export const PackageList: React.FC = () => {
     },
     { key: 'price', header: 'Harga mulai', align: 'right', cell: (p) => (p.price ? fmtRupiah(p.price) : <span className="ku-muted">Belum diisi</span>) },
     { key: 'commission', header: 'Komisi agen', align: 'right', cell: (p) => (p.commission_amount ? fmtRupiah(p.commission_amount) : <span className="ku-muted">—</span>) },
-    { key: 'seats', header: 'Kursi terisi', mobile: 'stat', cell: (p) => <Seats p={p} /> },
-    { key: 'status', header: 'Status', cell: (p) => <Pill tone={PACKAGE_STATUS[p.status].tone}>{PACKAGE_STATUS[p.status].label}</Pill> },
+    { key: 'seats', header: 'Kursi terisi', mobile: 'labeled', cell: (p) => <Seats p={p} /> },
+    { key: 'status', header: 'Status', mobile: 'hide', cell: (p) => <Pill tone={packageStatusLabel(p).tone}>{packageStatusLabel(p).label}</Pill> },
   ];
 
   return (
     <section className="ku-list pk-list">
       {/* Sales picture of the packages on sale: how full they are and what is still left to sell. */}
-      <div className="ku-kpi-row">
-        <KpiCard label="Paket tayang" icon={<Package className="ku-icon" />} value={loading ? '—' : fmtNumber(kpi.live)} note={`${fmtNumber(kpi.drafts)} draf belum tayang`} />
-        <KpiCard label="Kursi terisi" icon={<Armchair className="ku-icon" />} value={loading ? '—' : kpi.quota > 0 ? fmtPercent((kpi.taken / kpi.quota) * 100) : '—'} note={kpi.quota > 0 ? `${fmtNumber(kpi.taken)} dari ${fmtNumber(kpi.quota)} kursi` : 'Kuota belum diisi'} />
-        <KpiCard label="Sisa kursi" icon={<CalendarDays className="ku-icon" />} value={loading ? '—' : fmtNumber(kpi.left)} note={kpi.next ? `Terdekat: ${kpi.next.name}, ${fmtDate(kpi.next.departure_date)}` : 'Belum ada keberangkatan'} />
-        <KpiCard label="Potensi omzet" icon={<Banknote className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(kpi.potential)} note="Jika sisa kursi terjual" />
-      </div>
+      <MetricStrip label="Penjualan paket">
+        <Metric label="Paket tayang" value={loading ? '—' : fmtNumber(kpi.live)} note={loading ? undefined : `${fmtNumber(kpi.drafts)} draf`} hint="Paket tayang yang belum berangkat; draf belum tampil di website" />
+        <Metric
+          label="Kursi terisi"
+          value={loading ? '—' : kpi.quota > 0 ? fmtPercent((kpi.taken / kpi.quota) * 100) : '—'}
+          note={loading ? undefined : kpi.quota > 0 ? `${fmtNumber(kpi.taken)}/${fmtNumber(kpi.quota)}` : 'Kuota kosong'}
+          hint={kpi.quota > 0 ? `${fmtNumber(kpi.taken)} dari ${fmtNumber(kpi.quota)} kursi paket tayang sudah terisi` : 'Kuota kursi paket belum diisi'}
+        />
+        <Metric
+          label="Sisa kursi"
+          value={loading ? '—' : fmtNumber(kpi.left)}
+          note={loading ? undefined : kpi.next ? `terdekat ${fmtDayMonth(kpi.next.departure_date)}` : 'Belum ada jadwal'}
+          hint={kpi.next ? `Keberangkatan terdekat: ${kpi.next.name}, ${fmtDate(kpi.next.departure_date)}` : 'Belum ada keberangkatan terjadwal'}
+        />
+        <Metric label="Potensi omzet" value={loading ? '—' : fmtRupiahShort(kpi.potential)} note={loading ? undefined : 'sisa kursi'} hint="Jika semua sisa kursi terjual (harga paket x sisa kursi)" />
+      </MetricStrip>
       {error && <Banner tone="danger">{error}</Banner>}
       <Toolbar
         right={
@@ -130,6 +167,7 @@ export const PackageList: React.FC = () => {
                 options={[
                   { value: 'current', label: 'Tayang dan draf' },
                   { value: 'published', label: 'Tayang' },
+                  { value: 'departed', label: 'Sudah berangkat' },
                   { value: 'draft', label: 'Draf' },
                   { value: 'archived', label: 'Diarsipkan' },
                   { value: 'all', label: 'Semua' },

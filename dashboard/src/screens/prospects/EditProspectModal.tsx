@@ -50,6 +50,7 @@ export const EditProspectModal: React.FC<{
     if (!name.trim()) return setError('Nama wajib diisi.');
     if (!phone.trim()) return setError('Nomor WhatsApp wajib diisi.');
     if (jamaah === null) return setError('Jumlah jamaah harus angka bulat 1 sampai 50.');
+    if (!pkg && initialPkg && (p.status === 'tertarik' || p.status === 'closing')) return setError('Paket wajib diisi untuk prospek berstatus Tertarik atau Closing.');
     if (correction && !reason.trim()) return setError('Isi alasan koreksi: paket atau jumlah jamaah prospek closing berubah.');
     try {
       setSaving(true);

@@ -53,7 +53,78 @@ var (
 	ErrProspectAnonymized = errors.New("data pribadi jamaah ini sudah dihapus (UU PDP), datanya tidak dapat diubah lagi")
 	// ErrInvalidReleasePolicy is returned for an unknown commission release policy.
 	ErrInvalidReleasePolicy = errors.New("pilihan pencairan komisi tidak valid, gunakan 'lunas' atau 'dp'")
+	// ErrPipelineDetailsRequired is returned when a prospect moves to 'tertarik' or 'closing' without a
+	// package and jamaah count (founder decision 6 Oct 2026).
+	ErrPipelineDetailsRequired = errors.New("paket dan jumlah jamaah wajib diisi untuk status Tertarik dan Closing")
+	// ErrPackageNotOnSale is returned when a prospect moves to 'tertarik' with a package that is not on sale
+	// (draft, archived or departed).
+	ErrPackageNotOnSale = errors.New("paket ini tidak sedang dijual (draf, diarsipkan, atau sudah berangkat), pilih paket lain")
+	// ErrPipelineDetailsClear is returned when an edit removes the package or jamaah count of a prospect
+	// that is already 'tertarik' or 'closing'.
+	ErrPipelineDetailsClear = errors.New("paket dan jumlah jamaah tidak boleh dikosongkan pada prospek berstatus Tertarik atau Closing")
 )
+
+// StatusDetails carries the package and jamaah count sent along with a status change, for prospects that
+// do not have them yet. Values the prospect already has are kept (changing them is an edit, not a status change).
+type StatusDetails struct {
+	PackageID    *uint64
+	JumlahJamaah *int
+}
+
+// needsPipelineDetails: from 'tertarik' on, the travel must know which package and how many jamaah.
+func needsPipelineDetails(status string) bool {
+	return status == "tertarik" || status == "closing"
+}
+
+// fillPipelineDetails makes sure a prospect moving to 'tertarik' or 'closing' has a package and a jamaah
+// count, filling the missing ones from details. It writes them before the status changes.
+func (s *prospectService) fillPipelineDetails(ctx context.Context, tenantID uint64, prospect *repository.Prospect, status string, details []StatusDetails) error {
+	if !needsPipelineDetails(status) {
+		return nil
+	}
+	var d StatusDetails
+	if len(details) > 0 {
+		d = details[0]
+	}
+	// Validate everything first, write once: a rejected change leaves the prospect untouched.
+	pkgID, jamaah := prospect.PackageID, prospect.JumlahJamaah
+	if pkgID == nil && d.PackageID != nil {
+		pkg, err := s.packageRepo.GetByID(ctx, tenantID, *d.PackageID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return ErrPackageNotFound
+			}
+			return err
+		}
+		// Interest is in a package still on sale. A closing may be recorded after departure, so only
+		// 'tertarik' requires it (founder decision 6 Oct 2026).
+		if status == "tertarik" && (pkg.Status != "published" || PackageDeparted(pkg, time.Now())) {
+			return ErrPackageNotOnSale
+		}
+		id := *d.PackageID
+		pkgID = &id
+	}
+	if (jamaah == nil || *jamaah <= 0) && d.JumlahJamaah != nil {
+		if err := validateJumlahJamaah(d.JumlahJamaah); err != nil {
+			return err
+		}
+		n := *d.JumlahJamaah
+		jamaah = &n
+	}
+	if pkgID == nil || jamaah == nil || *jamaah <= 0 {
+		return ErrPipelineDetailsRequired
+	}
+	if pkgID == prospect.PackageID && jamaah == prospect.JumlahJamaah {
+		return nil
+	}
+	updated := *prospect
+	updated.PackageID, updated.JumlahJamaah = pkgID, jamaah
+	if err := s.prospectRepo.Update(ctx, tenantID, &updated); err != nil {
+		return err
+	}
+	prospect.PackageID, prospect.JumlahJamaah = pkgID, jamaah
+	return nil
+}
 
 // Pipeline status whitelist per AGENTS.md Bagian 3.6:
 // Baru → Dihubungi → Tertarik → Closing / Tidak Lanjut
@@ -174,6 +245,8 @@ type ProspectDetailResponse struct {
 	InfoKomisi    *ProspectCommissionInfo            `json:"info_komisi"`
 	StatusHistory []repository.ProspectStatusHistory `json:"status_history"`
 	Notes         []repository.ProspectNote          `json:"notes"`
+	// Payment proofs sent by the agent (closing DP, pelunasan), newest first.
+	PaymentRequests []repository.PaymentRequest `json:"payment_requests"`
 }
 
 // ProspectListPage is one page of the dashboard prospect list.
@@ -191,7 +264,8 @@ type ProspectService interface {
 	List(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]repository.Prospect, error)
 	ListPage(ctx context.Context, tenantID uint64, filter repository.ProspectFilter, page, pageSize int) (*ProspectListPage, error)
 	Summary(ctx context.Context, tenantID uint64) (*repository.ProspectStatusSummary, error)
-	UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason, lostReasonCategory *string) error
+	// details fills a missing package / jamaah count in the same request (required from 'tertarik' on).
+	UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason, lostReasonCategory *string, details ...StatusDetails) error
 	ExportCSV(ctx context.Context, tenantID uint64, filter repository.ProspectFilter) ([]byte, error)
 	CalculateAndRecordCommission(ctx context.Context, tenantID uint64, prospectID uint64) error
 	GetDetail(ctx context.Context, tenantID uint64, id uint64) (*ProspectDetailResponse, error)
@@ -212,10 +286,17 @@ type ProspectService interface {
 	ListByAgent(ctx context.Context, tenantID uint64, agentID uint64, statusFilter *string) ([]repository.AgentProspectItem, error)
 	ListByAgentPage(ctx context.Context, tenantID uint64, agentID uint64, statusFilter, search *string, page, pageSize int) (*AgentProspectPage, error)
 	GetDetailForAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64) (*ProspectDetailResponse, error)
-	UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason, lostReasonCategory *string) error
+	UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason, lostReasonCategory *string, details ...StatusDetails) error
 	AddNoteByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, noteText string) (*repository.ProspectNote, error)
 	CreateManualByAgent(ctx context.Context, tenantID uint64, agentID uint64, input AgentCreateProspectInput) (*repository.Prospect, error)
 	RecordReferralClick(ctx context.Context, tenantID uint64, referralCode string, ipAddress string) error
+
+	// Jamaah payment proofs (closing DP, pelunasan) sent by the agent for the admin to verify (7 Oct 2026).
+	SetPaymentRequestRepo(repo repository.PaymentRequestRepository)
+	SubmitPaymentRequestByAgent(ctx context.Context, tenantID, agentID, prospectID uint64, input PaymentRequestInput) (*repository.PaymentRequest, error)
+	ListPendingPaymentRequests(ctx context.Context, tenantID uint64) ([]repository.PaymentRequest, error)
+	ApprovePaymentRequest(ctx context.Context, tenantID, adminUserID, id uint64) error
+	RejectPaymentRequest(ctx context.Context, tenantID, adminUserID, id uint64, reason string) error
 }
 
 type prospectService struct {
@@ -230,6 +311,7 @@ type prospectService struct {
 	notifService         NotificationService
 	policyRepo           repository.CommissionPolicyRepository
 	meta                 MetaEventTracker
+	paymentRepo          repository.PaymentRequestRepository
 }
 
 func (s *prospectService) SetMetaTracker(tracker MetaEventTracker) {
@@ -796,7 +878,7 @@ func sameStringPtr(a, b *string) bool {
 	return *a == *b
 }
 
-func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason, lostReasonCategory *string) error {
+func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id uint64, adminUserID uint64, newStatus string, lostReason, lostReasonCategory *string, details ...StatusDetails) error {
 	prospect, err := s.prospectRepo.GetByID(ctx, tenantID, id)
 	if err != nil {
 		return err
@@ -841,6 +923,11 @@ func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id 
 	if lostCategoryIsSystem(oldStatus, status, prospect.LostReasonCategory) {
 		return ErrLostReasonSystemCategory
 	}
+	if oldStatus != status {
+		if err := s.fillPipelineDetails(ctx, tenantID, prospect, status, details); err != nil {
+			return err
+		}
+	}
 
 	// Claim the transition atomically: only one of several concurrent requests (double click, two
 	// admins) moves the prospect out of oldStatus, so commission is booked exactly once.
@@ -867,6 +954,11 @@ func (s *prospectService) UpdateStatus(ctx context.Context, tenantID uint64, id 
 	}
 	if status == "closing" {
 		s.trackPurchase(ctx, tenantID, prospect)
+		// A DP proof the agent sent is settled by this closing (approved here or by the admin directly).
+		s.settlePaymentRequests(ctx, tenantID, id, repository.PaymentRequestClosing, "approved", adminUserID)
+	}
+	if status == "tidak_lanjut" {
+		s.settlePaymentRequests(ctx, tenantID, id, repository.PaymentRequestClosing, "cancelled", adminUserID)
 	}
 
 	// In-app notification to the agent who owns the prospect
@@ -1045,6 +1137,9 @@ func (s *prospectService) UpdateDetail(ctx context.Context, tenantID uint64, id 
 	}
 	if prospect.AnonymizedAt != nil {
 		return ErrProspectAnonymized
+	}
+	if needsPipelineDetails(prospect.Status) && ((prospect.PackageID != nil && input.PackageID == nil) || (prospect.JumlahJamaah != nil && input.JumlahJamaah == nil)) {
+		return ErrPipelineDetailsClear
 	}
 
 	// An unchanged planned month is kept even if it is in the past by now; the "upcoming month" rule
@@ -1442,12 +1537,13 @@ func (s *prospectService) GetDetail(ctx context.Context, tenantID uint64, id uin
 	}
 
 	return &ProspectDetailResponse{
-		Prospect:      prospect,
-		Package:       pkg,
-		Agent:         ag,
-		InfoKomisi:    commissionInfo,
-		StatusHistory: statusHistory,
-		Notes:         notes,
+		Prospect:        prospect,
+		Package:         pkg,
+		Agent:           ag,
+		InfoKomisi:      commissionInfo,
+		StatusHistory:   statusHistory,
+		Notes:           notes,
+		PaymentRequests: s.paymentRequestsOf(ctx, tenantID, id),
 	}, nil
 }
 
@@ -1791,7 +1887,7 @@ func (s *prospectService) GetDetailForAgent(ctx context.Context, tenantID uint64
 	return detail, nil
 }
 
-func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason, lostReasonCategory *string) error {
+func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint64, agentID uint64, id uint64, newStatus string, lostReason, lostReasonCategory *string, details ...StatusDetails) error {
 	if err := s.verifyActiveAgent(ctx, tenantID, agentID); err != nil {
 		return err
 	}
@@ -1835,6 +1931,11 @@ func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint
 	if lostCategoryIsSystem(oldStatus, status, prospect.LostReasonCategory) {
 		return ErrLostReasonSystemCategory
 	}
+	if oldStatus != status {
+		if err := s.fillPipelineDetails(ctx, tenantID, prospect, status, details); err != nil {
+			return err
+		}
+	}
 
 	if err := s.prospectRepo.TransitionStatus(ctx, tenantID, id, oldStatus, status, reason, category); err != nil {
 		if errors.Is(err, repository.ErrStatusConflict) {
@@ -1845,6 +1946,10 @@ func (s *prospectService) UpdateStatusByAgent(ctx context.Context, tenantID uint
 
 	if oldStatus != status {
 		s.recordHistory(ctx, tenantID, id, "agent", agentID, oldStatus, status)
+	}
+	if status == "tidak_lanjut" {
+		// The jamaah dropped out: a DP proof still waiting is withdrawn.
+		s.settlePaymentRequests(ctx, tenantID, id, repository.PaymentRequestClosing, "cancelled", 0)
 	}
 	return nil
 }

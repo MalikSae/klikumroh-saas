@@ -21,6 +21,9 @@ type updateProspectStatusPayload struct {
 	Status             string  `json:"status"`
 	LostReason         *string `json:"lost_reason"`
 	LostReasonCategory *string `json:"lost_reason_category"`
+	// Package and jamaah count for a prospect that has none yet (required from Tertarik on).
+	PackageID    *uint64 `json:"package_id"`
+	JumlahJamaah *int    `json:"jumlah_jamaah"`
 }
 
 type addNotePayload struct {
@@ -345,7 +348,7 @@ func (h *ProspectHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.prospectService.UpdateStatus(r.Context(), tenantID, id, adminUserID, payload.Status, payload.LostReason, payload.LostReasonCategory); err != nil {
+	if err := h.prospectService.UpdateStatus(r.Context(), tenantID, id, adminUserID, payload.Status, payload.LostReason, payload.LostReasonCategory, service.StatusDetails{PackageID: payload.PackageID, JumlahJamaah: payload.JumlahJamaah}); err != nil {
 		respondProspectError(w, err)
 		return
 	}

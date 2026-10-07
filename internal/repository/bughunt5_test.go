@@ -265,7 +265,7 @@ func TestBH5_AnonymizeScrubsDuplicateClosingNote(t *testing.T) {
 		t.Fatal(err)
 	}
 	aID := e.idByName(t, "Siti Rahasia")
-	if err := e.svc.UpdateStatus(e.ctx, e.tenant.ID, aID, e.adminID, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenant.ID, aID, e.adminID, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkg(t, "Paket PDP", 0).ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
 	// The same number registers again: B gets the system warning naming A's jamaah and agent.

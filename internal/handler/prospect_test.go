@@ -654,8 +654,18 @@ func TestProspectHandler_PublicSubmission_And_CrossTenantPackage(t *testing.T) {
 }
 
 func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
-	r, prospectRepo, _, _, _, _, _ := setupProspectRouter()
+	r, prospectRepo, pkgRepo, _, _, _, _ := setupProspectRouter()
 	ctx := context.Background()
+
+	pkgA := &repository.Package{Name: "Paket Tenant A", Status: "published"}
+	_ = pkgRepo.Create(ctx, 10, pkgA)
+	pkgB := &repository.Package{Name: "Paket Tenant B", Status: "published"}
+	_ = pkgRepo.Create(ctx, 20, pkgB)
+	yesterday := time.Now().AddDate(0, 0, -2)
+	pkgDeparted := &repository.Package{Name: "Paket Sudah Berangkat", Status: "published", DepartureDate: &yesterday}
+	_ = pkgRepo.Create(ctx, 10, pkgDeparted)
+	pkgDraft := &repository.Package{Name: "Paket Draf", Status: "draft"}
+	_ = pkgRepo.Create(ctx, 10, pkgDraft)
 
 	// Seed prospect for Tenant A (tenant_id = 10)
 	prosA := &repository.Prospect{
@@ -704,6 +714,58 @@ func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
 		}
 	})
 
+	// Tertarik (and Closing) need a package and a jamaah count; a package of another tenant is never accepted.
+	t.Run("Tertarik requires package and jamaah count of the same tenant", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			payload map[string]interface{}
+			want    string
+		}{
+			{"no details", map[string]interface{}{"status": "tertarik"}, "paket dan jumlah jamaah wajib diisi"},
+			{"package only", map[string]interface{}{"status": "tertarik", "package_id": pkgA.ID}, "paket dan jumlah jamaah wajib diisi"},
+			{"jamaah only", map[string]interface{}{"status": "tertarik", "jumlah_jamaah": 2}, "paket dan jumlah jamaah wajib diisi"},
+			{"zero jamaah", map[string]interface{}{"status": "tertarik", "package_id": pkgA.ID, "jumlah_jamaah": 0}, "jumlah jamaah harus lebih besar dari 0"},
+			{"CRITICAL: package of Tenant B", map[string]interface{}{"status": "tertarik", "package_id": pkgB.ID, "jumlah_jamaah": 2}, "paket tidak ditemukan"},
+			{"closing without details", map[string]interface{}{"status": "closing"}, "paket dan jumlah jamaah wajib diisi"},
+			{"departed package", map[string]interface{}{"status": "tertarik", "package_id": pkgDeparted.ID, "jumlah_jamaah": 2}, "tidak sedang dijual"},
+			{"draft package", map[string]interface{}{"status": "tertarik", "package_id": pkgDraft.ID, "jumlah_jamaah": 2}, "tidak sedang dijual"},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				body, _ := json.Marshal(tc.payload)
+				req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/dashboard/prospects/%d/status", prosA.ID), bytes.NewBuffer(body))
+				req.Header.Set("Authorization", "Bearer token_tenant_a")
+				rr := httptest.NewRecorder()
+				r.ServeHTTP(rr, req)
+				if rr.Code != http.StatusBadRequest || !strings.Contains(rr.Body.String(), tc.want) {
+					t.Fatalf("expected 400 with %q, got %d (%s)", tc.want, rr.Code, rr.Body.String())
+				}
+				saved, _ := prospectRepo.GetByID(ctx, 10, prosA.ID)
+				if saved.Status != "baru" || saved.PackageID != nil {
+					t.Fatalf("rejected change must leave the prospect untouched, got status %s package %v", saved.Status, saved.PackageID)
+				}
+			})
+		}
+	})
+
+	// A closing may be recorded after departure: the departed package is accepted for Closing.
+	t.Run("Closing accepts a departed package", func(t *testing.T) {
+		late := &repository.Prospect{Name: "Jamaah Closing Terlambat", Phone: "08133333333", SourceChannel: "organik", Status: "tertarik"}
+		_ = prospectRepo.Create(ctx, 10, late)
+		body, _ := json.Marshal(map[string]interface{}{"status": "closing", "package_id": pkgDeparted.ID, "jumlah_jamaah": 1})
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/dashboard/prospects/%d/status", late.ID), bytes.NewBuffer(body))
+		req.Header.Set("Authorization", "Bearer token_tenant_a")
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected 200 for closing with a departed package, got %d (%s)", rr.Code, rr.Body.String())
+		}
+		saved, _ := prospectRepo.GetByID(ctx, 10, late.ID)
+		if saved.Status != "closing" || saved.PackageID == nil || *saved.PackageID != pkgDeparted.ID {
+			t.Fatalf("expected closing with the departed package, got %+v", saved)
+		}
+	})
+
 	// 3. Status Whitelist Validation: Valid pipeline status update
 	t.Run("Update status to whitelist values works", func(t *testing.T) {
 		for _, validStatus := range []string{"dihubungi", "tertarik", "tidak_lanjut", "closing"} {
@@ -712,10 +774,15 @@ func TestProspectHandler_Dashboard_And_CrossTenant(t *testing.T) {
 				lr := "Harga belum cocok"
 				lostReason = &lr
 			}
-			body, _ := json.Marshal(map[string]interface{}{
+			payload := map[string]interface{}{
 				"status":      validStatus,
 				"lost_reason": lostReason,
-			})
+			}
+			if validStatus == "tertarik" {
+				payload["package_id"] = pkgA.ID
+				payload["jumlah_jamaah"] = 2
+			}
+			body, _ := json.Marshal(payload)
 			req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/dashboard/prospects/%d/status", prosA.ID), bytes.NewBuffer(body))
 			req.Header.Set("Authorization", "Bearer token_tenant_a")
 			rr := httptest.NewRecorder()
@@ -1065,6 +1132,7 @@ func TestProspectHandler_Dashboard_CommissionModuleScenarios(t *testing.T) {
 			"name":          "Pak Budi Closing",
 			"phone":         "08111111111",
 			"jumlah_jamaah": 2,
+			"package_id":    pkgA.ID,
 			// correction_reason omitted or empty
 		})
 

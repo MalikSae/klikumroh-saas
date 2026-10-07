@@ -4,10 +4,10 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react';
 import { createPackage, deletePackage, fetchPackageById, updatePackage, uploadPackagePhoto, type PackageItem, type PackagePhoto } from '../../services/api';
 import { Banner, Button, Field, IconButton, Menu, Modal, MoneyInput, Pill, Select, errorText } from '../../ui';
-import { publicSiteUrl, useFrame, usePageTitle } from '../../app/AppFrame';
+import { useFrame, usePageTitle } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
 import { PackagePhotos, PendingPhotos } from './PackagePhotos';
-import { PACKAGE_STATUS, parseFlight, parseHotels, parseItinerary, serializeFlight, serializeHotels, serializeItinerary, type Flight, type Hotel } from './packageUtil';
+import { isDeparted, packageStatusLabel, parseFlight, parseHotels, parseItinerary, serializeFlight, serializeHotels, serializeItinerary, type Flight, type Hotel } from './packageUtil';
 
 type Form = {
   name: string;
@@ -245,7 +245,10 @@ export const PackageEditor: React.FC = () => {
   }
 
   const status = pkg?.status ?? 'draft';
-  const site = publicSiteUrl(frame?.subscription?.tenant_slug);
+  // A departed package is off the website: label it so, without a link to a page that no longer exists.
+  const departed = !!pkg && isDeparted(pkg);
+  const statusLabel = pkg ? packageStatusLabel(pkg) : { label: 'Draf', tone: 'gray' as const };
+  const site = frame?.siteUrl ?? null;
   const commissionPct = form.price && form.commission ? Math.round((form.commission / form.price) * 1000) / 10 : null;
 
   const menuItems = [
@@ -262,8 +265,8 @@ export const PackageEditor: React.FC = () => {
         </Button>
         {!isNew && (
           <span className="pk-editor__status">
-            <Pill tone={PACKAGE_STATUS[status].tone}>{PACKAGE_STATUS[status].label}</Pill>
-            {status === 'published' && site && (
+            <Pill tone={statusLabel.tone}>{statusLabel.label}</Pill>
+            {status === 'published' && !departed && site && (
               <a className="pk-link" href={`${site}/paket/${pkg?.id}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="ku-icon--sm" aria-hidden="true" /> Lihat di website
               </a>

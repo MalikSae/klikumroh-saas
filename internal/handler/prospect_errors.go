@@ -31,6 +31,9 @@ func isProspectInputError(err error) bool {
 		service.ErrAgentConsentRequired,
 		service.ErrInvalidDeparturePlan,
 		service.ErrInvalidDomicile,
+		service.ErrPipelineDetailsRequired,
+		service.ErrPipelineDetailsClear,
+		service.ErrPackageNotOnSale,
 	} {
 		if errors.Is(err, target) {
 			return true

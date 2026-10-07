@@ -1,12 +1,21 @@
 // Package status labels and the text formats the public website reads (see web/components/PackageDetailClientView.tsx).
 import type { PackageItem } from '../../services/api';
 import type { PillTone } from '../../ui';
+import { todayWIB } from '../../utils/datetime';
 
 export const PACKAGE_STATUS: Record<PackageItem['status'], { label: string; tone: PillTone }> = {
   draft: { label: 'Draf', tone: 'gray' },
   published: { label: 'Tayang', tone: 'green' },
   archived: { label: 'Diarsipkan', tone: 'amber' },
 };
+
+/** A published package whose departure date (WIB) is before today: off the website, no longer on sale. */
+export const isDeparted = (p: Pick<PackageItem, 'status' | 'departure_date'>, today = todayWIB()) =>
+  p.status === 'published' && !!p.departure_date && p.departure_date.slice(0, 10) < today;
+
+/** Status label for lists and the editor: a departed package reads 'Sudah berangkat' instead of 'Tayang'. */
+export const packageStatusLabel = (p: Pick<PackageItem, 'status' | 'departure_date'>): { label: string; tone: PillTone } =>
+  isDeparted(p) ? { label: 'Sudah berangkat', tone: 'gray' } : PACKAGE_STATUS[p.status];
 
 export interface Hotel {
   city: string;

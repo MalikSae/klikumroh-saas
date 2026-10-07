@@ -209,7 +209,7 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 	// Closing a web-form lead sends Purchase with the package value.
 	q := "081399991001"
 	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{Search: &q})
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
 	purchases := graph.events("Purchase")
@@ -230,7 +230,7 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("manual: %v", err)
 	}
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, manual.ID, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, manual.ID, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("closing manual: %v", err)
 	}
 	if len(graph.events("Purchase")) != 1 {
@@ -279,7 +279,7 @@ func TestMeta_LeadAndPurchaseEvents(t *testing.T) {
 	if _, err := e.svc.CancelClosing(e.ctx, e.tenantA.ID, list[0].ID, 1, "jamaah batal"); err != nil {
 		t.Fatalf("cancel: %v", err)
 	}
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("re-closing: %v", err)
 	}
 	if n := len(graph.events("Purchase")); n != 1 {
@@ -301,7 +301,7 @@ func TestMeta_PurchaseNotClaimedWhileDisabled(t *testing.T) {
 	q := "081399991200"
 	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{Search: &q})
 	id := list[0].ID
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
 	var sent sql.NullTime
@@ -403,7 +403,7 @@ func TestMeta_NothingSentWithoutMetaDisclosure(t *testing.T) {
 	}
 	q := "081399991300"
 	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{Search: &q})
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, list[0].ID, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
 	if n := len(graph.events("Purchase")); n != 0 {
@@ -446,7 +446,7 @@ func TestMeta_DeliveryFailureVisibleAndPurchaseRetried(t *testing.T) {
 	q := "081399991400"
 	list, _ := e.prospectRepo.ListWithFilter(e.ctx, e.tenantA.ID, repository.ProspectFilter{Search: &q})
 	id := list[0].ID
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
 	var sent sql.NullTime
@@ -462,7 +462,7 @@ func TestMeta_DeliveryFailureVisibleAndPurchaseRetried(t *testing.T) {
 	if _, err := e.svc.CancelClosing(e.ctx, e.tenantA.ID, id, 1, "salah input"); err != nil {
 		t.Fatalf("cancel: %v", err)
 	}
-	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil); err != nil {
+	if err := e.svc.UpdateStatus(e.ctx, e.tenantA.ID, id, 1, "closing", nil, nil, service.StatusDetails{PackageID: &e.pkgA.ID, JumlahJamaah: iptr(1)}); err != nil {
 		t.Fatalf("re-closing: %v", err)
 	}
 	_ = e.db.QueryRow(`SELECT meta_purchase_sent_at FROM prospects WHERE id = ?`, id).Scan(&sent)

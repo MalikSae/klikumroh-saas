@@ -27,7 +27,7 @@ func TestPackageAudit_DeleteKeepsCommissionHistory(t *testing.T) {
 		t.Fatalf("closing: %v", err)
 	}
 	reason := "Pindah paket"
-	if err := e.svc.UpdateDetail(e.ctx, e.tenantA.ID, p.ID, 1, service.UpdateProspectInput{Name: "Jamaah Audit", Phone: "081366660001", PackageID: &pkgB.ID, CorrectionReason: &reason}); err != nil {
+	if err := e.svc.UpdateDetail(e.ctx, e.tenantA.ID, p.ID, 1, service.UpdateProspectInput{Name: "Jamaah Audit", Phone: "081366660001", PackageID: &pkgB.ID, JumlahJamaah: iptr(1), CorrectionReason: &reason}); err != nil {
 		t.Fatalf("move to B: %v", err)
 	}
 	entriesBefore, totalBefore := ledgerSum(t, e, p.ID)
