@@ -1,7 +1,7 @@
 // Tagihan: how much to transfer, where, and the transfer proof upload.
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ExternalLink, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Copy, ExternalLink, ImageIcon, ImagePlus } from 'lucide-react';
 import {
   fetchPaymentVerificationDetail,
   fetchPlatformSettings,
@@ -16,8 +16,11 @@ import { Banner, Button, Pill, fmtDate, fmtRupiah, errorText } from '../../ui';
 import { useFrame } from '../../app/AppFrame';
 import { invoiceStatus, planTitle } from './BillingSettings';
 import './InvoiceScreen.css';
+// Display serif of the marketing landing, for the invoice title only (founder approval 7 Oct 2026).
+import '@fontsource/instrument-serif/400.css';
 import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 import { copyText } from '../../utils/clipboard';
+import { formatDateTimeWIB } from '../../utils/datetime';
 
 const MAX_PROOF_BYTES = 10 * MB; // server body limit (MaxBytesReader 10<<20)
 
@@ -55,7 +58,6 @@ export const InvoiceScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [justUploaded, setJustUploaded] = useState(false);
   // The travel's open (pending) invoice, if any. A rejected invoice cannot take a new proof while another
   // invoice is open (the backend answers 409), so its transfer details are not shown then.
   const [openInvoice, setOpenInvoice] = useState<PaymentVerification | null>(null);
@@ -120,7 +122,6 @@ export const InvoiceScreen: React.FC = () => {
         return;
       }
       // The proof is saved from here on: a failed refresh must not be reported as a failed upload.
-      setJustUploaded(true);
       try {
         const next = await fetchPaymentVerificationDetail(pv.id);
         setPv(next);
@@ -156,9 +157,49 @@ export const InvoiceScreen: React.FC = () => {
   const bank = platform && hasPlatformBankDetails(platform) ? platform : null;
   const planText = planTitle(pv.plan_name, pv.plan_period_months);
   const amountText = Math.round(pv.final_amount).toString();
+  // Proof sent and waiting for review: the payment block shows that state instead of asking to upload again.
+  const sent = pv.status === 'pending' && !!pv.proof_url;
 
+
+  // A new travel lands here straight from the checkout: the signup steps continue there (step 2 of 3).
+  // It is already inside its dashboard, so the page says so and, once the activation invoice is approved,
+  // where to go next (founder, 7 Oct 2026).
+  const subInfo = frame?.subscription;
+  const signingUp = subInfo?.status === 'pending';
+  const firstInvoiceId = subInfo?.payment_verifications?.length ? Math.min(...subInfo.payment_verifications.map((x) => x.id)) : null;
+  const justActivated = !signingUp && subInfo?.status === 'active' && pv.status === 'approved' && pv.id === firstInvoiceId;
+  const travelLabel = pv.tenant_name || subInfo?.tenant_name || 'Travel Anda';
 
   return (
+    <>
+    {(signingUp || justActivated) && (
+      <ol className="st-signup-steps" aria-label="Langkah pendaftaran">
+        <li className="st-signup-steps__done"><Check className="ku-icon--sm" aria-hidden="true" />Data travel</li>
+        {justActivated ? (
+          <>
+            <li className="st-signup-steps__done"><Check className="ku-icon--sm" aria-hidden="true" />Pembayaran</li>
+            <li className="st-signup-steps__current" aria-current="step"><Check className="ku-icon--sm" aria-hidden="true" />Aktif</li>
+          </>
+        ) : (
+          <>
+            <li className="st-signup-steps__current" aria-current="step"><span>2</span>Pembayaran</li>
+            <li><span>3</span>Aktif</li>
+          </>
+        )}
+      </ol>
+    )}
+    {signingUp && (
+      <div className="st-signup-note">
+        <Banner tone="info">Akun dashboard {travelLabel} sudah dibuat. Dashboard dan website travel terbuka penuh setelah pembayaran diverifikasi.</Banner>
+      </div>
+    )}
+    {justActivated && (
+      <div className="st-signup-note">
+        <Banner tone="success" action={<Button variant="primary" size="sm" to="/">Buka dashboard</Button>}>
+          <b>{travelLabel} sudah aktif.</b> Lanjutkan di dashboard: lengkapi website dan tambahkan paket.
+        </Banner>
+      </div>
+    )}
     <article className="st-invoice" aria-labelledby="invoice-title">
       <header className="st-invoice__head">
         <div>
@@ -179,8 +220,7 @@ export const InvoiceScreen: React.FC = () => {
           <Link to={`/settings/subscription/payment/${otherOpen.id}`}>Buka tagihan #{otherOpen.id}</Link>
         </Banner>
       )}
-      {pv.status === 'pending' && pv.proof_url && <Banner tone={justUploaded ? 'success' : 'info'}><b>{justUploaded ? 'Bukti transfer terkirim.' : 'Pembayaran sedang diverifikasi.'}</b> Tim KlikUmroh akan memberi notifikasi setelah pemeriksaan selesai.</Banner>}
-      {pv.status === 'approved' && <Banner tone="success"><b>Pembayaran diterima</b>{pv.reviewed_at ? ' pada ' + fmtDate(pv.reviewed_at) : ''}. Langganan Anda sudah diperbarui.</Banner>}
+      {pv.status === 'approved' && !justActivated && <Banner tone="success"><b>Pembayaran diterima</b>{pv.reviewed_at ? ' pada ' + fmtDate(pv.reviewed_at) : ''}. Langganan Anda sudah diperbarui.</Banner>}
       <section aria-label="Rincian tagihan">
         <div className="st-invoice__item-head"><span>Deskripsi</span><span>Jumlah</span></div>
         <div className="st-invoice__item">
@@ -194,7 +234,7 @@ export const InvoiceScreen: React.FC = () => {
         </dl>
       </section>
       <div className="st-invoice__payment">
-        {needsTransfer && <section className="st-bank" aria-labelledby="invoice-bank-title">
+        {needsTransfer && !sent && <section className="st-bank" aria-labelledby="invoice-bank-title">
           <h2 id="invoice-bank-title">Transfer bank</h2>
           {bank ? <dl className="st-bank__list">
             <div><dt>Bank</dt><dd>{bank.bank_name}</dd></div>
@@ -204,16 +244,40 @@ export const InvoiceScreen: React.FC = () => {
           {(pv.unique_code ?? 0) > 0 && <p className="st-invoice__note">Transfer sesuai total, termasuk kode unik <b>{pv.unique_code}</b>, agar pembayaran dapat dicocokkan.</p>}
         </section>}
         <section className="st-proof" aria-labelledby="invoice-proof-title">
-          <h2 id="invoice-proof-title">{canUpload ? 'Konfirmasi pembayaran' : 'Bukti pembayaran'}</h2>
-          {pv.proof_url && <div className="st-invoice__proof-preview">
-            {proofUrl ? <a href={proofUrl} target="_blank" rel="noopener noreferrer"><img src={proofUrl} alt="Bukti transfer yang diunggah" /><span><ExternalLink className="ku-icon--sm" aria-hidden="true" /> Lihat bukti transfer</span></a> : <p className="st-muted">Bukti transfer telah diunggah.</p>}
-          </div>}
+          <h2 id="invoice-proof-title">{sent ? 'Bukti transfer' : canUpload ? 'Konfirmasi pembayaran' : 'Bukti pembayaran'}</h2>
+          {pv.proof_url && (
+            <div className={sent ? 'st-proof__file st-proof__file--sent' : 'st-proof__file'} role={sent ? 'status' : undefined}>
+              {proofUrl ? (
+                <a className="st-proof__thumb" href={proofUrl} target="_blank" rel="noopener noreferrer" aria-label="Lihat bukti transfer">
+                  <img src={proofUrl} alt="" />
+                </a>
+              ) : (
+                <span className="st-proof__thumb st-proof__thumb--empty" aria-hidden="true"><ImageIcon className="ku-icon--sm" /></span>
+              )}
+              <div className="st-proof__meta">
+                {sent ? (
+                  <strong className="st-proof__ok"><CheckCircle2 className="ku-icon--sm" aria-hidden="true" />Bukti transfer terkirim</strong>
+                ) : (
+                  <strong>{pv.status === 'rejected' ? 'Bukti sebelumnya ditolak' : 'Bukti transfer'}</strong>
+                )}
+                <span>Diunggah {formatDateTimeWIB(pv.updated_at)}</span>
+                {sent && <span>Diverifikasi maksimal 24 jam</span>}
+                {proofUrl && <a href={proofUrl} target="_blank" rel="noopener noreferrer">Lihat bukti <ExternalLink className="ku-icon--sm" aria-hidden="true" /></a>}
+              </div>
+            </div>
+          )}
           {canUpload && pv.final_amount > 0 ? <>
-            <p className="st-proof__intro">Sudah transfer? Unggah bukti pembayaran untuk diverifikasi.</p>
-            <Button variant="primary" block className="st-proof__cta" onClick={() => fileRef.current?.click()} disabled={uploading} icon={<ImagePlus className="ku-icon--sm" />}>
-              {uploading ? 'Mengunggah...' : pv.proof_url ? 'Ganti bukti transfer' : 'Unggah bukti transfer'}
-            </Button>
-            <p className="st-invoice__file-hint">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
+            {sent ? (
+              <Button size="sm" className="st-proof__replace" onClick={() => fileRef.current?.click()} disabled={uploading} icon={<ImagePlus className="ku-icon--sm" />}>
+                {uploading ? 'Mengunggah...' : 'Ganti bukti'}
+              </Button>
+            ) : <>
+              <p className="st-proof__intro">Sudah transfer? Unggah bukti pembayaran untuk diverifikasi.</p>
+              <Button variant="primary" block className="st-proof__cta" onClick={() => fileRef.current?.click()} disabled={uploading} icon={<ImagePlus className="ku-icon--sm" />}>
+                {uploading ? 'Mengunggah...' : pv.proof_url ? 'Unggah ulang bukti transfer' : 'Unggah bukti transfer'}
+              </Button>
+              <p className="st-invoice__file-hint">JPG, PNG, atau WebP. Maksimal 10 MB.</p>
+            </>}
             {uploadError && <div className="ku-field__error" role="alert">{uploadError}</div>}
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="st-hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
           </> : !pv.proof_url && <p className="st-muted">Tidak ada bukti transfer.</p>}
@@ -221,5 +285,6 @@ export const InvoiceScreen: React.FC = () => {
       </div>
       {platform?.whatsapp_number && <footer className="st-invoice__footer"><span>Perlu bantuan dengan tagihan ini?</span><a href={waLink(platform.whatsapp_number, 'Halo KlikUmroh, saya ingin bertanya tentang tagihan #' + pv.id + '.')} target="_blank" rel="noopener noreferrer">Hubungi KlikUmroh</a></footer>}
     </article>
+    </>
   );
 };

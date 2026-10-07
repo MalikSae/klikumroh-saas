@@ -43,3 +43,45 @@
 .st-invoice__footer a { color: var(--ku-ink-2); text-underline-offset: var(--ku-space-1); }
 .ap-invoice-frame a:focus-visible, .st-copy__btn:focus-visible { outline: var(--ku-space-1) solid var(--ku-focus-ring); outline-offset: var(--ku-space-1); }
 @media (max-width: 768px) { .ap-invoice-header { padding: var(--ku-space-4); } .ap-invoice-main { padding: var(--ku-space-2) var(--ku-space-3) var(--ku-space-8); } .st-invoice { padding: var(--ku-space-5); gap: var(--ku-space-6); } .st-invoice__payment { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-6); } .st-invoice .st-copy__btn { width: var(--ku-invoice-touchTarget); height: var(--ku-invoice-touchTarget); } .st-invoice__total { flex-wrap: wrap; } .st-invoice__total dd { margin-left: auto; } .ap-invoice-back { font-size: var(--ku-text-md); } }
+
+/* Marketing landing style for the invoice (founder approval 7 Oct 2026, AGENTS.md 3.4 / 3.10):
+   landing background, serif display title, signup steps from the checkout, raised green CTA. */
+.ap-invoice-frame { background: var(--ku-invoice-bg); }
+.st-invoice__title { font: var(--ku-weight-regular) var(--ku-invoice-titleSize) / var(--ku-leading-tight) var(--ku-invoice-fontDisplay); letter-spacing: -0.01em; }
+.st-invoice .st-proof__cta { border-radius: var(--ku-invoice-ctaRadius); box-shadow: var(--ku-invoice-ctaShadow); }
+.st-signup-steps { list-style: none; margin: 0 0 var(--ku-space-5); padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ku-space-2); }
+.st-signup-steps li { display: flex; align-items: center; gap: var(--ku-space-2); padding-top: var(--ku-space-2); border-top: var(--ku-invoice-stepBar) solid var(--ku-line); color: var(--ku-ink-3); font-size: var(--ku-text-md); white-space: nowrap; min-width: 0; }
+.st-signup-steps span { font-variant-numeric: tabular-nums; }
+.st-signup-steps li.st-signup-steps__done { color: var(--ku-ink-2); border-top-color: var(--ku-ink-3); }
+.st-signup-steps li.st-signup-steps__current { color: var(--ku-ink); font-weight: var(--ku-weight-medium); border-top-color: var(--ku-ink); }
+@media (max-width: 768px) { .st-invoice__title { font-size: var(--ku-invoice-titleSizeMobile); } .st-signup-steps { margin: 0 var(--ku-space-1) var(--ku-space-4); } }
+/* Payment in reading order (7 Oct 2026): transfer first, then the proof, one under the other. The bank
+   details sit in one soft row of three, so neither block leaves an empty column beside the other. */
+.st-invoice__payment { gap: var(--ku-space-6); }
+.st-invoice .st-bank__list { display: grid; grid-template-columns: var(--ku-invoice-bankColumns); gap: var(--ku-space-4); margin: 0; padding: var(--ku-space-4); border-radius: var(--ku-radius-ctl); background: var(--ku-soft); }
+.st-invoice .st-bank + .st-proof { padding-top: var(--ku-space-6); border-top: 1px solid var(--ku-line); }
+@media (max-width: 768px) { .st-invoice .st-bank__list { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-3); } }
+/* Uploaded proof: a small thumbnail beside its state, so a sent proof reads as done (7 Oct 2026). */
+.st-proof__file { display: flex; align-items: center; gap: var(--ku-space-4); padding: var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); }
+.st-proof__file--sent { background: var(--ku-green-soft); border-color: var(--ku-green-soft); }
+.st-proof__thumb { flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--ku-radius-ctl); overflow: hidden; background: var(--ku-soft); display: grid; place-items: center; color: var(--ku-ink-4); }
+.st-proof__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.st-proof__meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--ku-text-md); color: var(--ku-ink-2); }
+.st-proof__meta strong { color: var(--ku-ink); font-size: var(--ku-text-base); }
+.st-proof__ok { display: inline-flex; align-items: center; gap: var(--ku-space-2); }
+.st-proof__ok svg { color: var(--ku-green-2); }
+.st-proof__meta a { display: inline-flex; align-items: center; gap: var(--ku-space-1); color: var(--ku-ink-2); text-underline-offset: var(--ku-space-1); }
+.st-proof__replace { align-self: flex-start; }
+/* Phone: the text takes the full box width (the thumbnail squeezed it into many short lines); the proof
+   stays one tap away through "Lihat bukti". */
+@media (max-width: 768px) {
+  .st-proof__file { padding: var(--ku-space-3) var(--ku-space-4); }
+  .st-proof__thumb { display: none; }
+}
+.st-signup-note { margin: 0 0 var(--ku-space-5); }
+/* Phone: the "Buka dashboard" button goes under the text instead of squeezing it. */
+@media (max-width: 768px) {
+  .st-signup-note .ku-banner { flex-wrap: wrap; row-gap: var(--ku-space-3); }
+  .st-signup-note .ku-banner__body { flex-basis: 100%; }
+  .st-signup-note .ku-banner > .ku-btn { flex: 1; height: 40px; }
+}
