@@ -203,6 +203,9 @@ func main() {
 	agentHandler := handler.NewAgentHandler(agentService)
 	agentTargetHandler := handler.NewAgentTargetHandler(agentTargetService)
 	agentJamaahHandler := handler.NewAgentJamaahHandler(prospectService)
+	// Jamaah payment proofs from agents (closing DP, pelunasan) for the admin to verify, 7 Oct 2026.
+	prospectService.SetPaymentRequestRepo(repository.NewPaymentRequestRepository(db))
+	paymentRequestHandler := handler.NewPaymentRequestHandler(prospectService)
 	// Agent habit tracker and "99 sumber jamaah" progress.
 	agentHabitHandler := handler.NewAgentHabitHandler(service.NewAgentHabitService(agentRepo, agentHabitRepo, notifService))
 	// Agent summary on the dashboard home (registered, active, productive, top agents).
@@ -361,6 +364,7 @@ func main() {
 		tenantHandler.RegisterDashboardRoutes(protected)
 		packageHandler.RegisterDashboardRoutes(protected)
 		prospectHandler.RegisterDashboardRoutes(protected)
+		paymentRequestHandler.RegisterDashboardRoutes(protected)
 		metaIntegrationHandler.RegisterDashboardRoutes(protected)
 		contentHandler.RegisterDashboardRoutes(protected)
 		agentHandler.RegisterDashboardRoutes(protected)
@@ -383,6 +387,7 @@ func main() {
 		agentHandler.RegisterAgentProtectedRoutes(agentProtected)
 		agentProtected.Get("/api/agent/files", handler.ServeAgentPrivateFile)
 		agentJamaahHandler.RegisterRoutes(agentProtected)
+		paymentRequestHandler.RegisterAgentRoutes(agentProtected)
 		agentHabitHandler.RegisterRoutes(agentProtected)
 		notifHandler.RegisterAgentRoutes(agentProtected)
 	})

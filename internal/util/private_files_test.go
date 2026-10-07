@@ -13,6 +13,9 @@ func TestParsePrivateUpload(t *testing.T) {
 	}{
 		{"/uploads/12/subscription-proofs/9f1c2d3e-aaaa-bbbb-cccc-1234567890ab.webp", true, PrivateSubscriptionProof, 12, 0},
 		{"/uploads/12/agents/34/bukti-transfer.webp", true, PrivateAgentProof, 12, 34},
+		{"/uploads/12/agents/34/prospect-proofs/9f1c2d3e-aaaa-bbbb-cccc-1234567890ab.webp", true, PrivateProspectProof, 12, 34},
+		{"/uploads/12/agents/34/prospect-proofs/../../../13/x.webp", false, "", 0, 0},
+		{"/uploads/12/agents/34/prospect-proofs/x.png", false, "", 0, 0},
 		{"/uploads/12/subscription-proofs/../../13/subscription-proofs/x.webp", false, "", 0, 0},
 		{"/uploads/12/packages/5/photo.webp", false, "", 0, 0},
 		{"/uploads/12/agents/34/photo.webp", false, "", 0, 0},

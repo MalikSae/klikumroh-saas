@@ -177,7 +177,46 @@ export interface ProspectDetailResponse {
   info_komisi?: ProspectCommissionInfo | null;
   status_history: ProspectStatusHistoryItem[];
   notes: ProspectNoteItem[];
+  /** Payment proofs the agent sent (closing DP, pelunasan), newest first. */
+  payment_requests?: PaymentRequest[];
 }
+
+/** A jamaah payment proof sent by the agent for the admin to verify (7 Oct 2026). */
+export interface PaymentRequest {
+  id: number;
+  prospect_id: number;
+  agent_id: number;
+  kind: 'closing' | 'paid_off';
+  proof_url: string;
+  amount: number | null;
+  note: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  rejection_reason: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  prospect_name?: string;
+  agent_name?: string;
+}
+
+export const fetchPendingPaymentRequests = async (): Promise<PaymentRequest[]> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/payment-requests`, { headers });
+  if (!res.ok) throw new Error('Gagal memuat bukti pembayaran');
+  return await res.json();
+};
+
+export const decidePaymentRequest = async (id: number, approve: boolean, reason?: string): Promise<void> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/payment-requests/${id}/${approve ? 'approve' : 'reject'}`, {
+    method: 'POST',
+    headers,
+    body: approve ? undefined : JSON.stringify({ reason: reason ?? '' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memproses bukti pembayaran' }));
+    throw new Error(err.error || 'Gagal memproses bukti pembayaran');
+  }
+};
 
 export interface UpdateProspectInput {
   name: string;
@@ -700,7 +739,9 @@ export const updateProspectStatus = async (
   id: number,
   status: string,
   lostReason?: string,
-  lostReasonCategory?: string
+  lostReasonCategory?: string,
+  /** Package and jamaah count for a prospect that has none yet (required from Tertarik on). */
+  details?: { package_id?: number; jumlah_jamaah?: number }
 ): Promise<void> => {
   const headers = await getAuthHeaders();
   const res = await dashboardFetch(`${API_BASE}/api/dashboard/prospects/${id}/status`, {
@@ -710,6 +751,7 @@ export const updateProspectStatus = async (
       status,
       lost_reason: status === 'tidak_lanjut' ? (lostReason || null) : null,
       lost_reason_category: status === 'tidak_lanjut' ? (lostReasonCategory || null) : null,
+      ...details,
     }),
   });
   if (!res.ok) {
@@ -2118,6 +2160,8 @@ export interface UrgentAlerts {
   uncontacted_prospects_count: number;
   pending_payouts_count: number;
   pending_payouts_total: number;
+  /** Jamaah payment proofs from agents (closing DP, pelunasan) waiting for review. */
+  pending_payment_proofs_count?: number;
 }
 
 export interface OverviewKPIs {
@@ -2232,6 +2276,98 @@ export interface KPIDay {
   /** Estimated revenue of the day's closings: package price x jamaah. */
   closing_value: number;
 }
+
+/** Onboarding checklist status of the travel (GET /api/dashboard/onboarding), see internal/service/onboarding.go. */
+export interface OnboardingStatus {
+  profile: boolean;
+  logo: boolean;
+  package_ready: boolean;
+  trust: boolean;
+  commission: boolean;
+  agent_program: boolean;
+  agent_registered: boolean;
+  agent_active: boolean;
+  target: boolean;
+  prospect: boolean;
+  followed_up: boolean;
+  pixel: boolean;
+  custom_domain: boolean;
+  team: boolean;
+  draft_package_id: number | null;
+  missing_commission_package_id: number | null;
+}
+
+export const fetchOnboardingStatus = async (): Promise<OnboardingStatus> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/onboarding`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal memuat panduan' }));
+    throw new Error(err.error || 'Gagal memuat panduan');
+  }
+  return await res.json();
+};
+
+// Panduan rekrutmen agen: only for travels on an active plan of 12 months or more. Any other travel gets
+// 403 with code "playbook_locked", which the screen turns into an offer instead of an error.
+export type PlaybookBlock =
+  | { type: 'heading' | 'paragraph' | 'template'; text: string }
+  | { type: 'steps' | 'checklist'; items: string[] };
+
+export interface PlaybookSummary {
+  slug: string;
+  title: string;
+  summary: string;
+  order: number;
+}
+
+export interface PlaybookPage extends PlaybookSummary {
+  blocks: PlaybookBlock[];
+}
+
+export class PlaybookLockedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PlaybookLockedError';
+  }
+}
+
+const playbookRequest = async <T>(path: string, fallback: string, init?: { method: 'PUT'; body: string }): Promise<T> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/playbook${path}`, { headers, ...init });
+  if (!res.ok) {
+    if (res.status === 401) {
+      redirectToLogin();
+    }
+    const err = await res.json().catch(() => ({ error: fallback }));
+    if (res.status === 403 && err.code === 'playbook_locked') {
+      throw new PlaybookLockedError(err.error || fallback);
+    }
+    throw new Error(err.error || fallback);
+  }
+  return await res.json();
+};
+
+export const fetchPlaybookIndex = async (): Promise<PlaybookSummary[]> => {
+  const data = await playbookRequest<{ pages: PlaybookSummary[] }>('', 'Gagal memuat panduan rekrutmen');
+  return data.pages ?? [];
+};
+
+export const fetchPlaybookPage = (slug: string): Promise<PlaybookPage> =>
+  playbookRequest<PlaybookPage>(`/${encodeURIComponent(slug)}`, 'Gagal memuat halaman panduan');
+
+// Checked checklist items of one page, shared by the whole team of the travel. An item id is
+// "<block index>:<hash of its text>" (see itemId in screens/playbook/blocks.tsx).
+export const fetchPlaybookChecks = async (slug: string): Promise<string[]> => {
+  const data = await playbookRequest<{ checked: string[] }>(`/${encodeURIComponent(slug)}/checks`, 'Gagal memuat centangan');
+  return data.checked ?? [];
+};
+
+export const setPlaybookCheck = async (slug: string, itemId: string, checked: boolean): Promise<void> => {
+  await playbookRequest<unknown>(`/${encodeURIComponent(slug)}/checks`, 'Gagal menyimpan centangan', {
+    method: 'PUT',
+    body: JSON.stringify({ item_id: itemId, checked }),
+  });
+};
 
 export const fetchDashboardOverview = async (): Promise<DashboardOverviewData> => {
   const headers = await getAuthHeaders();

@@ -40,6 +40,8 @@ type UrgentAlertsData struct {
 	PendingPayoutsTotal float64 `json:"pending_payouts_total"`
 	// ApprovedPayoutsCount: the approved-not-transferred part of PendingPayoutsCount.
 	ApprovedPayoutsCount int `json:"approved_payouts_count"`
+	// PendingPaymentProofs: jamaah payment proofs from agents (closing DP, pelunasan) waiting for review.
+	PendingPaymentProofs int `json:"pending_payment_proofs_count"`
 }
 
 // OverviewKPIsData holds high-level lead-gen performance metrics.
@@ -204,6 +206,15 @@ func (r *mysqlDashboardOverviewRepository) GetOverview(ctx context.Context, tena
 		 FROM commission_payout_requests WHERE tenant_id = ? AND status IN ('pending', 'approved')`,
 		tenantID,
 	).Scan(&data.Alerts.PendingPayoutsCount, &data.Alerts.PendingPayoutsTotal, &data.Alerts.ApprovedPayoutsCount)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1c. Jamaah payment proofs from agents waiting for the admin.
+	err = r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM prospect_payment_requests WHERE tenant_id = ? AND status = 'pending'`,
+		tenantID,
+	).Scan(&data.Alerts.PendingPaymentProofs)
 	if err != nil {
 		return nil, err
 	}

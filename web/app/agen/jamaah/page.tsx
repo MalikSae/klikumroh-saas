@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { capitalizeName } from '@/lib/personName';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Users, Plus, RefreshCw, AlertCircle, X, Search, MessageCircle } from 'lucide-react';
+import { CustomDropdown } from '../../../components/CustomDropdown';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
@@ -598,7 +600,8 @@ export default function AgenJamaahListPage() {
                   required
                   placeholder="Contoh: H. Ahmad Subagio"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: capitalizeName(e.target.value) })}
+                  autoCapitalize="words"
                   className={styles.listinput60}
                 />
               </div>
@@ -629,18 +632,12 @@ export default function AgenJamaahListPage() {
                 <label className={styles.listlabel58}>
                   Pilihan Paket Umroh
                 </label>
-                <select
+                <CustomDropdown
                   value={formData.package_id}
-                  onChange={(e) => setFormData({ ...formData, package_id: e.target.value })}
-                  className={styles.listinput60}
-                >
-                  <option value="">Pilih Paket (Opsional)</option>
-                  {packages.map((pkg) => (
-                    <option key={pkg.id} value={pkg.id}>
-                      {pkg.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Pilih Paket (Opsional)"
+                  options={[{ value: '', label: 'Pilih Paket (Opsional)' }, ...packages.map((pkg) => ({ value: String(pkg.id), label: pkg.name }))]}
+                  onChange={(e) => setFormData({ ...formData, package_id: String(e.target.value) })}
+                />
               </div>
 
               {/* Jumlah Jamaah */}
@@ -666,18 +663,12 @@ export default function AgenJamaahListPage() {
                 <label className={styles.listlabel58} htmlFor="manual-departure">
                   Rencana Berangkat
                 </label>
-                <select
+                <CustomDropdown
                   id="manual-departure"
                   value={formData.departure_plan}
-                  onChange={(e) => setFormData({ ...formData, departure_plan: e.target.value })}
-                  className={styles.listinput60}
-                >
-                  {departureOptions().map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                  options={departureOptions().map((o) => ({ value: o.value, label: o.label }))}
+                  onChange={(e) => setFormData({ ...formData, departure_plan: String(e.target.value) })}
+                />
               </div>
               )}
 

@@ -3,7 +3,9 @@
 // delete for spam, UU PDP anonymisation).
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowRight, MessageCircle, MoreHorizontal, Pencil, Trash2, UserX } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { EditProspectModal } from './EditProspectModal';
+import { PaymentProofCard } from './PaymentProofCard';
 import {
   LOST_REASON_OPTIONS,
   addProspectNote,
@@ -21,6 +23,8 @@ import {
 } from '../../services/api';
 import { formatDateTimeWIB } from '../../utils/datetime';
 import { closingSeatsWarning } from '../../utils/packageSeats';
+import { parseJamaahCount } from '../programs/numberInput';
+import { isDeparted } from '../packages/packageUtil';
 import { sourceLabel, utmValue } from '../../utils/sourceLabel';
 import { closingCommissionNote, closingPayoffNote, lostReasonNote, paidOffDialogNote, type ReleasePolicy } from '../../utils/prospectTexts';
 import {
@@ -62,7 +66,10 @@ export const ProspectDrawer: React.FC<{
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [note, setNote] = useState('');
-  const [dialog, setDialog] = useState<null | 'closing' | 'lost' | 'paid' | 'cancel' | 'delete' | 'anonymize'>(null);
+  const [dialog, setDialog] = useState<null | 'tertarik' | 'closing' | 'lost' | 'paid' | 'cancel' | 'delete' | 'anonymize'>(null);
+  // Package and jamaah count asked when a prospect without them moves to Tertarik or Closing.
+  const [detailPkg, setDetailPkg] = useState('');
+  const [detailJamaah, setDetailJamaah] = useState('1');
   const [confirmClosing, setConfirmClosing] = useState(false);
   const [lostCategory, setLostCategory] = useState('');
   const [lostReason, setLostReason] = useState('');
@@ -130,8 +137,46 @@ export const ProspectDrawer: React.FC<{
   const hasCommissionHistory = isClosing || data?.info_komisi?.type === 'dibatalkan' || data?.info_komisi?.has_ledger === true;
   const statusLocked = isClosing || (anonymized && !isClosing);
   const pkg = data?.package ?? (p?.package_id ? packages.find((x) => x.id === p.package_id) : undefined);
-  const commissionGap = !data?.agent ? null : !data.package ? 'Prospek ini belum punya paket' : !data.package.commission_amount || data.package.commission_amount <= 0 ? `Komisi paket ${data.package.name} belum diatur` : null;
-  const seatsWarning = closingSeatsWarning(data?.package, p?.jumlah_jamaah);
+  // From Tertarik on, a prospect needs a package and a jamaah count; missing ones are asked in the dialog.
+  const needPkg = !!p && !p.package_id;
+  const needJamaah = !!p && !(p.jumlah_jamaah && p.jumlah_jamaah > 0);
+  const pickedPkg = needPkg ? packages.find((x) => String(x.id) === detailPkg) : data?.package ?? undefined;
+  const pickedJamaah = needJamaah ? parseJamaahCount(detailJamaah) : p?.jumlah_jamaah ?? null;
+  const commissionGap = !data?.agent || !pickedPkg ? null : !pickedPkg.commission_amount || pickedPkg.commission_amount <= 0 ? `Komisi paket ${pickedPkg.name} belum diatur` : null;
+  const seatsWarning = closingSeatsWarning(pickedPkg, pickedJamaah);
+  // Tertarik is interest in a package still on sale: departed ones are left out. A closing may still be
+  // recorded after departure, so the Closing dialog keeps them.
+  const packageOptions = [
+    { value: '', label: 'Pilih paket' },
+    ...packages
+      .filter((x) => x.status === 'published' && (dialog !== 'tertarik' || !isDeparted(x)))
+      .map((x) => ({ value: String(x.id), label: x.name })),
+  ];
+
+  // The details to send with the status change, or an error message when one is missing.
+  const statusDetails = (): { package_id?: number; jumlah_jamaah?: number } | string => {
+    if (needPkg && !detailPkg) return 'Paket belum dipilih.';
+    if (needJamaah && pickedJamaah === null) return 'Jumlah jamaah harus angka bulat 1 sampai 50.';
+    return {
+      ...(needPkg ? { package_id: Number(detailPkg) } : {}),
+      ...(needJamaah && pickedJamaah !== null ? { jumlah_jamaah: pickedJamaah } : {}),
+    };
+  };
+
+  const detailFields = (needPkg || needJamaah) && (
+    <div className="ku-stack">
+      {needPkg && (
+        <Field label="Paket">
+          {(fid) => <Select id={fid} label="Paket" value={detailPkg} onChange={setDetailPkg} options={packageOptions} />}
+        </Field>
+      )}
+      {needJamaah && (
+        <Field label="Jumlah jamaah">
+          {(fid) => <input id={fid} className="ku-input" type="number" min={1} max={50} value={detailJamaah} onChange={(e) => setDetailJamaah(e.target.value)} />}
+        </Field>
+      )}
+    </div>
+  );
 
   const lostLabel = lostReasonCategoryLabel(p?.lost_reason_category);
   // Typed note behind the category; a legacy row without a category has only free text.
@@ -139,7 +184,12 @@ export const ProspectDrawer: React.FC<{
 
   const pickStatus = (s: Step) => {
     if (!p || statusLocked || busy) return;
+    if (s === 'tertarik' || s === 'closing') {
+      setDetailPkg('');
+      setDetailJamaah('1');
+    }
     if (s === 'closing') return openDialog('closing');
+    if (s === 'tertarik' && s !== p.status && (needPkg || needJamaah)) return openDialog('tertarik');
     if (s === 'tidak_lanjut') {
       setLostCategory(p.lost_reason_category && p.lost_reason_category !== 'batal_setelah_dp' ? p.lost_reason_category : '');
       // Prefilled for every category, so saving again (for example to fix the category) keeps the note.
@@ -148,6 +198,17 @@ export const ProspectDrawer: React.FC<{
     }
     if (s === p.status) return;
     run(() => updateProspectStatus(id, s));
+  };
+
+  // Tertarik / Closing with the details asked in the dialog. Closing has a confirmation step first.
+  const submitWithDetails = (s: 'tertarik' | 'closing') => {
+    const details = statusDetails();
+    if (typeof details === 'string') return setActionError(details);
+    if (s === 'closing' && !confirmClosing) {
+      setActionError(null);
+      return setConfirmClosing(true);
+    }
+    run(() => updateProspectStatus(id, s, undefined, undefined, details));
   };
 
   const submitLost = () => {
@@ -162,17 +223,17 @@ export const ProspectDrawer: React.FC<{
 
   const menuItems = [
     ...(p && !hasCommissionHistory ? [{ label: 'Hapus prospek', danger: true, icon: <Trash2 className="ku-icon--sm" />, onClick: () => openDialog('delete') }] : []),
-    ...(p && hasCommissionHistory && !anonymized ? [{ label: 'Hapus data pribadi (UU PDP)', danger: true, icon: <UserX className="ku-icon--sm" />, onClick: () => openDialog('anonymize') }] : []),
+    ...(p && hasCommissionHistory && !anonymized ? [{ label: 'Hapus data pribadi', danger: true, icon: <UserX className="ku-icon--sm" />, onClick: () => openDialog('anonymize') }] : []),
   ];
 
   return (
     <Drawer
       open
       onClose={onClose}
+      actions={menuItems.length > 0 && <Menu label="Aksi lain" trigger={<MoreHorizontal className="ku-icon--sm" />} items={menuItems} />}
       title={
         <span className="pr-drawer-title">
           {title}
-          {menuItems.length > 0 && <Menu label="Aksi lain" align="start" trigger={<MoreHorizontal className="ku-icon--sm" />} items={menuItems} />}
         </span>
       }
       subtitle={subtitle}
@@ -233,6 +294,12 @@ export const ProspectDrawer: React.FC<{
                 </div>
               </div>
             )}
+            {/* Payment proofs the agent sent, waiting for the admin (closing DP, pelunasan). */}
+            {(data?.payment_requests ?? [])
+              .filter((r) => r.status === 'pending')
+              .map((r) => (
+                <PaymentProofCard key={r.id} request={r} agentName={data?.agent?.name} onDone={() => { load(); onChanged(); }} />
+              ))}
           </section>
 
           <section className="ku-facts">
@@ -255,6 +322,12 @@ export const ProspectDrawer: React.FC<{
                 <div className="ku-facts__v">{p.departure_plan ? formatDeparturePlan(p.departure_plan) : 'Belum diisi'}</div>
               </div>
             )}
+            <div>
+              <div className="ku-facts__k">Agen</div>
+              <div className="ku-facts__v">
+                {data?.agent ? <Link className="pr-agent-link" to={`/agents/${data.agent.id}`}>{data.agent.name}</Link> : 'Tanpa agen'}
+              </div>
+            </div>
             <div>
               <div className="ku-facts__k">{komisi?.type === 'final' ? 'Komisi agen' : komisi?.type === 'dibatalkan' ? 'Komisi agen (dibatalkan)' : 'Potensi komisi agen'}</div>
               <div className="ku-facts__v">{data?.agent && komisi ? fmtRupiah(komisi.direct_amount) : '—'}</div>
@@ -374,27 +447,24 @@ export const ProspectDrawer: React.FC<{
         footer={
           <>
             <Button onClick={() => setDialog(null)} disabled={busy}>Batal</Button>
-            {confirmClosing ? (
-              <Button variant="primary" disabled={busy} onClick={() => run(() => updateProspectStatus(id, 'closing'))}>
-                {data?.agent && !commissionGap ? 'Ya, closing & bukukan komisi' : 'Ya, closing'}
-              </Button>
-            ) : (
-              <Button variant="primary" onClick={() => setConfirmClosing(true)}>Lanjutkan</Button>
-            )}
+            <Button variant="primary" disabled={busy} onClick={() => submitWithDetails('closing')}>
+              {!confirmClosing ? 'Lanjutkan' : data?.agent && !commissionGap ? 'Ya, closing & bukukan komisi' : 'Ya, closing'}
+            </Button>
           </>
         }
       >
         <div className="ku-stack">
           {actionError && <Banner tone="danger">{actionError}</Banner>}
+          {!confirmClosing && detailFields}
           {confirmClosing ? (
             <p className="pr-dialog-text">
               Closing untuk <b>{p?.name}</b> tidak bisa diubah ke status lain. Jika jamaah batal nanti, gunakan <b>Batalkan closing</b>.
             </p>
           ) : commissionGap ? (
             <Banner tone="warning" icon={<AlertTriangle className="ku-icon--sm" />}>
-              <b>{commissionGap}</b>, jadi komisi agen tidak dibukukan. Isi paket lewat Edit data dulu jika agen berhak komisi.
+              <b>{commissionGap}</b>, jadi komisi agen tidak dibukukan.
             </Banner>
-          ) : data?.agent ? (
+          ) : data?.agent && pickedPkg ? (
             <p className="pr-dialog-text">{closingCommissionNote(data.agent.name, releasePolicy)}</p>
           ) : null}
           {seatsWarning && (
@@ -402,6 +472,24 @@ export const ProspectDrawer: React.FC<{
               {seatsWarning}
             </Banner>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={dialog === 'tertarik'}
+        onClose={() => setDialog(null)}
+        title="Ubah status ke Tertarik"
+        description={needPkg && needJamaah ? 'Lengkapi paket dan jumlah jamaah dulu.' : needPkg ? 'Lengkapi paket yang diminati dulu.' : 'Lengkapi jumlah jamaah dulu.'}
+        footer={
+          <>
+            <Button onClick={() => setDialog(null)} disabled={busy}>Batal</Button>
+            <Button variant="primary" disabled={busy} onClick={() => submitWithDetails('tertarik')}>Simpan</Button>
+          </>
+        }
+      >
+        <div className="ku-stack">
+          {actionError && <Banner tone="danger">{actionError}</Banner>}
+          {detailFields}
         </div>
       </Modal>
 

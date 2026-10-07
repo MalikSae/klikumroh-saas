@@ -2,7 +2,7 @@
 // /prospects/:id opens the same list with the drawer on that prospect.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Banknote, Clock, Download, Handshake, Inbox, Percent, RotateCcw, SearchX, Users, Wallet } from 'lucide-react';
+import { Clock, Download, Inbox, RotateCcw, SearchX, Wallet } from 'lucide-react';
 import {
   downloadProspectsCSV,
   fetchCommissionReleasePolicy,
@@ -35,7 +35,8 @@ import {
   ChannelTag,
   DataTable,
   EmptyState,
-  KpiCard,
+  Metric,
+  MetricStrip,
   Pagination,
   SearchField,
   Select,
@@ -50,6 +51,8 @@ import {
 import { useFrame } from '../../app/AppFrame';
 import { ProspectDrawer } from './ProspectDrawer';
 import { compare, delta } from '../dashboard/kpiMath';
+
+const VS_PREVIOUS = 'dibanding 30 hari sebelumnya';
 import './prospects.css';
 
 const PAGE_SIZES = [25, 50, 100];
@@ -58,16 +61,15 @@ type StatusTab = 'all' | 'baru' | 'dihubungi' | 'tertarik' | 'closing' | 'tidak_
 
 const agentLabel = (p: ProspectItem) => (p.agent_name && p.agent_name.trim() && p.agent_name !== '-' ? p.agent_name : null);
 
-// Lost reason in the list: the category, plus the typed note when there is one (one line, full text on hover).
-const LostReasonCell: React.FC<{ category?: string | null; reason?: string | null }> = ({ category, reason }) => {
-  const label = lostReasonCategoryLabel(category);
-  const note = label ? lostReasonNote(category, label, reason) : '';
-  return (
-    <>
-      <span className="ku-muted ku-small">{label || reason}</span>
-      {note && <span className="ku-muted ku-small pr-cell__note" title={note}>{note}</span>}
-    </>
-  );
+// Hover text for the status pill: payoff state of a closing, or the lost reason (category + typed note).
+const statusHint = (p: ProspectItem): string => {
+  if (p.status === 'closing') return p.paid_off_at ? 'Lunas' : 'DP, menunggu lunas';
+  if (p.status === 'tidak_lanjut') {
+    const label = lostReasonCategoryLabel(p.lost_reason_category);
+    const note = label ? lostReasonNote(p.lost_reason_category, label, p.lost_reason) : '';
+    return [label || p.lost_reason || '', note].filter(Boolean).join(': ');
+  }
+  return '';
 };
 
 export const ProspectsScreen: React.FC = () => {
@@ -264,12 +266,22 @@ export const ProspectsScreen: React.FC = () => {
   return (
     <div className="ku-stack">
       {/* Sales KPIs of the last 30 days (status counts are already on the tabs below). */}
-      <div className="ku-kpi-row">
-        <KpiCard label="Prospek masuk" icon={<Users className="ku-icon" />} value={kpi ? fmtNumber(kpi.prospects.cur) : '—'} delta={kpi ? { ...delta(kpi.prospects.cur, kpi.prospects.prev), suffix: 'vs 30 hari sebelumnya' } : undefined} note="30 hari terakhir" />
-        <KpiCard label="Jamaah closing" icon={<Handshake className="ku-icon" />} value={kpi ? fmtNumber(kpi.jamaah.cur) : '—'} delta={kpi ? { ...delta(kpi.jamaah.cur, kpi.jamaah.prev), suffix: 'vs 30 hari sebelumnya' } : undefined} note="30 hari terakhir" />
-        <KpiCard label="Konversi" icon={<Percent className="ku-icon" />} value={kpi && kpi.rate !== null ? fmtPercent(kpi.rate) : '—'} note={kpi?.cohort ? `${fmtNumber(kpi.cohort.closings)} dari ${fmtNumber(kpi.cohort.prospects)} prospek baru sudah closing` : undefined} />
-        <KpiCard label="Potensi pipeline" icon={<Banknote className="ku-icon" />} value={kpi ? fmtRupiahShort(kpi.pipeline.total_value) : '—'} note={kpi ? `${fmtNumber(kpi.pipeline.total_prospects)} prospek berjalan · ${fmtNumber(kpi.pipeline.total_pax)} jamaah` : undefined} />
-      </div>
+      <MetricStrip label="Penjualan 30 hari terakhir" heading="30 hari terakhir" headingMeta={VS_PREVIOUS}>
+        <Metric label="Prospek masuk" value={kpi ? fmtNumber(kpi.prospects.cur) : '—'} delta={kpi ? delta(kpi.prospects.cur, kpi.prospects.prev) : undefined} deltaLabel={VS_PREVIOUS} />
+        <Metric label="Jamaah closing" value={kpi ? fmtNumber(kpi.jamaah.cur) : '—'} delta={kpi ? delta(kpi.jamaah.cur, kpi.jamaah.prev) : undefined} deltaLabel={VS_PREVIOUS} />
+        <Metric
+          label="Konversi"
+          value={kpi && kpi.rate !== null ? fmtPercent(kpi.rate) : '—'}
+          note={kpi?.cohort ? `${fmtNumber(kpi.cohort.closings)} dari ${fmtNumber(kpi.cohort.prospects)}` : undefined}
+          hint={kpi?.cohort ? `${fmtNumber(kpi.cohort.closings)} dari ${fmtNumber(kpi.cohort.prospects)} prospek baru dalam 30 hari terakhir sudah closing` : undefined}
+        />
+        <Metric
+          label="Potensi pipeline"
+          value={kpi ? fmtRupiahShort(kpi.pipeline.total_value) : '—'}
+          note={kpi ? `${fmtNumber(kpi.pipeline.total_prospects)} prospek` : undefined}
+          hint={kpi ? `Prospek yang masih berjalan saat ini, bukan hanya 30 hari: ${fmtNumber(kpi.pipeline.total_prospects)} prospek, ${fmtNumber(kpi.pipeline.total_pax)} jamaah` : undefined}
+        />
+      </MetricStrip>
       {summary && summary.stale_baru > 0 && status !== 'baru' && (
         <Banner tone="warning" icon={<Clock className="ku-icon--sm" />} action={<Button size="sm" onClick={() => change(setStatus)('baru')}>Lihat prospek</Button>}>
           <b>{fmtNumber(summary.stale_baru)} prospek baru</b> belum dihubungi lebih dari 24 jam.
@@ -424,13 +436,11 @@ export const ProspectsScreen: React.FC = () => {
               key: 'status',
               header: 'Status',
               cell: (p) => (
-                <div className="pr-cell">
+                // Status only in the table (founder: no extra notes in the list); payoff and lost reason
+                // stay available on hover and in the prospect drawer.
+                <span title={statusHint(p) || undefined}>
                   <StatusPill status={p.status} />
-                  {p.status === 'closing' && <span className={`ku-small ${p.paid_off_at ? 'ku-up' : 'ku-muted'}`}>{p.paid_off_at ? 'Lunas' : 'DP, menunggu lunas'}</span>}
-                  {p.status === 'tidak_lanjut' && (p.lost_reason_category || p.lost_reason) && (
-                    <LostReasonCell category={p.lost_reason_category} reason={p.lost_reason} />
-                  )}
-                </div>
+                </span>
               ),
             },
           ]}

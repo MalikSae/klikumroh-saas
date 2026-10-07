@@ -41,7 +41,18 @@
   cursor: pointer;
 }
 
-.jd-icon-btn:hover {
+/* 44px touch area, but the hover shade is a smaller 32px square around the icon (7 Oct 2026). */
+.jd-icon-btn { position: relative; }
+.jd-icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: calc((100% - 32px) / 2);
+  border-radius: 8px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+.jd-icon-btn > svg { position: relative; }
+.jd-icon-btn:hover::before {
   background-color: var(--tw-neutral-100);
 }
 
@@ -114,8 +125,10 @@
 }
 
 .jd-btn--sm {
-  height: 36px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* Secondary action next to WhatsApp: soft gray fill, no outline. */
@@ -372,3 +385,25 @@
   color: var(--tw-neutral-900);
   white-space: pre-wrap;
 }
+
+/* Jamaah payment proof (Ajukan closing / Kirim bukti lunas), 7 Oct 2026. */
+.jd-proof { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.jd-proof__cta { width: 100%; border-color: var(--tw-brand-primary); background-color: var(--tw-brand-primary); color: var(--tw-on-brand); }
+.jd-proof__cta:hover:not(:disabled) { background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900)); }
+.jd-proof__state { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 8px; background-color: var(--tw-neutral-100); color: var(--tw-neutral-700); font-size: 14px; line-height: 1.5; }
+.jd-proof__state svg { flex-shrink: 0; margin-top: 2px; }
+.jd-proof__rejected, .jd-proof__error { margin: 0; padding: 10px 12px; border-radius: 8px; background-color: var(--tw-danger-bg, var(--tw-neutral-100)); color: var(--tw-danger); font-size: 14px; line-height: 1.5; }
+
+.jd-sheet { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: var(--tw-modal-overlay); }
+.jd-sheet__panel { width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; background-color: var(--tw-background); }
+.jd-sheet__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.jd-sheet__head h3 { margin: 0; font: 600 17px var(--tw-font-heading); color: var(--tw-neutral-900); }
+.jd-sheet__close { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--tw-neutral-500); cursor: pointer; }
+.jd-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: var(--tw-neutral-700); }
+.jd-field input[type='file'] { font-size: 14px; font-weight: 400; }
+.jd-input { width: 100%; height: 44px; padding: 0 12px; border: 1.5px solid var(--tw-divider-strong); border-radius: 8px; background: var(--tw-background); color: var(--tw-neutral-900); font: 400 16px var(--tw-font-body); }
+.jd-input:focus { outline: none; border-color: var(--tw-brand-primary); }
+.jd-input--area { height: auto; padding: 10px 12px; resize: vertical; }
+.jd-proof__submit { width: 100%; height: 46px; border-color: var(--tw-brand-primary); background-color: var(--tw-brand-primary); color: var(--tw-on-brand); }
+/* Without this the generic .jd-btn hover (light gray) put white text on a pale fill. */
+.jd-proof__submit:hover:not(:disabled) { background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900)); }

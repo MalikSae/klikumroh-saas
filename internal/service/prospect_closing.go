@@ -95,6 +95,7 @@ func (s *prospectService) MarkPaidOff(ctx context.Context, tenantID uint64, id u
 	}
 
 	s.addSystemNote(ctx, tenantID, id, "Jamaah ditandai lunas oleh admin. Komisi agen dapat dicairkan.")
+	s.settlePaymentRequests(ctx, tenantID, id, repository.PaymentRequestPaidOff, "approved", adminUserID)
 	if prospect.AgentID != nil && released > 0 {
 		s.notifyAgent(ctx, tenantID, *prospect.AgentID, "commission_released", "Komisi siap dicairkan",
 			fmt.Sprintf("Jamaah %s sudah lunas. Komisi Anda sekarang bisa dicairkan.", prospect.Name),
@@ -240,6 +241,8 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 		}
 		s.notifyAgent(ctx, tenantID, agentID, "commission_override_reversed", title, body, "/agen/riwayat-komisi")
 	}
+	// The closing is gone: a pelunasan proof still waiting no longer applies.
+	s.settlePaymentRequests(ctx, tenantID, id, repository.PaymentRequestPaidOff, "cancelled", adminUserID)
 	return result, nil
 }
 

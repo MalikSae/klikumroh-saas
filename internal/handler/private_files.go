@@ -74,7 +74,8 @@ func ServeAgentPrivateFile(w http.ResponseWriter, r *http.Request) {
 	}
 	ref := r.URL.Query().Get("path")
 	info, ok := util.ParsePrivateUpload(ref)
-	if !ok || info.Kind != util.PrivateAgentProof || info.TenantID != tenantID || info.AgentID != agentID {
+	// An agent reads only its own files: its registration proof and the jamaah payment proofs it uploaded.
+	if !ok || (info.Kind != util.PrivateAgentProof && info.Kind != util.PrivateProspectProof) || info.TenantID != tenantID || info.AgentID != agentID {
 		privateFileNotFound(w)
 		return
 	}

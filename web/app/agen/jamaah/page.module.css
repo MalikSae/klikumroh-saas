@@ -293,6 +293,6 @@
 /* Form field standard (see .tw-field in app/globals.css). */
 .listinput60 { height: 44px; padding: 0 12px; border: 1.5px solid var(--tw-divider-strong); border-radius: 8px; background-color: var(--tw-background); font-size: 16px; font-family: var(--tw-font-body); }
 .listinput60:hover:not(:disabled) { border-color: var(--tw-brand-primary); }
-.listinput60:focus { border-color: var(--tw-brand-primary); box-shadow: 0 0 0 1px var(--tw-brand-primary); }
+.listinput60:focus { border-color: var(--tw-brand-primary); box-shadow: none; }
 .listinput60::placeholder { color: var(--tw-text-muted); }
 .listlabel58 { font-size: 13px; }

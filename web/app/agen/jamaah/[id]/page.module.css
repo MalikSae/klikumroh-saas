@@ -190,7 +190,7 @@
 /* Form field standard (see .tw-field in app/globals.css). */
 .detailinput84 { height: 44px; padding: 0 12px; border: 1.5px solid var(--tw-divider-strong); border-radius: 8px; background-color: var(--tw-background); font-size: 16px; font-family: var(--tw-font-body); }
 .detailinput84:hover:not(:disabled) { border-color: var(--tw-brand-primary); }
-.detailinput84:focus { border-color: var(--tw-brand-primary); box-shadow: 0 0 0 1px var(--tw-brand-primary); }
+.detailinput84:focus { border-color: var(--tw-brand-primary); box-shadow: none; }
 .detailinput84::placeholder { color: var(--tw-text-muted); }
 
 .detailtextarea59:hover:not(:disabled) { border-color: var(--tw-brand-primary); }

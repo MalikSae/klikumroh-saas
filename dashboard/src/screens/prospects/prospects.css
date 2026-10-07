@@ -1,15 +1,19 @@
 /* Prospek screen. Tokens only. */
 .pr-cell { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
-.pr-cell__note { max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-reasons { display: flex; flex-wrap: wrap; gap: var(--ku-space-2) var(--ku-space-4); font-size: var(--ku-text-md); }
 .pr-reasons__item b { font-weight: var(--ku-weight-semibold); }
 .pr-loading { height: 240px; }
 .pr-detail { display: flex; flex-direction: column; gap: 22px; }
 .pr-drawer-title { display: flex; align-items: center; gap: var(--ku-space-2); }
-.pr-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--ku-space-1); }
-.pr-step { height: 34px; padding: 0 var(--ku-space-1); border: 1px solid var(--ku-line); border-radius: 7px; background: var(--ku-panel); color: var(--ku-ink-3); font-size: var(--ku-text-sm); font-weight: var(--ku-weight-medium); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pr-step:hover:not(:disabled) { border-color: var(--ku-ink-4); color: var(--ku-ink); }
-.pr-step--on, .pr-step--on:disabled { background: var(--ku-ink); border-color: var(--ku-ink); color: var(--ku-on-accent); }
+/* Status: one compact segmented control (founder: the five large boxes looked heavy). Height comes from
+   padding; the row scrolls sideways instead of wrapping when it is too narrow. */
+.pr-steps { display: flex; gap: 0; padding: var(--ku-space-1); border-radius: var(--ku-radius-ctl); background: var(--ku-line-2); overflow-x: auto; scrollbar-width: none; }
+.pr-steps::-webkit-scrollbar { display: none; }
+/* Segmented control: only the current status is raised (white with a hairline ring); hover changes the text
+   colour only, so nothing else ever looks selected. */
+.pr-step { flex: 1 1 auto; padding: var(--ku-space-1); border: 0; border-radius: calc(var(--ku-radius-ctl) - 2px); background: transparent; color: var(--ku-ink-2); font-size: var(--ku-text-sm); font-weight: var(--ku-weight-medium); line-height: var(--ku-leading-base); text-align: center; cursor: pointer; white-space: nowrap; }
+.pr-step:hover:not(:disabled):not(.pr-step--on) { color: var(--ku-ink); }
+.pr-step--on, .pr-step--on:disabled { background: var(--ku-panel); color: var(--ku-ink); font-weight: var(--ku-weight-semibold); box-shadow: var(--ku-shadow-ring); }
 .pr-step:disabled { cursor: not-allowed; }
 .pr-step:disabled:not(.pr-step--on) { opacity: 0.6; }
 .pr-hint { margin: var(--ku-space-2) 0 0; color: var(--ku-ink-3); font-size: var(--ku-text-md); }
@@ -25,11 +29,8 @@
 
 /* Phone: prospect detail (drawer is full screen there). */
 @media (max-width: 768px) {
-  /* Status buttons in two even rows (Baru · Dihubungi · Tertarik / Closing · Tidak lanjut) instead of
-     five squeezed columns; 40px tall for thumbs. */
-  .pr-steps { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--ku-space-2); }
-  .pr-step { grid-column: span 2; height: 40px; padding: 0 var(--ku-space-2); font-size: var(--ku-text-md); }
-  .pr-step:nth-child(n + 4) { grid-column: span 3; }
+  /* Status: same segmented row, a little taller for thumbs (height still from padding). */
+  .pr-step { padding: var(--ku-space-2) var(--ku-space-1); }
   .pr-closing { flex-direction: column; align-items: stretch; }
   .pr-closing .ku-row { display: flex; gap: var(--ku-space-2); }
   .pr-closing .ku-row > * { flex: 1; }
@@ -39,3 +40,23 @@
 
 /* Status history: arrow between old and new status, aligned with the text. */
 .pr-history-arrow { vertical-align: middle; }
+
+/* Payment proof from the agent, waiting in the prospect drawer (7 Oct 2026). */
+/* Referring agent in the drawer facts: opens the agent detail page. */
+.pr-agent-link { color: inherit; text-decoration: underline; text-decoration-color: var(--ku-ink-4); text-underline-offset: 3px; }
+.pr-agent-link:hover { text-decoration-color: currentColor; }
+
+.pr-proof {display: flex; flex-direction: column; gap: var(--ku-space-3); margin-top: var(--ku-space-3); padding: var(--ku-space-3); border: 1px solid var(--ku-amber-line, var(--ku-line)); border-radius: var(--ku-radius-inner); background: var(--ku-amber-soft); }
+.pr-proof__row { display: flex; align-items: center; gap: var(--ku-space-3); }
+.pr-proof__thumb { flex-shrink: 0; width: 56px; height: 56px; border-radius: var(--ku-radius-ctl); overflow: hidden; background: var(--ku-soft); display: grid; place-items: center; color: var(--ku-ink-4); }
+.pr-proof__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pr-proof__thumb--btn { padding: 0; border: 1px solid var(--ku-line); cursor: zoom-in; }
+.pr-proof__thumb--btn:hover { border-color: var(--ku-ink-4); }
+.pr-proof__thumb--btn:focus-visible { outline: 2px solid var(--ku-ink); outline-offset: 2px; }
+/* Large view: the whole receipt, scaled to fit the dialog without cropping. */
+.pr-proof__view { display: grid; place-items: center; border-radius: var(--ku-radius-inner); background: var(--ku-soft); overflow: hidden; }
+.pr-proof__view img { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; }
+.pr-proof__text { min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--ku-text-md); color: var(--ku-ink-2); }
+.pr-proof__text strong { color: var(--ku-ink); font-size: var(--ku-text-base); font-weight: var(--ku-weight-semibold); }
+.pr-proof__note { overflow-wrap: anywhere; }
+.pr-proof__actions { display: flex; justify-content: flex-end; gap: var(--ku-space-2); }

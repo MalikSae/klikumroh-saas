@@ -17,14 +17,17 @@ const PrivateUploadsDir = "storage/private"
 const (
 	PrivateSubscriptionProof = "subscription-proof"
 	PrivateAgentProof        = "agent-proof"
+	// PrivateProspectProof is a jamaah payment proof an agent uploaded (closing DP or pelunasan), 7 Oct 2026:
+	// "/uploads/{tenant}/agents/{agent}/prospect-proofs/{uuid}.webp".
+	PrivateProspectProof = "prospect-proof"
 )
 
-var privateUploadPattern = regexp.MustCompile(`^/uploads/(\d+)/(?:subscription-proofs/[A-Za-z0-9._-]+\.webp|agents/(\d+)/bukti-transfer\.webp)$`)
+var privateUploadPattern = regexp.MustCompile(`^/uploads/(\d+)/(?:subscription-proofs/[A-Za-z0-9._-]+\.webp|agents/(\d+)/(bukti-transfer\.webp|prospect-proofs/[A-Za-z0-9._-]+\.webp))$`)
 
 // PrivateUpload describes a private file reference.
 type PrivateUpload struct {
 	TenantID uint64
-	AgentID  uint64 // only for PrivateAgentProof
+	AgentID  uint64 // PrivateAgentProof and PrivateProspectProof
 	Kind     string
 }
 
@@ -47,6 +50,9 @@ func ParsePrivateUpload(ref string) (PrivateUpload, bool) {
 	if err != nil {
 		return PrivateUpload{}, false
 	}
+	if strings.HasPrefix(m[3], "prospect-proofs/") {
+		return PrivateUpload{TenantID: tenantID, AgentID: agentID, Kind: PrivateProspectProof}, true
+	}
 	return PrivateUpload{TenantID: tenantID, AgentID: agentID, Kind: PrivateAgentProof}, true
 }
 
@@ -56,7 +62,7 @@ func IsPrivateUploadPath(urlPath string) bool {
 	if !strings.HasPrefix(p, "/uploads/") {
 		p = "/uploads" + p
 	}
-	return strings.Contains(p, "/subscription-proofs") || strings.Contains(p, "/bukti-transfer")
+	return strings.Contains(p, "/subscription-proofs") || strings.Contains(p, "/bukti-transfer") || strings.Contains(p, "/prospect-proofs")
 }
 
 // PrivateUploadAbsPath is where a private file reference is written.

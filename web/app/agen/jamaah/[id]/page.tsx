@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, MessageCircle, AlertCircle, X, MessageSquare, Lock } from 'lucide-react';
+import { CustomDropdown } from '../../../../components/CustomDropdown';
 import { MobileContainer } from '../../../../components/MobileContainer';
 import styles from './page.module.css';
 import './JamaahDetail.css';
@@ -11,6 +12,7 @@ import { logHabit } from '../../../../lib/agentHabits';
 import { LOST_REASON_OPTIONS, formatDeparturePlan } from '../../../../lib/lostReasons';
 import { jakartaDateLabel, jakartaTimeLabel } from '../../../../lib/jakartaTime';
 import { readJsonSafe, apiErrorMessage } from '../../../../lib/safeJson';
+import { PaymentProofPanel, type AgentPaymentRequest } from '../../../../components/agent/PaymentProofPanel';
 
 interface ProspectData {
   id: number;
@@ -80,6 +82,7 @@ interface ProspectDetailResponse {
   info_komisi?: CommissionInfo | null;
   status_history: StatusHistoryItem[];
   notes: NoteItem[];
+  payment_requests?: AgentPaymentRequest[];
 }
 
 // Status labels; colors live in JamaahDetail.css (jd-status--{key}).
@@ -109,6 +112,10 @@ export default function AgenJamaahDetailPage() {
   const [lostCategory, setLostCategory] = useState<string>('');
   const [statusSubmitting, setStatusSubmitting] = useState<boolean>(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  // Tertarik needs a package and a jamaah count; asked here when the jamaah has none yet.
+  const [packages, setPackages] = useState<{ id: number; name: string }[]>([]);
+  const [pkgChoice, setPkgChoice] = useState<string>('');
+  const [paxText, setPaxText] = useState<string>('1');
 
   // Note Form
   const [newNoteText, setNewNoteText] = useState<string>('');
@@ -192,13 +199,24 @@ export default function AgenJamaahDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const needPkg = !data?.prospect.package_id;
+  const needPax = !(data?.prospect.jumlah_jamaah && data.prospect.jumlah_jamaah > 0);
+
   const handleOpenStatusModal = () => {
     if (data?.prospect && data.prospect.status !== 'closing') {
       setSelectedStatus(data.prospect.status);
       setLostReason('');
       setLostCategory('');
       setStatusError(null);
+      setPkgChoice('');
+      setPaxText('1');
       setIsStatusModalOpen(true);
+      if (packages.length === 0 && !data.prospect.package_id) {
+        fetch('/api/public/packages')
+          .then((r) => (r.ok ? r.json() : []))
+          .then((list) => setPackages(Array.isArray(list) ? list : []))
+          .catch(() => {});
+      }
     }
   };
 
@@ -221,9 +239,20 @@ export default function AgenJamaahDetailPage() {
       setStatusSubmitting(true);
       setStatusError(null);
 
-      const payload: { status: string; lost_reason?: string; lost_reason_category?: string } = {
+      const payload: { status: string; lost_reason?: string; lost_reason_category?: string; package_id?: number; jumlah_jamaah?: number } = {
         status: selectedStatus,
       };
+      if (selectedStatus === 'tertarik' && data?.prospect.status !== 'tertarik') {
+        if (needPkg) {
+          if (!pkgChoice) throw new Error('Pilih paket yang diminati');
+          payload.package_id = Number(pkgChoice);
+        }
+        if (needPax) {
+          const n = Number(paxText);
+          if (!Number.isInteger(n) || n < 1 || n > 50) throw new Error('Jumlah jamaah harus angka 1 sampai 50');
+          payload.jumlah_jamaah = n;
+        }
+      }
       if (selectedStatus === 'tidak_lanjut') {
         if (!lostCategory) {
           throw new Error('Pilih alasan tidak lanjut');
@@ -488,9 +517,22 @@ export default function AgenJamaahDetailPage() {
               : travelSuspended
               ? 'Layanan travel sedang ditangguhkan. Status dan catatan bisa diubah lagi setelah travel memperpanjang langganan.'
               : isClosing
-              ? 'Status Closing sudah final.'
-              : 'Status Closing ditetapkan admin travel setelah verifikasi pembayaran.'}
+              ? prospect.paid_off_at
+                ? 'Status Closing sudah final dan jamaah sudah lunas.'
+                : 'Status Closing sudah final. Kirim bukti pelunasan saat jamaah melunasi.'
+              : 'Closing ditetapkan admin travel setelah memeriksa bukti DP.'}
           </p>
+          {!isReadOnly && (
+            <PaymentProofPanel
+              prospectId={id as string}
+              status={prospect.status}
+              paidOffAt={prospect.paid_off_at}
+              packageId={prospect.package_id}
+              jumlahJamaah={prospect.jumlah_jamaah}
+              requests={data.payment_requests ?? []}
+              onSent={() => fetchDetail()}
+            />
+          )}
           {status_history.length > 0 && (
             <ol className="jd-history">
               {status_history.map((hist) => (
@@ -635,25 +677,56 @@ export default function AgenJamaahDetailPage() {
                 })}
               </div>
 
+              {/* Paket dan jumlah jamaah: wajib untuk Tertarik bila belum ada */}
+              {selectedStatus === 'tertarik' && prospect.status !== 'tertarik' && (needPkg || needPax) && (
+                <div className={styles.detaildiv83}>
+                  {needPkg && (
+                    <>
+                      <label className={styles.detailspan33} htmlFor="interest-package">
+                        Paket yang diminati
+                      </label>
+                      <CustomDropdown
+                        id="interest-package"
+                        value={pkgChoice}
+                        placeholder="Pilih paket"
+                        options={packages.map((pk) => ({ value: String(pk.id), label: pk.name }))}
+                        onChange={(e) => setPkgChoice(String(e.target.value))}
+                      />
+                    </>
+                  )}
+                  {needPax && (
+                    <>
+                      <label className={styles.detailspan33} htmlFor="interest-pax">
+                        Jumlah jamaah
+                      </label>
+                      <input
+                        id="interest-pax"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={50}
+                        value={paxText}
+                        onChange={(e) => setPaxText(e.target.value)}
+                        className={styles.detailinput84}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Alasan Tidak Lanjut (Conditional) */}
               {selectedStatus === 'tidak_lanjut' && (
                 <div className={styles.detaildiv83}>
                   <label className={styles.detailspan33} htmlFor="lost-category">
                     Alasan Tidak Lanjut
                   </label>
-                  <select
+                  <CustomDropdown
                     id="lost-category"
                     value={lostCategory}
-                    onChange={(e) => setLostCategory(e.target.value)}
-                    className={styles.detailinput84}
-                  >
-                    <option value="">Pilih alasan</option>
-                    {LOST_REASON_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Pilih alasan"
+                    options={LOST_REASON_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                    onChange={(e) => setLostCategory(String(e.target.value))}
+                  />
                   <input
                     type="text"
                     placeholder={lostCategory === 'lainnya' ? 'Jelaskan alasannya (wajib)' : 'Keterangan tambahan (opsional)'}
@@ -669,7 +742,7 @@ export default function AgenJamaahDetailPage() {
               <div
                 className={styles.detaildiv85}
               >
-                Status <strong>Closing</strong> hanya dapat ditetapkan oleh admin travel setelah verifikasi pembayaran.
+                Untuk <strong>Closing</strong>, kirim bukti DP lewat tombol <strong>Kirim bukti transfer</strong> di halaman jamaah.
               </div>
 
               {/* Buttons */}
