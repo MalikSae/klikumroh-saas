@@ -1647,6 +1647,8 @@ func (s *prospectService) Delete(ctx context.Context, tenantID uint64, id uint64
 			return ErrProspectCannotDelete
 		}
 	}
+	// The payment proof rows go with the prospect (ON DELETE CASCADE); their image files are removed here.
+	proofs := s.paymentRequestsOf(ctx, tenantID, id)
 	// Re-checked inside the delete transaction: a closing booked meanwhile must not be deleted with its
 	// fresh commission rows.
 	if guarded, ok := s.prospectRepo.(guardedProspectDeleter); ok {
@@ -1656,9 +1658,14 @@ func (s *prospectService) Delete(ctx context.Context, tenantID uint64, id uint64
 			}
 			return err
 		}
+		removePaymentProofFiles(proofs)
 		return nil
 	}
-	return s.prospectRepo.Delete(ctx, tenantID, id)
+	if err := s.prospectRepo.Delete(ctx, tenantID, id); err != nil {
+		return err
+	}
+	removePaymentProofFiles(proofs)
+	return nil
 }
 
 // Anonymize removes the jamaah's personal data on their request (UU PDP right to erasure). The
@@ -1675,12 +1682,14 @@ func (s *prospectService) Anonymize(ctx context.Context, tenantID uint64, id uin
 	if !ok {
 		return errors.New("anonimisasi tidak didukung oleh penyimpanan data ini")
 	}
+	proofs := s.paymentRequestsOf(ctx, tenantID, id)
 	if err := anonymizer.Anonymize(ctx, tenantID, id, adminUserID); err != nil {
 		if errors.Is(err, repository.ErrStatusConflict) {
 			return ErrProspectAnonymized
 		}
 		return err
 	}
+	removePaymentProofFiles(proofs)
 	s.addSystemNote(ctx, tenantID, id, fmt.Sprintf(
 		"Data pribadi jamaah dihapus atas permintaan jamaah (UU PDP) oleh admin #%d. Riwayat status dan komisi tetap disimpan.", adminUserID))
 	return nil

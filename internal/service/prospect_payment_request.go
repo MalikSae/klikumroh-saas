@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strings"
 
@@ -44,6 +45,20 @@ type PaymentRequestInput struct {
 
 func (s *prospectService) SetPaymentRequestRepo(repo repository.PaymentRequestRepository) {
 	s.paymentRepo = repo
+}
+
+// removePaymentProofFiles deletes the proof images of requests whose rows are gone (prospect deleted or
+// anonymized). A file that cannot be removed is logged; the row is already gone either way.
+func removePaymentProofFiles(list []repository.PaymentRequest) {
+	for _, r := range list {
+		abs, ok := util.ResolvePrivateUpload(r.ProofURL)
+		if !ok {
+			continue
+		}
+		if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
+			log.Printf("[PaymentRequest] remove proof %d: %v", r.ID, err)
+		}
+	}
 }
 
 func (s *prospectService) paymentRequestsOf(ctx context.Context, tenantID, prospectID uint64) []repository.PaymentRequest {
@@ -89,7 +104,7 @@ func (s *prospectService) SubmitPaymentRequestByAgent(ctx context.Context, tenan
 	if len(input.ProofBytes) == 0 {
 		return nil, ErrPaymentProofRequired
 	}
-	if input.Amount != nil && (*input.Amount < 0 || *input.Amount > 1e12) {
+	if input.Amount != nil && (math.IsNaN(*input.Amount) || math.IsInf(*input.Amount, 0) || *input.Amount < 0 || *input.Amount > 1e12) {
 		return nil, ErrPaymentRequestAmount
 	}
 	note := trimmedPtr(input.Note)
@@ -123,9 +138,14 @@ func (s *prospectService) SubmitPaymentRequestByAgent(ctx context.Context, tenan
 	} else if !errors.Is(err, repository.ErrNotFound) {
 		return nil, err
 	}
-	// A closing needs a package and a jamaah count (same rule as the admin's Closing).
+	// A closing needs a package and a jamaah count (same rule as the admin's Closing). Validated here,
+	// written only once the proof is stored, so a failed upload leaves the prospect untouched.
+	var pkgID *uint64
+	var jamaah *int
+	detailsChanged := false
 	if kind == repository.PaymentRequestClosing {
-		if err := s.fillPipelineDetails(ctx, tenantID, prospect, "closing", []StatusDetails{input.Details}); err != nil {
+		pkgID, jamaah, detailsChanged, err = s.resolvePipelineDetails(ctx, tenantID, prospect, "closing", []StatusDetails{input.Details})
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -138,7 +158,20 @@ func (s *prospectService) SubmitPaymentRequestByAgent(ctx context.Context, tenan
 	req := &repository.PaymentRequest{ProspectID: prospectID, AgentID: agentID, Kind: kind, ProofURL: relPath, Amount: input.Amount, Note: note}
 	if err := s.paymentRepo.Create(ctx, tenantID, req); err != nil {
 		_ = os.Remove(absPath)
+		switch {
+		case errors.Is(err, repository.ErrPaymentRequestPendingExists):
+			return nil, ErrPaymentRequestPending
+		case errors.Is(err, repository.ErrPaymentRequestProspectMoved) && kind == repository.PaymentRequestClosing:
+			return nil, ErrPaymentRequestClosingNA
+		case errors.Is(err, repository.ErrPaymentRequestProspectMoved):
+			return nil, ErrPaymentRequestPaidOffNA
+		}
 		return nil, err
+	}
+	if detailsChanged {
+		if err := s.writePipelineDetails(ctx, tenantID, prospect, pkgID, jamaah); err != nil {
+			log.Printf("[PaymentRequest] save package/jamaah for prospect %d: %v", prospectID, err)
+		}
 	}
 
 	agentName := "Agen"
@@ -163,7 +196,10 @@ func (s *prospectService) ListPendingPaymentRequests(ctx context.Context, tenant
 }
 
 // ApprovePaymentRequest does what the admin's own action does (Closing with commission, or Tandai lunas
-// with the commission release); that action settles the request as approved.
+// with the commission release). The request is claimed as approved first (atomic, only from pending), so
+// a Tolak clicked at the same time by another admin cannot end with a rejected request on a prospect that
+// was closed anyway (security audit 7 Oct 2026). When the action then fails, the request goes back to
+// pending. A prospect that is already Closing / paid off counts as done: the request stays approved.
 func (s *prospectService) ApprovePaymentRequest(ctx context.Context, tenantID, adminUserID, id uint64) error {
 	if s.paymentRepo == nil {
 		return ErrPaymentRequestNotEnabled
@@ -172,20 +208,30 @@ func (s *prospectService) ApprovePaymentRequest(ctx context.Context, tenantID, a
 	if err != nil {
 		return err
 	}
-	if req.Status != "pending" {
-		return ErrPaymentRequestDecided
+	if err := s.paymentRepo.Decide(ctx, tenantID, id, "approved", nil, adminUserID); err != nil {
+		if errors.Is(err, repository.ErrPaymentRequestNotPending) {
+			return ErrPaymentRequestDecided
+		}
+		return err
 	}
+	var actionErr error
 	switch req.Kind {
 	case repository.PaymentRequestClosing:
-		if err := s.UpdateStatus(ctx, tenantID, req.ProspectID, adminUserID, "closing", nil, nil); err != nil {
-			return err
+		actionErr = s.UpdateStatus(ctx, tenantID, req.ProspectID, adminUserID, "closing", nil, nil)
+		if errors.Is(actionErr, ErrProspectAlreadyClosed) {
+			actionErr = nil
 		}
 	case repository.PaymentRequestPaidOff:
-		if err := s.MarkPaidOff(ctx, tenantID, req.ProspectID, adminUserID); err != nil && !errors.Is(err, ErrProspectAlreadyPaidOff) {
-			return err
+		actionErr = s.MarkPaidOff(ctx, tenantID, req.ProspectID, adminUserID)
+		if errors.Is(actionErr, ErrProspectAlreadyPaidOff) {
+			actionErr = nil
 		}
-		// Already paid off without a release to do: still settle this request.
-		s.settlePaymentRequests(ctx, tenantID, req.ProspectID, repository.PaymentRequestPaidOff, "approved", adminUserID)
+	}
+	if actionErr != nil {
+		if err := s.paymentRepo.Reopen(ctx, tenantID, id); err != nil {
+			log.Printf("[PaymentRequest] reopen %d after failed approval: %v", id, err)
+		}
+		return actionErr
 	}
 	return nil
 }

@@ -14,13 +14,19 @@ const Proof: React.FC<{ path: string; title: string }> = ({ path, title }) => {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     let u: string | null = null;
+    let cancelled = false;
     fetchPrivateFileUrl(path)
       .then((x) => {
+        // Closed before the file arrived: drop the blob right away instead of leaking it.
+        if (cancelled) return window.URL.revokeObjectURL(x);
         u = x;
         setUrl(x);
       })
-      .catch(() => setFailed(true));
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => {
+      cancelled = true;
       if (u) window.URL.revokeObjectURL(u);
     };
   }, [path]);

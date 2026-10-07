@@ -6,11 +6,13 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"os"
 	"testing"
 
 	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
+	"klikumroh/internal/util"
 )
 
 func proofPNG(t *testing.T) []byte {
@@ -176,6 +178,91 @@ func TestPaymentRequests_FlowAndIsolation(t *testing.T) {
 		lost := newProspect(t, "081300001004", "tidak_lanjut")
 		if _, err := e.svc.SubmitPaymentRequestByAgent(e.ctx, e.tenant.ID, e.downline.ID, lost.ID, closing(proofPNG(t))); !errors.Is(err, service.ErrPaymentRequestClosingNA) {
 			t.Fatalf("expected ErrPaymentRequestClosingNA, got %v", err)
+		}
+	})
+
+	// Security audit 7 Oct 2026.
+	t.Run("closing proof only with a published package; nothing saved when refused", func(t *testing.T) {
+		draft := &repository.Package{Name: "Paket Draf PPR", Status: "draft"}
+		if err := e.packageRepo.Create(e.ctx, e.tenant.ID, draft); err != nil {
+			t.Fatal(err)
+		}
+		d := newProspect(t, "081300001005", "dihubungi")
+		in := service.PaymentRequestInput{Kind: "closing", ProofBytes: proofPNG(t), Details: service.StatusDetails{PackageID: &draft.ID, JumlahJamaah: &two}}
+		if _, err := e.svc.SubmitPaymentRequestByAgent(e.ctx, e.tenant.ID, e.downline.ID, d.ID, in); !errors.Is(err, service.ErrPackageNotPublished) {
+			t.Fatalf("expected ErrPackageNotPublished, got %v", err)
+		}
+		got, _ := e.prospectRepo.GetByID(e.ctx, e.tenant.ID, d.ID)
+		if got.PackageID != nil {
+			t.Fatal("a refused proof must not save the package on the prospect")
+		}
+		// A broken image fails after validation: still nothing saved.
+		in = closing([]byte("not an image"))
+		if _, err := e.svc.SubmitPaymentRequestByAgent(e.ctx, e.tenant.ID, e.downline.ID, d.ID, in); err == nil {
+			t.Fatal("expected an image error")
+		}
+		got, _ = e.prospectRepo.GetByID(e.ctx, e.tenant.ID, d.ID)
+		if got.PackageID != nil {
+			t.Fatal("a failed upload must not save the package on the prospect")
+		}
+	})
+
+	t.Run("NaN amount is refused", func(t *testing.T) {
+		n := newProspect(t, "081300001006", "dihubungi")
+		nan := math.NaN()
+		in := closing(proofPNG(t))
+		in.Amount = &nan
+		if _, err := e.svc.SubmitPaymentRequestByAgent(e.ctx, e.tenant.ID, e.downline.ID, n.ID, in); !errors.Is(err, service.ErrPaymentRequestAmount) {
+			t.Fatalf("expected ErrPaymentRequestAmount, got %v", err)
+		}
+	})
+
+	t.Run("approval that cannot close puts the proof back to pending", func(t *testing.T) {
+		later := e.pkg(t, "Paket Nanti Diarsip", 1000000)
+		a := newProspect(t, "081300001007", "dihubungi")
+		in := service.PaymentRequestInput{Kind: "closing", ProofBytes: proofPNG(t), Details: service.StatusDetails{PackageID: &later.ID, JumlahJamaah: &two}}
+		r, err := e.svc.SubmitPaymentRequestByAgent(e.ctx, e.tenant.ID, e.downline.ID, a.ID, in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		later.Status = "archived"
+		if err := e.packageRepo.Update(e.ctx, e.tenant.ID, later); err != nil {
+			t.Fatal(err)
+		}
+		if err := e.svc.ApprovePaymentRequest(e.ctx, e.tenant.ID, e.adminID, r.ID); !errors.Is(err, service.ErrPackageNotPublished) {
+			t.Fatalf("expected ErrPackageNotPublished, got %v", err)
+		}
+		got, _ := repo.GetByID(e.ctx, e.tenant.ID, r.ID)
+		if got.Status != "pending" {
+			t.Fatalf("failed approval must leave the proof pending, got %s", got.Status)
+		}
+		// Rejected meanwhile by another admin: approving it now is refused, nothing is closed.
+		if err := e.svc.RejectPaymentRequest(e.ctx, e.tenant.ID, e.adminID, r.ID, "Paket diarsip"); err != nil {
+			t.Fatal(err)
+		}
+		if err := e.svc.ApprovePaymentRequest(e.ctx, e.tenant.ID, e.adminID, r.ID); !errors.Is(err, service.ErrPaymentRequestDecided) {
+			t.Fatalf("expected ErrPaymentRequestDecided, got %v", err)
+		}
+	})
+
+	t.Run("UU PDP: anonymizing removes the proofs and their files", func(t *testing.T) {
+		an := newProspect(t, "081300001008", "dihubungi")
+		r, err := e.svc.SubmitPaymentRequestByAgent(e.ctx, e.tenant.ID, e.downline.ID, an.ID, closing(proofPNG(t)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		abs, ok := util.ResolvePrivateUpload(r.ProofURL)
+		if !ok {
+			t.Fatal("proof file not found after upload")
+		}
+		if err := e.svc.Anonymize(e.ctx, e.tenant.ID, an.ID, e.adminID); err != nil {
+			t.Fatal(err)
+		}
+		if list, _ := repo.ListByProspect(e.ctx, e.tenant.ID, an.ID); len(list) != 0 {
+			t.Fatalf("expected no proofs after anonymizing, got %d", len(list))
+		}
+		if _, err := os.Stat(abs); !os.IsNotExist(err) {
+			t.Fatalf("proof file must be deleted, stat err %v", err)
 		}
 	})
 }

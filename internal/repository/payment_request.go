@@ -38,6 +38,12 @@ type PaymentRequest struct {
 // prospect moved on).
 var ErrPaymentRequestNotPending = errors.New("payment request is not pending")
 
+// ErrPaymentRequestPendingExists: the prospect already has a pending request of that kind.
+var ErrPaymentRequestPendingExists = errors.New("payment request already pending")
+
+// ErrPaymentRequestProspectMoved: the prospect's status no longer allows a request of that kind.
+var ErrPaymentRequestProspectMoved = errors.New("prospect no longer accepts this payment request")
+
 type PaymentRequestRepository interface {
 	Create(ctx context.Context, tenantID uint64, req *PaymentRequest) error
 	GetByID(ctx context.Context, tenantID, id uint64) (*PaymentRequest, error)
@@ -50,6 +56,9 @@ type PaymentRequestRepository interface {
 	// ResolvePending closes every pending request of a kind for a prospect (status approved or cancelled),
 	// used when the admin acts on the prospect directly. reviewedBy 0 records no reviewer.
 	ResolvePending(ctx context.Context, tenantID, prospectID uint64, kind, status string, reviewedBy uint64) error
+	// Reopen puts a request claimed as approved back to pending, when the action the approval runs
+	// (Closing / Tandai lunas) failed afterwards.
+	Reopen(ctx context.Context, tenantID, id uint64) error
 }
 
 type mysqlPaymentRequestRepository struct {
@@ -73,12 +82,57 @@ func scanPaymentRequest(sc interface{ Scan(...any) error }, extra ...any) (*Paym
 	return &p, nil
 }
 
+// Create inserts a pending request. The prospect row is locked while the status and the "one pending
+// request per kind" rules are re-checked, so a request is never created on a prospect the admin closed
+// or marked paid off meanwhile (the service checks the same rules earlier, before the slow image
+// conversion), and two submits at the same time cannot both stay pending (security audit 7 Oct 2026).
 func (r *mysqlPaymentRequestRepository) Create(ctx context.Context, tenantID uint64, req *PaymentRequest) error {
-	res, err := r.db.ExecContext(ctx, `
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var status string
+	var paidOff, anonymized sql.NullTime
+	err = tx.QueryRowContext(ctx, `SELECT status, paid_off_at, anonymized_at FROM prospects WHERE id = ? AND tenant_id = ? FOR UPDATE`,
+		req.ProspectID, tenantID).Scan(&status, &paidOff, &anonymized)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if anonymized.Valid {
+		return ErrPaymentRequestProspectMoved
+	}
+	switch req.Kind {
+	case PaymentRequestClosing:
+		if !isOpenProspectStatus(status) {
+			return ErrPaymentRequestProspectMoved
+		}
+	case PaymentRequestPaidOff:
+		if status != "closing" || paidOff.Valid {
+			return ErrPaymentRequestProspectMoved
+		}
+	}
+	var pending int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM prospect_payment_requests
+		WHERE tenant_id = ? AND prospect_id = ? AND kind = ? AND status = 'pending'`, tenantID, req.ProspectID, req.Kind).Scan(&pending); err != nil {
+		return err
+	}
+	if pending > 0 {
+		return ErrPaymentRequestPendingExists
+	}
+
+	res, err := tx.ExecContext(ctx, `
 		INSERT INTO prospect_payment_requests (tenant_id, prospect_id, agent_id, kind, proof_url, amount, note, status)
 		VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
 		tenantID, req.ProspectID, req.AgentID, req.Kind, req.ProofURL, req.Amount, req.Note)
 	if err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 	id, err := res.LastInsertId()
@@ -180,6 +234,14 @@ func (r *mysqlPaymentRequestRepository) Decide(ctx context.Context, tenantID, id
 		return ErrPaymentRequestNotPending
 	}
 	return nil
+}
+
+func (r *mysqlPaymentRequestRepository) Reopen(ctx context.Context, tenantID, id uint64) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE prospect_payment_requests
+		SET status = 'pending', reviewed_by = NULL, reviewed_at = NULL
+		WHERE id = ? AND tenant_id = ? AND status = 'approved'`, id, tenantID)
+	return err
 }
 
 func (r *mysqlPaymentRequestRepository) ResolvePending(ctx context.Context, tenantID, prospectID uint64, kind, status string, reviewedBy uint64) error {

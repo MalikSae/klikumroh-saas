@@ -924,6 +924,12 @@ func (r *mysqlProspectRepository) Anonymize(ctx context.Context, tenantID uint64
 	if _, err := tx.ExecContext(ctx, `UPDATE referral_clicks SET prospect_id = NULL, ip_address = NULL WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
 		return err
 	}
+	// Payment proofs from the agent: the receipt shows the jamaah's name and bank account, and the notes
+	// often name them. The rows go (a pending one would otherwise wait forever); the service deletes the
+	// image files after the commit. The commission ledger keeps the money trail.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM prospect_payment_requests WHERE tenant_id = ? AND prospect_id = ?`, tenantID, id); err != nil {
+		return err
+	}
 	// Commission ledger notes hold the admin's free-text cancel/correction reasons, which often name the
 	// jamaah. The amounts stay; the text is replaced. The "Pembatalan closing: " prefix is kept because it
 	// marks where a cancelled closing ends in the ledger (service.currentClosingLedgers).
