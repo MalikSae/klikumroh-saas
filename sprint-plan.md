@@ -594,3 +594,7 @@ Enam agen baca-saja per area. Tidak ada HIGH. Dua regresi berisiko data loss dar
 - [x] Input uang dashboard: rupiah utuh, tempel "150.000,50" / "1,000,000.00" tidak lagi jadi 100x
 - [x] Subdomain mirip KlikUmroh ditolak (kli-kumroh, klikumr0h, kl1kumroh, klikkumroh); kata resmi (resmi, kemenag, pemerintah, siskopatuh, verified, terverifikasi) ditolak juga sebagai bagian subdomain
 - [x] Cek domain harian tidak menghitung kegagalan bila IP server KlikUmroh sendiri belum diketahui
+
+## Promo Harga Paket Langganan (7 Oktober 2026)
+- [x] Promo per paket langganan (keputusan pendiri 7 Okt 2026): persen potongan + tanggal berakhir opsional (inklusif, WIB; kosong = tanpa batas), diatur di super admin > Paket Langganan. Hanya pembayaran pertama travel baru; perpanjangan harga normal. Kupon (termasuk kupon affiliator 20%) dihitung dari harga promo (50% + 20% = total 60%); komisi affiliator dari jumlah yang dibayar. Tagihan menyimpan snapshot promo (`payment_verifications.promo_percent`), jadi promo yang diubah/berakhir tidak mengubah tagihan yang sudah dibuat. Migrasi 000070. Tampil di landing (harga coret + "Promo X%"), checkout, halaman Langganan & tagihan travel, modal pembayaran staf. Test `TestPlanPromo_Billing` (5 skenario), `TestPlanPromo_SetPromoValidation`, `TestPricingPlanPromo_Persistence`, `web/test/plan-promo.test.mjs`, `dashboard/test/billing-math.test.mjs`
+- [ ] Pendiri cek tampilan promo di landing, checkout, halaman tagihan, dan form paket super admin (desktop + HP)
