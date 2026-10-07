@@ -195,7 +195,8 @@
         "xl": "16px",
         "2xl": "20px",
         "3xl": "26px",
-        "4xl": "30px"
+        "4xl": "30px",
+        "kpi": "28px"
       },
       "leading": {
         "tight": "1.25",
@@ -226,12 +227,16 @@
         "inner": "10px",
         "card": "12px",
         "panel": "16px",
-        "round": "999px"
+        "round": "999px",
+        "btn": "12px"
       },
       "shadow": {
         "pop": "0 10px 24px rgba(20, 20, 20, 0.10)",
         "drawer": "0 20px 50px rgba(20, 20, 20, 0.16)",
-        "ring": "0 0 0 1px #E7E7E3"
+        "ring": "0 0 0 1px #E7E7E3",
+        "btn": "inset 0 -2px 2px #F4F4F4, inset 0 2px 2px #FFFFFF, 0 1px 2px rgba(0, 0, 0, 0.05)",
+        "btnPrimary": "inset 0 -2px 2px #000000, inset 0 2px 2px #3F3F46, 0 1px 2px rgba(0, 0, 0, 0.05)",
+        "btnDanger": "inset 0 -2px 2px #991B1B, inset 0 2px 2px #F87171, 0 1px 2px rgba(0, 0, 0, 0.05)"
       },
       "size": {
         "sidebar": "248px",
@@ -242,7 +247,9 @@
         "drawer": "460px",
         "content": "1360px",
         "tabbar": "64px",
-        "sheet-grip": "36px"
+        "sheet-grip": "36px",
+        "touch": "40px",
+        "meter": "6px"
       },
       "affiliator": {
         "contentWidth": "880px",
@@ -258,8 +265,17 @@
         "ctaHover": "#14532D",
         "sheetWidth": "840px",
         "headerWidth": "1120px",
-        "paymentColumns": "minmax(0, 1fr) minmax(0, 1fr)",
-        "previewHeight": "160px"
+        "paymentColumns": "minmax(0, 1fr)",
+        "bankColumns": "repeat(3, minmax(0, 1fr))",
+        "previewHeight": "160px",
+        "_noteLanding": "7 Okt 2026, disetujui pendiri: halaman invoice (lanjutan checkout) memakai gaya landing pemasaran: latar --km-bg, judul serif Instrument Serif, penanda langkah, tombol hijau timbul radius 12px. Hanya halaman ini.",
+        "bg": "#FAFAFA",
+        "fontDisplay": "'Instrument Serif', Georgia, serif",
+        "titleSize": "40px",
+        "titleSizeMobile": "32px",
+        "ctaRadius": "12px",
+        "ctaShadow": "inset 0 -2px 2px #0F3D22, inset 0 2px 2px #1F8A47, 0 1px 2px rgba(0, 0, 0, 0.05)",
+        "stepBar": "4px"
       }
     },
     "terminal": {
@@ -545,12 +561,19 @@
       "columns": "minmax(0, 1.45fr) minmax(0, 1fr)",
       "contentWidth": "1120px",
       "stickyOffset": "96px",
-      "titleSize": "clamp(28px, 3vw, 36px)",
+      "titleSize": "var(--km-v3-type-section)",
       "disabledOpacity": "0.5",
       "spinnerDuration": "900ms",
       "radioSize": "16px",
       "radioDotSize": "8px",
-      "focusRing": "0 0 0 3px var(--km-line)"
+      "focusRing": "0 0 0 3px var(--km-line)",
+      "_noteField": "6 Okt 2026: kolom isian checkout disamakan dengan kolom dashboard travel (.ku-input): tinggi 38px, teks 14px (16px di HP agar Safari iOS tidak zoom), garis fokus 1px hitam, placeholder zinc-400, jarak label 6px.",
+      "fieldHeight": "38px",
+      "fieldText": "14px",
+      "fieldTextMobile": "16px",
+      "fieldLabelGap": "6px",
+      "fieldPlaceholder": "var(--km-neutral-400)",
+      "fieldFocusRing": "0 0 0 1px var(--km-ink)"
     }
   }
 }

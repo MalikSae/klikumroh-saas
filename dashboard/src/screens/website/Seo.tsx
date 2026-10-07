@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import { deleteTenantOGImage, fetchTenantSEOGeo, updateTenantSEOGeo, uploadTenantOGImage, type TenantSEOGeo } from '../../services/api';
 import { Banner, Button, Field, errorText } from '../../ui';
-import { publicSiteUrl, useFrame } from '../../app/AppFrame';
+import { useFrame } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
 import { ImageField } from './ImageField';
 
@@ -55,7 +55,7 @@ export const Seo: React.FC = () => {
     }
   };
 
-  const site = publicSiteUrl(frame?.subscription?.tenant_slug) || '';
+  const site = frame?.siteUrl || '';
   const travel = frame?.subscription?.tenant_name || '';
 
   return (

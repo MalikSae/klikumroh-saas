@@ -1,28 +1,35 @@
-// Dashboard (approved prototype: dashboard/design/prototype.html, screen "Dashboard").
+// Dashboard home "Beranda" (redesign 6 Oct 2026). The page answers one question (design/VISION.md):
+// what must I do now, and are results improving? Top to bottom: setup or subscription strip, the results
+// of the last 30 days in one metric strip, what waits for action, then the channel chart next to the newest
+// prospects, then departures, agents and lost reasons. Phone order is set in dashboard.css.
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Banknote, CalendarDays, Clock, Flame, Handshake, Inbox, Percent, Rocket, UserPlus, Users, Wallet } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CircleCheck, Clock, ExternalLink, FileCheck, Flame, Inbox, ListChecks, UserPlus, Wallet } from 'lucide-react';
 import {
   cohortRate,
   fetchDashboardAgents,
+  fetchPendingPaymentRequests,
+  type PaymentRequest,
+  fetchOnboardingStatus,
+  type OnboardingStatus,
   fetchDashboardOverview,
   fetchProspectPage,
   type ProspectItem,
-  fetchPackages,
-  fetchTenantContactLegal,
-  fetchTenantProfile,
   type DashboardOverviewData,
 } from '../../services/api';
 import {
+  ActionItem,
+  ActionList,
   Banner,
   Button,
   Card,
   ChannelTag,
+  CopyButton,
   CHANNEL_LABEL,
-  DataTable,
   EmptyState,
-  KpiCard,
-  Notice,
+  Meter,
+  Metric,
+  MetricStrip,
+  RowLink,
   Select,
   StatusPill,
   Strip,
@@ -37,60 +44,65 @@ import {
   type Channel,
 } from '../../ui';
 import { useFrame } from '../../app/AppFrame';
+import { SetupChecklist, type SetupStage } from './SetupChecklist';
 import { subscriptionNotice } from '../../app/subscriptionNotice';
 import { ChannelChart } from './ChannelChart';
 import { AgentSummaryCard } from './AgentSummaryCard';
-import { compare, delta, weekly } from './kpiMath';
+import { compare, delta } from './kpiMath';
 import './dashboard.css';
 
 /** The overview API sends "-" for an empty name. */
 const present = (v?: string | null) => !!v && v.trim() !== '' && v.trim() !== '-';
 
-const HIDE_SETUP_KEY = 'klikumroh_hide_setup';
-
-interface Setup {
-  profile: boolean;
-  packages: boolean;
-  agents: boolean;
-}
+// Per travel (a shared browser, staff or the demo must not hide another travel's checklist).
+const hideSetupKey = (tenantId: number) => `klikumroh_hide_setup_${tenantId}`;
+const siteViewedKey = (tenantId: number) => `klikumroh_site_viewed_${tenantId}`;
+const readValue = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const writeValue = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* preference only */
+  }
+};
+const CHANNELS: Channel[] = ['web', 'ads', 'agen'];
+/** channel_attribution keys of the overview API per chart channel. */
+const ATTRIBUTION_KEY: Record<Channel, string> = { web: 'organik', ads: 'paid_ads', agen: 'agent' };
+const VS_PREVIOUS = 'dibanding 30 hari sebelumnya';
 
 export const DashboardScreen: React.FC = () => {
-  const navigate = useNavigate();
   const mobile = useIsMobile();
   const frame = useFrame();
   const [data, setData] = useState<DashboardOverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingAgents, setPendingAgents] = useState(0);
   const [recent, setRecent] = useState<ProspectItem[] | null>(null);
-  const [setup, setSetup] = useState<Setup | null>(null);
-  // Same 30-day window as the KPIs by default.
+  const [setup, setSetup] = useState<OnboardingStatus | null>(null);
+  // Payment proofs from agents waiting for the admin (oldest first), 7 Oct 2026.
+  const [proofs, setProofs] = useState<PaymentRequest[]>([]);
+  // The chart's own window. The metric strip stays on 30 days: the cohort conversion and the channel
+  // closing rates come from the API for a fixed 30-day window.
   const [range, setRange] = useState('30');
   const [visible, setVisible] = useState<Record<Channel, boolean>>({ web: true, ads: true, agen: true });
-  const [hideSetup, setHideSetup] = useState(() => {
-    try {
-      return localStorage.getItem(HIDE_SETUP_KEY) === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const tenantId = frame?.subscription?.tenant_id ?? 0;
+  const siteUrl = frame?.siteUrl ?? null;
+  // Read from storage on each render (cheap); a change bumps flagTick to render again.
+  const [, setFlagTick] = useState(0);
+  const setupChoice = tenantId ? readValue(hideSetupKey(tenantId)) : null;
+  const siteViewed = tenantId ? readValue(siteViewedKey(tenantId)) === 'true' : false;
 
   useEffect(() => {
     fetchDashboardOverview().then(setData).catch((e) => setError(e.message || 'Data dashboard tidak dapat dimuat.'));
-    fetchProspectPage({}, 1, 5).then((p) => setRecent(p.items)).catch(() => setRecent([]));
-    Promise.all([
-      fetchTenantProfile().catch(() => null),
-      fetchTenantContactLegal().catch(() => null),
-      fetchPackages('published').catch(() => []),
-      fetchDashboardAgents().catch(() => []),
-      fetchDashboardAgents('pending').catch(() => []),
-    ]).then(([profile, contact, packages, agents, pending]) => {
-      setPendingAgents(pending.length);
-      setSetup({
-        profile: !!profile?.brand_logo_url && !!contact?.whatsapp_number,
-        packages: packages.length > 0,
-        agents: agents.some((a) => a.status === 'active'),
-      });
-    });
+    fetchProspectPage({}, 1, 6).then((p) => setRecent(p.items)).catch(() => setRecent([]));
+    fetchDashboardAgents('pending').then((pending) => setPendingAgents(pending.length)).catch(() => setPendingAgents(0));
+    fetchOnboardingStatus().then(setSetup).catch(() => setSetup(null));
+    fetchPendingPaymentRequests().then(setProofs).catch(() => setProofs([]));
   }, []);
 
   const days = data?.kpi_daily ?? [];
@@ -99,37 +111,95 @@ export const DashboardScreen: React.FC = () => {
     const c = compare(days, (d) => d.closing_jamaah);
     const v = compare(days, (d) => d.closing_value ?? 0);
     return {
-      value: { value: v.cur, delta: delta(v.cur, v.prev), spark: weekly(days, (d) => d.closing_value ?? 0) },
-      prospects: { value: p.cur, delta: delta(p.cur, p.prev), spark: weekly(days, (d) => d.prospects) },
-      jamaah: { value: c.cur, delta: delta(c.cur, c.prev), spark: weekly(days, (d) => d.closing_jamaah) },
+      value: { value: v.cur, delta: delta(v.cur, v.prev) },
+      prospects: { value: p.cur, delta: delta(p.cur, p.prev) },
+      jamaah: { value: c.cur, delta: delta(c.cur, c.prev) },
     };
   }, [days]);
   // Conversion is a cohort figure: prospects created in the window and how many of them are Closing now.
   // Dividing closings-by-date by new prospects mixed two groups and could exceed 100%, so there is no
-  // previous-period delta or sparkline for it. An older server without the cohort hides the value.
+  // previous-period delta for it. An older server without the cohort hides the value.
   const cohort = data?.conversion_cohort ?? null;
   const conversionRate = cohortRate(cohort);
 
   const notice = subscriptionNotice(frame?.subscription ?? null);
   const totalProspects = data?.kpis.total_prospects ?? 0;
-  const setupSteps = setup
+  // Onboarding in three stages (founder decision 7 Oct 2026). Optional by decision: WhatsApp, the PPIU
+  // number, package photos and the agent registration fee. Wait for the overview too, so the prospect
+  // steps are judged on real data (judging them early flashed the checklist on every visit).
+  const markSiteViewed = () => {
+    if (tenantId) writeValue(siteViewedKey(tenantId), 'true');
+    setFlagTick((t) => t + 1);
+  };
+  const stages: SetupStage[] = setup && data
     ? [
-        { done: setup.profile, next: 'lengkapi logo dan nomor WhatsApp', to: '/settings' },
-        { done: setup.packages, next: 'tayangkan paket pertama', to: '/packages' },
-        { done: setup.agents, next: 'aktifkan agen pertama', to: '/agents' },
-        { done: totalProspects > 0, next: 'bagikan link website untuk prospek pertama', to: '/website' },
+        {
+          key: 'website',
+          title: 'Website siap dilihat jamaah',
+          steps: [
+            { key: 'profile', title: 'Lengkapi profil travel', hint: 'Nama travel dan alamat atau kota kantor.', done: setup.profile, action: <Button size="sm" to="/settings">Lengkapi profil</Button> },
+            { key: 'logo', title: 'Pasang logo travel', hint: 'Tampil di bagian atas website dan portal agen.', done: setup.logo, action: <Button size="sm" to="/website">Unggah logo</Button> },
+            {
+              key: 'package',
+              title: 'Tayangkan paket pertama',
+              hint: setup.draft_package_id ? 'Paket contoh sudah dibuat. Sesuaikan harga dan tanggal berangkat, lalu tayangkan.' : 'Dengan harga dan tanggal berangkat.',
+              done: setup.package_ready,
+              action: setup.draft_package_id ? <Button size="sm" to={`/packages/${setup.draft_package_id}`}>Edit paket contoh</Button> : <Button size="sm" to="/packages/new">Tambah paket</Button>,
+            },
+            { key: 'trust', title: 'Bangun kepercayaan', hint: 'Tambahkan testimoni jamaah atau banner promo.', done: setup.trust, action: <Button size="sm" to="/website/testimonials">Tambah testimoni</Button> },
+            {
+              key: 'site',
+              title: 'Lihat website Anda',
+              hint: 'Cek tampilan website seperti yang dilihat calon jamaah.',
+              // A travel that already gets prospects clearly has its website running.
+              done: siteViewed || setup.prospect,
+              action: siteUrl ? <Button size="sm" to={siteUrl} external onClick={markSiteViewed} icon={<ExternalLink className="ku-icon--sm" />}>Buka website</Button> : null,
+            },
+          ],
+        },
+        {
+          key: 'agents',
+          title: 'Siap rekrut agen',
+          steps: [
+            { key: 'program', title: 'Atur program agen', hint: 'Keuntungan menjadi agen, syarat & ketentuan, dan aturan pencairan.', done: setup.agent_program, action: <Button size="sm" to="/settings/agent-rules">Atur program</Button> },
+            {
+              key: 'commission',
+              title: 'Atur komisi agen',
+              hint: 'Isi komisi di setiap paket yang tayang, agar agen tahu yang mereka dapat.',
+              done: setup.commission,
+              action: <Button size="sm" to={setup.missing_commission_package_id ? `/packages/${setup.missing_commission_package_id}` : '/packages'}>Atur komisi</Button>,
+            },
+            { key: 'target', title: 'Buat target & reward', hint: 'Dorong agen aktif sejak bulan pertama.', done: setup.target, action: <Button size="sm" to="/programs">Buat target</Button> },
+            { key: 'recruit', title: 'Bagikan link pendaftaran agen', hint: 'Kirim ke calon agen: alumni jamaah, ustadz, atau komunitas.', done: setup.agent_registered, action: siteUrl ? <CopyButton value={`${siteUrl}/agen/daftar`}>Salin link pendaftaran</CopyButton> : null },
+            { key: 'approve', title: 'Setujui agen pertama', hint: 'Agen yang mendaftar menunggu persetujuan Anda.', done: setup.agent_active, action: <Button size="sm" to="/agents/pending">Lihat pendaftaran</Button> },
+          ],
+        },
+        {
+          key: 'jamaah',
+          title: 'Tambah jamaah',
+          steps: [
+            { key: 'prospect', title: 'Dapatkan prospek pertama', hint: 'Bagikan link website ke calon jamaah, grup WhatsApp, atau media sosial.', done: setup.prospect, action: siteUrl ? <CopyButton value={siteUrl}>Salin link website</CopyButton> : null },
+            { key: 'followup', title: 'Tindak lanjuti prospek', hint: 'Hubungi prospek baru lalu ubah statusnya ke Dihubungi.', done: setup.followed_up, action: <Button size="sm" to="/prospects?status=baru">Buka prospek</Button> },
+            { key: 'pixel', title: 'Pasang pelacakan iklan', hint: 'Meta Pixel dan Conversions API untuk mengukur iklan.', done: setup.pixel, action: <Button size="sm" to="/tracking">Pasang Pixel</Button> },
+            { key: 'domain', title: 'Pakai domain sendiri', hint: 'Misalnya www.namatravel.com.', done: setup.custom_domain, action: <Button size="sm" to="/website/domain">Atur domain</Button> },
+            { key: 'team', title: 'Undang tim', hint: 'Tambahkan admin lain untuk mengelola prospek.', done: setup.team, action: <Button size="sm" to="/settings/team">Undang tim</Button> },
+          ],
+        },
       ]
     : [];
-  const setupDone = setupSteps.filter((s) => s.done).length;
-  const nextStep = setupSteps.find((s) => !s.done);
+  const allSteps = stages.flatMap((st) => st.steps);
+  const setupDone = allSteps.filter((st) => st.done).length;
+  const setupOpen = allSteps.length > 0 && setupDone < allSteps.length;
+  // Once stage 1 and 2 are done, the guide folds away by default (the rest is optional growth work).
+  const coreDone = stages.length > 0 && stages.slice(0, 2).every((st) => st.steps.every((x) => x.done));
+  const hideSetup = setupChoice === 'hide' || (setupChoice !== 'show' && coreDone);
+  const showSetup = setupOpen && !hideSetup;
+  // A travel without any prospect yet sees the checklist instead of a page of zeros.
+  const fresh = !!data && totalProspects === 0 && showSetup;
 
-  const dismissSetup = () => {
-    setHideSetup(true);
-    try {
-      localStorage.setItem(HIDE_SETUP_KEY, 'true');
-    } catch {
-      /* preference only */
-    }
+  const toggleSetup = (hide: boolean) => {
+    if (tenantId) writeValue(hideSetupKey(tenantId), hide ? 'hide' : 'show');
+    setFlagTick((t) => t + 1);
   };
 
   const alerts = data?.urgent_alerts;
@@ -138,6 +208,10 @@ export const DashboardScreen: React.FC = () => {
   const lost = data?.pipeline_funnel;
   const lostTotal = lost?.tidak_lanjut ?? 0;
   const trend = (data?.prospect_trends ?? []).slice(-Number(range));
+  const uncontacted = alerts?.uncontacted_prospects_count ?? 0;
+  const hotCount = hot?.prospect_count ?? 0;
+  const payouts = alerts?.pending_payouts_count ?? 0;
+  const nothingPending = uncontacted === 0 && hotCount === 0 && pendingAgents === 0 && payouts === 0 && proofs.length === 0;
 
   if (error) {
     return (
@@ -148,7 +222,8 @@ export const DashboardScreen: React.FC = () => {
   }
 
   return (
-    <div className="ku-stack db2-home">
+    // A new travel without prospects: only the checklist (and real to-dos), not a page of zeros.
+    <div className={`db2-home${fresh ? ' db2-home--fresh' : ''}${fresh && nothingPending ? ' db2-home--fresh-idle' : ''}`}>
       {notice ? (
         <Strip
           tone={notice.tone}
@@ -157,41 +232,96 @@ export const DashboardScreen: React.FC = () => {
           description={notice.text}
           action={<Button variant="light" to={notice.to}>{notice.action}</Button>}
         />
+      ) : showSetup ? (
+        <SetupChecklist stages={stages} onHide={() => toggleSetup(true)} />
       ) : (
-        !hideSetup &&
-        nextStep && (
-          <Strip
-            icon={<Rocket className="ku-icon" />}
-            title="Lengkapi website travel Anda"
-            description={`${setupDone} dari ${setupSteps.length} langkah selesai. Berikutnya: ${nextStep.next}.`}
-            progress={{ done: setupDone, total: setupSteps.length }}
-            action={<Button variant="light" to={nextStep.to}>Lanjutkan setup</Button>}
-            onClose={dismissSetup}
-          />
+        setupOpen && (
+          <div className="db2-setup-reopen">
+            <Button size="sm" variant="ghost" icon={<ListChecks className="ku-icon--sm" />} onClick={() => toggleSetup(false)}>
+              Panduan memulai ({setupDone}/{allSteps.length})
+            </Button>
+          </div>
         )
       )}
 
-      <div className="ku-grid-main db2-row1">
+      <section className="db2-block db2-block--kpis" aria-labelledby="db2-kpis-title">
+        <div className="db2-head">
+          <h2 className="db2-head__title" id="db2-kpis-title">Hasil 30 hari terakhir</h2>
+          <span className="db2-head__meta">{VS_PREVIOUS}</span>
+        </div>
+        <MetricStrip label="Hasil 30 hari terakhir">
+          <Metric label="Prospek" value={data ? fmtNumber(kpi.prospects.value) : '—'} delta={data ? kpi.prospects.delta : undefined} deltaLabel={VS_PREVIOUS} to="/prospects" toLabel="Buka semua prospek (sepanjang waktu, bukan 30 hari)" />
+          <Metric label="Jamaah closing" value={data ? fmtNumber(kpi.jamaah.value) : '—'} delta={data ? kpi.jamaah.delta : undefined} deltaLabel={VS_PREVIOUS} to="/prospects?status=closing" toLabel="Buka semua prospek closing (sepanjang waktu, bukan 30 hari)" />
+          <Metric label="Konversi" value={conversionRate !== null ? fmtPercent(conversionRate) : '—'} note={cohort ? `${fmtNumber(cohort.closings)} dari ${fmtNumber(cohort.prospects)}` : undefined} hint={cohort ? `${fmtNumber(cohort.closings)} dari ${fmtNumber(cohort.prospects)} prospek baru dalam 30 hari terakhir sudah closing` : undefined} />
+          <Metric label="Estimasi omzet" value={data ? fmtRupiahShort(kpi.value.value) : '—'} delta={data ? kpi.value.delta : undefined} deltaLabel={VS_PREVIOUS} hint="Harga paket x jamaah closing" />
+        </MetricStrip>
+      </section>
+
+      <section className="db2-block db2-block--todo" aria-labelledby="db2-todo-title">
+        <div className="db2-head">
+          <h2 className="db2-head__title" id="db2-todo-title">Perlu tindakan</h2>
+        </div>
+        {!data ? (
+          <div className="ku-actions db2-todo-skeleton" aria-hidden="true" />
+        ) : nothingPending ? (
+          <div className="ku-actions">
+            <p className="ku-actions__none">
+              <CircleCheck className="ku-icon" aria-hidden="true" />
+              Tidak ada yang menunggu tindakan
+            </p>
+          </div>
+        ) : (
+          <ActionList label="Perlu tindakan">
+            {uncontacted > 0 && <ActionItem urgent icon={<Clock className="ku-icon" />} count={fmtNumber(uncontacted)} text="belum dihubungi" meta="Status Baru" hint="Prospek berstatus Baru yang belum dihubungi" to="/prospects?status=baru" />}
+            {hot && hotCount > 0 && (
+              <ActionItem
+                icon={<Flame className="ku-icon" />}
+                count={fmtNumber(hotCount)}
+                text="prospek tertarik"
+                meta={`${fmtNumber(hot.total_pax)} jamaah · ${fmtRupiahShort(hot.total_value)}`}
+                hint={`Prospek tertarik yang belum closing: ${fmtNumber(hot.total_pax)} jamaah, potensi ${fmtRupiahShort(hot.total_value)}`}
+                to="/prospects?status=tertarik"
+              />
+            )}
+            {proofs.length > 0 && (
+              <ActionItem
+                urgent
+                icon={<FileCheck className="ku-icon" />}
+                count={fmtNumber(proofs.length)}
+                text="bukti pembayaran"
+                meta="Dari agen, perlu dicek"
+                hint="Bukti DP atau pelunasan yang dikirim agen menunggu Anda setujui atau tolak"
+                to={`/prospects/${proofs[0].prospect_id}`}
+              />
+            )}
+            {pendingAgents > 0 && <ActionItem icon={<UserPlus className="ku-icon" />} count={fmtNumber(pendingAgents)} text="agen mendaftar" meta="Perlu disetujui" hint="Pendaftaran agen baru menunggu persetujuan Anda" to="/agents/pending" />}
+            {alerts && payouts > 0 && (
+              <ActionItem icon={<Wallet className="ku-icon" />} count={fmtNumber(payouts)} text="pencairan komisi" meta={fmtRupiah(alerts.pending_payouts_total)} hint={`Pengajuan pencairan komisi menunggu persetujuan, total ${fmtRupiah(alerts.pending_payouts_total)}`} to="/payouts" />
+            )}
+          </ActionList>
+        )}
+      </section>
+
+      <div className="db2-row db2-row--main">
         <Card
           title="Prospek per kanal"
+          className="db2-chart-card"
           actions={
-            <>
-              <Select
-                label="Rentang waktu"
-                value={range}
-                onChange={setRange}
-                options={[
-                  { value: '7', label: '7 hari' },
-                  { value: '14', label: '14 hari' },
-                  { value: '30', label: '30 hari' },
-                ]}
-              />
-            </>
+            <Select
+              label="Rentang waktu grafik"
+              value={range}
+              onChange={setRange}
+              options={[
+                { value: '7', label: '7 hari' },
+                { value: '14', label: '14 hari' },
+                { value: '30', label: '30 hari' },
+              ]}
+            />
           }
         >
           {/* Legend and series switch in one: tap a channel to hide or show it. */}
           <div className="db2-legend" role="group" aria-label="Tampilkan kanal">
-            {(['web', 'ads', 'agen'] as Channel[]).map((c) => (
+            {CHANNELS.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -213,157 +343,115 @@ export const DashboardScreen: React.FC = () => {
           )}
           {/* Which channel turns prospects into closings (30 days): where the next budget should go. */}
           {data && data.channel_attribution.some((a) => a.leads_count > 0) && (
-            <ul className="db2-quality" aria-label="Closing per kanal, 30 hari terakhir">
-              {(['web', 'ads', 'agen'] as Channel[]).map((c) => {
-                const key = c === 'agen' ? 'agent' : c === 'ads' ? 'paid_ads' : 'organik';
-                const a = data.channel_attribution.find((x) => x.channel === key);
-                const leads = a?.leads_count ?? 0;
-                const closing = a?.closing_count ?? 0;
-                return (
-                  <li key={c}>
-                    <i className={`ku-dot ku-dot--${c}`} aria-hidden="true" />
-                    <span className="db2-quality__name">{CHANNEL_LABEL[c]}</span>
-                    <span className="db2-quality__nums">
-                      {fmtNumber(leads)} prospek · {fmtNumber(closing)} closing
-                    </span>
-                    <b className="db2-quality__rate">{leads > 0 ? fmtPercent((closing / leads) * 100) : '—'}</b>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        {/* Phone: the three KPIs share one compact panel (dashboard.css); the comparison note shows once. */}
-        <div className="ku-stack db2-kpis">
-          <KpiCard label="Prospek" icon={<Users className="ku-icon" />} value={data ? fmtNumber(kpi.prospects.value) : '—'} delta={data ? { ...kpi.prospects.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.prospects.spark : undefined} to="/prospects" toLabel="Buka semua prospek (sepanjang waktu, bukan 30 hari)" />
-          <KpiCard label="Jamaah closing" icon={<Handshake className="ku-icon" />} value={data ? fmtNumber(kpi.jamaah.value) : '—'} delta={data ? { ...kpi.jamaah.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.jamaah.spark : undefined} to="/prospects?status=closing" toLabel="Buka semua prospek closing (sepanjang waktu, bukan 30 hari)" />
-          <KpiCard
-            label="Konversi"
-            icon={<Percent className="ku-icon" />}
-            value={conversionRate !== null ? fmtPercent(conversionRate) : '—'}
-            note={cohort ? `${fmtNumber(cohort.closings)} dari ${fmtNumber(cohort.prospects)} prospek baru sudah closing` : undefined} />
-          <KpiCard label="Estimasi omzet" icon={<Banknote className="ku-icon" />} value={data ? fmtRupiahShort(kpi.value.value) : '—'} note="Harga paket x jamaah closing" delta={data ? { ...kpi.value.delta, suffix: 'vs 30 hari sebelumnya' } : undefined} spark={data ? kpi.value.spark : undefined} />
-          <p className="db2-kpis__note">30 hari terakhir, dibanding 30 hari sebelumnya</p>
-        </div>
-      </div>
-
-      <div className="ku-grid-main db2-row2">
-        <Card title="Prospek terbaru" actions={<Button size="sm" to="/prospects">Lihat semua</Button>}>
-          <div className="db2-gap" />
-          <DataTable
-            loading={!recent}
-            rows={(recent ?? []).slice(0, mobile ? 4 : undefined)}
-            rowKey={(p) => p.id}
-            onRowClick={(p) => navigate(`/prospects/${p.id}`)}
-            empty={<EmptyState compact title="Belum ada prospek" description="Prospek dari website, iklan, dan agen tampil di sini." />}
-            columns={[
-              { key: 'name', header: 'Nama', cell: (p) => <span className="ku-strong">{p.name}</span> },
-              { key: 'pkg', header: 'Paket', cell: (p) => (present(p.package_name) ? p.package_name : <span className="ku-muted">Belum pilih paket</span>) },
-              {
-                key: 'ch',
-                header: 'Kanal',
-                cell: (p) => <ChannelTag channel={channelOf(p.source_channel, p.agent_id)} detail={present(p.agent_name) ? p.agent_name : null} />,
-                // Phone: channel and time share one line ("Agen · Joko · 16 jam lalu").
-                mobileCell: (p) => (
-                  <span>
-                    <ChannelTag channel={channelOf(p.source_channel, p.agent_id)} detail={present(p.agent_name) ? p.agent_name : null} />
-                    <span className="ku-muted">{fmtAgo(p.created_at)}</span>
-                  </span>
-                ),
-              },
-              { key: 'when', header: 'Masuk', mobile: 'hide', cell: (p) => <span className="ku-muted">{fmtAgo(p.created_at)}</span> },
-              { key: 'status', header: 'Status', cell: (p) => <StatusPill status={p.status} /> },
-            ]}
-          />
-        </Card>
-
-        <Card title="Perlu tindakan">
-          {!data ? (
-            <div className="db2-gap" />
-          ) : (
-            <div className="ku-notices">
-              {alerts && alerts.uncontacted_prospects_count > 0 && (
-                <Notice hot icon={<Clock className="ku-icon" />} title={`${fmtNumber(alerts.uncontacted_prospects_count)} prospek belum dihubungi`} meta="Status masih Baru" to="/prospects?status=baru" />
-              )}
-              {hot && hot.prospect_count > 0 && (
-                <Notice
-                  icon={<Flame className="ku-icon" />}
-                  title={`${fmtNumber(hot.prospect_count)} prospek Tertarik belum closing`}
-                  meta={`Potensi ${fmtRupiahShort(hot.total_value)} · ${fmtNumber(hot.total_pax)} jamaah`}
-                  to="/prospects?status=tertarik"
-                />
-              )}
-              {pendingAgents > 0 && <Notice icon={<UserPlus className="ku-icon" />} title={`${fmtNumber(pendingAgents)} pendaftaran agen baru`} meta="Menunggu persetujuan Anda" to="/agents/pending" />}
-              {alerts && alerts.pending_payouts_count > 0 && (
-                <Notice icon={<Wallet className="ku-icon" />} title={`${fmtNumber(alerts.pending_payouts_count)} pengajuan pencairan`} meta={`Total ${fmtRupiah(alerts.pending_payouts_total)}`} to="/payouts" />
-              )}
-              {!(alerts && alerts.uncontacted_prospects_count > 0) && !(hot && hot.prospect_count > 0) && pendingAgents === 0 && !(alerts && alerts.pending_payouts_count > 0) && (
-                <EmptyState compact icon={<Inbox className="ku-icon" />} title="Tidak ada yang menunggu" description="Prospek baru, pendaftaran agen, dan pencairan komisi muncul di sini." />
-              )}
+            <div className="db2-rates">
+              <h3 className="db2-rates__title">Closing per kanal, 30 hari</h3>
+              <ul className="db2-rates__list">
+                {CHANNELS.map((c) => {
+                  const a = data.channel_attribution.find((x) => x.channel === ATTRIBUTION_KEY[c]);
+                  const leads = a?.leads_count ?? 0;
+                  const closing = a?.closing_count ?? 0;
+                  return (
+                    <li key={c}>
+                      <span className="db2-rates__name">
+                        <i className={`ku-dot ku-dot--${c}`} aria-hidden="true" />
+                        {CHANNEL_LABEL[c]}
+                      </span>
+                      <b className="db2-rates__rate">{leads > 0 ? fmtPercent((closing / leads) * 100) : '—'}</b>
+                      <span className="db2-rates__nums">
+                        {fmtNumber(closing)} dari {fmtNumber(leads)} prospek
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
         </Card>
-      </div>
 
-      <div className="ku-grid-main db2-row3">
-        <Card title="Keberangkatan terdekat" actions={<Button size="sm" to="/packages">Lihat paket</Button>}>
-          {!data ? (
-            <div className="db2-gap" />
-          ) : data.upcoming_packages.length === 0 ? (
-            <EmptyState compact icon={<CalendarDays className="ku-icon" />} title="Belum ada keberangkatan terjadwal" description="Paket terbit dengan tanggal berangkat muncul di sini beserta sisa kursinya." />
+        <Card title="Prospek terbaru" className="db2-recent" actions={<Button size="sm" to="/prospects">Lihat semua</Button>}>
+          {!recent ? (
+            <div className="db2-list-skeleton" />
+          ) : recent.length === 0 ? (
+            <EmptyState compact icon={<Inbox className="ku-icon" />} title="Belum ada prospek" description="Prospek dari website, iklan, dan agen tampil di sini." />
           ) : (
-            <ul className="db2-seats">
-              {data.upcoming_packages.map((pk) => {
-                const pct = pk.quota > 0 ? Math.min(100, Math.round((pk.booked_seats / pk.quota) * 100)) : 0;
-                return (
-                  <li key={pk.id}>
-                    <button type="button" className="db2-seats__row" onClick={() => navigate(`/packages/${pk.id}`)}>
-                      <span className="db2-seats__main">
-                        <span className="db2-seats__name">{pk.name}</span>
-                        <span className="ku-muted">Berangkat {fmtDate(pk.departure_date)}</span>
-                      </span>
-                      <span className="db2-seats__fill">
-                        {pk.quota > 0 ? (
-                          <>
-                            <span className={`db2-seats__left${pk.remaining_seats <= 0 ? ' db2-seats__left--full' : ''}`}>
-                              {pk.remaining_seats > 0 ? `Sisa ${fmtNumber(pk.remaining_seats)} kursi` : 'Penuh'}
-                            </span>
-                            <span className="db2-seats__bar" aria-label={`${fmtNumber(pk.booked_seats)} dari ${fmtNumber(pk.quota)} kursi terisi`}>
-                              <span style={{ width: `${pct}%` }} />
-                            </span>
-                          </>
-                        ) : (
-                          <span className="ku-muted">{fmtNumber(pk.booked_seats)} jamaah · kuota belum diisi</span>
-                        )}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        <Card title="Alasan tidak lanjut" description={lostTotal > 0 ? `Dari ${fmtNumber(lostTotal)} prospek tidak lanjut` : undefined}>
-          {!data ? (
-            <div className="db2-gap" />
-          ) : !lost || lost.top_lost_reasons.length === 0 ? (
-            <EmptyState compact icon={<Inbox className="ku-icon" />} title="Belum ada alasan tercatat" description="Isi alasan saat menandai prospek Tidak Lanjut, untuk masukan harga dan produk." />
-          ) : (
-            <ul className="db2-lost">
-              {lost.top_lost_reasons.slice(0, 4).map((r) => (
-                <li key={r.reason}>
-                  <span className="db2-lost__reason">{r.reason}</span>
-                  <b>{lostTotal > 0 ? fmtPercent((r.count / lostTotal) * 100) : fmtNumber(r.count)}</b>
-                </li>
+            <ul className="ku-rowlist">
+              {recent.slice(0, mobile ? 4 : 6).map((p) => (
+                <RowLink
+                  key={p.id}
+                  to={`/prospects/${p.id}`}
+                  title={p.name}
+                  meta={
+                    <>
+                      <ChannelTag channel={channelOf(p.source_channel, p.agent_id)} detail={present(p.agent_name) ? p.agent_name : null} />
+                      <span>{fmtAgo(p.created_at)}</span>
+                    </>
+                  }
+                  aside={<StatusPill status={p.status} />}
+                />
               ))}
             </ul>
           )}
         </Card>
       </div>
 
-      <AgentSummaryCard />
+      <div className="db2-row db2-row--three">
+        <Card title="Keberangkatan terdekat" className="db2-seats" actions={<Button size="sm" to="/packages">Lihat paket</Button>}>
+          {!data ? (
+            <div className="db2-list-skeleton" />
+          ) : data.upcoming_packages.length === 0 ? (
+            <EmptyState compact icon={<CalendarDays className="ku-icon" />} title="Belum ada keberangkatan terjadwal" description="Paket terbit dengan tanggal berangkat muncul di sini beserta sisa kursinya." />
+          ) : (
+            <ul className="ku-rowlist">
+              {data.upcoming_packages.slice(0, 4).map((pk) => (
+                <RowLink
+                  key={pk.id}
+                  to={`/packages/${pk.id}`}
+                  title={pk.name}
+                  meta={
+                    <span>
+                      Berangkat {fmtDate(pk.departure_date)}
+                      {pk.quota > 0 ? '' : `, ${fmtNumber(pk.booked_seats)} jamaah, kuota belum diisi`}
+                    </span>
+                  }
+                  aside={
+                    pk.quota > 0 ? (
+                      <span className="db2-seats__fill">
+                        <span className={pk.remaining_seats <= 0 ? 'db2-seats__full' : 'db2-seats__left'}>
+                          {pk.remaining_seats > 0 ? `Sisa ${fmtNumber(pk.remaining_seats)} kursi` : 'Penuh'}
+                        </span>
+                        <Meter value={(pk.booked_seats / pk.quota) * 100} label={`${fmtNumber(pk.booked_seats)} dari ${fmtNumber(pk.quota)} kursi terisi`} />
+                      </span>
+                    ) : undefined
+                  }
+                />
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <AgentSummaryCard />
+
+        <Card title="Alasan tidak lanjut" className="db2-lost" description={lostTotal > 0 ? `Dari ${fmtNumber(lostTotal)} prospek tidak lanjut` : undefined}>
+          {!data ? (
+            <div className="db2-list-skeleton" />
+          ) : !lost || lost.top_lost_reasons.length === 0 ? (
+            <EmptyState compact icon={<Inbox className="ku-icon" />} title="Belum ada alasan tercatat" description="Isi alasan saat menandai prospek Tidak Lanjut, untuk masukan harga dan produk." />
+          ) : (
+            <ul className="ku-rowlist">
+              {lost.top_lost_reasons.slice(0, 5).map((r) => {
+                const pct = lostTotal > 0 ? (r.count / lostTotal) * 100 : 0;
+                return (
+                  <li key={r.reason} className="db2-lost__row">
+                    <span className="db2-lost__reason">{r.reason}</span>
+                    <b className="db2-lost__pct">{lostTotal > 0 ? fmtPercent(pct) : fmtNumber(r.count)}</b>
+                    <Meter value={pct} label={`${fmtNumber(r.count)} dari ${fmtNumber(lostTotal)} prospek`} />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
     </div>
   );
 };

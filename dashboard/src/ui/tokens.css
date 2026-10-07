@@ -56,6 +56,7 @@
   --ku-text-2xl: 20px;
   --ku-text-3xl: 26px;
   --ku-text-4xl: 30px;
+  --ku-text-kpi: 28px;
 
   /* leading */
   --ku-leading-tight: 1.25;
@@ -87,11 +88,15 @@
   --ku-radius-card: 12px;
   --ku-radius-panel: 16px;
   --ku-radius-round: 999px;
+  --ku-radius-btn: 12px;
 
   /* shadow */
   --ku-shadow-pop: 0 10px 24px rgba(20, 20, 20, 0.10);
   --ku-shadow-drawer: 0 20px 50px rgba(20, 20, 20, 0.16);
   --ku-shadow-ring: 0 0 0 1px #E7E7E3;
+  --ku-shadow-btn: inset 0 -2px 2px #F4F4F4, inset 0 2px 2px #FFFFFF, 0 1px 2px rgba(0, 0, 0, 0.05);
+  --ku-shadow-btnPrimary: inset 0 -2px 2px #000000, inset 0 2px 2px #3F3F46, 0 1px 2px rgba(0, 0, 0, 0.05);
+  --ku-shadow-btnDanger: inset 0 -2px 2px #991B1B, inset 0 2px 2px #F87171, 0 1px 2px rgba(0, 0, 0, 0.05);
 
   /* size */
   --ku-size-sidebar: 248px;
@@ -103,6 +108,8 @@
   --ku-size-content: 1360px;
   --ku-size-tabbar: 64px;
   --ku-size-sheet-grip: 36px;
+  --ku-size-touch: 40px;
+  --ku-size-meter: 6px;
 
   /* affiliator */
   --ku-affiliator-contentWidth: 880px;
@@ -118,6 +125,14 @@
   --ku-invoice-ctaHover: #14532D;
   --ku-invoice-sheetWidth: 840px;
   --ku-invoice-headerWidth: 1120px;
-  --ku-invoice-paymentColumns: minmax(0, 1fr) minmax(0, 1fr);
+  --ku-invoice-paymentColumns: minmax(0, 1fr);
+  --ku-invoice-bankColumns: repeat(3, minmax(0, 1fr));
   --ku-invoice-previewHeight: 160px;
+  --ku-invoice-bg: #FAFAFA;
+  --ku-invoice-fontDisplay: 'Instrument Serif', Georgia, serif;
+  --ku-invoice-titleSize: 40px;
+  --ku-invoice-titleSizeMobile: 32px;
+  --ku-invoice-ctaRadius: 12px;
+  --ku-invoice-ctaShadow: inset 0 -2px 2px #0F3D22, inset 0 2px 2px #1F8A47, 0 1px 2px rgba(0, 0, 0, 0.05);
+  --ku-invoice-stepBar: 4px;
 }

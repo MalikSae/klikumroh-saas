@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { CornerDownRight, ExternalLink, RefreshCw, Trash2, X } from 'lucide-react';
 import { deleteCustomDomain, fetchDomains, getDomainARecordTargets, getDomainCNAMETarget, registerCustomDomain, verifyCustomDomain, type DomainItem } from '../../services/api';
 import { Banner, Button, Checkbox, Field, IconButton, Modal, Pill, errorText, fmtAgo, type PillTone } from '../../ui';
+import { useFrame } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
 import { CopyText } from '../agents/shared';
 import { hostField, isRoot, pairOf, zoneOf } from './domainZone';
@@ -99,9 +100,13 @@ export const Domains: React.FC = () => {
   const [busy, setBusy] = useState<number | 'add' | null>(null);
   const [confirm, setConfirm] = useState<DomainItem | null>(null);
 
+  const frame = useFrame();
   const load = () =>
     fetchDomains()
-      .then(setDomains)
+      .then((list) => {
+        setDomains(list);
+        frame?.noteDomains(list); // links elsewhere in the dashboard follow the primary custom domain at once
+      })
       .catch((e) => setError(errorText(e, 'Gagal memuat domain')))
       .finally(() => setLoading(false));
 

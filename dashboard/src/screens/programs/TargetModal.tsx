@@ -65,7 +65,7 @@ export const TargetModal: React.FC<{ target?: AgentTarget | null; onClose: () =>
     >
       <form id="pg-target" className="ag-form" onSubmit={submit} noValidate>
         {error && <Banner tone="danger">{error}</Banner>}
-        <Field label="Nama target" optional hint="Contoh: Promo Ramadhan. Kosongkan untuk memakai nama otomatis.">
+        <Field label="Nama target" optional hint="Contoh: Target tahunan. Kosongkan untuk memakai nama otomatis.">
           {(id) => <input id={id} className="ku-input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />}
         </Field>
         <div className="pg-grid">

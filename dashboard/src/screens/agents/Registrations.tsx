@@ -3,7 +3,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { approveAgent, fetchDashboardAgents, fetchPrivateFileUrl, rejectAgent, type AgentItem } from '../../services/api';
 import { Banner, Button, DataTable, Drawer, EmptyState, Field, FilterMenu, Modal, Pill, SearchField, Select, Toolbar, errorText, fmtAgo, fmtDate, type Column } from '../../ui';
-import { AGENT_STATUS, REG_PAYMENT, waHref } from './shared';
+import { AGENT_STATUS, AgentSignupLinkButton, REG_PAYMENT, waHref } from './shared';
+
+/** 6281234567890 -> 0812-3456-7890: the number as people write it. */
+const localPhone = (phone?: string | null) => {
+  if (!phone) return '';
+  const d = phone.replace(/\D/g, '');
+  const local = d.startsWith('62') ? '0' + d.slice(2) : d;
+  return local.replace(/^(\d{4})(\d{4})(\d+)$/, '$1-$2-$3');
+};
 
 type View = 'pending' | 'rejected';
 
@@ -64,27 +72,27 @@ const RegistrationDrawer: React.FC<{ agent: AgentItem; parentName: string | null
         title={agent.name}
         subtitle={
           <span className="ag-sub">
+            <span className="ag-sub__date" title="Tanggal mendaftar">{fmtDate(agent.created_at)}</span>
             <Pill tone={AGENT_STATUS[agent.status]?.tone}>{AGENT_STATUS[agent.status]?.label}</Pill>
-            Mendaftar {fmtDate(agent.created_at)}
           </span>
         }
         footer={
           <>
             {wa && (
-              <Button variant="ghost" to={wa} external icon={<MessageCircle className="ku-icon--sm" />}>
-                Chat WhatsApp
+              <Button variant="ghost" to={wa} external className="ag-foot-wa" icon={<MessageCircle className="ku-icon--sm" />}>
+                <span className="ag-foot-wa__label">Chat WhatsApp</span>
               </Button>
             )}
             <span className="ag-foot-gap" />
             {agent.status === 'pending' && (
-              <Button variant="secondary" onClick={() => setDialog('reject')} disabled={busy}>
+              <Button variant="secondary" className="ag-foot-act" onClick={() => setDialog('reject')} disabled={busy}>
                 Tolak
               </Button>
             )}
             {/* The server approves only pending or rejected registrations; once another admin approved the
                 agent (409 then reload), the button is gone instead of failing on every click. */}
             {(agent.status === 'pending' || agent.status === 'rejected') && (
-              <Button variant="primary" onClick={() => setDialog('approve')} disabled={busy}>
+              <Button variant="primary" className="ag-foot-act" onClick={() => setDialog('approve')} disabled={busy}>
                 Setujui agen
               </Button>
             )}
@@ -103,7 +111,7 @@ const RegistrationDrawer: React.FC<{ agent: AgentItem; parentName: string | null
           <section className="ku-facts">
             <div>
               <div className="ku-facts__k">WhatsApp</div>
-              <div className="ku-facts__v">{agent.phone || '—'}</div>
+              <div className="ku-facts__v">{localPhone(agent.phone) || '—'}</div>
             </div>
             <div>
               <div className="ku-facts__k">Email</div>
@@ -217,16 +225,25 @@ export const Registrations: React.FC<{ onChanged: () => void }> = ({ onChanged }
   }, [all, view, search]);
   const open = openId ? all.find((a) => a.id === openId) || null : null;
 
+  const payPill = (a: AgentItem) => {
+    const p = REG_PAYMENT[a.payment_status];
+    return p ? <Pill tone={p.tone}>{p.label}</Pill> : <span className="ku-muted">Gratis</span>;
+  };
   const columns: Column<AgentItem>[] = [
     {
       key: 'name',
       header: 'Nama',
       cell: (a) => a.name,
-      // Phone card: contact under the name instead of two unlabeled lines.
+      // Phone card: contact under the name, then payment state and time on one line, so the status pill no
+      // longer squeezes the name into a narrow column.
       mobileCell: (a) => (
         <span className="ag-name">
           {a.name}
-          <span className="ku-muted">{[a.phone, a.domisili].filter(Boolean).join(' · ') || '—'}</span>
+          <span className="ku-muted">{[localPhone(a.phone), a.domisili].filter(Boolean).join(' · ') || '—'}</span>
+          <span className="ag-reg-meta">
+            {payPill(a)}
+            <span className="ku-muted">{fmtAgo(a.created_at)}</span>
+          </span>
         </span>
       ),
     },
@@ -241,20 +258,17 @@ export const Registrations: React.FC<{ onChanged: () => void }> = ({ onChanged }
     {
       key: 'pay',
       header: 'Biaya pendaftaran',
-      mobile: 'aside',
-      cell: (a) => {
-        const p = REG_PAYMENT[a.payment_status];
-        return p ? <Pill tone={p.tone}>{p.label}</Pill> : <span className="ku-muted">Gratis</span>;
-      },
+      mobile: 'hide',
+      cell: (a) => payPill(a),
     },
-    { key: 'when', header: 'Mendaftar', mobile: 'labeled', cell: (a) => fmtAgo(a.created_at) },
+    { key: 'when', header: 'Mendaftar', mobile: 'hide', cell: (a) => fmtAgo(a.created_at) },
   ];
 
   return (
     <section className="ku-list">
       {error && <Banner tone="danger">{error}</Banner>}
       {notice && <Banner tone="success">{notice}</Banner>}
-      <Toolbar>
+      <Toolbar right={!(view === 'pending' && rows.length === 0) && <AgentSignupLinkButton />}>
         <SearchField value={search} onChange={setSearch} placeholder="Cari nama, nomor WhatsApp, domisili" />
         <FilterMenu active={view !== 'pending' ? 1 : 0} onReset={() => setView('pending')}>
           <Field label="Status">
@@ -284,7 +298,7 @@ export const Registrations: React.FC<{ onChanged: () => void }> = ({ onChanged }
         }}
         empty={
           view === 'pending' ? (
-            <EmptyState compact title="Tidak ada pendaftaran baru" description="Calon agen yang mendaftar lewat website travel menunggu persetujuan di sini." />
+            <EmptyState compact title="Tidak ada pendaftaran baru" description="Calon agen yang mendaftar lewat link pendaftaran menunggu persetujuan di sini." action={<AgentSignupLinkButton variant="primary" />} />
           ) : (
             <EmptyState compact title="Tidak ada pendaftaran yang ditolak" />
           )

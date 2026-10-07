@@ -15,7 +15,8 @@
 .st-section__title { margin: 0; font: var(--ku-weight-semibold) var(--ku-text-lg) var(--ku-font-head); color: var(--ku-ink); }
 .st-section__desc { margin: var(--ku-space-1) 0 0; color: var(--ku-ink-3); font-size: var(--ku-text-md); line-height: var(--ku-leading-loose); }
 .st-section__body { display: flex; flex-direction: column; gap: var(--ku-space-4); max-width: 560px; }
-.st-savebar { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-4) 0; background: var(--ku-panel); }
+/* Save buttons sit at the end of the form, not pinned to the screen (founder, 6 Oct 2026). */
+.st-savebar { display: flex; justify-content: flex-end; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-4) 0; background: var(--ku-panel); }
 .st-savebar__done { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; color: var(--ku-green-2); font-size: var(--ku-text-md); }
 .st-actions .st-savebar__done { margin-right: 0; }
 
@@ -60,9 +61,8 @@
   .st-grid { grid-template-columns: 1fr; }
 }
 
-/* Phone: the sticky save bar sits above the bottom tab bar instead of behind it. */
 @media (max-width: 768px) {
-  .st-savebar { bottom: calc(var(--ku-size-tabbar) + env(safe-area-inset-bottom)); padding: var(--ku-space-3) 0; }
+  .st-savebar { padding: var(--ku-space-3) 0; }
   .st-savebar .ku-btn { height: 44px; }
   /* "Perubahan tersimpan" gets its own line above the buttons instead of wrapping beside them. */
   .st-savebar { flex-wrap: wrap; row-gap: var(--ku-space-2); }

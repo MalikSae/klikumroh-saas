@@ -23,9 +23,10 @@ import {
   fmtRupiah,
   type Column,
 } from '../../ui';
-import { AGENT_STATUS } from './shared';
+import { AGENT_STATUS, AgentSignupLinkButton } from './shared';
 
-type Row = AgentItem & { perf: AgentPerformance | null; habit: AgentHabitOverview | null; prospects: number; conversion: number | null };
+type Recruits = { active: number; pending: number };
+type Row = AgentItem & { perf: AgentPerformance | null; habit: AgentHabitOverview | null; prospects: number; conversion: number | null; recruits: Recruits };
 type Sort = 'closing' | 'prospects' | 'clicks' | 'commission' | 'syiar' | 'newest';
 
 const badgeTier = (days: number) => (days >= 100 ? 'gold' : days >= 30 ? 'silver' : 'bronze');
@@ -37,6 +38,8 @@ export const AgentList: React.FC = () => {
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [perf, setPerf] = useState<Map<number, AgentPerformance>>(new Map());
   const [habits, setHabits] = useState<Map<number, AgentHabitOverview>>(new Map());
+  // Registrations per agent code (parent_agent_id): approved (active) and waiting for approval.
+  const [recruits, setRecruits] = useState<Map<number, Recruits>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -52,6 +55,15 @@ export const AgentList: React.FC = () => {
     ])
       .then(([a, p, h]) => {
         setAgents(a.filter((x) => x.status === 'active' || x.status === 'inactive'));
+        const rc = new Map<number, Recruits>();
+        for (const x of a) {
+          if (!x.parent_agent_id || (x.status !== 'active' && x.status !== 'pending')) continue;
+          const cur = rc.get(x.parent_agent_id) ?? { active: 0, pending: 0 };
+          if (x.status === 'active') cur.active += 1;
+          else cur.pending += 1;
+          rc.set(x.parent_agent_id, cur);
+        }
+        setRecruits(rc);
         setPerf(new Map(p.map((x) => [x.agent_id, x])));
         setHabits(new Map(h.map((x) => [x.agent_id, x])));
       })
@@ -71,7 +83,7 @@ export const AgentList: React.FC = () => {
         const p = perf.get(a.id) || null;
         const h = habits.get(a.id) || null;
         const prospects = p ? p.baru + p.dihubungi + p.tertarik + p.closing + p.tidak_lanjut : 0;
-        return { ...a, perf: p, habit: h, prospects, conversion: prospects > 0 && p ? (p.closing / prospects) * 100 : null };
+        return { ...a, perf: p, habit: h, prospects, conversion: prospects > 0 && p ? (p.closing / prospects) * 100 : null, recruits: recruits.get(a.id) ?? { active: 0, pending: 0 } };
       });
     const key: Record<Sort, (r: Row) => number> = {
       closing: (r) => r.perf?.closing_jamaah ?? 0,
@@ -83,7 +95,7 @@ export const AgentList: React.FC = () => {
       newest: (r) => new Date(r.created_at).getTime(),
     };
     return list.sort((a, b) => key[sort](b) - key[sort](a) || a.name.localeCompare(b.name));
-  }, [agents, perf, habits, search, status, sort]);
+  }, [agents, perf, habits, recruits, search, status, sort]);
 
   useEffect(() => setPage(1), [search, status, sort]);
 
@@ -101,10 +113,22 @@ export const AgentList: React.FC = () => {
         </span>
       ),
     },
-    { key: 'clicks', header: 'Klik 30 hari', align: 'right', mobile: 'hide', cell: (r) => fmtNumber(r.perf?.clicks_30d ?? 0) },
+    { key: 'clicks', header: 'Klik 30 hari', align: 'right', mobile: 'hide', wideOnly: true, cell: (r) => fmtNumber(r.perf?.clicks_30d ?? 0) },
     { key: 'prospects', header: 'Prospek', align: 'right', cell: (r) => fmtNumber(r.prospects) },
     { key: 'closing', header: 'Jamaah closing', align: 'right', cell: (r) => fmtNumber(r.perf?.closing_jamaah ?? 0) },
     { key: 'conv', header: 'Konversi', align: 'right', mobile: 'hide', cell: (r) => (r.conversion === null ? '—' : fmtPercent(r.conversion)) },
+    {
+      key: 'recruits',
+      header: 'Rekrutan',
+      align: 'right',
+      mobile: 'hide',
+      cell: (r) => (
+        <span title="Agen yang mendaftar dengan kode referral agen ini dan sudah disetujui">
+          {fmtNumber(r.recruits.active)}
+          {r.recruits.pending > 0 && <span className="ku-muted"> +{r.recruits.pending} menunggu</span>}
+        </span>
+      ),
+    },
     { key: 'commission', header: 'Komisi', align: 'right', cell: (r) => fmtRupiah(r.perf?.commission_earned ?? 0) },
     {
       key: 'syiar',
@@ -113,12 +137,24 @@ export const AgentList: React.FC = () => {
       mobile: 'stat',
       cell: (r) => (
         <span className="ag-syiar" title="Hari aktif syiar harian dalam 7 hari terakhir">
-          {r.habit?.top_badge ? (
-            <Award className={`ku-icon--sm ag-habit__medal ag-habit__medal--${badgeTier(r.habit.top_badge)}`} aria-label={`Lencana ${r.habit.top_badge} hari`} />
-          ) : null}
           {r.habit?.active_days_7 ?? 0}/7
         </span>
       ),
+    },
+    {
+      // Highest streak badge ever earned (7 / 30 / 100 active days in a row), kept for good.
+      key: 'badge',
+      header: 'Lencana',
+      mobile: 'stat',
+      cell: (r) =>
+        r.habit?.top_badge ? (
+          <span className="ag-syiar" title={`Pernah aktif syiar ${r.habit.top_badge} hari berturut-turut`}>
+            <Award className={`ku-icon--sm ag-habit__medal ag-habit__medal--${badgeTier(r.habit.top_badge)}`} aria-hidden="true" />
+            {r.habit.top_badge} hari
+          </span>
+        ) : (
+          <span className="ku-muted">—</span>
+        ),
     },
     { key: 'last', header: 'Prospek terakhir', mobile: 'stat', cell: (r) => (r.perf?.last_prospect_at ? fmtAgo(r.perf.last_prospect_at) : <span className="ku-muted">Belum ada</span>) },
     { key: 'status', header: 'Status', cell: (r) => <Pill tone={AGENT_STATUS[r.status]?.tone}>{AGENT_STATUS[r.status]?.label ?? r.status}</Pill> },
@@ -130,7 +166,7 @@ export const AgentList: React.FC = () => {
   return (
     <section className="ku-list">
       {error && <Banner tone="danger">{error}</Banner>}
-      <Toolbar>
+      <Toolbar right={agents.length > 0 && <AgentSignupLinkButton />}>
         <SearchField value={search} onChange={setSearch} placeholder="Cari nama, nomor WhatsApp, kode referral" />
         <FilterMenu
           active={filters}
@@ -182,7 +218,7 @@ export const AgentList: React.FC = () => {
         onRowClick={(r) => navigate(`/agents/${r.id}`)}
         empty={
           agents.length === 0 ? (
-            <EmptyState compact title="Belum ada agen aktif" description="Agen yang Anda setujui di tab Pendaftaran muncul di sini beserta performanya." />
+            <EmptyState compact title="Belum ada agen aktif" description="Bagikan link pendaftaran ke calon agen. Agen yang Anda setujui di tab Pendaftaran muncul di sini." action={<AgentSignupLinkButton variant="primary" />} />
           ) : (
             <EmptyState compact title="Tidak ada agen yang cocok" description="Ubah pencarian atau filter." />
           )

@@ -1,7 +1,8 @@
 // Dashboard travel v2 — UI components. Visual source: dashboard/design/prototype.html (approved 30 Sep 2026).
-import React, { useEffect, useId, useRef, useSyncExternalStore } from 'react';
+import React, { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, X, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Minus, User, X, Search, SlidersHorizontal } from 'lucide-react';
+import { copyText } from '../utils/clipboard';
 import './tokens.css';
 import './ui.css';
 
@@ -18,16 +19,16 @@ interface BtnBase {
   className?: string;
 }
 type BtnProps = BtnBase & React.ButtonHTMLAttributes<HTMLButtonElement>;
-type LinkBtnProps = BtnBase & { to: string; external?: boolean };
+type LinkBtnProps = BtnBase & { to: string; external?: boolean; onClick?: () => void };
 
 export function Button(props: BtnProps | LinkBtnProps) {
   const { variant = 'secondary', size = 'md', icon, block, children, className } = props;
   const cls = cx('ku-btn', variant !== 'secondary' && `ku-btn--${variant}`, size === 'sm' && 'ku-btn--sm', block && 'ku-btn--block', className);
   if ('to' in props) {
     return props.external ? (
-      <a href={props.to} target="_blank" rel="noopener noreferrer" className={cls}>{icon}{children}</a>
+      <a href={props.to} target="_blank" rel="noopener noreferrer" className={cls} onClick={props.onClick}>{icon}{children}</a>
     ) : (
-      <Link to={props.to} className={cls}>{icon}{children}</Link>
+      <Link to={props.to} className={cls} onClick={props.onClick}>{icon}{children}</Link>
     );
   }
   const { variant: _v, size: _s, icon: _i, block: _b, children: _c, className: _cn, ...rest } = props as BtnProps;
@@ -39,8 +40,26 @@ export function Button(props: BtnProps | LinkBtnProps) {
   );
 }
 
-export const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string; dot?: boolean; size?: 'sm' | 'md'; children: React.ReactNode }> = ({ label, dot, size = 'md', children, className, ...rest }) => (
-  <button type="button" className={cx('ku-ibtn', size === 'sm' && 'ku-ibtn--sm', className)} aria-label={label} title={label} {...rest}>
+/** Copies a text (a link to share) and says so on the button for two seconds. */
+export const CopyButton: React.FC<{ value: string; children: React.ReactNode; size?: 'sm' | 'md'; variant?: Variant; onCopied?: () => void }> = ({ value, children, size = 'sm', variant, onCopied }) => {
+  const [state, setState] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const copy = async () => {
+    const ok = await copyText(value);
+    setState(ok ? 'ok' : 'fail');
+    if (ok) onCopied?.();
+    window.setTimeout(() => setState('idle'), 2000);
+  };
+  return (
+    <Button size={size} variant={variant} onClick={copy} icon={state === 'ok' ? <Check className="ku-icon--sm" /> : <Copy className="ku-icon--sm" />} aria-live="polite">
+      {state === 'ok' ? 'Tersalin' : state === 'fail' ? 'Gagal menyalin' : children}
+    </Button>
+  );
+};
+
+/** variant 'ghost': no box (no border/background until hover), for close and overflow actions in
+ * headers and rows (AGENTS.md 3.10: icons should not sit in boxes everywhere). */
+export const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { label: string; dot?: boolean; size?: 'sm' | 'md'; variant?: 'default' | 'ghost'; children: React.ReactNode }> = ({ label, dot, size = 'md', variant = 'default', children, className, ...rest }) => (
+  <button type="button" className={cx('ku-ibtn', size === 'sm' && 'ku-ibtn--sm', variant === 'ghost' && 'ku-ibtn--ghost', className)} aria-label={label} title={label} {...rest}>
     {children}
     {dot && <span className="ku-ibtn__dot" aria-hidden="true" />}
   </button>
@@ -327,11 +346,15 @@ export interface Column<T> {
    * 'stat' shows a non-numeric column as a stat tile anyway (e.g. seats filled with its bar).
    */
   mobile?: 'hide' | 'aside' | 'labeled' | 'line' | 'stat';
+  /** Desktop table: show the column only on wide screens (1440px and up), so the table fits a 1366px laptop. */
+  wideOnly?: boolean;
   /** Phone card content for this column when it differs from the table cell (e.g. name + contact in one). */
   mobileCell?: (row: T) => React.ReactNode;
   /** Phone card: full-width media (e.g. a banner image) above the title. Read from the first column. */
   mobileMedia?: (row: T) => React.ReactNode;
 }
+
+const colClass = (c: { align?: 'right'; wideOnly?: boolean }) => [c.align === 'right' && 'ku-right', c.wideOnly && 'ku-col--wide'].filter(Boolean).join(' ') || undefined;
 
 /** Phone: each row is a card. The first column is the card title, the rest follow without field labels. */
 function MobileList<T>({ columns, rows, rowKey, onRowClick, loading, showEmpty, empty }: { columns: Column<T>[]; rows: T[]; rowKey: (r: T) => string | number; onRowClick?: (r: T) => void; loading?: boolean; showEmpty: boolean; empty?: React.ReactNode }) {
@@ -417,7 +440,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, empty
         <thead>
           <tr>
             {columns.map((c) => (
-              <th key={c.key} className={c.align === 'right' ? 'ku-right' : undefined}>{c.header}</th>
+              <th key={c.key} className={colClass(c)}>{c.header}</th>
             ))}
           </tr>
         </thead>
@@ -426,7 +449,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, empty
             ? Array.from({ length: 4 }, (_, i) => (
                 <tr key={i}>
                   {columns.map((c) => (
-                    <td key={c.key}><div className="ku-skeleton" /></td>
+                    <td key={c.key} className={colClass(c)}><div className="ku-skeleton" /></td>
                   ))}
                 </tr>
               ))
@@ -439,7 +462,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, empty
             : rows.map((r) => (
                 <tr key={rowKey(r)} className={onRowClick ? 'ku-row-link' : undefined} onClick={onRowClick ? () => onRowClick(r) : undefined}>
                   {columns.map((c) => (
-                    <td key={c.key} className={c.align === 'right' ? 'ku-right' : undefined}>{c.cell(r)}</td>
+                    <td key={c.key} className={colClass(c)}>{c.cell(r)}</td>
                   ))}
                 </tr>
               ))}
@@ -455,38 +478,111 @@ export const Toolbar: React.FC<{ children: React.ReactNode; right?: React.ReactN
   </div>
 );
 
-/* ---------- KPI card with sparkline ---------- */
-export const Sparkline: React.FC<{ values: number[]; trend: 'up' | 'down' | 'flat' }> = ({ values, trend }) => {
-  if (values.length < 2) return null;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const pts = values.map((v, i) => `${(i / (values.length - 1)) * 84},${28 - ((v - min) / (max - min || 1)) * 24}`).join(' ');
+/* ---------- Metric strip (several KPIs in ONE panel, split by hairlines) ---------- */
+export interface MetricDelta {
+  text: string;
+  trend: 'up' | 'down' | 'flat';
+}
+/**
+ * One panel holding several metrics side by side (2 x 2 on narrow screens); not one card per metric.
+ * `heading` names what all metrics share (e.g. the period) once above the panel, not in every cell.
+ */
+export const MetricStrip: React.FC<{ label: string; heading?: React.ReactNode; headingMeta?: React.ReactNode; children: React.ReactNode }> = ({ label, heading, headingMeta, children }) => {
   return (
-    <svg className="ku-kpi__spark" viewBox="0 0 84 30" aria-hidden="true">
-      <polyline fill="none" strokeWidth="1.6" className={`ku-spark-${trend}`} points={pts} />
-    </svg>
+    <div className="ku-metrics-group">
+      {heading && (
+        <p className="ku-metrics-head">
+          <span className="ku-metrics-head__title">{heading}</span>
+          {headingMeta && <span className="ku-metrics-head__meta">{headingMeta}</span>}
+        </p>
+      )}
+      <section className="ku-metrics" aria-label={label}>{children}</section>
+    </div>
+  );
+};
+/**
+ * A metric of a MetricStrip. Label, value and note each stay on ONE line (ellipsis if ever too long).
+ * With `to` the whole metric is a link. `deltaLabel` says what the delta compares to. `hint` holds the longer
+ * explanation as a tooltip on the whole metric, never as visible wrapping text.
+ */
+export const Metric: React.FC<{ label: string; value: React.ReactNode; delta?: MetricDelta; deltaLabel?: string; note?: React.ReactNode; hint?: string; to?: string; toLabel?: string }> = ({ label, value, delta, deltaLabel, note, hint, to, toLabel }) => {
+  const DeltaIcon = delta?.trend === 'up' ? ArrowUpRight : delta?.trend === 'down' ? ArrowDownRight : Minus;
+  const title = [hint, toLabel].filter(Boolean).join('. ') || undefined;
+  const inner = (
+    <>
+      <span className="ku-metric__label">
+        <span className="ku-metric__text">{label}</span>
+        {to && <ChevronRight className="ku-icon--sm ku-metric__go" aria-hidden="true" />}
+      </span>
+      <span className="ku-metric__value">{value}</span>
+      {(delta || note) && (
+        <span className="ku-metric__foot">
+          {delta && (
+            <span className={cx('ku-metric__delta', delta.trend === 'up' && 'ku-up', delta.trend === 'down' && 'ku-down')} title={deltaLabel}>
+              <DeltaIcon className="ku-icon--sm" aria-hidden="true" />
+              {delta.text}
+              {deltaLabel && <span className="ku-sr">{` ${deltaLabel}`}</span>}
+            </span>
+          )}
+          {note && <span className="ku-metric__note">{note}</span>}
+        </span>
+      )}
+      {hint && <span className="ku-sr">{` ${hint}`}</span>}
+    </>
+  );
+  return to ? (
+    <Link to={to} className="ku-metric ku-metric--link" title={title}>{inner}</Link>
+  ) : (
+    <div className="ku-metric" title={title}>{inner}</div>
   );
 };
 
-/** note: a small line under the value that explains it (e.g. how a rate is made up). */
-export const KpiCard: React.FC<{ label: string; value: React.ReactNode; icon: React.ReactNode; note?: React.ReactNode; delta?: { text: string; trend: 'up' | 'down' | 'flat'; suffix: string }; spark?: number[]; to?: string; toLabel?: string }> = ({ label, value, icon, note, delta, spark, to, toLabel }) => (
-  <div className="ku-card ku-kpi">
-    <span className="ku-kpi__label">{label}</span>
-    {to && (
-      <Link to={to} className="ku-kpi__go" aria-label={toLabel ?? `Buka ${label.toLowerCase()}`} title={toLabel}>
-        <ArrowUpRight className="ku-icon--sm" />
-      </Link>
-    )}
-    <div className="ku-kpi__value">{icon}{value}</div>
-    {note && <div className="ku-kpi__note">{note}</div>}
-    {delta && (
-      <div className="ku-kpi__delta">
-        <b className={delta.trend === 'up' ? 'ku-up' : delta.trend === 'down' ? 'ku-down' : undefined}>{delta.text}</b> <span className="ku-kpi__suffix">{delta.suffix}</span>
-      </div>
-    )}
-    {spark && <Sparkline values={spark} trend={delta?.trend ?? 'flat'} />}
-  </div>
+/* ---------- Action list (what waits for the user, one panel) ---------- */
+/** Items side by side in one panel with hairline dividers; stacked rows on narrow screens. */
+export const ActionList: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <nav className="ku-actions" aria-label={label}>{children}</nav>
 );
+/**
+ * One pending item; the whole item is a link. `urgent` (red) is reserved for the single most pressing item.
+ * Title and meta each stay on one line (ellipsis if ever too long); `hint` is the full text as a tooltip.
+ */
+export const ActionItem: React.FC<{ icon: React.ReactNode; count: React.ReactNode; text: React.ReactNode; meta?: React.ReactNode; hint?: string; to: string; urgent?: boolean }> = ({ icon, count, text, meta, hint, to, urgent }) => (
+  <Link to={to} className={cx('ku-action', urgent && 'ku-action--urgent')} title={hint}>
+    <span className="ku-action__icon" aria-hidden="true">{icon}</span>
+    <span className="ku-action__body">
+      <span className="ku-action__title">
+        <b className="ku-action__count">{count}</b> {text}
+      </span>
+      {meta && <span className="ku-action__meta">{meta}</span>}
+    </span>
+    <ChevronRight className="ku-icon--sm ku-action__go" aria-hidden="true" />
+  </Link>
+);
+
+/* ---------- Row list (compact linked rows split by hairlines, e.g. inside a card) ---------- */
+/** Use inside <ul className="ku-rowlist">. Secondary info sits under the title, so names wrap instead of being cut. */
+export const RowLink: React.FC<{ to: string; lead?: React.ReactNode; title: React.ReactNode; meta?: React.ReactNode; aside?: React.ReactNode }> = ({ to, lead, title, meta, aside }) => (
+  <li>
+    <Link to={to} className="ku-rowlist__link">
+      {lead}
+      <span className="ku-rowlist__main">
+        <span className="ku-rowlist__title">{title}</span>
+        {meta && <span className="ku-rowlist__meta">{meta}</span>}
+      </span>
+      {aside && <span className="ku-rowlist__aside">{aside}</span>}
+    </Link>
+  </li>
+);
+
+/** Horizontal fill bar (seats taken, share of a total). Neutral ink: the bar measures, it does not judge. */
+export const Meter: React.FC<{ value: number; label: string }> = ({ value, label }) => {
+  const pct = Math.max(0, Math.min(100, value));
+  return (
+    <span className="ku-meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label={label}>
+      <span style={{ width: `${pct}%` }} />
+    </span>
+  );
+};
 
 /* ---------- Hero strip ---------- */
 export const Strip: React.FC<{ tone?: 'accent' | 'warning' | 'danger'; icon: React.ReactNode; title: React.ReactNode; description?: React.ReactNode; progress?: { done: number; total: number }; action?: React.ReactNode; onClose?: () => void }> = ({ tone = 'accent', icon, title, description, progress, action, onClose }) => (
@@ -575,7 +671,8 @@ const useScrollLock = (open: boolean) => {
   }, [open]);
 };
 
-export const Drawer: React.FC<{ open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; footer?: React.ReactNode; children: React.ReactNode }> = ({ open, onClose, title, subtitle, footer, children }) => {
+/** actions: optional header controls (e.g. an overflow Menu) shown on the right, next to the close button. */
+export const Drawer: React.FC<{ open: boolean; onClose: () => void; title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; footer?: React.ReactNode; children: React.ReactNode }> = ({ open, onClose, title, subtitle, actions, footer, children }) => {
   useEscape(open, onClose);
   useScrollLock(open);
   const titleId = useId();
@@ -585,13 +682,16 @@ export const Drawer: React.FC<{ open: boolean; onClose: () => void; title: React
       <div className="ku-overlay" onClick={onClose} aria-hidden="true" />
       <aside className="ku-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="ku-drawer__head">
-          <div>
+          <div className="ku-drawer__heading">
             <h2 id={titleId} className="ku-drawer__title">{title}</h2>
             {subtitle && <div className="ku-drawer__sub">{subtitle}</div>}
           </div>
-          <IconButton label="Tutup" size="sm" onClick={onClose} style={{ marginLeft: 'auto' }}>
-            <X className="ku-icon--sm" />
-          </IconButton>
+          <div className="ku-drawer__actions">
+            {actions}
+            <IconButton label="Tutup" size="sm" variant="ghost" onClick={onClose}>
+              <X className="ku-icon--sm" />
+            </IconButton>
+          </div>
         </div>
         <div className="ku-drawer__body">{children}</div>
         {footer && <div className="ku-drawer__foot">{footer}</div>}
@@ -617,7 +717,7 @@ export const Modal: React.FC<{ open: boolean; onClose: () => void; title: string
             <h2 id={titleId} className="ku-modal__title">{title}</h2>
             {description && <p className="ku-modal__desc">{description}</p>}
           </div>
-          <IconButton label="Tutup" size="sm" onClick={onClose}>
+          <IconButton label="Tutup" size="sm" variant="ghost" onClick={onClose}>
             <X className="ku-icon--sm" />
           </IconButton>
         </div>
@@ -734,6 +834,7 @@ export const Menu: React.FC<{
       <IconButton
         label={label}
         size="sm"
+        variant="ghost"
         onClick={() => {
           if (!open) place();
           setOpen((v) => !v);
@@ -769,9 +870,9 @@ export const RouteTabs: React.FC<{ label: string; items: Array<{ to: string; lab
   </nav>
 );
 
-/* ---------- Avatar (initials) ---------- */
-/** Round avatar: the photo when there is one (full URL), otherwise (or if it fails to load) the initials. */
-export const Avatar: React.FC<{ name: string; src?: string | null; size?: 'md' | 'lg' }> = ({ name, src, size = 'md' }) => {
+/* ---------- Avatar (person icon) ---------- */
+/** Round avatar: the photo when there is one (full URL), otherwise (or if it fails to load) a person icon, never initials (founder, 7 Oct 2026). `name` stays in the props for callers; the avatar is decorative. */
+export const Avatar: React.FC<{ name: string; src?: string | null; size?: 'md' | 'lg' }> = ({ src, size = 'md' }) => {
   const [failed, setFailed] = React.useState(false);
   const cls = cx('ku-avatar', size === 'lg' && 'ku-avatar--lg');
   if (src && !failed) {
@@ -779,7 +880,7 @@ export const Avatar: React.FC<{ name: string; src?: string | null; size?: 'md' |
   }
   return (
     <span className={cls} aria-hidden="true">
-      {name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?'}
+      <User size={size === 'lg' ? 24 : 16} />
     </span>
   );
 };

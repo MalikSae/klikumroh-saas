@@ -101,7 +101,7 @@ export const TargetDrawer: React.FC<{ targetId: number; onClose: () => void; onC
               />
               {!closed && (
                 <Button variant={state?.key === 'ended' ? 'primary' : 'secondary'} onClick={() => setDialog('close')}>
-                  Tutup periode
+                  Akhiri target
                 </Button>
               )}
             </>
@@ -216,19 +216,19 @@ export const TargetDrawer: React.FC<{ targetId: number; onClose: () => void; onC
       <Modal
         open={Boolean(target) && dialog === 'close'}
         onClose={() => setDialog(null)}
-        title={early ? 'Tutup periode sebelum selesai?' : 'Tutup periode target?'}
+        title={early ? 'Akhiri target sebelum periodenya selesai?' : 'Akhiri target?'}
         description={
           early && target
-            ? `Periode target ini ${state?.key === 'upcoming' ? 'belum dimulai' : 'masih berjalan'} sampai ${fmtDate(target.period_end)}. Jika ditutup sekarang, hanya ${reached} agen yang sudah mencapai target dicatat sebagai penerima hadiah, progres agen setelah ini tidak dihitung, dan target tidak bisa diubah lagi.`
-            : `${reached} agen yang mencapai target dicatat sebagai penerima hadiah. Target tidak bisa diubah setelah ditutup.`
+            ? `Periode target ini ${state?.key === 'upcoming' ? 'belum dimulai' : 'masih berjalan'} sampai ${fmtDate(target.period_end)}. Jika diakhiri sekarang, hanya ${reached} agen yang sudah mencapai target dicatat sebagai penerima hadiah, progres agen setelah ini tidak dihitung, dan target tidak bisa diubah lagi.`
+            : `${reached} agen yang mencapai target dicatat sebagai penerima hadiah. Target tidak bisa diubah setelah diakhiri.`
         }
         footer={
           <>
             <Button variant="ghost" onClick={() => setDialog(null)} disabled={busy}>
               Batal
             </Button>
-            <Button variant="primary" disabled={busy} onClick={() => act(async () => { const r = await closeTargetPeriod(targetId, early); return `Periode ditutup. ${r.achieved_count} agen berhak mendapat hadiah.`; })}>
-              {busy ? 'Memproses...' : early ? 'Tetap tutup sekarang' : 'Tutup periode'}
+            <Button variant="primary" disabled={busy} onClick={() => act(async () => { const r = await closeTargetPeriod(targetId, early); return `Target diakhiri. ${r.achieved_count} agen berhak mendapat hadiah.`; })}>
+              {busy ? 'Memproses...' : early ? 'Tetap akhiri sekarang' : 'Akhiri target'}
             </Button>
           </>
         }

@@ -15,7 +15,7 @@ import {
   type CommissionReleaseOn,
   type TenantAgentSettings,
 } from '../../services/api';
-import { Banner, Button, Checkbox, Field, errorText, fmtRupiah } from '../../ui';
+import { Banner, Button, Checkbox, Field, MoneyInput, errorText, fmtRupiah } from '../../ui';
 import { SettingsSection } from '../settings/Section';
 import { ImageField } from '../website/ImageField';
 import { formatRupiahInput, parsePercent, parseRupiah } from './numberInput';
@@ -37,6 +37,11 @@ type Form = {
 
 const num = parseRupiah;
 const pctNum = parsePercent;
+// Money fields show thousands separators (MoneyInput); the form keeps the formatted text it saves from.
+const moneyValue = (v: string): number | null => {
+  const n = num(v);
+  return typeof n === 'number' && n > 0 ? n : null;
+};
 
 export const Rules: React.FC = () => {
   const [saved, setSaved] = useState<Form | null>(null);
@@ -142,6 +147,7 @@ export const Rules: React.FC = () => {
   };
 
   const pctPreview = pctNum(form.overridePct);
+  const fmtPercentInput = (v: number) => `${v.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`;
 
   return (
     <form className="st-form" onSubmit={save} noValidate>
@@ -159,11 +165,12 @@ export const Rules: React.FC = () => {
           <Field
             label="Persentase dari komisi agen rekrutan"
             error={fieldErrors.overridePct}
-            hint={pctPreview ? `Contoh: rekrutan dapat ${fmtRupiah(1000000)}, perekrut dapat tambahan ${fmtRupiah((pctPreview / 100) * 1000000)}. Komisi rekrutan tidak dipotong.` : 'Dibayar travel di luar komisi rekrutan.'}
+            // Always an example (10% until a value is typed), so nobody reads it as a cut from the recruit's commission.
+            hint={`Contoh ${fmtPercentInput(pctPreview ?? 10)}: agen rekrutan dapat komisi ${fmtRupiah(1000000)}, perekrut dapat tambahan ${fmtRupiah(((pctPreview ?? 10) / 100) * 1000000)} dari travel. Komisi rekrutan tidak dipotong.`}
           >
             {(id) => (
               <div className="pg-suffix">
-                <input id={id} className="ku-input" inputMode="decimal" value={form.overridePct} onChange={input('overridePct')} aria-invalid={Boolean(fieldErrors.overridePct)} />
+                <input id={id} className="ku-input" inputMode="decimal" placeholder="10" value={form.overridePct} onChange={input('overridePct')} aria-invalid={Boolean(fieldErrors.overridePct)} />
                 <span>%</span>
               </div>
             )}
@@ -186,10 +193,7 @@ export const Rules: React.FC = () => {
         </div>
         <Field label="Minimal pencairan" optional error={fieldErrors.minPayout} hint="Pengajuan pencairan di bawah angka ini ditolak. Kosongkan jika tidak ada batas.">
           {(id) => (
-            <div className="pg-prefix">
-              <span>Rp</span>
-              <input id={id} className="ku-input" inputMode="numeric" value={form.minPayout} onChange={input('minPayout')} placeholder="0" aria-invalid={Boolean(fieldErrors.minPayout)} />
-            </div>
+            <MoneyInput id={id} value={moneyValue(form.minPayout)} onChange={(v) => set('minPayout', formatRupiahInput(v))} placeholder="0" invalid={Boolean(fieldErrors.minPayout)} />
           )}
         </Field>
       </SettingsSection>
@@ -197,10 +201,7 @@ export const Rules: React.FC = () => {
       <SettingsSection title="Pendaftaran agen" description="Yang dilihat calon agen di halaman daftar.">
         <Field label="Biaya pendaftaran" optional error={fieldErrors.fee} hint={fee > 0 ? 'Calon agen mentransfer biaya ini lalu mengunggah bukti. Anda menyetujuinya di Agen, tab Pendaftaran.' : 'Kosongkan atau isi 0 jika gratis.'}>
           {(id) => (
-            <div className="pg-prefix">
-              <span>Rp</span>
-              <input id={id} className="ku-input" inputMode="numeric" value={form.fee} onChange={input('fee')} placeholder="0" aria-invalid={Boolean(fieldErrors.fee)} />
-            </div>
+            <MoneyInput id={id} value={moneyValue(form.fee)} onChange={(v) => set('fee', formatRupiahInput(v))} placeholder="0" invalid={Boolean(fieldErrors.fee)} />
           )}
         </Field>
         {fee > 0 && (

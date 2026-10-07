@@ -1,5 +1,6 @@
 // Daily prospects per channel, stacked bars on one axis (dataviz: validated channel colors, legend,
-// per-bar tooltip). Channels can be hidden with the legend chips above the chart.
+// per-bar tooltip). Channels can be hidden with the legend toggles above the chart. Light horizontal
+// gridlines at the y ticks only.
 import React from 'react';
 import type { DailyTrendItem } from '../../services/api';
 import { CHANNEL_LABEL, useIsMobile, type Channel } from '../../ui';
@@ -23,9 +24,9 @@ export const ChannelChart: React.FC<{ data: DailyTrendItem[]; visible: Record<Ch
   const totals = data.map((d) => shown.reduce((a, k) => a + d[k.key], 0));
   const max = niceMax(Math.max(1, ...totals));
   const ticks = [max, (max * 3) / 4, max / 2, max / 4, 0];
-  // Phones have room for about 4 date labels, desktop for 10.
+  // Phones have room for about 4 date labels, desktop for 8.
   const mobile = useIsMobile();
-  const labelEvery = Math.ceil(data.length / (mobile ? 4 : 10));
+  const labelEvery = Math.ceil(data.length / (mobile ? 4 : 8));
   const day = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 
   return (
@@ -36,6 +37,11 @@ export const ChannelChart: React.FC<{ data: DailyTrendItem[]; visible: Record<Ch
         ))}
       </div>
       <div className="db2-chart__plot">
+        <div className="db2-chart__grid" aria-hidden="true">
+          {ticks.map((t) => (
+            <i key={t} />
+          ))}
+        </div>
         {data.map((d, i) => (
           <div key={d.date} className="db2-chart__col">
             <div className="db2-chart__tip" role="tooltip">

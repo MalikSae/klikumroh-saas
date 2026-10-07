@@ -2,7 +2,19 @@
 import React, { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { copyText } from '../../utils/clipboard';
-import type { PillTone } from '../../ui';
+import { CopyButton, type PillTone } from '../../ui';
+import { useFrame } from '../../app/AppFrame';
+
+/** Copies the agent signup link of the travel website, to share with candidate agents. */
+export const AgentSignupLinkButton: React.FC<{ variant?: 'primary' }> = ({ variant }) => {
+  const site = useFrame()?.siteUrl;
+  if (!site) return null;
+  return (
+    <CopyButton value={`${site}/agen/daftar`} variant={variant}>
+      Salin link pendaftaran agen
+    </CopyButton>
+  );
+};
 
 export const AGENT_STATUS: Record<string, { label: string; tone: PillTone }> = {
   active: { label: 'Aktif', tone: 'green' },

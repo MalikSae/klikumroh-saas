@@ -7,17 +7,20 @@ import {
   fetchAgentCommissions,
   fetchAgentDetail,
   fetchAgentPerformance,
+  fetchDashboardAgents,
   getFullImageUrl,
   resetAgentPassword,
   toggleAgentStatus,
   updateDashboardAgentProfile,
   type AgentDashboardDetail,
+  type AgentItem,
   type AgentPerformance,
   type CommissionHistoryItem,
 } from '../../services/api';
-import { Avatar, Banner, Button, Card, CardBody, CityInput, Field, Menu, Modal, Pill, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
+import { Avatar, Banner, Button, Card, CardBody, CityInput, Field, Menu, Modal, Pill, RowLink, errorText, fmtDate, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
 import { AGENT_STATUS, CopyText, PAYOUT_STATUS, waHref } from './shared';
 import { AgentHabits } from './AgentHabits';
+import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
 import { resetPasswordProblem } from '../../utils/password';
 import { ledgerSign, ledgerTone } from '../../utils/commissionLedger';
 
@@ -192,6 +195,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
   const navigate = useNavigate();
   const [agent, setAgent] = useState<AgentDashboardDetail | null>(null);
   const [perf, setPerf] = useState<AgentPerformance | null>(null);
+  const [recruits, setRecruits] = useState<AgentItem[]>([]);
   const [ledger, setLedger] = useState<CommissionHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -206,12 +210,19 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
   const loadSeq = useRef(0);
   const load = () => {
     const seq = ++loadSeq.current;
-    return Promise.all([fetchAgentDetail(agentId), fetchAgentCommissions(agentId).catch(() => null), fetchAgentPerformance().catch(() => [] as AgentPerformance[])])
-      .then(([a, c, p]) => {
+    return Promise.all([
+      fetchAgentDetail(agentId),
+      fetchAgentCommissions(agentId).catch(() => null),
+      fetchAgentPerformance().catch(() => [] as AgentPerformance[]),
+      fetchDashboardAgents().catch(() => [] as AgentItem[]),
+    ])
+      .then(([a, c, p, all]) => {
         if (seq !== loadSeq.current) return;
         setAgent(a);
         setLedger(c ?? a.riwayat_komisi ?? []);
         setPerf(p.find((x) => x.agent_id === agentId) ?? null);
+        // Registrations that used this agent's code (parent_agent_id), in every status.
+        setRecruits(all.filter((x) => x.parent_agent_id === agentId).sort((x, y) => y.created_at.localeCompare(x.created_at)));
         setError(null);
       })
       .catch((e) => {
@@ -261,7 +272,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
       setNotice(`Pencairan ${amount} diajukan. Proses di Pencairan komisi: setujui, transfer, lalu tandai sudah ditransfer.`);
       onChanged();
     } catch (e) {
-      setPayoutError(errorText(e, 'Gagal mengajukan pencairan'));
+      setPayoutError(errorText(e, 'Gagal mencairkan saldo agen'));
     } finally {
       await load();
       payoutSubmitting.current = false;
@@ -375,6 +386,54 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
             </div>
           </Card>
 
+          <Card
+            title="Agen yang diajak"
+            description="Pendaftar yang memakai kode referral agen ini. Yang berstatus Aktif dihitung di target Agen baru direkrut."
+            className="ag-section"
+          >
+            {recruits.length === 0 ? (
+              <CardBody>
+                <p className="ku-muted">Belum ada yang mendaftar lewat kode agen ini.</p>
+              </CardBody>
+            ) : (
+              <>
+                <CardBody>
+                  <div className="ag-recruit-sum">
+                    <span>
+                      <b>{fmtNumber(recruits.filter((r) => r.status === 'active').length)}</b> aktif
+                    </span>
+                    <span>
+                      <b>{fmtNumber(recruits.filter((r) => r.status === 'pending').length)}</b> menunggu persetujuan
+                    </span>
+                  </div>
+                </CardBody>
+                <ul className="ku-rowlist">
+                  {recruits.map((r) => {
+                    const st = AGENT_STATUS[r.status];
+                    const aside = (
+                      <span className="ag-recruit-aside">
+                        {st && <Pill tone={st.tone}>{st.label}</Pill>}
+                        {(r.status === 'active' || r.status === 'inactive') && <ChevronRight className="ku-icon--sm" aria-hidden="true" />}
+                      </span>
+                    );
+                    // A pending or rejected registration has no detail page: it is handled in the Pendaftaran tab.
+                    return r.status === 'active' || r.status === 'inactive' ? (
+                      <RowLink key={r.id} to={`/agents/${r.id}`} title={r.name} meta={`Mendaftar ${fmtDate(r.created_at)}`} aside={aside} />
+                    ) : (
+                      <li key={r.id} className="ag-recruit-row">
+                        <span className="ku-rowlist__main">
+                          <span className="ku-rowlist__title">{r.name}</span>
+                          <span className="ku-rowlist__meta">Mendaftar {fmtDate(r.created_at)}</span>
+                        </span>
+                        <span className="ku-rowlist__aside">{aside}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </Card>
+
           <Card title="Syiar harian" description="Kebiasaan harian agen di portal" className="ag-section">
             <AgentHabits agentId={agent.id} />
           </Card>
@@ -393,7 +452,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                       setDialog('payout');
                     }}
                   >
-                    Ajukan pencairan
+                    Cairkan saldo agen
                   </Button>
                 ) : undefined
               }
@@ -405,15 +464,15 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
                   <dd className="ag-balance__main">{fmtRupiah(agent.saldo_siap_cair)}</dd>
                 </div>
                 <div>
-                  <dt>Dalam proses pencairan</dt>
+                  <dt className="ag-balance__label">Diproses <Tooltip content="Pengajuan pencairan yang menunggu persetujuan atau transfer." align="left" /></dt>
                   <dd>{fmtRupiah(inProcess)}</dd>
                 </div>
                 <div>
-                  <dt>Tertahan, jamaah belum lunas</dt>
+                  <dt className="ag-balance__label">Tertahan <Tooltip content="Komisi dari jamaah yang belum lunas. Cair setelah jamaah ditandai lunas." align="left" /></dt>
                   <dd>{fmtRupiah(agent.saldo_tertahan ?? 0)}</dd>
                 </div>
                 <div className="ag-balance__muted">
-                  <dt>Potensi dari prospek yang berjalan</dt>
+                  <dt className="ag-balance__label">Potensi <Tooltip content="Perkiraan komisi dari prospek yang masih berjalan (belum closing). Belum pasti." align="left" /></dt>
                   <dd>{fmtRupiah(agent.saldo_tertunda)}</dd>
                 </div>
               </dl>
@@ -485,7 +544,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
       <Modal
         open={Boolean(agent) && dialog === 'payout'}
         onClose={() => !busy && setDialog(null)}
-        title="Ajukan pencairan?"
+        title="Cairkan saldo agen?"
         description={
           agent
             ? `Seluruh saldo siap cair ${fmtRupiah(agent.saldo_siap_cair)} diajukan atas nama ${agent.name}${
@@ -499,7 +558,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
               Batal
             </Button>
             <Button variant="primary" onClick={() => void submitPayout()} disabled={busy || !canRequestPayout}>
-              {busy ? 'Mengajukan...' : 'Ajukan pencairan'}
+              {busy ? 'Memproses...' : 'Cairkan saldo'}
             </Button>
           </>
         }

@@ -1,9 +1,10 @@
 // Application frame of the travel dashboard: sidebar on the frame, white rounded main panel with header.
 // Approved prototype: dashboard/design/prototype.html.
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronsUpDown, ExternalLink, LogOut, Menu, UserRound } from 'lucide-react';
 import {
+  fetchDomains,
   logoutAdmin,
   fetchDashboardAgents,
   fetchPayoutRequests,
@@ -19,6 +20,7 @@ import {
 import { AlertTriangle } from 'lucide-react';
 import { Banner, Button, IconButton, SearchField } from '../ui';
 import { subscriptionNotice } from './subscriptionNotice';
+import { primaryCustomHost, siteBaseUrl, type DomainLike } from './siteUrl';
 import { NAV_GROUPS, SETTINGS_ITEM, itemActive, titleForPath, type BadgeKey, type NavItem } from './nav';
 import { NotificationMenu } from './NotificationMenu';
 import { MobileNav } from './MobileNav';
@@ -33,6 +35,11 @@ interface FrameCtx {
   /** Reloads the travel name and icon shown in the header (after they change in Pengaturan or Website). */
   refreshTravel: () => void;
   subscription: TenantSubscriptionInfo | null;
+  /** Base URL of the travel website for links the dashboard hands out: the primary custom domain when it is
+   *  active and healthy, otherwise the default subdomain (see ./siteUrl). Null until the travel is known. */
+  siteUrl: string | null;
+  /** The Domains page reports the domains it just loaded or changed, so every link follows at once. */
+  noteDomains: (domains: DomainLike[]) => void;
   /** Reloads the subscription from the server (after an invoice is created or a proof is uploaded), so the
    *  banner and the pending-travel redirect never point to a replaced or cancelled invoice. */
   refreshSubscription: () => Promise<TenantSubscriptionInfo | null>;
@@ -120,11 +127,37 @@ const UserMenu: React.FC<{ name: string; role: string }> = ({ name, role }) => {
   );
 };
 
+// Routes that open a drawer over their list keep the list's scroll position; every other page change
+// starts at the top.
+const scrollPageKey = (path: string) => {
+  if (/^\/prospects(\/\d+(\/edit)?)?\/?$/.test(path)) return '/prospects';
+  if (/^\/programs(\/\d+)?\/?$/.test(path)) return '/programs';
+  return path;
+};
+
 export const AppFrame: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const pageKey = scrollPageKey(location.pathname);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pageKey]);
   const [title, setTitle] = useState<string | null>(null);
   const [sub, setSub] = useState<TenantSubscriptionInfo | null>(null);
+  // Primary custom domain of the travel, if it has an active one (see ./siteUrl).
+  const [customHost, setCustomHost] = useState<string | null>(null);
+  const tenantSlug = sub?.tenant_slug;
+  useEffect(() => {
+    if (!tenantSlug) return;
+    let alive = true;
+    fetchDomains()
+      .then((d) => alive && setCustomHost(primaryCustomHost(d)))
+      .catch(() => undefined); // no domains, not allowed yet (pending travel) or offline: the subdomain stays
+    return () => {
+      alive = false;
+    };
+  }, [tenantSlug]);
+  const noteDomains = useCallback((d: DomainLike[]) => setCustomHost(primaryCustomHost(d)), []);
   const [badges, setBadges] = useState<Badges>({ prospects: 0, agents: 0, payouts: 0 });
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState('');
@@ -204,7 +237,7 @@ export const AppFrame: React.FC = () => {
     };
   }, [pendingStatus, location.pathname, navigate]);
 
-  const siteUrl = publicSiteUrl(sub?.tenant_slug);
+  const siteUrl = siteBaseUrl(sub?.tenant_slug, customHost, window.location.hostname);
   const heading = title ?? titleForPath(location.pathname);
   const invoiceRoute = /^\/settings\/subscription\/payment\/[^/]+\/?$/.test(location.pathname);
   // Urgent subscription states are shown on every page; the dashboard shows them in its own strip and
@@ -228,7 +261,7 @@ export const AppFrame: React.FC = () => {
   ) : null;
 
   return (
-    <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub, refreshSubscription }}>
+    <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub, siteUrl, noteDomains, refreshSubscription }}>
       {invoiceRoute ? (
         <div className="ku ap-invoice-frame">
           <header className="ap-invoice-header">
@@ -241,8 +274,20 @@ export const AppFrame: React.FC = () => {
           <main className="ap-invoice-main">{impersonationBanner}<Outlet /></main>
         </div>
       ) : (
-      <div className="ku ap">
-        {mobileNav && <div className="ku-overlay ap-mobile-overlay" onClick={() => setMobileNav(false)} aria-hidden="true" />}
+      <div className={`ku ap${sub?.is_demo ? ' ap--demo' : ''}`}>
+        {sub?.is_demo && (
+          // Full-width sticky bar across the whole screen (above the sidebar and the page).
+          <div className="ap-demo" role="note">
+            <span className="ap-demo__text">
+              <span className="ap-demo__long">Akun demo KlikUmroh. Pakai untuk travel Anda sendiri?</span>
+              <span className="ap-demo__short">Akun demo KlikUmroh</span>
+            </span>
+            <a href={subscribeUrl()} className="ku-btn ku-btn--light ku-btn--sm ap-demo__cta">
+              Berlangganan
+            </a>
+          </div>
+        )}
+        {mobileNav &&<div className="ku-overlay ap-mobile-overlay" onClick={() => setMobileNav(false)} aria-hidden="true" />}
         <aside className={`ap-side${mobileNav ? ' ap-side--open' : ''}`}>
           <Link to="/" className="ap-logo" aria-label="KlikUmroh, ke dashboard">
             <img src={brandIcon} alt="" className="ap-logo__icon" width={28} height={28} />
@@ -275,15 +320,9 @@ export const AppFrame: React.FC = () => {
         </aside>
 
         <main className="ap-main">
+          {/* Sticky top: the impersonation banner and the page header stay visible while scrolling. */}
+          <div className="ap-top">
           {impersonationBanner}
-          {sub?.is_demo && (
-            <div className="ap-demo" role="note">
-              <span>Akun demo KlikUmroh. Pakai untuk travel Anda sendiri?</span>
-              <a href={subscribeUrl()} className="ku-btn ku-btn--light ku-btn--sm ap-demo__cta">
-                Berlangganan
-              </a>
-            </div>
-          )}
           <header className="ap-head">
             <IconButton label="Buka menu" className="ap-head__menu" onClick={() => setMobileNav(true)}>
               <Menu className="ku-icon" />
@@ -309,6 +348,7 @@ export const AppFrame: React.FC = () => {
               </Link>
             </div>
           </header>
+          </div>
           <div className="ap-body">
             {pageNotice && (
               <div className="ap-notice">

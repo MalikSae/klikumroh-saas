@@ -103,3 +103,9 @@
   .ws-alias > .ku-ibtn, .ws-alias > .ku-pill { flex-shrink: 0; }
 }
 .ws-avatar-img { object-fit: cover; padding: 0; }
+/* Phone card footer: status on the left, order arrows and menu as quiet icons on the right. */
+@media (max-width: 768px) {
+  .ku-mcard__actions .ws-mactions { display: flex; align-items: center; gap: var(--ku-space-2); width: 100%; }
+  .ku-mcard__actions .ws-mactions .ag-row-actions { width: auto; margin-left: auto; gap: var(--ku-space-1); }
+  .ku-mcard__actions .ws-mactions .ag-row-actions .ku-menu { margin-left: 0; }
+}

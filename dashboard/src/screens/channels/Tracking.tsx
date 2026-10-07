@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Send } from 'lucide-react';
 import { fetchMetaIntegration, fetchPackages, saveMetaIntegration, sendMetaTestEvent, type MetaIntegrationSettings, type PackageItem } from '../../services/api';
 import { Banner, Button, Field, Select, errorText, fmtAgo } from '../../ui';
-import { publicSiteUrl, useFrame } from '../../app/AppFrame';
+import { useFrame } from '../../app/AppFrame';
 import { SettingsSection } from '../settings/Section';
 import { copyText } from '../../utils/clipboard';
 import { Tooltip } from '../../modules/superadmin/shared/Tooltip';
@@ -30,7 +30,7 @@ const LINK_TIP =
 
 const LinkBuilder: React.FC = () => {
   const frame = useFrame();
-  const site = publicSiteUrl(frame?.subscription?.tenant_slug);
+  const site = frame?.siteUrl ?? null;
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [page, setPage] = useState('home');
   const [source, setSource] = useState('facebook');

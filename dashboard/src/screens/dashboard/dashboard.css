@@ -1,27 +1,58 @@
-/* Dashboard screen. Tokens only. */
-.db2-legend { display: flex; gap: var(--ku-space-4); padding: 10px var(--ku-space-5) 0; font-size: var(--ku-text-md); color: var(--ku-ink-2); }
-.db2-gap { height: var(--ku-space-3); }
-.db2-chart-skeleton { height: 262px; }
+/* Dashboard home "Beranda" (redesign 6 Oct 2026). Tokens only. Shared pieces (metric strip, action list,
+   row list, meter) live in the UI kit (src/ui/ui.css). VISION.md: one left edge, 20px between blocks,
+   no card inside a card. */
+.db2-home { display: flex; flex-direction: column; gap: var(--ku-space-5); min-width: 0; }
 
-.db2-chart { display: grid; grid-template-columns: 36px 1fr; gap: var(--ku-space-2); height: 262px; padding: var(--ku-space-3) var(--ku-space-5) var(--ku-space-4); }
-.db2-chart__y { display: flex; flex-direction: column; justify-content: space-between; padding-bottom: 26px; color: var(--ku-ink-3); font-size: var(--ku-text-sm); text-align: right; font-variant-numeric: tabular-nums; }
-.db2-chart__plot {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding-bottom: 26px;
-  background-image: radial-gradient(var(--ku-line) 1px, transparent 1px);
-  background-size: 14px 14px;
-  background-position: 0 4px;
+/* Section blocks without a card: a heading line, then one panel. */
+.db2-block { display: flex; flex-direction: column; gap: var(--ku-space-2); min-width: 0; }
+.db2-block > .ku-metrics-group { margin-bottom: 0; }
+.db2-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px var(--ku-space-2); }
+.db2-head__title { margin: 0; font: var(--ku-weight-semibold) var(--ku-text-xl) / var(--ku-leading-tight) var(--ku-font-head); }
+.db2-head__meta { font-size: var(--ku-text-sm); color: var(--ku-ink-3); }
+.db2-todo-skeleton { min-height: var(--ku-space-12); }
+
+/* Rows: chart next to the newest prospects (3:2), then three equal columns. Cards stretch to the row height. */
+.db2-row { display: grid; gap: var(--ku-space-5); min-width: 0; }
+.db2-row--main { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.db2-row--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1180px) {
+  .db2-row--three { grid-template-columns: minmax(0, 1fr); }
 }
+@media (max-width: 1023px) {
+  .db2-row--main { grid-template-columns: minmax(0, 1fr); }
+}
+.db2-list-skeleton { min-height: 200px; }
+
+/* ---------- Channel chart card ---------- */
+.db2-chart-card { display: flex; flex-direction: column; }
+.db2-chart-skeleton { flex: 1; min-height: 240px; }
+/* Legend toggles: dot + name, no box; a hidden channel is struck through with a hollow dot. The first dot
+   lines up with the card title. */
+.db2-legend { display: flex; flex-wrap: wrap; gap: var(--ku-space-1); padding: var(--ku-space-2) var(--ku-space-5) 0 calc(var(--ku-space-5) - var(--ku-space-2)); }
+.db2-toggle { display: inline-flex; align-items: center; gap: 6px; height: var(--ku-size-control-sm); padding: 0 var(--ku-space-2); border: 0; border-radius: var(--ku-radius-ctl); background: none; color: var(--ku-ink-2); font: var(--ku-weight-medium) var(--ku-text-md) var(--ku-font-body); cursor: pointer; }
+.db2-toggle:hover { background: var(--ku-soft); color: var(--ku-ink); }
+.db2-toggle:focus-visible { outline: 2px solid var(--ku-accent); outline-offset: -2px; }
+.db2-toggle--off { color: var(--ku-ink-4); text-decoration: line-through; }
+.db2-toggle--off .ku-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--ku-ink-4); }
+
+.db2-chart { flex: 1; display: grid; grid-template-columns: 32px 1fr; gap: var(--ku-space-2); min-height: 240px; padding: var(--ku-space-4) var(--ku-space-5); }
+.db2-chart__y { display: flex; flex-direction: column; justify-content: space-between; padding-bottom: 26px; color: var(--ku-ink-3); font-size: var(--ku-text-sm); text-align: right; font-variant-numeric: tabular-nums; }
+/* Zero-height labels sit exactly on their gridline. */
+.db2-chart__y span { height: 0; line-height: 0; }
+.db2-chart__plot { position: relative; display: flex; align-items: flex-end; gap: 6px; padding-bottom: 26px; }
+.db2-chart__grid { position: absolute; inset: 0 0 26px 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+.db2-chart__grid i { display: block; height: 0; border-top: 1px solid var(--ku-line-2); }
+.db2-chart__grid i:last-child { border-top-color: var(--ku-line); }
 .db2-chart__col { flex: 1; min-width: 0; height: 100%; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: default; }
-.db2-chart__stack { width: 62%; max-width: 30px; min-height: 0; display: flex; flex-direction: column-reverse; gap: 2px; }
+.db2-chart__stack { width: 62%; max-width: 28px; min-height: 0; display: flex; flex-direction: column-reverse; gap: 2px; }
 .db2-chart__stack i { display: block; flex-basis: 0; border-radius: 3px; min-height: 2px; }
 .db2-bar--web { background: var(--ku-ch-web); }
 .db2-bar--ads { background: var(--ku-ch-ads); }
 .db2-bar--agen { background: var(--ku-ch-agen); }
 .db2-chart__col:hover .db2-chart__stack { filter: brightness(0.94); }
 .db2-chart__x { position: absolute; bottom: -24px; font-size: var(--ku-text-sm); color: var(--ku-ink-3); white-space: nowrap; }
+.db2-chart__x--first { left: 0; }
+.db2-chart__x--last { right: 0; }
 .db2-chart__tip {
   display: none;
   position: absolute;
@@ -39,132 +70,134 @@
   pointer-events: none;
 }
 .db2-chart__col:hover .db2-chart__tip { display: block; }
-.db2-chart__col:first-child .db2-chart__tip, .db2-chart__col:nth-child(2) .db2-chart__tip { left: 0; transform: none; }
+.db2-chart__grid + .db2-chart__col .db2-chart__tip, .db2-chart__grid + .db2-chart__col + .db2-chart__col .db2-chart__tip { left: 0; transform: none; }
 .db2-chart__col:last-child .db2-chart__tip, .db2-chart__col:nth-last-child(2) .db2-chart__tip { left: auto; right: 0; transform: none; }
 .db2-chart__tip > div { display: flex; align-items: center; gap: 6px; color: var(--ku-ink-2); }
 .db2-chart__tip b { margin-left: auto; font-weight: var(--ku-weight-medium); color: var(--ku-ink); }
 .db2-chart__tip-title { font-weight: var(--ku-weight-semibold); color: var(--ku-ink); margin-bottom: var(--ku-space-1); }
 .db2-chart__tip-total { margin-top: var(--ku-space-1); padding-top: var(--ku-space-1); border-top: 1px solid var(--ku-line-2); }
 
-/* Phone: what needs action first. Order: alert strip, KPIs, Perlu tindakan, Prospek terbaru, channel chart.
-   The two .ku-grid-main rows dissolve so their cards can be reordered (row 1: chart, KPIs; row 2: recent, actions). */
-@media (max-width: 768px) {
-  .db2-row1, .db2-row2 { display: contents; }
-  .db2-row1 > :nth-child(1) { order: 4; }
-  .db2-row1 > :nth-child(2) { order: 1; }
-  .db2-row2 > :nth-child(2) { order: 2; }
-  .db2-row2 > :nth-child(1) { order: 3; }
-}
+/* Closing rate per channel under the chart (30 days), one row of three. */
+.db2-rates { padding: var(--ku-space-3) var(--ku-space-5) var(--ku-space-4); border-top: 1px solid var(--ku-line-2); }
+.db2-rates__title { margin: 0 0 var(--ku-space-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); color: var(--ku-ink-3); }
+.db2-rates__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ku-space-4); }
+.db2-rates__list li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.db2-rates__name { display: flex; align-items: center; gap: 6px; font-size: var(--ku-text-sm); color: var(--ku-ink-2); }
+.db2-rates__rate { font: var(--ku-weight-semibold) var(--ku-text-xl) / var(--ku-leading-tight) var(--ku-font-head); font-variant-numeric: tabular-nums; }
+.db2-rates__nums { font-size: var(--ku-text-sm); color: var(--ku-ink-3); font-variant-numeric: tabular-nums; }
 
-/* Channel legend that switches series on and off. */
-.db2-legend { flex-wrap: wrap; gap: var(--ku-space-2); }
-.db2-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); color: var(--ku-ink-2); font: var(--ku-weight-medium) var(--ku-text-md) var(--ku-font-body); cursor: pointer; }
-.db2-toggle:hover { border-color: var(--ku-ink-4); color: var(--ku-ink); }
-.db2-toggle--off { color: var(--ku-ink-4); }
-.db2-toggle--off .ku-dot { background: var(--ku-line); }
-.db2-chart__x--first { left: 0; }
-.db2-chart__x--last { right: 0; }
+/* ---------- Departures: seats left with a fill bar ---------- */
+.db2-seats__fill { display: flex; flex-direction: column; align-items: flex-end; gap: var(--ku-space-1); width: 104px; }
+.db2-seats__left { font-weight: var(--ku-weight-medium); color: var(--ku-ink); }
+.db2-seats__full { font-weight: var(--ku-weight-medium); color: var(--ku-green); }
+
+/* ---------- Lost reasons: share of all Tidak Lanjut prospects ---------- */
+.db2-lost__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 6px var(--ku-space-3); padding: var(--ku-space-3) 0; }
+.db2-lost__row .ku-meter { grid-column: 1 / -1; }
+.db2-lost__reason { color: var(--ku-ink-2); overflow-wrap: anywhere; }
+.db2-lost__pct { font-weight: var(--ku-weight-semibold); font-variant-numeric: tabular-nums; }
+
+/* ---------- Agents: three counts as a strip, then the three most productive agents ---------- */
+.db2-agents__counts { margin: var(--ku-space-4) var(--ku-space-5) 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.db2-agents__counts > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 var(--ku-space-3); cursor: help; }
+.db2-agents__counts > div:first-child { padding-left: 0; }
+.db2-agents__counts > div + div { border-left: 1px solid var(--ku-line-2); }
+.db2-agents__counts dt, .db2-agents__counts dd { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.db2-agents__counts dt { font-size: var(--ku-text-sm); line-height: var(--ku-leading-base); color: var(--ku-ink-2); }
+.db2-agents__counts dd { margin: 0; font: var(--ku-weight-bold) var(--ku-text-2xl) / var(--ku-leading-tight) var(--ku-font-head); font-variant-numeric: tabular-nums; }
+.db2-agents__insight { display: flex; align-items: flex-start; gap: 6px; margin: var(--ku-space-3) var(--ku-space-5) 0; font-size: var(--ku-text-sm); color: var(--ku-amber-ink); }
+.db2-agents__insight svg { margin-top: 2px; color: var(--ku-amber); }
+.db2-agents__sub { margin: var(--ku-space-4) var(--ku-space-5) 0; padding-top: var(--ku-space-3); border-top: 1px solid var(--ku-line-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); color: var(--ku-ink-3); }
+.db2-agents__list { padding-top: 0; }
+.db2-agents__jamaah { font-weight: var(--ku-weight-semibold); color: var(--ku-ink); }
+
+/* ---------- Phone: what needs action first ----------
+   Order: setup strip, results, Perlu tindakan, Prospek terbaru, chart, departures, agents, lost reasons.
+   The rows dissolve so their cards can be reordered in the page column. */
 @media (max-width: 768px) {
-  .db2-legend { padding: var(--ku-space-2) var(--ku-space-4) 0; }
+  .db2-row { display: contents; }
+  .db2-block--kpis { order: 1; }
+  .db2-block--todo { order: 2; }
+  .db2-recent { order: 3; }
+  .db2-chart-card { order: 4; }
+  .db2-seats { order: 5; }
+  .db2-agents { order: 6; }
+  .db2-lost { order: 7; }
+  .db2-toggle { height: var(--ku-size-touch); padding: 0 var(--ku-space-3); }
+  .db2-legend { padding-left: calc(var(--ku-space-5) - var(--ku-space-3)); }
   .db2-chart { padding-left: var(--ku-space-3); padding-right: var(--ku-space-4); }
   .db2-chart__plot { gap: 3px; }
-}
-@media (max-width: 768px) {
-  .db2-toggle { height: 36px; padding: 0 var(--ku-space-3); }
-}
-
-/* The comparison note under the KPIs is for the phone panel only; desktop cards keep the suffix per card. */
-.db2-kpis__note { display: none; }
-
-/* Phone: the three KPIs in one compact panel, three columns split by lines. The whole cell opens its list. */
-@media (max-width: 768px) {
-  .db2-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-card); background: var(--ku-panel); }
-  .db2-kpis .ku-kpi { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--ku-space-3); border: 0; border-radius: 0; background: transparent; }
-  .db2-kpis .ku-kpi + .ku-kpi { border-left: 1px solid var(--ku-line-2); }
-  .db2-kpis .ku-kpi__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .db2-kpis .ku-kpi__value { margin-top: 2px; font-size: var(--ku-text-2xl); }
-  .db2-kpis .ku-kpi__value .ku-icon, .db2-kpis .ku-kpi__spark, .db2-kpis .ku-kpi__suffix { display: none; }
-  .db2-kpis .ku-kpi__delta { font-size: var(--ku-text-md); }
-  .db2-kpis .ku-kpi__go { position: absolute; inset: 0; width: auto; height: auto; border: 0; border-radius: 0; background: transparent; }
-  .db2-kpis .ku-kpi__go > svg { display: none; }
-  .db2-kpis .ku-kpi__go:focus-visible { outline: 2px solid var(--ku-accent); outline-offset: -2px; }
-  .db2-kpis .ku-kpi:first-child .ku-kpi__go { border-radius: var(--ku-radius-card) 0 0 0; }
+  .db2-rates__list { gap: var(--ku-space-3); }
   /* The range picker is a button (custom dropdown), not a text field: no 16px anti-zoom size, same as "Lihat semua". */
   .db2-home .ku-card__actions .ku-select__trigger { font-size: var(--ku-text-md); }
-  .db2-kpis__note { display: block; grid-column: 1 / -1; margin: 0; padding: var(--ku-space-2) var(--ku-space-3); border-top: 1px solid var(--ku-line-2); font-size: var(--ku-text-md); color: var(--ku-ink-3); }
+  /* Card head actions are touch targets too. */
+  .db2-home .ku-card__actions .ku-btn--sm, .db2-home .ku-card__actions .ku-select__trigger { height: var(--ku-size-touch); }
 }
 
-/* Agent block: three network counts on the left, the most productive agents on the right. */
-.db2-agents__skeleton { height: 220px; }
-.db2-agents__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ku-space-6); padding: var(--ku-space-4) var(--ku-space-5) var(--ku-space-5); }
-.db2-agents__counts { margin: 0; display: flex; flex-direction: column; border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); }
-.db2-agents__counts > div { display: grid; grid-template-columns: 96px 64px minmax(0, 1fr); align-items: baseline; gap: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-4); }
-.db2-agents__counts > div + div { border-top: 1px solid var(--ku-line); }
-.db2-agents__counts dt { font-weight: var(--ku-weight-medium); color: var(--ku-ink-2); }
-.db2-agents__counts dd { margin: 0; font: var(--ku-weight-bold) var(--ku-text-2xl) var(--ku-font-head); font-variant-numeric: tabular-nums; }
-.db2-agents__counts span { font-size: var(--ku-text-sm); color: var(--ku-ink-3); }
-.db2-agents__sub { margin: 0 0 var(--ku-space-2); font: var(--ku-weight-medium) var(--ku-text-sm) var(--ku-font-body); color: var(--ku-ink-2); }
-.db2-agents__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.db2-agents__list li + li { border-top: 1px solid var(--ku-line-2); }
-.db2-agents__row { display: flex; align-items: center; gap: var(--ku-space-3); width: 100%; padding: var(--ku-space-2) 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.db2-agents__row:hover .db2-agents__name { text-decoration: underline; }
-.db2-agents__name { display: inline-flex; align-items: center; gap: 4px; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: var(--ku-weight-medium); }
-.db2-agents__nums { flex-shrink: 0; font-size: var(--ku-text-sm); color: var(--ku-ink-3); font-variant-numeric: tabular-nums; }
-.db2-agents__nums b { font-weight: var(--ku-weight-semibold); color: var(--ku-ink); }
-@media (max-width: 760px) {
-  .db2-agents__body { grid-template-columns: minmax(0, 1fr); gap: var(--ku-space-4); padding: var(--ku-space-3) var(--ku-space-4) var(--ku-space-4); }
-  .db2-agents__counts > div { grid-template-columns: 84px 48px minmax(0, 1fr); padding: var(--ku-space-3); }
-}
+/* Card titles on Beranda sit above a hairline divider; every head has the same minimum height so the
+   dividers line up across cards in a row (with or without a button or a description). */
+.db2-home .ku-card__head { box-sizing: border-box; min-height: calc(var(--ku-space-4) + var(--ku-size-control) + var(--ku-space-3)); padding-bottom: var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); }
+/* Title and action stay on one row; a long title shrinks/wraps itself instead of pushing the button below. */
+.db2-home .ku-card__head { flex-wrap: nowrap; }
+.db2-home .ku-card__head > :first-child { min-width: 0; flex: 1 1 auto; }
+.db2-home .ku-card__actions { flex: 0 0 auto; flex-wrap: nowrap; white-space: nowrap; }
+.db2-home .db2-legend { padding-top: var(--ku-space-3); }
 
-/* Closing per channel under the chart: prospects, closings and the closing rate (30 days). */
-.db2-quality { list-style: none; margin: 0; padding: var(--ku-space-3) var(--ku-space-5) var(--ku-space-4); display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--ku-line-2); }
-.db2-quality li { display: grid; grid-template-columns: auto 96px minmax(0, 1fr) 56px; align-items: center; gap: var(--ku-space-2); font-size: var(--ku-text-md); }
-.db2-quality__name { color: var(--ku-ink-2); }
-.db2-quality__nums { color: var(--ku-ink-3); font-variant-numeric: tabular-nums; }
-.db2-quality__rate { text-align: right; font-weight: var(--ku-weight-semibold); font-variant-numeric: tabular-nums; }
-
-/* Upcoming departures with seats left. */
-.db2-seats { list-style: none; margin: 0; padding: var(--ku-space-2) var(--ku-space-5) var(--ku-space-4); display: flex; flex-direction: column; }
-.db2-seats li + li { border-top: 1px solid var(--ku-line-2); }
-.db2-seats__row { display: flex; align-items: center; gap: var(--ku-space-4); width: 100%; padding: var(--ku-space-3) 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-.db2-seats__row:hover .db2-seats__name { text-decoration: underline; }
-.db2-seats__main { display: flex; flex-direction: column; flex: 1; min-width: 0; font-size: var(--ku-text-sm); }
-.db2-seats__name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: var(--ku-text-md); font-weight: var(--ku-weight-medium); }
-.db2-seats__fill { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; width: 140px; font-size: var(--ku-text-sm); }
-.db2-seats__left { font-weight: var(--ku-weight-medium); color: var(--ku-ink); }
-.db2-seats__left--full { color: var(--ku-green); }
-.db2-seats__bar { width: 100%; height: 6px; overflow: hidden; border-radius: 3px; background: var(--ku-gray-soft); }
-.db2-seats__bar span { display: block; height: 100%; border-radius: 3px; background: var(--ku-ink-3); }
-
-/* Top reasons prospects did not continue. */
-.db2-lost { list-style: none; margin: 0; padding: var(--ku-space-2) var(--ku-space-5) var(--ku-space-4); display: flex; flex-direction: column; }
-.db2-lost li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ku-space-3); padding: var(--ku-space-2) 0; }
-.db2-lost li + li { border-top: 1px solid var(--ku-line-2); }
-.db2-lost__reason { min-width: 0; color: var(--ku-ink-2); }
-.db2-lost b { flex-shrink: 0; font-weight: var(--ku-weight-semibold); font-variant-numeric: tabular-nums; }
-
-/* Phone: the business cards follow the action cards, the agent block comes last; four KPIs in a 2 x 2 panel. */
+/* "Siapkan travel Anda" checklist (audit 7 Oct 2026). */
+.db2-setup__progress { display: flex; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-5) 0; font-size: var(--ku-text-md); color: var(--ku-ink-3); }
+.db2-setup__progress .ku-meter { flex: 1; max-width: 240px; }
+.db2-setup__list { list-style: none; margin: 0; padding: var(--ku-space-2) 0 var(--ku-space-2); }
+.db2-setup__step { display: flex; align-items: center; gap: var(--ku-space-4); padding: var(--ku-space-3) var(--ku-space-5); }
+.db2-setup__step + .db2-setup__step { border-top: 1px solid var(--ku-line-2); }
+.db2-setup__mark { flex-shrink: 0; width: 24px; display: grid; place-items: center; font: var(--ku-weight-semibold) var(--ku-text-base) var(--ku-font-head); color: var(--ku-ink-3); font-variant-numeric: tabular-nums; }
+.db2-setup__step--done .db2-setup__mark { color: var(--ku-green-2); }
+.db2-setup__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.db2-setup__text strong { font-weight: var(--ku-weight-medium); color: var(--ku-ink); }
+.db2-setup__text span { font-size: var(--ku-text-md); color: var(--ku-ink-3); }
+.db2-setup__step--done .db2-setup__text strong { color: var(--ku-ink-3); }
+.db2-setup__action { flex-shrink: 0; }
+.db2-setup-reopen { display: flex; justify-content: flex-end; margin-bottom: calc(-1 * var(--ku-space-3)); }
+/* New travel without prospects: the checklist instead of a page of zeros and empty cards. */
+.db2-home--fresh .db2-block--kpis, .db2-home--fresh .db2-row, .db2-home--fresh-idle .db2-block--todo { display: none; }
 @media (max-width: 768px) {
-  .db2-row3 { display: contents; }
-  .db2-row3 > :nth-child(1) { order: 5; }
-  .db2-row3 > :nth-child(2) { order: 6; }
-  .db2-agents { order: 7; }
-  .db2-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .db2-kpis .ku-kpi + .ku-kpi { border-left: 0; }
-  .db2-kpis .ku-kpi:nth-child(even) { border-left: 1px solid var(--ku-line-2); }
-  .db2-kpis .ku-kpi:nth-child(n + 3) { border-top: 1px solid var(--ku-line-2); }
-  .db2-quality { padding: var(--ku-space-3) var(--ku-space-4); }
-  .db2-quality li { grid-template-columns: auto 64px minmax(0, 1fr) 48px; font-size: var(--ku-text-sm); }
-  .db2-seats, .db2-lost { padding-left: var(--ku-space-4); padding-right: var(--ku-space-4); }
-  .db2-seats__fill { width: 110px; }
+  .db2-setup__step { flex-wrap: wrap; align-items: flex-start; padding: var(--ku-space-3) var(--ku-space-4); column-gap: var(--ku-space-3); }
+  .db2-setup__text { flex-basis: calc(100% - 24px - var(--ku-space-3)); }
+  .db2-setup__action { flex-basis: 100%; padding-left: calc(24px + var(--ku-space-3)); }
+  .db2-setup__action .ku-btn { width: 100%; height: 40px; }
+  .db2-setup__progress { padding: var(--ku-space-3) var(--ku-space-4) 0; }
 }
-.db2-agents__left { display: flex; flex-direction: column; gap: var(--ku-space-3); min-width: 0; }
-.db2-agents__counts span { cursor: help; }
-.db2-agents__insight { margin: 0; padding: var(--ku-space-2) var(--ku-space-3); border-radius: var(--ku-radius-inner); background: var(--ku-amber-soft); color: var(--ku-amber-ink); font-size: var(--ku-text-sm); }
-
-/* Desktop: four KPI cards make the right column taller; the chart grows to fill its card instead of
-   leaving a blank band under it. */
-@media (min-width: 769px) {
-  .db2-row1 > .ku-card { display: flex; flex-direction: column; }
-  .db2-row1 > .ku-card .db2-chart { flex: 1; height: auto; min-height: 262px; }
+/* Onboarding stages: the stage at work is open, the others fold to one line. */
+.db2-setup__progress { padding-bottom: var(--ku-space-3); }
+.db2-stage { border-top: 1px solid var(--ku-line-2); }
+.db2-stage__head { width: 100%; display: flex; align-items: center; gap: var(--ku-space-3); padding: var(--ku-space-3) var(--ku-space-5); border: 0; background: none; text-align: left; font: inherit; color: var(--ku-ink); cursor: pointer; }
+.db2-stage__head:hover { background: var(--ku-hover); }
+.db2-stage__head:focus-visible { outline: 2px solid var(--ku-accent); outline-offset: -2px; }
+.db2-stage__num { flex-shrink: 0; width: 24px; display: grid; place-items: center; font: var(--ku-weight-semibold) var(--ku-text-base) var(--ku-font-head); color: var(--ku-ink-3); }
+.db2-stage__num--done { color: var(--ku-green-2); }
+.db2-stage__title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.db2-stage__title strong { font: var(--ku-weight-semibold) var(--ku-text-base) var(--ku-font-head); }
+.db2-stage__title span { font-size: var(--ku-text-md); color: var(--ku-ink-3); }
+.db2-stage__chev { flex-shrink: 0; color: var(--ku-ink-3); transition: transform 120ms ease; }
+.db2-stage--open .db2-stage__chev { transform: rotate(180deg); }
+.db2-stage .db2-setup__list { padding-top: 0; }
+.db2-stage .db2-setup__step { padding-left: calc(var(--ku-space-5) + 24px + var(--ku-space-3)); padding-right: var(--ku-space-5); gap: var(--ku-space-3); }
+.db2-stage .db2-setup__step + .db2-setup__step { border-top: 0; }
+.db2-stage .db2-setup__mark { width: 16px; }
+.db2-setup__dot { width: 8px; height: 8px; border-radius: var(--ku-radius-round); border: 1.5px solid var(--ku-ink-4); }
+@media (max-width: 768px) {
+  .db2-stage__head { padding: var(--ku-space-3) var(--ku-space-4); }
+  .db2-stage .db2-setup__step { padding-left: var(--ku-space-4); padding-right: var(--ku-space-4); }
+  .db2-stage .db2-setup__text { flex-basis: calc(100% - 16px - var(--ku-space-3)); }
+  .db2-stage .db2-setup__action { padding-left: calc(16px + var(--ku-space-3)); }
+}
+/* Steps on the same grid as the stage header: the mark sits in the stage number's 24px column, centred
+   on the first line of the step title, and the step text starts where the stage title starts. */
+.db2-stage .db2-setup__step { align-items: flex-start; gap: var(--ku-space-3); padding-left: var(--ku-space-5); }
+.db2-stage .db2-setup__mark { width: 24px; height: var(--db2-step-line); display: grid; place-items: center; }
+.db2-stage .db2-setup__text strong { line-height: var(--db2-step-line); }
+.db2-setup { --db2-step-line: 20px; }
+@media (max-width: 768px) {
+  .db2-stage .db2-setup__step { padding-left: var(--ku-space-4); }
+  .db2-stage .db2-setup__text { flex-basis: calc(100% - 24px - var(--ku-space-3)); }
+  .db2-stage .db2-setup__action { padding-left: calc(24px + var(--ku-space-3)); }
 }

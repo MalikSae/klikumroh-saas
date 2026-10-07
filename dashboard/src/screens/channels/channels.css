@@ -37,3 +37,6 @@
   .ch-events td[data-label]::before { content: attr(data-label) ': '; color: var(--ku-ink-3); }
   .ch-events__from { white-space: normal; }
 }
+/* Chart card: title row separated from the chart by a line, same as the Beranda cards. */
+.ch .ku-card__head { box-sizing: border-box; min-height: calc(var(--ku-space-4) + var(--ku-size-control) + var(--ku-space-3)); padding-bottom: var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); }
+.ch .db2-legend { padding-top: var(--ku-space-3); }

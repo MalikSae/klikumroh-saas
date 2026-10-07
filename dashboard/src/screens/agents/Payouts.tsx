@@ -1,10 +1,13 @@
 // Pencairan komisi: agents' withdrawal requests. Approve, transfer outside the app, then mark as transferred.
 import React, { useEffect, useMemo, useState } from 'react';
 import { approvePayoutRequest, fetchPayoutRequests, markPayoutRequestPaid, rejectPayoutRequest, type PayoutRequestItem } from '../../services/api';
-import { CheckCircle2, Clock, Send, Wallet } from 'lucide-react';
-import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, KpiCard, Modal, Pill, SearchField, Select, Toolbar, errorText, fmtAgo, fmtNumber, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
+import { Banner, Button, DataTable, EmptyState, Field, FilterMenu, Metric, MetricStrip, Modal, Pill, SearchField, Select, Toolbar, errorText, fmtAgo, fmtNumber, fmtRupiah, fmtRupiahShort, type Column } from '../../ui';
 import { CopyText, PAYOUT_STATUS } from './shared';
 import { todayWIB } from '../../utils/datetime';
+
+/** Metric value that fits one line in a 2 x 2 phone strip: below Rp 1 jt in thousands ("Rp 700 rb"); full amount in the tooltip. */
+const fmtMetricRupiah = (n: number) =>
+  n >= 1e3 && n < 1e6 ? `Rp ${(n / 1e3).toLocaleString('id-ID', { maximumFractionDigits: 1 })} rb` : fmtRupiahShort(n);
 
 type View = 'todo' | 'pending' | 'approved' | 'paid' | 'rejected' | 'all';
 type DialogKind = 'approve' | 'paid' | 'reject' | 'cancel';
@@ -181,13 +184,13 @@ export const Payouts: React.FC<{ onChanged: () => void }> = ({ onChanged }) => {
   return (
     <section className="ku-list">
       {/* Money at each step, so the admin sees what to approve, what to transfer, and what went out. The
-          "Siap ditransfer" card replaces the old info banner with the same amount. */}
-      <div className="ku-kpi-row">
-        <KpiCard label="Menunggu persetujuan" icon={<Clock className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.pending.amount)} note={`${fmtNumber(sum.pending.count)} pengajuan`} />
-        <KpiCard label="Siap ditransfer" icon={<Send className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.approved.amount)} note={`${fmtNumber(sum.approved.count)} pengajuan · transfer ke rekening agen`} />
-        <KpiCard label="Ditransfer bulan ini" icon={<CheckCircle2 className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.paidMonth.amount)} note={`${fmtNumber(sum.paidMonth.count)} pencairan`} />
-        <KpiCard label="Total ditransfer" icon={<Wallet className="ku-icon" />} value={loading ? '—' : fmtRupiahShort(sum.paid.amount)} note={`${fmtNumber(sum.paid.count)} pencairan sejak awal`} />
-      </div>
+          "Siap ditransfer" metric replaces the old info banner with the same amount. */}
+      <MetricStrip label="Ringkasan pencairan komisi">
+        <Metric label="Perlu disetujui" value={loading ? '—' : fmtMetricRupiah(sum.pending.amount)} note={loading ? undefined : `${fmtNumber(sum.pending.count)} pengajuan`} hint={loading ? undefined : `${fmtNumber(sum.pending.count)} pengajuan menunggu persetujuan, total ${fmtRupiah(sum.pending.amount)}`} />
+        <Metric label="Siap ditransfer" value={loading ? '—' : fmtMetricRupiah(sum.approved.amount)} note={loading ? undefined : `${fmtNumber(sum.approved.count)} pengajuan`} hint={loading ? undefined : `${fmtNumber(sum.approved.count)} pengajuan disetujui, total ${fmtRupiah(sum.approved.amount)}. Transfer ke rekening agen lalu tandai sudah ditransfer.`} />
+        <Metric label="Ditransfer bulan ini" value={loading ? '—' : fmtMetricRupiah(sum.paidMonth.amount)} note={loading ? undefined : `${fmtNumber(sum.paidMonth.count)} pencairan`} hint={loading ? undefined : `${fmtNumber(sum.paidMonth.count)} pencairan bulan ini, total ${fmtRupiah(sum.paidMonth.amount)}`} />
+        <Metric label="Total ditransfer" value={loading ? '—' : fmtMetricRupiah(sum.paid.amount)} note={loading ? undefined : `${fmtNumber(sum.paid.count)} pencairan`} hint={loading ? undefined : `${fmtNumber(sum.paid.count)} pencairan sejak awal, total ${fmtRupiah(sum.paid.amount)}`} />
+      </MetricStrip>
       {error && <Banner tone="danger">{error}</Banner>}
       <Toolbar>
         <SearchField value={search} onChange={setSearch} placeholder="Cari nama agen atau pemilik rekening" />

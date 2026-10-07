@@ -2,7 +2,9 @@
 .ag { display: flex; flex-direction: column; gap: 20px; }
 .ag-name { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
 .ag-name .ku-muted { font-size: var(--ku-text-sm); }
-.ag-sub { display: inline-flex; align-items: center; gap: var(--ku-space-2); }
+/* Status pill and the registration date on one line (date only: "Mendaftar" made it wrap on phones). */
+.ag-sub { display: inline-flex; align-items: center; gap: var(--ku-space-2); white-space: nowrap; }
+.ag-sub__date { white-space: nowrap; }
 .ag-loading { height: 240px; }
 .ag-detail { display: flex; flex-direction: column; gap: 22px; }
 .ag-form { display: flex; flex-direction: column; gap: var(--ku-space-4); }
@@ -12,15 +14,20 @@
 .ag-row-actions { display: inline-flex; gap: var(--ku-space-2); }
 
 .ag-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); }
-.ag-stats > div { display: flex; flex-direction: column; gap: 2px; padding: var(--ku-space-3); }
+.ag-stats > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: var(--ku-space-3); }
+.ag-stats span, .ag-stats b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ag-stats > div + div { border-left: 1px solid var(--ku-line); }
 .ag-stats span { font-size: var(--ku-text-sm); color: var(--ku-ink-3); }
 .ag-stats b { font: var(--ku-weight-semibold) var(--ku-text-lg) var(--ku-font-head); font-variant-numeric: tabular-nums; }
 
+/* Withdrawable balance as the headline (label above the big amount), then the other amounts as rows:
+   label left (may wrap), amount right on one line, so the amounts always line up. */
 .ag-balance { margin: 0; display: flex; flex-direction: column; gap: var(--ku-space-2); }
 .ag-balance > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--ku-space-4); }
-.ag-balance dt { color: var(--ku-ink-2); }
-.ag-balance dd { margin: 0; font-variant-numeric: tabular-nums; }
+.ag-balance > div:first-child { flex-direction: column; align-items: flex-start; gap: var(--ku-space-1); padding-bottom: var(--ku-space-3); margin-bottom: var(--ku-space-1); border-bottom: 1px solid var(--ku-line-2); }
+.ag-balance dt { min-width: 0; color: var(--ku-ink-2); }
+.ag-balance__label { display: inline-flex; align-items: center; gap: var(--ku-space-1); }
+.ag-balance dd { margin: 0; flex-shrink: 0; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
 .ag-balance__main { font: var(--ku-weight-bold) var(--ku-text-xl) var(--ku-font-head); }
 
 .ag-ledger { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -53,6 +60,7 @@
   .ag-stats > div:nth-child(3) { border-left: 0; }
   .ag-stats > div:nth-child(n + 3) { border-top: 1px solid var(--ku-line); }
 }
+.ag-balance__muted { padding-top: var(--ku-space-2); border-top: 1px solid var(--ku-line-2); }
 .ag-balance__muted dt, .ag-balance__muted dd { color: var(--ku-ink-3); }
 
 /* Agent detail page */
@@ -121,3 +129,23 @@
    Prospek terakhir across two columns), no empty corner. */
 .ag .ku-mcard__stats > div:nth-child(5):last-child { grid-column: span 2; }
 
+/* Agent detail cards: title row separated by a line, same as the Beranda and Kanal cards. */
+.ag-page .ku-card__head { box-sizing: border-box; min-height: calc(var(--ku-space-4) + var(--ku-size-control) + var(--ku-space-3)); padding-bottom: var(--ku-space-3); border-bottom: 1px solid var(--ku-line-2); }
+.ag-page .ku-card__head + .ag-stats { margin-top: 0; border-top: 0; }
+/* Registration phone card: payment state and time on one line under the contact (7 Oct 2026). */
+.ag-reg-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ku-space-2); margin-top: var(--ku-space-2); }
+.ag-reg-meta .ku-muted { font-size: var(--ku-text-sm); }
+/* Registration drawer, phone: WhatsApp shrinks to its icon (name kept for screen readers) and Tolak /
+   Setujui share the rest of the row, so the three buttons fit 375px. */
+@media (max-width: 768px) {
+  .ku-drawer__foot .ag-foot-wa { flex: 0 0 44px; width: 44px; padding: 0; }
+  .ag-foot-wa .ag-foot-wa__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .ku-drawer__foot .ag-foot-gap { display: none; }
+  .ku-drawer__foot .ag-foot-act { flex: 1; min-width: 0; }
+}
+
+/* Agent detail: registrations that used this agent's code. */
+.ag-recruit-sum { display: flex; flex-wrap: wrap; gap: var(--ku-space-5); color: var(--ku-ink-2); }
+.ag-recruit-sum b { color: var(--ku-ink); font-weight: var(--ku-weight-semibold); }
+.ag-recruit-aside { display: inline-flex; align-items: center; gap: var(--ku-space-2); }
+.ag-recruit-row { display: flex; align-items: center; gap: var(--ku-space-3); min-height: var(--ku-size-touch); padding: var(--ku-space-3) 0; }

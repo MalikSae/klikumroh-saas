@@ -72,35 +72,48 @@ export function ContentList<T extends Ordered>({
 
   const all: Column<T>[] = [
     ...columns,
-    { key: 'shown', header: 'Tampil', mobile: 'aside', cell: (x) => (x.is_active ? <Pill tone="green">Tampil</Pill> : <Pill>Disembunyikan</Pill>) },
+    // Phone: the status moves to the action row (left), so the title keeps the full card width.
+    { key: 'shown', header: 'Tampil', mobile: 'hide', cell: (x) => shownPill(x) },
     {
       key: 'actions',
       header: '',
       align: 'right',
-      cell: (x) => {
-        const i = sorted.findIndex((s) => s.id === x.id);
-        return (
-          <span className="ag-row-actions" onClick={(e) => e.stopPropagation()}>
-            <IconButton size="sm" label="Naikkan urutan" disabled={busy || i === 0} onClick={() => move(x, -1)}>
-              <ArrowUp className="ku-icon--sm" />
-            </IconButton>
-            <IconButton size="sm" label="Turunkan urutan" disabled={busy || i === sorted.length - 1} onClick={() => move(x, 1)}>
-              <ArrowDown className="ku-icon--sm" />
-            </IconButton>
-            <Menu
-              label={`Aksi ${noun}`}
-              trigger={<MoreHorizontal className="ku-icon--sm" />}
-              items={[
-                { label: 'Ubah', onClick: () => onEdit(x) },
-                { label: x.is_active ? 'Sembunyikan dari website' : 'Tampilkan di website', onClick: () => run(() => save({ ...x, is_active: !x.is_active })) },
-                { label: 'Hapus', danger: true, onClick: () => setConfirm(x) },
-              ]}
-            />
-          </span>
-        );
-      },
+      cell: (x) => rowActions(x),
+      mobileCell: (x) => (
+        <span className="ws-mactions">
+          {shownPill(x)}
+          {rowActions(x, 'ghost')}
+        </span>
+      ),
     },
   ];
+
+  function rowActions(x: T, variant?: 'ghost') {
+    const i = sorted.findIndex((s) => s.id === x.id);
+    return (
+      <span className="ag-row-actions" onClick={(e) => e.stopPropagation()}>
+        <IconButton size="sm" variant={variant} label="Naikkan urutan" disabled={busy || i === 0} onClick={() => move(x, -1)}>
+          <ArrowUp className="ku-icon--sm" />
+        </IconButton>
+        <IconButton size="sm" variant={variant} label="Turunkan urutan" disabled={busy || i === sorted.length - 1} onClick={() => move(x, 1)}>
+          <ArrowDown className="ku-icon--sm" />
+        </IconButton>
+        <Menu
+          label={`Aksi ${noun}`}
+          trigger={<MoreHorizontal className="ku-icon--sm" />}
+          items={[
+            { label: 'Ubah', onClick: () => onEdit(x) },
+            { label: x.is_active ? 'Sembunyikan dari website' : 'Tampilkan di website', onClick: () => run(() => save({ ...x, is_active: !x.is_active })) },
+            { label: 'Hapus', danger: true, onClick: () => setConfirm(x) },
+          ]}
+        />
+      </span>
+    );
+  }
+
+  function shownPill(x: T) {
+    return x.is_active ? <Pill tone="green">Tampil</Pill> : <Pill>Disembunyikan</Pill>;
+  }
 
   return (
     <section className="ku-list">

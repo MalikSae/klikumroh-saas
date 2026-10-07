@@ -83,7 +83,7 @@ export const Targets: React.FC = () => {
       {error && <Banner tone="danger">{error}</Banner>}
       {needsClosing > 0 && (
         <Banner tone="warning">
-          <b>{needsClosing} target sudah lewat periodenya.</b> Tutup periode untuk mencatat agen yang berhak mendapat hadiah.
+          <b>{needsClosing} target sudah lewat periodenya.</b> Akhiri target untuk mencatat agen yang berhak mendapat hadiah.
         </Banner>
       )}
       <Toolbar

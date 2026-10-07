@@ -1,6 +1,8 @@
 /* App frame (sidebar + main panel). Source: dashboard/design/prototype.html. Tokens only. */
 
 .ap {
+  /* Height of the full-width demo bar (0 when the travel is not the demo). */
+  --ap-bar-h: 0px;
   display: grid;
   grid-template-columns: var(--ku-size-sidebar) minmax(0, 1fr);
   min-height: 100vh;
@@ -11,8 +13,8 @@
 /* ---------- Sidebar ---------- */
 .ap-side {
   position: sticky;
-  top: var(--ku-space-3);
-  height: calc(100vh - 2 * var(--ku-space-3));
+  top: calc(var(--ap-bar-h) + var(--ku-space-3));
+  height: calc(100vh - var(--ap-bar-h) - 2 * var(--ku-space-3));
   display: flex;
   flex-direction: column;
   padding: 10px var(--ku-space-4) var(--ku-space-2) var(--ku-space-5);
@@ -100,6 +102,7 @@
 
 /* ---------- Main panel ---------- */
 .ap-main { background: var(--ku-panel); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-panel); min-width: 0; display: flex; flex-direction: column; }
+.ap-top { position: sticky; top: var(--ap-bar-h); z-index: 50; background: var(--ku-panel); border-radius: var(--ku-radius-panel) var(--ku-radius-panel) 0 0; }
 .ap-head { display: flex; align-items: center; gap: var(--ku-space-4); padding: var(--ku-space-4) var(--ku-space-8); border-bottom: 1px solid var(--ku-line-2); }
 .ap-head__menu { display: none; }
 .ap-head__title { margin: 0; min-width: 180px; font: var(--ku-weight-bold) var(--ku-text-2xl) / 28px var(--ku-font-head); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -133,7 +136,8 @@
   .ap { display: block; padding: 0; background: var(--ku-panel); }
   .ap-side, .ap-mobile-overlay, .ap-head__menu { display: none; }
   .ap-main { min-height: 100vh; border: 0; border-radius: 0; }
-  .ap-head { position: sticky; top: 0; z-index: 50; padding: var(--ku-space-3) var(--ku-space-4); padding-top: max(var(--ku-space-3), env(safe-area-inset-top)); background: var(--ku-panel); }
+  .ap-top { border-radius: 0; }
+  .ap-head { padding: var(--ku-space-3) var(--ku-space-4); }
   .ap-head__title { font-size: var(--ku-text-xl); line-height: 26px; }
   .ap-head__right { margin-left: auto; }
   .ap-travel { padding: 0 6px; }
@@ -168,7 +172,18 @@
 @keyframes ap-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
 
 /* Demo travel (demo.klikumroh.id): one line above every page. */
-.ap-demo { display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); flex-wrap: wrap; margin: 0 0 var(--ku-space-3); padding: var(--ku-space-2) var(--ku-space-2) var(--ku-space-2) var(--ku-space-4); border-radius: var(--ku-radius-inner); background: var(--ku-ink); color: var(--ku-on-accent); font-size: var(--ku-text-md); }
+/* Demo notice: a slim sticky bar across the full screen width, above the sidebar and the page. It bleeds
+   over the frame padding of .ap (top and right) so it touches the screen edges. */
+.ap--demo { --ap-bar-h: calc(var(--ku-size-control-sm) + 2 * var(--ku-space-2)); }
+.ap-demo { grid-column: 1 / -1; position: sticky; top: 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: var(--ku-space-3); box-sizing: border-box; height: var(--ap-bar-h); margin: calc(-1 * var(--ku-space-3)) calc(-1 * var(--ku-space-3)) var(--ku-space-3) 0; padding: 0 var(--ku-space-5); background: var(--ku-ink); color: var(--ku-on-accent); font-size: var(--ku-text-md); }
+.ap-demo__text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ap-demo__short { display: none; }
+/* Phone: .ap has no frame padding there, so no bleed; shorter text. (Kept after the base rules so it wins.) */
+@media (max-width: 768px) {
+  .ap-demo { margin: 0; padding: 0 var(--ku-space-4); }
+  .ap-demo__long { display: none; }
+  .ap-demo__short { display: inline; }
+}
 .ap-demo__cta { flex-shrink: 0; }
 /* Session switched in another tab: above every drawer, modal and mobile sheet. */
 .ap-session-lock { z-index: 140; }
