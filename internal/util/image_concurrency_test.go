@@ -38,23 +38,25 @@ func pngHeader(width, height uint32, bitDepth, colorType byte) []byte {
 	return buf.Bytes()
 }
 
-// M3: a 16-bit image counts 8 bytes per pixel against MaxDecodedImageBytes, so a 36 MP 16-bit PNG (288 MB
-// decoded) is refused although it is under 40 MP; the same size at 8 bits, and a 25 MP 16-bit one, pass.
+// M3: a 16-bit image counts 8 bytes per pixel against MaxDecodedImageBytes (96 MiB), so a 16 MP 16-bit PNG
+// (128 MB decoded) is refused although it is under 24 MP; the same size at 8 bits, and a 12 MP 16-bit one,
+// pass. 24 MP at 8 bits (the pixel limit) fits the budget.
 func TestImageDecodedSizeBudget(t *testing.T) {
 	cases := []struct {
 		name      string
 		data      []byte
 		wantHeavy bool
 	}{
-		{"16-bit RGBA 6000x6000 (288 MB)", pngHeader(6000, 6000, 16, 6), true},
-		{"16-bit RGB 6000x6000 (288 MB)", pngHeader(6000, 6000, 16, 2), true},
-		{"8-bit RGBA 6000x6000 (144 MB)", pngHeader(6000, 6000, 8, 6), false},
-		{"16-bit RGBA 5000x5000 (200 MB)", pngHeader(5000, 5000, 16, 6), false},
+		{"16-bit RGBA 4000x4000 (128 MB)", pngHeader(4000, 4000, 16, 6), true},
+		{"16-bit RGB 4000x4000 (128 MB)", pngHeader(4000, 4000, 16, 2), true},
+		{"8-bit RGBA 4000x4000 (64 MB)", pngHeader(4000, 4000, 8, 6), false},
+		{"16-bit RGBA 3500x3500 (98 MB)", pngHeader(3500, 3500, 16, 6), false},
+		{"8-bit RGBA 6000x4000 (96 MB, 24 MP)", pngHeader(6000, 4000, 8, 6), false},
 	}
 	for _, c := range cases {
 		err := checkImageDimensions(c.data)
 		t.Logf("%s: %v", c.name, err)
-		if c.wantHeavy != errors.Is(err, ErrImageTooHeavy) {
+		if c.wantHeavy != errors.Is(err, ErrImageTooHeavy) || (!c.wantHeavy && err != nil) {
 			t.Fatalf("%s: got %v", c.name, err)
 		}
 		if err != nil && !IsImageClientError(err) {
@@ -62,7 +64,7 @@ func TestImageDecodedSizeBudget(t *testing.T) {
 		}
 	}
 	// The conversion helpers refuse it from the header, before decoding.
-	err := ConvertAndSaveWebP(pngHeader(6000, 6000, 16, 6), filepath.Join(t.TempDir(), "x.webp"), 1600, 80)
+	err := ConvertAndSaveWebP(pngHeader(4000, 4000, 16, 6), filepath.Join(t.TempDir(), "x.webp"), 1600, 80)
 	if !errors.Is(err, ErrImageTooHeavy) {
 		t.Fatalf("ConvertAndSaveWebP: expected ErrImageTooHeavy, got %v", err)
 	}

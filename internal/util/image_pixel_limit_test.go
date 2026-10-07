@@ -42,8 +42,8 @@ func TestImagePixelLimit_RefusesPixelBomb(t *testing.T) {
 	dir := t.TempDir()
 	cases := map[string][]byte{
 		"40000x40000":          PixelBombPNG(40000, 40000),
-		"side over 12000":      PixelBombPNG(12001, 10),
-		"over 40 MP, sides ok": PixelBombPNG(7000, 7000),
+		"side over 8000":       PixelBombPNG(8001, 10),
+		"over 24 MP, sides ok": PixelBombPNG(5000, 5000),
 	}
 	convs := map[string]func([]byte, string) error{
 		"WebP":       func(b []byte, p string) error { return util.ConvertAndSaveWebP(b, p, 1600, 80) },
