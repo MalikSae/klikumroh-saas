@@ -515,9 +515,9 @@ export default function AgenStatusPage() {
                         onClick={handleCopyBank}
                         className="tw-st-copy"
                         aria-label={copiedBank ? 'Nomor rekening tersalin' : 'Salin nomor rekening'}
+                        title={copiedBank ? 'Tersalin' : 'Salin nomor rekening'}
                       >
                         {copiedBank ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-                        <span>{copiedBank ? 'Tersalin' : 'Salin'}</span>
                       </button>
                     )}
                   </dd>

@@ -204,22 +204,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Icon-only copy button beside the number (the boxed "Salin" button took too much room). */
 .tw-st-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--tw-neutral-300);
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin: -8px -10px -8px 0;
+  padding: 0;
+  border: 0;
   border-radius: 8px;
-  background-color: var(--tw-background);
-  font: 500 13px var(--tw-font-body);
-  color: var(--tw-neutral-700);
+  background: transparent;
+  color: var(--tw-neutral-500);
   cursor: pointer;
 }
 
 .tw-st-copy:hover {
-  border-color: var(--tw-neutral-400);
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-900);
 }
 
 .tw-st-reflink {

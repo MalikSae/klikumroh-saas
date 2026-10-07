@@ -464,8 +464,9 @@
   min-height: 36px;
   font-size: 12.5px;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--tw-btn-radius);
   background: var(--tw-brand-primary);
+  box-shadow: var(--tw-btn-shadow-brand);
   color: var(--tw-on-brand);
   border: none;
 }

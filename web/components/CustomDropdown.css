@@ -29,8 +29,8 @@
 .tw-dropdown__trigger:focus,
 .tw-dropdown__trigger--open {
   border-color: var(--tw-brand-primary);
-  /* One thick border in the brand color (no second, tinted halo). */
-  box-shadow: 0 0 0 1px var(--tw-brand-primary);
+  /* Focus = the border in the brand color only, no ring on top (7 Oct 2026). */
+  box-shadow: none;
 }
 
 .tw-dropdown__trigger--error {

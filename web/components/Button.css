@@ -6,7 +6,7 @@
   width: 100%;
   font-family: inherit;
   font-weight: 500;
-  border-radius: var(--radius-md);
+  border-radius: var(--tw-btn-radius);
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid transparent;
@@ -31,6 +31,7 @@
 
 .tw-button--primary {
   background-color: var(--tw-brand-primary);
+  box-shadow: var(--tw-btn-shadow-brand);
   color: var(--tw-background);
 }
 
@@ -40,7 +41,8 @@
 }
 
 .tw-button--secondary {
-  background-color: transparent;
+  background-color: var(--tw-background);
+  box-shadow: var(--tw-btn-shadow-light);
   color: var(--tw-brand-primary);
   border-color: var(--tw-brand-primary);
 }

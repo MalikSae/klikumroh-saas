@@ -6,7 +6,7 @@
 // Every section uses only the travel's own data and is hidden when that data is empty.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, MessageCircle, ShieldCheck, Star, Users } from 'lucide-react';
+import { ArrowRight, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, MessageCircle, ShieldCheck, Star, User, Users } from 'lucide-react';
 import { MobileContainer } from '../MobileContainer';
 import { PublicFooter } from '../PublicFooter';
 import { jakartaDayKey } from '../../lib/jakartaTime';
@@ -318,7 +318,7 @@ const Testimonials: React.FC<{ items: PublicTestimonialItem[] }> = ({ items }) =
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={t.avatar_url} alt="" className="th-testi__avatar th-testi__avatar--img" loading="lazy" />
               ) : (
-                <span className="th-testi__avatar" aria-hidden="true">{initials(t.name)}</span>
+                <span className="th-testi__avatar" aria-hidden="true"><User size={18} /></span>
               )}
               <span className="th-testi__id">
                 <b>{t.name}</b>

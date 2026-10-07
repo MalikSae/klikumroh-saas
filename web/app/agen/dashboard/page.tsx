@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -24,6 +25,8 @@ import {
   History,
   Bell,
   Flame,
+  User,
+  UserPlus,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import type { PublicPackage } from '../../../components/publicPackage';
@@ -75,6 +78,8 @@ interface AgentDashboardSummary {
   targets: AgentTargetView[];
   minimum_payout_amount: number | null;
   referral_link: string;
+  // Agent sign-up page of the travel with this agent's code in ?ref= (invite a friend to become an agent).
+  recruit_link?: string;
   funnel_ringkasan: AgentFunnelSummary;
   leaderboard_preview?: LeaderboardPreview | null;
   photo_url?: string | null;
@@ -107,6 +112,7 @@ export default function AgenDashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
+  const [recruitCopied, setRecruitCopied] = useState<boolean>(false);
   // Link the browser refused to copy (in-app browsers often block the clipboard): shown for a manual copy.
   const [copyFailedLink, setCopyFailedLink] = useState<string | null>(null);
   const [showBalance, setShowBalance] = useState<boolean>(true);
@@ -328,6 +334,26 @@ export default function AgenDashboardPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Invitation link for a friend or relative to register as an agent under this agent. Not logged as a share
+  // habit: that habit counts sharing a package link with prospects.
+  const handleCopyRecruit = async () => {
+    if (!summary?.recruit_link) return;
+    const link = summary.recruit_link;
+    if (!(await copyToClipboard(link))) {
+      setCopyFailedLink(link);
+      return;
+    }
+    setCopyFailedLink(null);
+    setRecruitCopied(true);
+    setTimeout(() => setRecruitCopied(false), 2000);
+  };
+
+  const getRecruitWhatsAppUrl = (): string => {
+    if (!summary?.recruit_link) return '#';
+    const text = `Assalamu'alaikum, saya bergabung jadi mitra ${travel?.name || 'travel umroh'}. Kalau berminat, silakan lihat dan daftar lewat tautan ini:\n${summary.recruit_link}`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  };
+
   // Link to one package through the agent's referral route (counts the click, then opens the package).
   const packageLink = (pkg: PublicPackage): string =>
     summary?.referral_link ? `${summary.referral_link}?to=${encodeURIComponent(`/paket/${pkg.id}`)}` : '';
@@ -466,7 +492,7 @@ export default function AgenDashboardPage() {
                 // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
                 <img src={summary.photo_url} alt="" />
               ) : (
-                <span className="ag-greet__initial">{summary.name?.trim().charAt(0).toUpperCase() || '?'}</span>
+                <User size={24} aria-hidden="true" />
               )}
             </span>
             <span className="ag-greet__text">
@@ -585,6 +611,36 @@ export default function AgenDashboardPage() {
           </div>
           {copyFailedLink === summary.referral_link && <CopyFailedNote link={copyFailedLink} />}
         </section>
+
+        {/* Invite a friend or relative to become an agent */}
+        {summary.recruit_link && !summary.travel_suspended && (
+          <section className="ag-card ag-recruit" aria-labelledby="ag-recruit">
+            <h2 id="ag-recruit" className="ag-title ag-recruit__title">
+              <UserPlus size={18} aria-hidden="true" />
+              Ajak teman jadi agen
+            </h2>
+            <p className="ag-recruit__text">
+              Bagikan tautan ini. Anda tercatat sebagai pengajak saat mereka mendaftar.
+            </p>
+            <div className="ag-recruit__actions">
+              <button type="button" className="ag-recruit__copy" onClick={handleCopyRecruit}>
+                {recruitCopied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+                {recruitCopied ? 'Tersalin' : 'Salin tautan'}
+              </button>
+              <a
+                className="ag-recruit__wa"
+                href={getRecruitWhatsAppUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Kirim tautan ajakan lewat WhatsApp"
+                title="Kirim lewat WhatsApp"
+              >
+                <WhatsAppIcon size={20} aria-hidden="true" />
+              </a>
+            </div>
+            {copyFailedLink === summary.recruit_link && <CopyFailedNote link={copyFailedLink} />}
+          </section>
+        )}
 
         {/* Packages to share */}
         {sharePackages.length > 0 && (

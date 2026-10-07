@@ -572,3 +572,10 @@
   height: 18px;
   accent-color: var(--tw-brand-primary);
 }
+
+/* Icon buttons keep their touch area; the hover shade is a 32px square around the icon (7 Oct 2026). */
+.bc-icon-btn { position: relative; }
+.bc-icon-btn::before { content: ""; position: absolute; inset: calc((100% - 32px) / 2); border-radius: 8px; background-color: transparent; transition: background-color 0.15s ease; }
+.bc-icon-btn > svg { position: relative; }
+.bc-icon-btn:hover { background-color: transparent; }
+.bc-icon-btn:hover::before { background-color: var(--tw-neutral-100); }

@@ -5,17 +5,11 @@
 // the interest form, which saves the visitor as this
 // consultant's prospect and only then opens a chat with them. Renders nothing without a consultant.
 import React, { useState } from 'react';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, User } from 'lucide-react';
 import type { Consultant } from '../lib/consultant';
+import { WhatsAppIcon } from './icons/WhatsAppIcon';
 import './ConsultantCard.css';
 
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join('');
 
 export const ConsultantCard: React.FC<{
   consultant: Consultant | null;
@@ -34,8 +28,9 @@ export const ConsultantCard: React.FC<{
         // eslint-disable-next-line @next/next/no-img-element -- consultant photo uploaded by the agent
         <img src={consultant.photo_url} alt="" className="tw-consultant__photo" onError={() => setPhotoOk(false)} />
       ) : (
+        // No photo: a person icon (founder, 7 Oct 2026), not the name's initials.
         <span className="tw-consultant__photo tw-consultant__photo--initials" aria-hidden="true">
-          {initials(consultant.name)}
+          <User size={24} />
         </span>
       )}
       <div className="tw-consultant__text">
@@ -46,8 +41,15 @@ export const ConsultantCard: React.FC<{
         </span>
       </div>
       {onAsk && (
-        <button type="button" className={`tw-consultant__ask${askTone === 'brand' ? ' tw-consultant__ask--brand' : ''}`} onClick={onAsk}>
-          Konsultasi Gratis
+        // WhatsApp icon only (founder, 7 Oct 2026); it still opens the interest form first, never wa.me directly.
+        <button
+          type="button"
+          className={`tw-consultant__ask${askTone === 'brand' ? ' tw-consultant__ask--brand' : ''}`}
+          onClick={onAsk}
+          aria-label={`Konsultasi gratis dengan ${consultant.name}`}
+          title="Konsultasi Gratis"
+        >
+          <WhatsAppIcon size={20} aria-hidden="true" />
         </button>
       )}
     </section>

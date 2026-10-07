@@ -372,19 +372,15 @@
 }
 
 /* Login Card Link */
+/* One centred line under the form, no extra card (it read as a cramped two-column box on phones).
+   Inline text, so a narrow screen wraps it naturally instead of splitting it into two columns. */
 .tw-agen-daftar-login-card {
-  margin: 0 16px 16px 16px;
-  padding: 14px 16px;
-  background-color: var(--tw-page-bg);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: var(--radius-md, 10px);
+  margin: 0 16px 24px;
+  padding: 4px 0;
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--tw-neutral-500);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
 }
 
 .tw-agen-daftar-login-link {
@@ -408,9 +404,9 @@
   color: var(--tw-text-primary);
 }
 .tw-agen-daftar-input:hover:not(:disabled) { border-color: var(--tw-brand-primary); }
-.tw-agen-daftar-input:focus { background-color: var(--tw-background); border-color: var(--tw-brand-primary); box-shadow: 0 0 0 1px var(--tw-brand-primary); }
+.tw-agen-daftar-input:focus { background-color: var(--tw-background); border-color: var(--tw-brand-primary); box-shadow: none; }
 .tw-agen-daftar-input::placeholder { color: var(--tw-text-muted); }
-.tw-agen-daftar-input--error, .tw-agen-daftar-input--error:focus { border-color: var(--tw-danger) !important; box-shadow: 0 0 0 1px var(--tw-danger); }
+.tw-agen-daftar-input--error, .tw-agen-daftar-input--error:focus { border-color: var(--tw-danger) !important; box-shadow: none; }
 .tw-agen-daftar-input-wrap:has(.tw-agen-daftar-toggle-pw) .tw-agen-daftar-input { padding-right: 40px; }
 
 /* Registration info failed to load: message + retry (submit stays disabled meanwhile) */
@@ -437,3 +433,19 @@
   color: var(--tw-danger-strong);
   cursor: pointer;
 }
+
+/* "Punya kode referral?" opens the optional referral field (folded by default, 7 Oct 2026). */
+.tw-agen-daftar-ref-toggle {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--tw-brand-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.tw-agen-daftar-ref-toggle:disabled { opacity: 0.6; cursor: not-allowed; }

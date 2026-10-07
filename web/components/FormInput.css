@@ -41,8 +41,8 @@
 .tw-form-select:focus,
 .tw-form-textarea:focus {
   border-color: var(--tw-brand-primary);
-  /* One thick border in the brand color (no second, tinted halo). */
-  box-shadow: 0 0 0 1px var(--tw-brand-primary);
+  /* Focus = the 1.5px border in the brand color only (founder, 7 Oct 2026: a ring on top read too thick). */
+  box-shadow: none;
 }
 
 .tw-form-input--error,
@@ -96,5 +96,5 @@
 .tw-form-select--error:focus,
 .tw-form-textarea--error:focus {
   border-color: var(--tw-brand-secondary);
-  box-shadow: 0 0 0 1px var(--tw-brand-secondary);
+  box-shadow: none;
 }

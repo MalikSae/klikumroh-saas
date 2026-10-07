@@ -515,9 +515,7 @@ export default function AgenProfilPage() {
               // eslint-disable-next-line @next/next/no-img-element -- uploaded agent photo, served as-is
               <img src={agent.photo_url} alt={agent.name} />
             ) : (
-              <span className="pf-idcard__initial" aria-hidden="true">
-                {agent?.name?.trim().charAt(0).toUpperCase() || '?'}
-              </span>
+              <User size={44} className="pf-idcard__icon" aria-hidden="true" />
             )}
             {(uploadingPhoto || removingPhoto) && (
               <span className="pf-idcard__busy">

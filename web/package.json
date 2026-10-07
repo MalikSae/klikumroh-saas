@@ -21,7 +21,8 @@
     "test:ref-redirect": "node --experimental-strip-types test/ref-redirect.test.mjs",
     "test:leaderboard-rank": "node --experimental-strip-types test/leaderboard-rank.test.mjs",
     "test:bh4-web": "node --experimental-strip-types test/bh4-web-fixes.test.mjs",
-    "test:bh5-web": "node --experimental-strip-types test/bh5-web-fixes.test.mjs"
+    "test:bh5-web": "node --experimental-strip-types test/bh5-web-fixes.test.mjs",
+    "test:person-name": "node --experimental-strip-types test/person-name.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

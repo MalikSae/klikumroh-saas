@@ -427,10 +427,7 @@
   object-fit: cover;
 }
 
-.pf-idcard__initial {
-  font-family: var(--tw-font-heading);
-  font-size: 32px;
-  font-weight: 700;
+.pf-idcard__icon {
   color: var(--tw-neutral-600);
 }
 
@@ -499,3 +496,10 @@
 .pf-idcard__badge {
   margin-top: 6px;
 }
+
+/* Icon buttons keep their touch area; the hover shade is a 32px square around the icon (7 Oct 2026). */
+.pf-icon-btn { position: relative; }
+.pf-icon-btn::before { content: ""; position: absolute; inset: calc((100% - 32px) / 2); border-radius: 8px; background-color: transparent; transition: background-color 0.15s ease; }
+.pf-icon-btn > svg { position: relative; }
+.pf-icon-btn:hover { background-color: transparent; }
+.pf-icon-btn:hover::before { background-color: var(--tw-neutral-100); }

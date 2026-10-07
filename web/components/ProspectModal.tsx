@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { capitalizeName } from '@/lib/personName';
 import { X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { FormInput } from './FormInput';
 import { CityField } from './CityField';
@@ -286,7 +287,9 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
               required
               placeholder="Contoh: Muhammad Rofi"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              autoCapitalize="words"
+              autoComplete="name"
+              onChange={(e) => setName(capitalizeName(e.target.value))}
             />
 
             <FormInput

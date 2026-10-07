@@ -4,7 +4,7 @@
 // Tab page of the agent bottom navbar, so no back button. Brand color marks "your" position.
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, RefreshCw, Medal, Loader2, Crown } from 'lucide-react';
+import { AlertCircle, RefreshCw, Medal, Loader2, Crown, User } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { CustomDropdown } from '../../../components/CustomDropdown';
@@ -33,7 +33,6 @@ type PeriodKey = (typeof PERIODS)[number]['key'];
 const PAGE_SIZE = 10;
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
-const initial = (name: string) => (name.trim()[0] || '?').toUpperCase();
 
 export default function AgenLeaderboardPage() {
   const router = useRouter();
@@ -198,7 +197,7 @@ export default function AgenLeaderboardPage() {
                               // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
                               <img src={e.photo_url} alt="" />
                             ) : (
-                              initial(e.name)
+                              <User size={22} aria-hidden="true" />
                             )}
                           </span>
                           <span className="lb-podium__name">{e.is_me ? 'Anda' : firstName(e.name)}</span>

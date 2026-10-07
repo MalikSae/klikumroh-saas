@@ -27,6 +27,8 @@ export interface FormInputProps {
   inputMode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
   pattern?: string;
   maxLength?: number;
+  autoComplete?: string;
+  autoCapitalize?: 'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters';
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -49,6 +51,8 @@ export const FormInput: React.FC<FormInputProps> = ({
   inputMode,
   pattern,
   maxLength,
+  autoComplete,
+  autoCapitalize,
 }) => {
   const inputId = id || name || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
@@ -101,6 +105,8 @@ export const FormInput: React.FC<FormInputProps> = ({
           inputMode={inputMode}
           pattern={pattern}
           maxLength={maxLength}
+          autoComplete={autoComplete}
+          autoCapitalize={autoCapitalize}
           className={`tw-form-input ${error ? 'tw-form-input--error' : ''}`}
         />
       )}

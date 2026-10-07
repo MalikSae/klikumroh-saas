@@ -118,12 +118,6 @@
   object-fit: cover;
 }
 
-.ag-greet__initial {
-  font-family: var(--tw-font-heading);
-  font-size: 20px;
-  font-weight: 700;
-}
-
 .ag-greet__text {
   flex: 1;
   display: flex;
@@ -827,3 +821,79 @@
   user-select: all;
   -webkit-user-select: all;
 }
+
+/* Invite a friend or relative to become an agent: tinted with the travel's brand color so it stands apart
+   from the plain white cards; one solid button (copy), WhatsApp is the quiet second action. */
+.ag-recruit {
+  gap: 8px;
+  background-color: color-mix(in srgb, var(--tw-brand-primary) 7%, var(--tw-background));
+}
+
+.ag-recruit__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.ag-recruit__title svg {
+  flex-shrink: 0;
+  color: var(--tw-brand-primary);
+}
+
+.ag-recruit__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--tw-text-secondary);
+}
+
+/* One row: the copy button and a WhatsApp icon button (simplified 7 Oct 2026). */
+.ag-recruit__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ag-recruit__copy,
+.ag-recruit__wa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font: 600 14px var(--tw-font-body);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ag-recruit__copy {
+  flex: 1 1 auto;
+  border: none;
+  background-color: var(--tw-brand-primary);
+  color: var(--tw-on-brand);
+}
+
+.ag-recruit__wa {
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 0;
+  border: 1px solid var(--tw-border);
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+}
+
+.ag-recruit__copy:focus-visible,
+.ag-recruit__wa:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--tw-focus-ring);
+}
+
+/* Icon buttons keep their touch area; the hover shade is a 32px square around the icon (7 Oct 2026). */
+.ag-icon-btn { position: relative; }
+.ag-icon-btn::before { content: ""; position: absolute; inset: calc((100% - 32px) / 2); border-radius: 8px; background-color: transparent; transition: background-color 0.15s ease; }
+.ag-icon-btn > svg { position: relative; }
+.ag-icon-btn:hover { background-color: transparent; }
+.ag-icon-btn:hover::before { background-color: var(--tw-neutral-100); }

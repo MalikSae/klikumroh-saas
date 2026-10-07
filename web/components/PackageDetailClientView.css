@@ -624,8 +624,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: var(--tw-btn-radius);
   background-color: var(--tw-brand-primary);
+  box-shadow: var(--tw-btn-shadow-brand);
   color: var(--tw-on-brand);
   border: none;
   cursor: pointer;

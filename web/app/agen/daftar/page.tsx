@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { capitalizeName } from '@/lib/personName';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
@@ -58,6 +59,7 @@ export default function AgenDaftarPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [referralCode, setReferralCode] = useState('');
+  const [referralOpen, setReferralOpen] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -423,13 +425,14 @@ export default function AgenDaftarPage() {
                   type="text"
                   value={name}
                   onChange={(e) => {
-                    setName(e.target.value);
+                    setName(capitalizeName(e.target.value));
                     if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
                   }}
                   placeholder="Nama lengkap sesuai KTP"
                   className={`tw-agen-daftar-input ${errors.name ? 'tw-agen-daftar-input--error' : ''}`}
                   disabled={isSubmitting}
                   autoComplete="name"
+                  autoCapitalize="words"
                   required
                 />
               </div>
@@ -571,29 +574,38 @@ export default function AgenDaftarPage() {
               )}
             </div>
 
-            {/* Kode Referral Pengajak (Opsional) */}
-            <div className="tw-agen-daftar-field">
-              <label className="tw-agen-daftar-label" htmlFor="agent-referral-code">
-                Kode Referral Pengajak (Opsional)
-              </label>
-              <div className="tw-agen-daftar-input-wrap">
-                <input
-                  id="agent-referral-code"
-                  type="text"
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                  placeholder="Contoh: AHMAD24"
-                  maxLength={20}
-                  className="tw-agen-daftar-input"
-                  disabled={isSubmitting}
-                  autoComplete="off"
-                  style={{ textTransform: 'uppercase' }}
-                />
+            {/* Kode Referral Pengajak (Opsional): folded behind a link, most applicants register on their own.
+                It opens by itself when the code came from an agent's link (?ref= or cookie), so the
+                applicant still sees the upline they will be linked to. */}
+            {referralOpen || referralCode !== '' ? (
+              <div className="tw-agen-daftar-field">
+                <label className="tw-agen-daftar-label" htmlFor="agent-referral-code">
+                  Kode Referral Pengajak (Opsional)
+                </label>
+                <div className="tw-agen-daftar-input-wrap">
+                  <input
+                    id="agent-referral-code"
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    placeholder="Contoh: AHMAD24"
+                    maxLength={20}
+                    className="tw-agen-daftar-input"
+                    disabled={isSubmitting}
+                    autoComplete="off"
+                    autoFocus={referralOpen && referralCode === ''}
+                    style={{ textTransform: 'uppercase' }}
+                  />
+                </div>
+                <span className="tw-agen-daftar-hint-text">
+                  Terisi otomatis bila Anda datang dari link agen pengajak. Kosongkan jika mendaftar mandiri: akun Anda tidak akan terhubung ke agen mana pun.
+                </span>
               </div>
-              <span className="tw-agen-daftar-hint-text">
-                Terisi otomatis bila Anda datang dari link agen pengajak. Kosongkan jika mendaftar mandiri: akun Anda tidak akan terhubung ke agen mana pun.
-              </span>
-            </div>
+            ) : (
+              <button type="button" className="tw-agen-daftar-ref-toggle" onClick={() => setReferralOpen(true)} disabled={isSubmitting}>
+                Punya kode referral dari agen pengajak?
+              </button>
+            )}
 
             {/* Implicit Consent Syarat & Ketentuan */}
             {regInfo?.agent_registration_terms && (
@@ -639,9 +651,9 @@ export default function AgenDaftarPage() {
 
           {/* 7. Link to Login Card */}
           <div className="tw-agen-daftar-login-card">
-            <span>Sudah memiliki akun mitra agen?</span>
+            Sudah punya akun agen?{' '}
             <Link href="/agen/login" className="tw-agen-daftar-login-link">
-              Masuk ke Akun
+              Masuk
             </Link>
           </div>
         </div>

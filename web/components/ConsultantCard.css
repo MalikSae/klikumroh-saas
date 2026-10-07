@@ -20,11 +20,11 @@
   background: var(--tw-neutral-100);
 }
 
+/* No photo: a person icon in the circle (founder, 7 Oct 2026). */
 .tw-consultant__photo--initials {
   display: grid;
   place-items: center;
-  color: var(--tw-text-primary);
-  font: 600 16px var(--tw-font-heading);
+  color: var(--tw-text-muted);
 }
 
 .tw-consultant__text {
@@ -64,18 +64,32 @@
   fill: var(--tw-verified);
 }
 
-/* Solid green "Konsultasi Gratis" (founder's choice, 3 Oct 2026). */
+/* Solid green button (3 Oct 2026), WhatsApp icon only since 7 Oct 2026 (label kept as aria-label). */
 .tw-consultant__ask {
   flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
   margin-left: auto;
-  padding: 8px 12px;
+  padding: 0;
   border: 0;
-  border-radius: 8px;
+  /* Round chat button (a WhatsApp bubble, not a form action): softer than a square block. */
+  border-radius: 50%;
   background: var(--tw-success-strong);
+  box-shadow: var(--tw-wa-shadow);
   color: var(--tw-on-brand);
-  font: 600 14px var(--tw-font-body);
-  white-space: nowrap;
   cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.tw-consultant__ask:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.tw-consultant__ask:active {
+  transform: translateY(0);
 }
 
 /* Spacing where the card sits inside an existing section: above other content, or below it. */

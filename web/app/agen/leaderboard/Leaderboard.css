@@ -171,7 +171,7 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--medal) 30%, transparent);
 }
 
-/* Profile photo fills the ring; the initial shows when there is none. */
+/* Profile photo fills the ring; a person icon shows when there is none. */
 .lb-podium__avatar {
   overflow: hidden;
 }
