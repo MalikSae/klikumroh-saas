@@ -5,6 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 import { departurePlanOptions, updateProspect, type PackageItem, type ProspectDetailResponse } from '../../services/api';
 import { Banner, Button, CityInput, Field, Modal, Select, fmtRupiah } from '../../ui';
 import { parseJamaahCount } from '../programs/numberInput';
+import { isDeparted } from '../packages/packageUtil';
 
 export const EditProspectModal: React.FC<{
   open: boolean;
@@ -44,6 +45,15 @@ export const EditProspectModal: React.FC<{
   // An empty/invalid count (mid-retype) is not compared, so the correction box does not flicker.
   const correction = p?.status === 'closing' && ((jamaah !== null && jamaah !== initialJamaah) || pkg !== initialPkg);
   const selected = packages.find((x) => String(x.id) === pkg);
+  // Same rule as the status (backend checkPipelinePackage): a Tertarik prospect may switch only to a
+  // package on sale, a Closing one only to a published package (departed allowed). The current package
+  // stays listed so an unchanged edit still saves.
+  const pkgChoices = packages.filter((x) => {
+    if (String(x.id) === initialPkg) return true;
+    if (p?.status === 'tertarik') return x.status === 'published' && !isDeparted(x);
+    if (p?.status === 'closing') return x.status === 'published';
+    return true;
+  });
 
   const save = async () => {
     if (!p) return;
@@ -97,7 +107,7 @@ export const EditProspectModal: React.FC<{
                 label="Paket"
                 value={pkg}
                 onChange={setPkg}
-                options={[{ value: '', label: 'Belum pilih paket' }, ...packages.map((x) => ({ value: String(x.id), label: x.status === 'published' ? x.name : `${x.name} (${x.status === 'draft' ? 'draf' : 'diarsipkan'})` }))]}
+                options={[{ value: '', label: 'Belum pilih paket' }, ...pkgChoices.map((x) => ({ value: String(x.id), label: x.status === 'published' ? x.name : `${x.name} (${x.status === 'draft' ? 'draf' : 'diarsipkan'})` }))]}
               />
             )}
           </Field>

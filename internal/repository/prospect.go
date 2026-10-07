@@ -690,6 +690,27 @@ func (r *mysqlProspectRepository) listByAgent(ctx context.Context, tenantID uint
 	return items, nil
 }
 
+// UpdatePipelineDetails writes only the package and jamaah count (filled in on the way to Tertarik or
+// Closing), leaving every other field as it is in the database.
+func (r *mysqlProspectRepository) UpdatePipelineDetails(ctx context.Context, tenantID, id uint64, packageID uint64, jumlahJamaah int) error {
+	res, err := r.db.ExecContext(ctx, `UPDATE prospects SET package_id = ?, jumlah_jamaah = ? WHERE id = ? AND tenant_id = ? AND anonymized_at IS NULL`,
+		packageID, jumlahJamaah, id, tenantID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		var exists int
+		if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM prospects WHERE id = ? AND tenant_id = ?`, id, tenantID).Scan(&exists); err != nil {
+			return err
+		}
+		if exists == 0 {
+			return ErrNotFound
+		}
+		// Same values already stored (MySQL reports 0 changed rows) or anonymized meanwhile: nothing to do.
+	}
+	return nil
+}
+
 func (r *mysqlProspectRepository) Update(ctx context.Context, tenantID uint64, prospect *Prospect) error {
 	query := `
 		UPDATE prospects

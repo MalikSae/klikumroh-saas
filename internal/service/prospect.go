@@ -59,6 +59,9 @@ var (
 	// ErrPackageNotOnSale is returned when a prospect moves to 'tertarik' with a package that is not on sale
 	// (draft, archived or departed).
 	ErrPackageNotOnSale = errors.New("paket ini tidak sedang dijual (draf, diarsipkan, atau sudah berangkat), pilih paket lain")
+	// ErrPackageNotPublished is returned when a prospect moves to 'closing' with a draft or archived package
+	// (founder decision 7 Oct 2026: closing only on a published package; a departed one is still allowed).
+	ErrPackageNotPublished = errors.New("paket ini masih draf atau sudah diarsipkan, closing hanya untuk paket yang tayang")
 	// ErrPipelineDetailsClear is returned when an edit removes the package or jamaah count of a prospect
 	// that is already 'tertarik' or 'closing'.
 	ErrPipelineDetailsClear = errors.New("paket dan jumlah jamaah tidak boleh dikosongkan pada prospek berstatus Tertarik atau Closing")
@@ -79,48 +82,91 @@ func needsPipelineDetails(status string) bool {
 // fillPipelineDetails makes sure a prospect moving to 'tertarik' or 'closing' has a package and a jamaah
 // count, filling the missing ones from details. It writes them before the status changes.
 func (s *prospectService) fillPipelineDetails(ctx context.Context, tenantID uint64, prospect *repository.Prospect, status string, details []StatusDetails) error {
+	pkgID, jamaah, changed, err := s.resolvePipelineDetails(ctx, tenantID, prospect, status, details)
+	if err != nil || !changed {
+		return err
+	}
+	return s.writePipelineDetails(ctx, tenantID, prospect, pkgID, jamaah)
+}
+
+// resolvePipelineDetails validates the package and jamaah count a prospect would have after moving to
+// status (its own values, missing ones filled from details) without writing anything. changed reports
+// whether details filled something in.
+//
+// The package checked is the effective one, whether the prospect already had it or it comes with the
+// change (security audit 7 Oct 2026: a package set earlier, e.g. by the form or an agent's proof, skipped
+// the check). 'tertarik' needs a package still on sale (published, not departed). 'closing' needs a
+// published one; a departed package stays allowed, since a closing may be recorded after departure
+// (founder decisions 6 and 7 Oct 2026).
+func (s *prospectService) resolvePipelineDetails(ctx context.Context, tenantID uint64, prospect *repository.Prospect, status string, details []StatusDetails) (*uint64, *int, bool, error) {
 	if !needsPipelineDetails(status) {
-		return nil
+		return prospect.PackageID, prospect.JumlahJamaah, false, nil
 	}
 	var d StatusDetails
 	if len(details) > 0 {
 		d = details[0]
 	}
-	// Validate everything first, write once: a rejected change leaves the prospect untouched.
 	pkgID, jamaah := prospect.PackageID, prospect.JumlahJamaah
 	if pkgID == nil && d.PackageID != nil {
-		pkg, err := s.packageRepo.GetByID(ctx, tenantID, *d.PackageID)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return ErrPackageNotFound
-			}
-			return err
-		}
-		// Interest is in a package still on sale. A closing may be recorded after departure, so only
-		// 'tertarik' requires it (founder decision 6 Oct 2026).
-		if status == "tertarik" && (pkg.Status != "published" || PackageDeparted(pkg, time.Now())) {
-			return ErrPackageNotOnSale
-		}
 		id := *d.PackageID
 		pkgID = &id
 	}
 	if (jamaah == nil || *jamaah <= 0) && d.JumlahJamaah != nil {
 		if err := validateJumlahJamaah(d.JumlahJamaah); err != nil {
-			return err
+			return nil, nil, false, err
 		}
 		n := *d.JumlahJamaah
 		jamaah = &n
 	}
 	if pkgID == nil || jamaah == nil || *jamaah <= 0 {
-		return ErrPipelineDetailsRequired
+		return nil, nil, false, ErrPipelineDetailsRequired
 	}
-	if pkgID == prospect.PackageID && jamaah == prospect.JumlahJamaah {
-		return nil
+	if err := s.checkPipelinePackage(ctx, tenantID, *pkgID, status); err != nil {
+		return nil, nil, false, err
 	}
-	updated := *prospect
-	updated.PackageID, updated.JumlahJamaah = pkgID, jamaah
-	if err := s.prospectRepo.Update(ctx, tenantID, &updated); err != nil {
+	changed := pkgID != prospect.PackageID || jamaah != prospect.JumlahJamaah
+	return pkgID, jamaah, changed, nil
+}
+
+// checkPipelinePackage applies the package rule of a pipeline status (see resolvePipelineDetails).
+func (s *prospectService) checkPipelinePackage(ctx context.Context, tenantID, packageID uint64, status string) error {
+	pkg, err := s.packageRepo.GetByID(ctx, tenantID, packageID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrPackageNotFound
+		}
 		return err
+	}
+	switch status {
+	case "tertarik":
+		if pkg.Status != "published" || PackageDeparted(pkg, time.Now()) {
+			return ErrPackageNotOnSale
+		}
+	case "closing":
+		if pkg.Status != "published" {
+			return ErrPackageNotPublished
+		}
+	}
+	return nil
+}
+
+// pipelineDetailsWriter writes only the package and jamaah count of a prospect, so a status change does
+// not write back a stale copy of the other fields (an edit saved meanwhile would be lost).
+type pipelineDetailsWriter interface {
+	UpdatePipelineDetails(ctx context.Context, tenantID, id uint64, packageID uint64, jumlahJamaah int) error
+}
+
+func (s *prospectService) writePipelineDetails(ctx context.Context, tenantID uint64, prospect *repository.Prospect, pkgID *uint64, jamaah *int) error {
+	if w, ok := s.prospectRepo.(pipelineDetailsWriter); ok {
+		if err := w.UpdatePipelineDetails(ctx, tenantID, prospect.ID, *pkgID, *jamaah); err != nil {
+			return err
+		}
+	} else {
+		updated := *prospect
+		updated.PackageID, updated.JumlahJamaah = pkgID, jamaah
+		if err := s.prospectRepo.Update(ctx, tenantID, &updated); err != nil {
+			return err
+		}
 	}
 	prospect.PackageID, prospect.JumlahJamaah = pkgID, jamaah
 	return nil
@@ -1140,6 +1186,13 @@ func (s *prospectService) UpdateDetail(ctx context.Context, tenantID uint64, id 
 	}
 	if needsPipelineDetails(prospect.Status) && ((prospect.PackageID != nil && input.PackageID == nil) || (prospect.JumlahJamaah != nil && input.JumlahJamaah == nil)) {
 		return ErrPipelineDetailsClear
+	}
+	// A package changed on a Tertarik or Closing prospect follows the same rule as the status itself
+	// (on sale for Tertarik, published for Closing). An unchanged package is kept as it is.
+	if newPkg != nil && needsPipelineDetails(prospect.Status) && (prospect.PackageID == nil || *prospect.PackageID != newPkg.ID) {
+		if err := s.checkPipelinePackage(ctx, tenantID, newPkg.ID, prospect.Status); err != nil {
+			return err
+		}
 	}
 
 	// An unchanged planned month is kept even if it is in the past by now; the "upcoming month" rule
