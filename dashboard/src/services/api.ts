@@ -2388,6 +2388,11 @@ export interface SubscriptionPricingPlan {
   name: string;
   period_months: number;
   price: number;
+  /** Plan promo for a travel's first payment (founder decision 7 Oct 2026). */
+  promo_percent?: number | null;
+  promo_ends_at?: string | null;
+  promo_active?: boolean;
+  promo_price?: number | null;
 }
 
 export interface PaymentVerification {
@@ -2398,6 +2403,8 @@ export interface PaymentVerification {
   plan_name?: string;
   plan_period_months?: number;
   coupon_code: string | null;
+  /** Plan promo this invoice was billed with (percent off the normal price in amount), null = none. */
+  promo_percent?: number | null;
   amount: number;
   final_amount: number;
   unique_code?: number;

@@ -16,7 +16,7 @@ import {
 } from '../../../services/staffApi';
 import { usePrivateFileURL } from '../../../hooks/usePrivateFile';
 import { CustomDropdown } from '../shared/CustomDropdown';
-import { discountedPrice, planChangeCouponPercentage, planChangeTotal, proofAmountMismatch } from '../../../utils/billingMath';
+import { discountedPrice, planChangeCouponPercentage, planChangeTotal, promoCutOf, proofAmountMismatch } from '../../../utils/billingMath';
 import { couponExhausted, couponState, paymentStatusView } from '../shared/statusLabels';
 import { formatDateTimeWIB } from '../../../utils/datetime';
 
@@ -152,7 +152,9 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   // allowed: staff check the bank statement and decide (keputusan pendiri 6 Okt 2026).
   const proofMismatch = isPending && proofAmountMismatch(currentItem.proof_url, currentItem.proof_final_amount, currentItem.final_amount);
   const hasCoupon = !!(currentItem.coupon_code && currentItem.coupon_code.trim() !== '');
-  const discountAmount = hasCoupon ? Math.max(0, currentItem.amount - (currentItem.final_amount - (currentItem.unique_code || 0))) : 0;
+  // Plan promo of the invoice (founder decision 7 Oct 2026): off the normal price before the coupon.
+  const promoCut = promoCutOf(currentItem.amount, currentItem.promo_percent);
+  const discountAmount = hasCoupon ? Math.max(0, currentItem.amount - promoCut - (currentItem.final_amount - (currentItem.unique_code || 0))) : 0;
 
   // The invoice may have been processed by someone else: reload it so the modal shows the real status.
   const refreshAfterError = async () => {
@@ -286,7 +288,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
     ? staffCoupons.find((c) => c.code.toUpperCase() === currentItem.coupon_code!.trim().toUpperCase())
     : undefined;
   const couponPreview = hasCoupon
-    ? planChangeCouponPercentage(invoiceCoupon?.discount_percentage, affiliatorCouponDiscount, currentItem.amount, currentItem.final_amount, currentItem.unique_code)
+    ? planChangeCouponPercentage(invoiceCoupon?.discount_percentage, affiliatorCouponDiscount, currentItem.amount - promoCut, currentItem.final_amount, currentItem.unique_code)
     : null;
   const couponPercentage = couponPreview ? couponPreview.percentage : null;
   // Removing a coupon reprices the invoice at once; re-entering the same code is refused when the staff
@@ -294,7 +296,11 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
   const couponNotReapplicable = hasCoupon && (!invoiceCoupon || couponState(invoiceCoupon.status, invoiceCoupon.expires_at) !== 'active' || couponExhausted(invoiceCoupon.used_count, invoiceCoupon.max_uses));
   const badge = paymentStatusView(currentItem.status, currentItem.proof_url, payableAmount);
   const couponPlanMismatch = !!(targetPlan && invoiceCoupon?.plan_id && invoiceCoupon.plan_id !== targetPlan.id);
-  const previewTotal = targetPlan ? planChangeTotal(targetPlan.price, couponPercentage, currentItem.unique_code) : 0;
+  // A plan change gets the new plan's current promo only for a travel that has never paid (the server
+  // decides); the preview assumes the promo applies when the plan has one, and says it is an estimate.
+  const targetPromo = targetPlan?.promo_active && targetPlan.promo_price != null ? targetPlan : null;
+  const targetBase = targetPromo ? (targetPromo.promo_price as number) : targetPlan?.price ?? 0;
+  const previewTotal = targetPlan ? planChangeTotal(targetBase, couponPercentage, currentItem.unique_code) : 0;
 
   const labelStyle: React.CSSProperties = {
     fontSize: '13px',
@@ -425,6 +431,12 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   <span>Harga Paket</span>
                   <span>{formatIDR(currentItem.amount)}</span>
                 </div>
+                {promoCut > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--sa-green-text)', marginBottom: '4px' }}>
+                    <span>Promo {currentItem.promo_percent}% (travel baru)</span>
+                    <span>-{formatIDR(promoCut)}</span>
+                  </div>
+                )}
                 {hasCoupon && discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--sa-green-text)', marginBottom: '4px' }}>
                     <span>Diskon Kupon ({currentItem.coupon_code})</span>
@@ -508,10 +520,16 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
                     <span>Harga Paket Baru</span><span>{formatIDR(targetPlan.price)}</span>
                   </div>
+                  {targetPromo && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
+                      <span>Promo {targetPromo.promo_percent}% (bila travel belum pernah membayar)</span>
+                      <span>-{formatIDR(targetPlan.price - targetBase)}</span>
+                    </div>
+                  )}
                   {hasCoupon && couponPercentage !== null && couponPercentage > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: 'var(--sa-text-secondary)' }}>
                       <span>Kupon {currentItem.coupon_code} (tetap dipakai)</span>
-                      <span>-{formatIDR(targetPlan.price - discountedPrice(targetPlan.price, couponPercentage))}</span>
+                      <span>-{formatIDR(targetBase - discountedPrice(targetBase, couponPercentage))}</span>
                     </div>
                   )}
                   {hasCoupon && couponPreview?.estimated && (

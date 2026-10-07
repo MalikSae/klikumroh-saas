@@ -93,12 +93,27 @@ export const BillingSettings: React.FC = () => {
   }, []);
 
   const plan = plans.find((p) => p.id === planId) || null;
+  // Plan promo, same rule as the backend (service/plan_promo.go): the open invoice keeps its own promo on
+  // the same plan; otherwise only a travel that has never paid gets the plan's current promo.
+  // A subscription set by hand by staff counts as paid too (no approved invoice exists for it).
+  const firstPayment = !(sub?.payment_verifications ?? []).some((v) => v.status === 'approved') && !sub?.current_plan_id && !sub?.subscription_expires_at;
+  const promoOf = (p: SubscriptionPricingPlan): number | null => {
+    const open = sub?.pending_verification;
+    if (open && open.plan_id === p.id) return open.promo_percent || null; // "no promo" is kept too
+    return firstPayment && p.promo_active && p.promo_percent ? p.promo_percent : null;
+  };
+  const promoPriceOf = (p: SubscriptionPricingPlan): number => {
+    const pct = promoOf(p);
+    return pct ? Math.max(0, Math.round(p.price * (1 - pct / 100))) : p.price;
+  };
+  const payable = plan ? promoPriceOf(plan) : 0;
   const carriedCoupon = sub?.pending_verification?.coupon_code?.trim().toUpperCase() || '';
   const isCarriedCoupon = carriedCoupon !== '' && coupon.trim().toUpperCase() === carriedCoupon;
   const total = useMemo(() => {
     if (!plan) return 0;
-    return discount ? Math.max(0, Math.round(plan.price - (discount.pct / 100) * plan.price)) : plan.price;
-  }, [plan, discount]);
+    // The coupon comes off the promo price.
+    return discount ? Math.max(0, Math.round(payable - (discount.pct / 100) * payable)) : payable;
+  }, [plan, discount, payable]);
 
   /** Validates a coupon for a plan and updates the form. Returns the applied discount, or null when invalid. */
   const checkCoupon = async (code: string, pid: number | null) => {
@@ -259,8 +274,15 @@ export const BillingSettings: React.FC = () => {
                   <input type="radio" name="plan" checked={p.id === planId} onChange={() => choosePlan(p.id)} />
                   <span className="st-plan-opt__name">{p.name}</span>
                   {planTitle(p.name, p.period_months) !== p.name && <span className="st-plan-opt__period">{periodLabel(p.period_months)}</span>}
-                  <span className="st-plan-opt__price">{fmtRupiah(p.price)}</span>
-                  {p.period_months > 1 && <span className="st-plan-opt__month">{fmtRupiah(p.price / p.period_months)} per bulan</span>}
+                  <span className="st-plan-opt__price">
+                    {promoOf(p) ? <s className="st-plan-opt__old">{fmtRupiah(p.price)}</s> : null}
+                    {fmtRupiah(promoPriceOf(p))}
+                  </span>
+                  {promoOf(p) ? (
+                    <span className="st-plan-opt__month">Promo {promoOf(p)}% pembayaran pertama</span>
+                  ) : (
+                    p.period_months > 1 && <span className="st-plan-opt__month">{fmtRupiah(p.price / p.period_months)} per bulan</span>
+                  )}
                 </label>
               ))}
             </div>
@@ -297,10 +319,16 @@ export const BillingSettings: React.FC = () => {
                   <dt>{planTitle(plan.name, plan.period_months)}</dt>
                   <dd>{fmtRupiah(plan.price)}</dd>
                 </div>
+                {payable < plan.price && (
+                  <div>
+                    <dt>Promo {promoOf(plan)}%</dt>
+                    <dd>−{fmtRupiah(plan.price - payable)}</dd>
+                  </div>
+                )}
                 {discount && (
                   <div>
                     <dt>Kupon {discount.code}</dt>
-                    <dd>−{fmtRupiah(plan.price - total)}</dd>
+                    <dd>−{fmtRupiah(payable - total)}</dd>
                   </div>
                 )}
                 <div className="st-total__sum">

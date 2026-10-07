@@ -41,6 +41,8 @@
 .st-plan-opt__name { font-weight: var(--ku-weight-semibold); }
 .st-plan-opt__period { color: var(--ku-ink-3); font-size: var(--ku-text-md); }
 .st-plan-opt__price { margin-top: var(--ku-space-2); font: var(--ku-weight-bold) var(--ku-text-lg) var(--ku-font-head); }
+/* Normal price struck through before the promo price (plan promo, 7 Oct 2026). */
+.st-plan-opt__old { margin-right: var(--ku-space-2); color: var(--ku-ink-4); font-weight: var(--ku-weight-regular); }
 .st-plan-opt__month { color: var(--ku-ink-3); font-size: var(--ku-text-sm); }
 .st-checkout { display: flex; flex-direction: column; gap: var(--ku-space-3); max-width: 440px; }
 .st-checkout__actions { display: flex; }

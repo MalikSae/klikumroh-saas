@@ -157,6 +157,8 @@ export const InvoiceScreen: React.FC = () => {
   const bank = platform && hasPlatformBankDetails(platform) ? platform : null;
   const planText = planTitle(pv.plan_name, pv.plan_period_months);
   const amountText = Math.round(pv.final_amount).toString();
+  // Plan promo the invoice was billed with: off the normal price (amount) before the coupon (backend rounding).
+  const promoCut = pv.promo_percent ? pv.amount - Math.max(0, Math.round(pv.amount * (1 - pv.promo_percent / 100))) : 0;
   // Proof sent and waiting for review: the payment block shows that state instead of asking to upload again.
   const sent = pv.status === 'pending' && !!pv.proof_url;
 
@@ -228,7 +230,8 @@ export const InvoiceScreen: React.FC = () => {
           <strong>{fmtRupiah(pv.amount)}</strong>
         </div>
         <dl className="st-invoice__totals">
-          {pv.coupon_code && <div><dt>Diskon kupon {pv.coupon_code}</dt><dd>−{fmtRupiah(Math.max(0, pv.amount - (pv.final_amount - (pv.unique_code ?? 0))))}</dd></div>}
+          {promoCut > 0 && <div><dt>Promo {pv.promo_percent}%</dt><dd>−{fmtRupiah(promoCut)}</dd></div>}
+          {pv.coupon_code && <div><dt>Diskon kupon {pv.coupon_code}</dt><dd>−{fmtRupiah(Math.max(0, pv.amount - promoCut - (pv.final_amount - (pv.unique_code ?? 0))))}</dd></div>}
           {(pv.unique_code ?? 0) > 0 && <div><dt>Kode unik</dt><dd>{fmtRupiah(pv.unique_code ?? 0)}</dd></div>}
           <div className="st-invoice__total"><dt>{needsTransfer ? 'Total transfer' : 'Total tagihan'}</dt><dd>{needsTransfer ? <CopyValue value={amountText} label="jumlah transfer">{fmtRupiah(pv.final_amount)}</CopyValue> : fmtRupiah(pv.final_amount)}</dd></div>
         </dl>

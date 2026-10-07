@@ -7,10 +7,14 @@ import {
   createPricingPlan,
   updatePricingPlan,
   deletePricingPlan,
+  setPricingPlanPromo,
   type PricingPlan,
   type PricingPlanInput,
 } from '../../../services/staffApi';
 import { Tooltip } from '../shared/Tooltip';
+
+/** Today's date in WIB as YYYY-MM-DD (promo end dates are WIB calendar days). */
+const todayWIB = (): string => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 
 export const AdminPlansView: React.FC = () => {
   const [plans, setPlans] = useState<PricingPlan[]>([]);
@@ -28,6 +32,10 @@ export const AdminPlansView: React.FC = () => {
     is_public: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  // Promo for new travels' first payment (founder decision 7 Oct 2026): percent as typed (empty = none) and
+  // an optional last day (YYYY-MM-DD).
+  const [promoPercent, setPromoPercent] = useState('');
+  const [promoEndsAt, setPromoEndsAt] = useState('');
 
   const loadData = async () => {
     try {
@@ -54,9 +62,14 @@ export const AdminPlansView: React.FC = () => {
     }).format(val);
   };
 
+  // "2026-12-31" -> "31 Des 2026"
+  const formatDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
   const handleOpenCreate = () => {
     setEditingPlan(null);
     setFormData({ name: '', period_months: 1, price: 0, is_public: true });
+    setPromoPercent('');
+    setPromoEndsAt('');
     setShowModal(true);
   };
 
@@ -68,6 +81,8 @@ export const AdminPlansView: React.FC = () => {
       price: plan.price,
       is_public: plan.is_public !== false,
     });
+    setPromoPercent(plan.promo_percent ? String(plan.promo_percent) : '');
+    setPromoEndsAt(plan.promo_ends_at || '');
     setShowModal(true);
   };
 
@@ -93,15 +108,34 @@ export const AdminPlansView: React.FC = () => {
       return;
     }
 
+    const promo = promoPercent.trim() === '' ? null : Number(promoPercent.replace(',', '.'));
+    if (promo !== null && (!Number.isFinite(promo) || promo < 1 || promo > 99)) {
+      alert('Promo harus 1 sampai 99 persen, atau kosongkan untuk tanpa promo.');
+      return;
+    }
+
+    const endsAt = promo ? promoEndsAt || null : null;
+    const promoChanged = (editingPlan?.promo_percent ?? null) !== promo || (editingPlan?.promo_ends_at ?? null) !== endsAt;
+    // Checked before anything is saved: a refused promo after the plan was created left the modal in
+    // create mode, so saving again made a second plan (audit 7 Oct 2026).
+    if (promoChanged && endsAt && endsAt < todayWIB()) {
+      alert('Tanggal berakhir promo sudah lewat.');
+      return;
+    }
+
     try {
       setSubmitting(true);
+      let saved: PricingPlan;
       if (editingPlan) {
-        await updatePricingPlan(editingPlan.id, formData);
-        setSuccessMessage('Paket langganan berhasil diperbarui');
+        saved = await updatePricingPlan(editingPlan.id, formData);
       } else {
-        await createPricingPlan(formData);
-        setSuccessMessage('Paket langganan baru berhasil ditambahkan');
+        saved = await createPricingPlan(formData);
+        setEditingPlan(saved); // a retry after a failed promo save edits this plan instead of creating another
       }
+      if (promoChanged) {
+        await setPricingPlanPromo(saved.id, promo, endsAt);
+      }
+      setSuccessMessage(editingPlan ? 'Paket langganan berhasil diperbarui' : 'Paket langganan baru berhasil ditambahkan');
       setShowModal(false);
       loadData();
     } catch (err: any) {
@@ -145,9 +179,17 @@ export const AdminPlansView: React.FC = () => {
       key: 'price',
       label: 'Harga Paket',
       render: (row) => (
-        <strong style={{ fontFamily: 'var(--sa-font-display)', color: 'var(--sa-text)' }}>
-          {formatIDR(row.price)}
-        </strong>
+        <span className="sa-plan-price">
+          <strong style={{ fontFamily: 'var(--sa-font-display)', color: 'var(--sa-text)' }}>
+            {formatIDR(row.price)}
+          </strong>
+          {row.promo_percent ? (
+            <span className={row.promo_active ? 'sa-badge sa-badge--active' : 'sa-badge sa-badge--neutral'}>
+              {row.promo_active ? `Promo ${row.promo_percent}% ${formatIDR(row.promo_price ?? row.price)}` : `Promo ${row.promo_percent}% berakhir`}
+              {row.promo_ends_at ? ` s/d ${formatDay(row.promo_ends_at)}` : ''}
+            </span>
+          ) : null}
+        </span>
       ),
     },
     {
@@ -361,6 +403,39 @@ export const AdminPlansView: React.FC = () => {
                     boxSizing: 'border-box',
                   }}
                 />
+              </div>
+
+              <div className="sa-promo">
+                <div className="sa-promo__head">
+                  <span className="sa-promo__title">Promo travel baru</span>
+                  <Tooltip
+                    align="left"
+                    content="Potongan harga untuk pembayaran pertama travel baru. Perpanjangan tetap harga normal. Kupon (termasuk kupon affiliator) dihitung dari harga setelah promo. Tagihan yang sudah dibuat tetap memakai promo saat tagihan dibuat. Kosongkan persen untuk mematikan promo."
+                  />
+                </div>
+                <div className="sa-promo__row">
+                  <label className="sa-promo__field">
+                    <span>Potongan (%)</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={99}
+                      placeholder="Tanpa promo"
+                      value={promoPercent}
+                      onChange={(e) => setPromoPercent(e.target.value)}
+                    />
+                  </label>
+                  <label className="sa-promo__field">
+                    <span>Berakhir (opsional)</span>
+                    <input type="date" min={todayWIB()} value={promoEndsAt} disabled={!promoPercent.trim()} onChange={(e) => setPromoEndsAt(e.target.value)} />
+                  </label>
+                </div>
+                {Number(promoPercent) > 0 && Number(promoPercent) < 100 && formData.price > 0 && (
+                  <p className="sa-promo__note">
+                    Travel baru membayar {formatIDR(Math.round(formData.price * (1 - Number(promoPercent) / 100)))}
+                    {promoEndsAt ? ` sampai ${formatDay(promoEndsAt)}` : ', tanpa batas waktu'}.
+                  </p>
+                )}
               </div>
 
               <div className="sa-check">

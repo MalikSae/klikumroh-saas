@@ -40,6 +40,13 @@ export interface PricingPlan {
   price: number;
   /** Shown to travels on the Langganan page. Missing on an older server: treated as public. */
   is_public?: boolean;
+  /** Promo for a new travel's first payment (percent off), null = none. */
+  promo_percent?: number | null;
+  /** Last day of the promo (YYYY-MM-DD, inclusive), null = no end date. */
+  promo_ends_at?: string | null;
+  /** Promo in force right now, and the price after it. */
+  promo_active?: boolean;
+  promo_price?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -232,6 +239,28 @@ export const updatePricingPlan = async (id: number, input: PricingPlanInput): Pr
   return json.plan;
 };
 
+/** Sets (or clears with percent null) the promo of a plan for new travels' first payment. */
+export const setPricingPlanPromo = async (id: number, percent: number | null, endsAt: string | null): Promise<PricingPlan> => {
+  const res = await fetch(`${API_BASE}/api/staff/pricing-plans/${id}/promo`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getStaffAuthHeader(),
+    },
+    body: JSON.stringify({ promo_percent: percent, promo_ends_at: endsAt }),
+  });
+
+  const json = await readStaffJson(res);
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearStaffAuthSession();
+    }
+    throw new Error(json.error || 'Gagal menyimpan promo');
+  }
+
+  return json.plan;
+};
+
 export const deletePricingPlan = async (id: number): Promise<void> => {
   const res = await fetch(`${API_BASE}/api/staff/pricing-plans/${id}`, {
     method: 'DELETE',
@@ -282,6 +311,8 @@ export interface PaymentVerificationItem {
   plan_name?: string;
   plan_period_months?: number;
   coupon_code: string | null;
+  /** Plan promo the invoice was billed with (percent off amount, before the coupon), null = none. */
+  promo_percent?: number | null;
   amount: number;
   final_amount: number;
   unique_code?: number;

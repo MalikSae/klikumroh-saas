@@ -24,6 +24,15 @@ export const discountedPrice = (price: number, discountPercentage: number | null
 };
 
 /**
+ * Amount a plan promo takes off an invoice: amount is the plan's normal price, the promo (percent, the
+ * invoice's snapshot) comes off first, rounded like the backend (repository.PromoPrice). 0 without a promo.
+ */
+export const promoCutOf = (amount: number, promoPercent: number | null | undefined): number => {
+  if (promoPercent == null || promoPercent <= 0) return 0;
+  return amount - Math.max(0, Math.round(amount * (1 - promoPercent / 100)));
+};
+
+/**
  * Coupon percentage implied by an invoice: amount is the plan price, final_amount = discounted + unique code.
  * Used when the coupon itself is not visible to the viewer (affiliator coupons are not in the staff list).
  */

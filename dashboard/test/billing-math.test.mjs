@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { addMonthsClampedWIB, discountedPrice, impliedDiscountPercentage, planChangeTotal, proofAmountMismatch } from '../src/utils/billingMath.ts';
+import { addMonthsClampedWIB, discountedPrice, impliedDiscountPercentage, planChangeTotal, promoCutOf, proofAmountMismatch } from '../src/utils/billingMath.ts';
 import { resetPasswordProblem } from '../src/utils/password.ts';
 import { fitsUploadLimit, multipartOverhead } from '../src/utils/uploadLimit.ts';
 
@@ -76,3 +76,10 @@ assert.strictEqual(proofAmountMismatch('p', undefined, 2_500_123), false);
 assert.strictEqual(proofAmountMismatch('p', 1_500_123, 0), true);
 
 console.log('billing-math: all assertions passed');
+
+// Plan promo (7 Oct 2026): off the normal price first, then the coupon from the promo price.
+assert.strictEqual(promoCutOf(4800000, 50), 2400000);
+assert.strictEqual(promoCutOf(4800000, null), 0);
+assert.strictEqual(discountedPrice(4800000 - promoCutOf(4800000, 50), 20), 1920000);
+assert.strictEqual(promoCutOf(1500001, 33), 1500001 - Math.round(1500001 * 0.67));
+console.log('plan promo math ok');
