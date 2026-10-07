@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -150,6 +151,54 @@ func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"plan": plan,
 	})
+}
+
+type setPlanPromoRequest struct {
+	// PromoPercent null or 0 clears the promo.
+	PromoPercent *float64 `json:"promo_percent"`
+	// PromoEndsAt "YYYY-MM-DD" (last day, inclusive, WIB); null or "" = no end date.
+	PromoEndsAt *string `json:"promo_ends_at"`
+}
+
+// SetPromo handles PUT /api/staff/pricing-plans/{id}/promo: the promo for new travels' first payment
+// (founder decision 7 Oct 2026).
+func (h *PricingPlanHandler) SetPromo(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.GetStaffUserID(r.Context()); !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+		return
+	}
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ID plan tidak valid"})
+		return
+	}
+	var req setPlanPromoRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Format request tidak valid"})
+		return
+	}
+	var endsAt *time.Time
+	if req.PromoEndsAt != nil && strings.TrimSpace(*req.PromoEndsAt) != "" {
+		t, err := time.Parse("2006-01-02", strings.TrimSpace(*req.PromoEndsAt))
+		if err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Tanggal berakhir promo tidak valid"})
+			return
+		}
+		endsAt = &t
+	}
+	plan, err := h.service.SetPromo(r.Context(), id, req.PromoPercent, endsAt)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidPlanPromo), errors.Is(err, service.ErrPlanPromoEnded):
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		case errors.Is(err, repository.ErrNotFound):
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "Plan harga tidak ditemukan"})
+		default:
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal menyimpan promo"})
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]interface{}{"plan": plan})
 }
 
 // Delete handles DELETE /api/staff/pricing-plans/{id}.

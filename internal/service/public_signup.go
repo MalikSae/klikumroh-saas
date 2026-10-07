@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -432,7 +433,9 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 	}
 
 	var couponCodePtr *string
-	baseAmount := plan.Price
+	// A new travel's first payment: the plan promo applies, then the coupon on the promo price.
+	promo := promoForInvoice(plan, true, nil, time.Now())
+	baseAmount := promoBilled(plan.Price, promo)
 	discountedAmount := baseAmount
 	trimmedCoupon := strings.ToUpper(strings.TrimSpace(req.CouponCode))
 	if trimmedCoupon != "" {
@@ -536,14 +539,15 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 
 	// Buat payment_verifications dengan status 'pending'
 	pv := &repository.PaymentVerification{
-		TenantID:    tenant.ID,
-		PlanID:      plan.ID,
-		CouponCode:  couponCodePtr,
-		Amount:      plan.Price,
-		FinalAmount: finalAmount,
-		UniqueCode:  uniqueCode,
-		Status:      "pending",
-		ProofURL:    nil,
+		TenantID:     tenant.ID,
+		PlanID:       plan.ID,
+		CouponCode:   couponCodePtr,
+		PromoPercent: promo,
+		Amount:       plan.Price,
+		FinalAmount:  finalAmount,
+		UniqueCode:   uniqueCode,
+		Status:       "pending",
+		ProofURL:     nil,
 	}
 	if err := s.pvRepo.Create(ctx, pv); err != nil {
 		rollback()

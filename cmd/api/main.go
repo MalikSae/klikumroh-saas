@@ -318,6 +318,7 @@ func main() {
 		staffProtected.Get("/api/staff/pricing-plans", pricingPlanHandler.List)
 		staffProtected.Post("/api/staff/pricing-plans", pricingPlanHandler.Create)
 		staffProtected.Put("/api/staff/pricing-plans/{id}", pricingPlanHandler.Update)
+		staffProtected.Put("/api/staff/pricing-plans/{id}/promo", pricingPlanHandler.SetPromo)
 		staffProtected.Delete("/api/staff/pricing-plans/{id}", pricingPlanHandler.Delete)
 
 		// Staff Coupons

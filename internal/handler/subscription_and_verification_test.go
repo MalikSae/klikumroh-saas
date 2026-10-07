@@ -234,19 +234,19 @@ func (m *mockPVRepo) TransitionStatus(ctx context.Context, id uint64, fromStatus
 	return nil
 }
 
-func (m *mockPVRepo) ReplaceDetails(ctx context.Context, tenantID uint64, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+func (m *mockPVRepo) ReplaceDetails(ctx context.Context, tenantID uint64, id uint64, planID uint64, couponCode *string, promoPercent *float64, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
 	pv, ok := m.verifications[id]
 	if !ok {
 		return repository.ErrNotFound
 	}
-	if err := m.UpdateDetails(ctx, id, planID, couponCode, amount, finalAmount, uniqueCode, proofURL); err != nil {
+	if err := m.UpdateDetails(ctx, id, planID, couponCode, promoPercent, amount, finalAmount, uniqueCode, proofURL); err != nil {
 		return err
 	}
 	pv.ProofURL = proofURL
 	return nil
 }
 
-func (m *mockPVRepo) UpdateDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
+func (m *mockPVRepo) UpdateDetails(ctx context.Context, id uint64, planID uint64, couponCode *string, promoPercent *float64, amount float64, finalAmount float64, uniqueCode int, proofURL *string) error {
 	pv, ok := m.verifications[id]
 	if !ok {
 		return repository.ErrNotFound
@@ -256,6 +256,7 @@ func (m *mockPVRepo) UpdateDetails(ctx context.Context, id uint64, planID uint64
 	}
 	pv.PlanID = planID
 	pv.CouponCode = couponCode
+	pv.PromoPercent = promoPercent
 	pv.Amount = amount
 	pv.FinalAmount = finalAmount
 	pv.UniqueCode = uniqueCode
@@ -1553,4 +1554,3 @@ func TestUpdateVerificationPlan_StaffUpsell(t *testing.T) {
 		t.Errorf("expected status 400 when changing plan of approved pv, got %d", failW.Code)
 	}
 }
-

@@ -42,7 +42,7 @@ func TestPaymentVerification_TravelWritesAreTenantScoped(t *testing.T) {
 	if err := pvRepo.ResetToPendingWithProof(ctx, b.ID, pv.ID, proof); !errors.Is(err, repository.ErrNotFound) {
 		t.Fatalf("ResetToPendingWithProof from tenant B: expected ErrNotFound, got %v", err)
 	}
-	if err := pvRepo.ReplaceDetails(ctx, b.ID, pv.ID, plan.ID, nil, 1, 1, 1, &proof); err == nil {
+	if err := pvRepo.ReplaceDetails(ctx, b.ID, pv.ID, plan.ID, nil, nil, 1, 1, 1, &proof); err == nil {
 		t.Fatal("ReplaceDetails from tenant B must fail")
 	}
 	got, err := pvRepo.GetByID(ctx, pv.ID)

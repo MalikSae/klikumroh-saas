@@ -316,10 +316,20 @@ func (s *subscriptionService) CreateRenewalRequest(
 		}
 	}
 
+	// Plan promo: only while the travel has no approved payment yet (a pending signup that changes plan);
+	// an open invoice on the same plan keeps the promo it was billed with.
+	first, err := s.firstPaymentOf(ctx, tenantID, existingHistory)
+	if err != nil {
+		return nil, err
+	}
+	promo := promoForInvoice(plan, first, pending, time.Now())
+	billed := promoBilled(baseAmount, promo)
+	discountedAmount = billed
+
 	var validCouponCode *string
 	if coupon != nil {
-		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
-		discountedAmount = math.Round(baseAmount - discount)
+		discount := (coupon.DiscountPercentage / 100.0) * billed
+		discountedAmount = math.Round(billed - discount)
 		if discountedAmount < 0 {
 			discountedAmount = 0
 		}
@@ -343,7 +353,7 @@ func (s *subscriptionService) CreateRenewalRequest(
 
 		// Same plan, price, and coupon: the billed amount is unchanged, so keep the unique code
 		// and any proof already uploaded. Only attach a new proof if this request carries one.
-		if existing.PlanID == planID && existing.Amount == baseAmount && sameCouponCode(existing.CouponCode, validCouponCode) {
+		if existing.PlanID == planID && existing.Amount == baseAmount && sameCouponCode(existing.CouponCode, validCouponCode) && samePromo(existing.PromoPercent, promo) {
 			if proofURL != nil {
 				if err := s.pvRepo.UpdateProofURL(ctx, tenantID, existing.ID, *proofURL); err != nil {
 					if errors.Is(err, repository.ErrStatusConflict) {
@@ -362,11 +372,12 @@ func (s *subscriptionService) CreateRenewalRequest(
 		// The billed amount changes: an old transfer proof no longer matches this invoice and must be
 		// cleared, otherwise a proof for a cheaper plan could be approved against a pricier one.
 		// Only a proof uploaded in this same request (for the new amount) is kept.
-		if err := s.pvRepo.ReplaceDetails(ctx, tenantID, existing.ID, planID, validCouponCode, baseAmount, finalAmount, uniqueCode, proofURL); err != nil {
+		if err := s.pvRepo.ReplaceDetails(ctx, tenantID, existing.ID, planID, validCouponCode, promo, baseAmount, finalAmount, uniqueCode, proofURL); err != nil {
 			return nil, mapVerificationConflict(err)
 		}
 		existing.PlanID = planID
 		existing.CouponCode = validCouponCode
+		existing.PromoPercent = promo
 		existing.Amount = baseAmount
 		existing.FinalAmount = finalAmount
 		existing.UniqueCode = uniqueCode
@@ -384,13 +395,14 @@ func (s *subscriptionService) CreateRenewalRequest(
 
 	pv := &repository.PaymentVerification{
 		TenantID:    tenantID,
-		PlanID:      planID,
-		CouponCode:  validCouponCode,
-		Amount:      baseAmount,
-		FinalAmount: finalAmount,
-		UniqueCode:  uniqueCode,
-		ProofURL:    proofURL,
-		Status:      "pending",
+		PlanID:       planID,
+		CouponCode:   validCouponCode,
+		PromoPercent: promo,
+		Amount:       baseAmount,
+		FinalAmount:  finalAmount,
+		UniqueCode:   uniqueCode,
+		ProofURL:     proofURL,
+		Status:       "pending",
 	}
 
 	if err := s.pvRepo.Create(ctx, pv); err != nil {
@@ -629,15 +641,17 @@ func (s *subscriptionService) rejectedInvoiceStillValid(ctx context.Context, pv 
 			}
 			return err
 		}
-		// The discount must be the coupon's current one: the invoice amount is not repriced on reopen.
-		expected := math.Round(plan.Price - (coupon.DiscountPercentage/100.0)*plan.Price)
+		// The discount must be the coupon's current one: the invoice amount is not repriced on reopen. It is
+		// taken from the promo price the invoice was billed with.
+		billed := promoBilled(plan.Price, pv.PromoPercent)
+		expected := math.Round(billed - (coupon.DiscountPercentage/100.0)*billed)
 		if expected < 0 {
 			expected = 0
 		}
 		if math.Round((pv.FinalAmount-float64(pv.UniqueCode))*100) != math.Round(expected*100) {
 			return ErrInvoiceNoLongerValid
 		}
-	} else if math.Round((pv.FinalAmount-float64(pv.UniqueCode))*100) != math.Round(plan.Price*100) {
+	} else if math.Round((pv.FinalAmount-float64(pv.UniqueCode))*100) != math.Round(promoBilled(plan.Price, pv.PromoPercent)*100) {
 		return ErrInvoiceNoLongerValid
 	}
 
@@ -990,10 +1004,9 @@ func (s *subscriptionService) affiliatorCouponAllowed(ctx context.Context, tenan
 	if coupon.AffiliatorID == nil {
 		return true, nil
 	}
-	for i := range history {
-		if history[i].Status == "approved" {
-			return false, nil
-		}
+	// First payment: no approved invoice and no subscription set by hand by staff.
+	if first, err := s.firstPaymentOf(ctx, tenantID, history); err != nil || !first {
+		return false, err
 	}
 	if s.affiliators == nil {
 		return false, nil
@@ -1061,7 +1074,19 @@ func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verifi
 	}
 
 	baseAmount := newPlan.Price
-	discountedAmount := baseAmount
+	// Plan promo: kept when the plan stays, otherwise the new plan's current promo for a travel's first
+	// payment (same rule as the travel's own plan change).
+	history, err := s.pvRepo.ListByTenant(ctx, pv.TenantID)
+	if err != nil {
+		return nil, err
+	}
+	first, err := s.firstPaymentOf(ctx, pv.TenantID, history)
+	if err != nil {
+		return nil, err
+	}
+	promo := promoForInvoice(newPlan, first, pv, time.Now())
+	billed := promoBilled(baseAmount, promo)
+	discountedAmount := billed
 
 	// Keep the coupon already on the invoice under the same rule as approval (couponHonoredAtApproval:
 	// expiry judged against the invoice date, a replaced affiliator code still honored), plus the new
@@ -1082,8 +1107,8 @@ func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verifi
 		if err := s.couponHonoredAtApproval(ctx, pv, coupon); err != nil {
 			return nil, err
 		}
-		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
-		discountedAmount = math.Round(baseAmount - discount)
+		discount := (coupon.DiscountPercentage / 100.0) * billed
+		discountedAmount = math.Round(billed - discount)
 		if discountedAmount < 0 {
 			discountedAmount = 0
 		}
@@ -1100,7 +1125,7 @@ func (s *subscriptionService) UpdateVerificationPlan(ctx context.Context, verifi
 		finalAmount = 0
 	}
 
-	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, newPlan.ID, validCouponCode, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
+	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, newPlan.ID, validCouponCode, promo, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
 		return nil, mapVerificationConflict(err)
 	}
 
@@ -1129,7 +1154,9 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 	}
 
 	baseAmount := plan.Price
-	discountedAmount := baseAmount
+	// The invoice keeps its plan promo; the coupon comes off the promo price.
+	billed := promoBilled(baseAmount, pv.PromoPercent)
+	discountedAmount := billed
 	var validCouponCode *string
 
 	// Apply coupon if provided
@@ -1162,15 +1189,15 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 		if err := s.couponUsedByTenant(ctx, pv.TenantID, coupon, history, pv.ID, true); err != nil {
 			return nil, err
 		}
-		discount := (coupon.DiscountPercentage / 100.0) * baseAmount
-		discountedAmount = math.Round(baseAmount - discount)
+		discount := (coupon.DiscountPercentage / 100.0) * billed
+		discountedAmount = math.Round(billed - discount)
 		if discountedAmount < 0 {
 			discountedAmount = 0
 		}
 		code := strings.TrimSpace(*couponCode)
 		validCouponCode = &code
 	}
-	// couponCode == nil means remove coupon (use full price)
+	// couponCode == nil means remove coupon (the price after the invoice's promo)
 
 	uniqueCode := pv.UniqueCode
 	finalAmount := discountedAmount
@@ -1182,7 +1209,7 @@ func (s *subscriptionService) UpdateVerificationCoupon(ctx context.Context, veri
 		finalAmount = 0
 	}
 
-	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, pv.PlanID, validCouponCode, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
+	if err := s.pvRepo.UpdateDetails(ctx, pv.ID, pv.PlanID, validCouponCode, pv.PromoPercent, baseAmount, finalAmount, uniqueCode, pv.ProofURL); err != nil {
 		return nil, mapVerificationConflict(err)
 	}
 
@@ -1244,10 +1271,8 @@ func (s *subscriptionService) affiliatorCouponCarryAllowed(ctx context.Context, 
 	if coupon.AffiliatorID == nil {
 		return true, nil
 	}
-	for i := range history {
-		if history[i].Status == "approved" {
-			return false, nil
-		}
+	if first, err := s.firstPaymentOf(ctx, tenantID, history); err != nil || !first {
+		return false, err
 	}
 	if s.affiliators == nil {
 		return false, nil

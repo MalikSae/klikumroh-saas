@@ -71,7 +71,7 @@ func TestPaymentVerification_TransitionStatusIsAtomic(t *testing.T) {
 	})
 
 	t.Run("pending-only detail update cannot revert an approved invoice", func(t *testing.T) {
-		err := pvRepo.UpdateDetails(ctx, pv.ID, plan.ID, nil, 1500000, 1500999, 999, nil)
+		err := pvRepo.UpdateDetails(ctx, pv.ID, plan.ID, nil, nil, 1500000, 1500999, 999, nil)
 		if !errors.Is(err, repository.ErrStatusConflict) {
 			t.Fatalf("expected ErrStatusConflict, got %v", err)
 		}

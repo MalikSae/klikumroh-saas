@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"math"
 	"strings"
+	"time"
 
 	"klikumroh/internal/repository"
 )
@@ -15,7 +17,12 @@ var (
 	// ErrPlanPeriodLocked: the period of a plan cannot change while invoices for it wait for approval
 	// (approval reads the period from the plan, so the change would alter what those invoices deliver).
 	ErrPlanPeriodLocked = errors.New("durasi paket tidak bisa diubah karena masih ada tagihan paket ini yang menunggu verifikasi; setujui atau tolak tagihan tersebut dulu, atau buat paket baru")
+	ErrInvalidPlanPromo = errors.New("promo harus 1 sampai 99 persen")
+	ErrPlanPromoEnded   = errors.New("tanggal berakhir promo sudah lewat")
 )
+
+// wibLocation: promo end dates are calendar days in Indonesia (WIB).
+var wibLocation = time.FixedZone("WIB", 7*3600)
 
 // PricingPlanService defines business logic for managing subscription plans.
 type PricingPlanService interface {
@@ -28,6 +35,7 @@ type PricingPlanService interface {
 	// Update changes a plan; isPublic nil keeps the current visibility.
 	Update(ctx context.Context, id uint64, name string, periodMonths int, price float64, isPublic *bool) (*repository.PricingPlan, error)
 	Delete(ctx context.Context, id uint64) error
+	SetPromo(ctx context.Context, id uint64, percent *float64, endsAt *time.Time) (*repository.PricingPlan, error)
 }
 
 // pendingInvoiceLister is the part of the payment verification repository the plan service needs.
@@ -125,12 +133,58 @@ func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string,
 		PeriodMonths: periodMonths,
 		Price:        price,
 		Hidden:       hidden,
+		// The promo is set separately (SetPromo) and kept here.
+		PromoPercent: current.PromoPercent,
+		PromoEndsAt:  current.PromoEndsAt,
 	}
 
 	if err := s.repo.Update(ctx, plan); err != nil {
 		return nil, err
 	}
 
+	return s.repo.GetByID(ctx, id)
+}
+
+type planPromoWriter interface {
+	UpdatePromo(ctx context.Context, id uint64, percent *float64, endsAt *time.Time) error
+}
+
+// SetPromo sets or clears (percent nil or 0) a plan's promo for new travels' first payment, optionally
+// until endsAt (the last day, inclusive, WIB; nil = no end date). Open invoices keep the promo they were
+// billed with.
+func (s *pricingPlanService) SetPromo(ctx context.Context, id uint64, percent *float64, endsAt *time.Time) (*repository.PricingPlan, error) {
+	if percent != nil && *percent == 0 {
+		percent = nil
+	}
+	if percent != nil && (math.IsNaN(*percent) || *percent < 1 || *percent > 99) {
+		return nil, ErrInvalidPlanPromo
+	}
+	if percent == nil {
+		endsAt = nil // an end date means nothing without a promo
+	}
+	if endsAt != nil {
+		today := time.Now().In(wibLocation)
+		y, m, d := today.Date()
+		if endsAt.Before(time.Date(y, m, d, 0, 0, 0, 0, time.UTC)) {
+			return nil, ErrPlanPromoEnded
+		}
+	}
+	// Only the promo columns, keeping updated_at (a promo change must not invalidate rejected invoices of
+	// this plan, see UpdatePromo).
+	if w, ok := s.repo.(planPromoWriter); ok {
+		if err := w.UpdatePromo(ctx, id, percent, endsAt); err != nil {
+			return nil, err
+		}
+		return s.repo.GetByID(ctx, id)
+	}
+	plan, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	plan.PromoPercent, plan.PromoEndsAt = percent, endsAt
+	if err := s.repo.Update(ctx, plan); err != nil {
+		return nil, err
+	}
 	return s.repo.GetByID(ctx, id)
 }
 
