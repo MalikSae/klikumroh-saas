@@ -55,6 +55,41 @@ var slugMisleading = map[string]bool{
 	"verified": true, "terverifikasi": true, "asli": true, "pusat": true,
 }
 
+// slugMisleadingPart are refused as any hyphen-separated part too ("kemenag-resmi", "resmi-umroh"):
+// words that only an official body would use. "official", "asli" and "pusat" stay whole-subdomain only,
+// since they appear in real travel names ("official-tours" is allowed, see TestSlugProblem) (security
+// audit 7 Oct 2026).
+var slugMisleadingPart = map[string]bool{
+	"resmi": true, "kemenag": true, "siskopatuh": true, "pemerintah": true, "verified": true, "terverifikasi": true,
+}
+
+// looksLikePlatformName catches look-alikes of "klikumroh" that a plain substring test misses: hyphens
+// anywhere ("kli-kumroh"), digits for letters ("klikumr0h", "kl1kumroh") and doubled letters
+// ("klikkumroh"). Security audit 7 Oct 2026: such a subdomain reads as KlikUmroh's own site.
+func looksLikePlatformName(slug string) bool {
+	base := strings.NewReplacer("-", "", "0", "o", "3", "e", "4", "a", "5", "s", "7", "t", "8", "b").Replace(slug)
+	for _, one := range []string{"i", "l"} { // "1" stands for either
+		if strings.Contains(collapseRepeats(strings.ReplaceAll(base, "1", one)), "klikumroh") {
+			return true
+		}
+	}
+	return false
+}
+
+// collapseRepeats turns runs of the same letter into one ("klikkumroh" -> "klikumroh").
+func collapseRepeats(s string) string {
+	var b strings.Builder
+	var prev rune
+	for i, r := range s {
+		if i > 0 && r == prev {
+			continue
+		}
+		b.WriteRune(r)
+		prev = r
+	}
+	return b.String()
+}
+
 // slugGeneric are refused as the whole subdomain: industry words no single travel should own.
 var slugGeneric = map[string]bool{
 	"umroh": true, "umrah": true, "haji": true, "hajj": true, "travel": true, "tour": true, "tours": true,
@@ -145,8 +180,16 @@ func slugProblem(cleaned string) string {
 			return "Subdomain tidak boleh memakai nama KlikUmroh." + slugExampleMarker
 		}
 	}
+	if looksLikePlatformName(cleaned) {
+		return "Subdomain tidak boleh memakai nama KlikUmroh." + slugExampleMarker
+	}
 	if slugMisleading[cleaned] {
 		return "Subdomain ini terkesan resmi dan bisa menyesatkan." + slugExampleMarker
+	}
+	for _, part := range strings.Split(cleaned, "-") {
+		if slugMisleadingPart[part] {
+			return "Subdomain ini terkesan resmi dan bisa menyesatkan." + slugExampleMarker
+		}
 	}
 	if slugGeneric[cleaned] {
 		return "Subdomain ini terlalu umum." + slugExampleMarker

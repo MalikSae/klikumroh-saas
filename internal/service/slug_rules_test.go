@@ -12,6 +12,9 @@ func TestSlugProblem(t *testing.T) {
 		"official", "resmi", "kemenag", "verified",
 		"umroh", "umrah", "haji", "travel", "tour", "tours", "umroh-murah", "promo",
 		"travel-bangsat", "anjing-tour",
+		// Look-alikes and official words as parts (security audit 7 Oct 2026).
+		"kli-kumroh", "klikum-roh", "klikumr0h", "kl1kumroh", "klikkumroh", "k1ikumroh-solo",
+		"kemenag-resmi", "resmi-umroh", "travel-kemenag",
 	}
 	for _, s := range refused {
 		if slugProblem(s) == "" {
