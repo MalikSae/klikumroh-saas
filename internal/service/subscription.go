@@ -859,8 +859,10 @@ func (s *subscriptionService) seedStarterContent(ctx context.Context, tenantID u
 			depDate := time.Now().AddDate(0, 2, 0)
 			sampleFacilitiesInc := "- Tiket pesawat PP kelas ekonomi\n- Visa Umroh\n- Hotel Makkah & Madinah\n- Makan 3x sehari menu Indonesia\n- Muthawwif berpengalaman\n- Perlengkapan umroh eksklusif"
 			sampleFacilitiesExc := "- Paspor & suntik meningitis\n- Keperluan pribadi / laundry\n- Kelebihan bagasi"
-			sampleHotel := "Makkah: Hotel Bintang 4 (Walking distance) | Madinah: Hotel Bintang 4"
-			sampleFlight := "Direct flight Jakarta - Jeddah"
+			// Same JSON the package editor writes (city, hotel name, stars; airline and route), so the editor and
+			// the website show plain example values instead of one unparsed line.
+			sampleHotel := `[{"city":"Makkah","name":"Elaf Ajyad","stars":4},{"city":"Madinah","name":"Al Aqeeq Madinah","stars":4}]`
+			sampleFlight := `{"airline":"Saudia","route":"Jakarta - Jeddah (langsung)"}`
 			sampleTerms := "1. DP Rp 5.000.000 saat pendaftaran.\n2. Pelunasan H-30 sebelum keberangkatan.\n3. Paspor berlaku minimal 7 bulan."
 
 			pkg := &repository.Package{

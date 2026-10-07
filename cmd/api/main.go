@@ -126,6 +126,7 @@ func main() {
 	domainService := service.NewDomainService(domainRepo, nil)
 	teamService := service.NewTeamService(adminUserRepo, sessionRepo)
 	dashboardOverviewService := service.NewDashboardOverviewService(dashboardOverviewRepo)
+	onboardingService := service.NewOnboardingService(repository.NewOnboardingRepository(db))
 	staffService := service.NewStaffService(
 		staffRepo,
 		tenantRepo,
@@ -213,6 +214,7 @@ func main() {
 	domainHandler := handler.NewDomainHandler(domainService, domainRepo)
 	teamHandler := handler.NewTeamHandler(teamService)
 	dashboardOverviewHandler := handler.NewDashboardOverviewHandler(dashboardOverviewService)
+	onboardingHandler := handler.NewOnboardingHandler(onboardingService)
 	staffHandler := handler.NewStaffHandler(staffService)
 	accessLogHandler := handler.NewAccessLogHandler(accessLogService)
 	pricingPlanHandler := handler.NewPricingPlanHandler(pricingPlanService)
@@ -360,6 +362,7 @@ func main() {
 
 		// Team, Profile, Package, Prospect, Tenant, Content, Agent, Domain & Overview Dashboard Routes
 		dashboardOverviewHandler.RegisterDashboardRoutes(protected)
+		onboardingHandler.RegisterDashboardRoutes(protected)
 		teamHandler.RegisterDashboardRoutes(protected)
 		tenantHandler.RegisterDashboardRoutes(protected)
 		packageHandler.RegisterDashboardRoutes(protected)

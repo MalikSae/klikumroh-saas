@@ -198,6 +198,8 @@ func deleteDemoTenant(ctx context.Context, db *sql.DB, tenantID uint64, uploads 
 		"DELETE FROM commission_ledger WHERE tenant_id = ?",
 		"DELETE r FROM event_rsvps r JOIN agent_events e ON e.id = r.event_id WHERE e.tenant_id = ?",
 		"DELETE FROM agent_events WHERE tenant_id = ?",
+		"DELETE FROM agent_target_achievements WHERE tenant_id = ?",
+		"DELETE FROM agent_targets WHERE tenant_id = ?",
 		"DELETE FROM prospects WHERE tenant_id = ?",
 		"UPDATE agents SET parent_agent_id = NULL WHERE tenant_id = ?",
 		"DELETE FROM agents WHERE tenant_id = ?",
@@ -309,7 +311,10 @@ func (s *seeder) run() error {
 	if err := s.content(); err != nil {
 		return err
 	}
-	return s.people()
+	if err := s.people(); err != nil {
+		return err
+	}
+	return s.targets()
 }
 
 // wib is the business time zone; dates the demo shows are WIB calendar dates.
