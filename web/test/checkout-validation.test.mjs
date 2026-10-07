@@ -88,3 +88,52 @@ test('coupon check: 429 shows the rate-limit text, other errors keep the API rea
   assert.equal(couponErrorMessage(200, { valid: false }), 'Kupon tidak valid atau sudah kedaluwarsa');
   assert.equal(couponErrorMessage(502, null), 'Gagal memvalidasi kupon. Coba lagi.');
 });
+
+import {
+  slugifyTravelName,
+  SLUG_MAX_LENGTH,
+  isCouponFieldOpen,
+  showCouponBreakdown,
+  billingPeriodNote,
+  formatRupiah,
+} from '../lib/checkoutForm.ts';
+
+// Same rule as the backend (internal/service/public_signup.go).
+const BACKEND_SLUG = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+
+test('subdomain suggestion from Nama Travel follows the backend slug rules', () => {
+  assert.equal(slugifyTravelName('Al-Barakah Tour & Travel'), 'al-barakah-tour-travel');
+  assert.equal(slugifyTravelName('  PT. Hana   Tours  '), 'pt-hana-tours');
+  assert.equal(slugifyTravelName('Umroh--Berkah__2026!'), 'umroh-berkah-2026');
+  assert.equal(slugifyTravelName('Café Mékah'), 'cafe-mekah');
+  assert.equal(slugifyTravelName('---'), '');
+  assert.equal(slugifyTravelName(''), '');
+  // Cut to the maximum length without leaving a hyphen at the end.
+  const long = slugifyTravelName(`${'a'.repeat(29)} b`);
+  assert.equal(long, 'a'.repeat(29));
+  // Must start with a letter: leading digits are dropped.
+  assert.equal(slugifyTravelName('99 Barakah Tours'), 'barakah-tours');
+  for (const name of ['Al-Barakah Tour & Travel', 'x '.repeat(40), 'Travel Nusantara Jaya Abadi Sentosa Makmur Sejahtera Bersama']) {
+    const slug = slugifyTravelName(name);
+    assert.ok(slug.length <= SLUG_MAX_LENGTH, slug);
+    assert.match(slug, BACKEND_SLUG);
+  }
+});
+
+test('coupon field: collapsed by default, open when opened, applied, errored, or holding a typed code', () => {
+  const base = { opened: false, couponApplied: false, couponError: null, couponCode: '' };
+  assert.equal(isCouponFieldOpen(base), false);
+  assert.equal(isCouponFieldOpen({ ...base, opened: true }), true);
+  assert.equal(isCouponFieldOpen({ ...base, couponApplied: true }), true);
+  assert.equal(isCouponFieldOpen({ ...base, couponError: 'kode kupon tidak ditemukan' }), true);
+  assert.equal(isCouponFieldOpen({ ...base, couponCode: 'HEMAT' }), true);
+  assert.equal(isCouponFieldOpen({ ...base, couponCode: '   ' }), false);
+});
+
+test('summary: Subtotal/Diskon only with a coupon; billing note carries no amount', () => {
+  assert.equal(showCouponBreakdown(false), false);
+  assert.equal(showCouponBreakdown(true), true);
+  assert.equal(billingPeriodNote(6), 'Dibayar sekali untuk 6 bulan');
+  assert.doesNotMatch(billingPeriodNote(12), /Rp/);
+  assert.equal(formatRupiah(2700000), 'Rp2.700.000');
+});

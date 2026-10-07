@@ -37,7 +37,33 @@ type SlugUnavailableError struct{ Reason string }
 
 func (e *SlugUnavailableError) Error() string { return e.Reason }
 
-var slugRegex = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+// Subdomain rules (founder decision 6 Oct 2026): 3-30 characters, starts with a letter, lowercase letters,
+// digits and single hyphens between parts.
+const (
+	slugMinLength = 3
+	slugMaxLength = 30
+)
+
+var slugRegex = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
+
+// slugPlatformParts may not appear anywhere in a travel subdomain (it would look like KlikUmroh itself).
+var slugPlatformParts = []string{"klikumroh", "klik-umroh"}
+
+// slugMisleading are refused as the whole subdomain: they suggest an official or verified site.
+var slugMisleading = map[string]bool{
+	"official": true, "resmi": true, "kemenag": true, "siskopatuh": true, "pemerintah": true,
+	"verified": true, "terverifikasi": true, "asli": true, "pusat": true,
+}
+
+// slugGeneric are refused as the whole subdomain: industry words no single travel should own.
+var slugGeneric = map[string]bool{
+	"umroh": true, "umrah": true, "haji": true, "hajj": true, "travel": true, "tour": true, "tours": true,
+	"umroh-murah": true, "umrah-murah": true, "umroh-haji": true, "haji-umroh": true, "umroh-plus": true,
+	"promo": true, "paket": true, "paket-umroh": true, "travel-umroh": true, "jamaah": true,
+}
+
+// slugOffensive may not appear anywhere in a subdomain.
+var slugOffensive = []string{"anjing", "bangsat", "kontol", "memek", "ngentot", "goblok", "tolol", "bajingan", "jancok"}
 
 var reservedSlugs = map[string]bool{
 	"api":       true,
@@ -66,6 +92,71 @@ var reservedSlugs = map[string]bool{
 	"help":      true,
 	// Target custom domains point their CNAME at (cname.klikumroh.id); never a travel's subdomain.
 	"cname": true,
+	// More technical / platform names (founder decision 6 Oct 2026).
+	"cs": true, "info": true, "blog": true, "email": true, "ftp": true, "smtp": true, "webmail": true,
+	"ns1": true, "ns2": true, "status": true, "test": true, "dev": true, "portal": true, "agen": true,
+	"agent": true, "affiliator": true, "checkout": true, "signup": true, "daftar": true, "masuk": true,
+}
+
+// slugExampleMarker ends a refusal that gets an example subdomain appended (see CheckSlug).
+const slugExampleMarker = " {contoh}"
+
+// defaultSlugExample is the example when no subdomain can be made from the travel name.
+const defaultSlugExample = "idris-tours"
+
+var slugAccents = strings.NewReplacer(
+	"à", "a", "á", "a", "â", "a", "ä", "a", "ã", "a", "è", "e", "é", "e", "ê", "e", "ë", "e",
+	"ì", "i", "í", "i", "î", "i", "ï", "i", "ò", "o", "ó", "o", "ô", "o", "ö", "o", "õ", "o",
+	"ù", "u", "ú", "u", "û", "u", "ü", "u", "ñ", "n", "ç", "c",
+)
+
+var slugNonAlnum = regexp.MustCompile("[^a-z0-9]+")
+var slugLeading = regexp.MustCompile("^[0-9-]+")
+
+// slugifyTravelName mirrors slugifyTravelName in web/lib/checkoutForm.ts: lowercase, accents dropped,
+// anything outside a-z0-9 becomes a hyphen, leading digits dropped, at most 30 characters.
+func slugifyTravelName(name string) string {
+	v := slugAccents.Replace(strings.ToLower(name))
+	v = strings.ReplaceAll(v, "&", " ")
+	v = slugNonAlnum.ReplaceAllString(v, "-")
+	v = slugLeading.ReplaceAllString(v, "")
+	v = strings.Trim(v, "-")
+	return strings.TrimRight(truncateRunes(v, slugMaxLength), "-")
+}
+
+func truncateRunes(v string, n int) string {
+	if len(v) <= n {
+		return v
+	}
+	return v[:n]
+}
+
+// slugProblem returns the user-facing reason a subdomain cannot be used, or "" when its format and
+// wording are acceptable (availability is checked separately).
+func slugProblem(cleaned string) string {
+	if len(cleaned) < slugMinLength || len(cleaned) > slugMaxLength || !slugRegex.MatchString(cleaned) {
+		return "Subdomain harus 3-30 karakter, diawali huruf, berisi huruf kecil, angka, dan tanda hubung (-)."
+	}
+	if reservedSlugs[cleaned] {
+		return "Subdomain ini dicadangkan untuk sistem KlikUmroh." + slugExampleMarker
+	}
+	for _, part := range slugPlatformParts {
+		if strings.Contains(cleaned, part) {
+			return "Subdomain tidak boleh memakai nama KlikUmroh." + slugExampleMarker
+		}
+	}
+	if slugMisleading[cleaned] {
+		return "Subdomain ini terkesan resmi dan bisa menyesatkan." + slugExampleMarker
+	}
+	if slugGeneric[cleaned] {
+		return "Subdomain ini terlalu umum." + slugExampleMarker
+	}
+	for _, word := range slugOffensive {
+		if strings.Contains(cleaned, word) {
+			return "Subdomain ini tidak bisa dipakai." + slugExampleMarker
+		}
+	}
+	return ""
 }
 
 // TenantSignupRequest represents input payload for new travel self-registration.
@@ -98,7 +189,7 @@ type TenantSignupResult struct {
 // PublicSignupService handles public registration and slug check. After signup the travel logs in
 // and pays from the dashboard billing page — there is no public (unauthenticated) payment endpoint.
 type PublicSignupService interface {
-	CheckSlug(ctx context.Context, slug string) (bool, string, error)
+	CheckSlug(ctx context.Context, slug string, travelName ...string) (bool, string, error)
 	TenantSignup(ctx context.Context, req TenantSignupRequest) (*TenantSignupResult, error)
 	SetPlatformSettingsRepo(repo repository.PlatformSettingsRepository)
 }
@@ -164,25 +255,80 @@ func NewPublicSignupService(
 	}
 }
 
-func (s *publicSignupService) CheckSlug(ctx context.Context, slug string) (bool, string, error) {
+// CheckSlug reports whether slug can be used. travelName (optional, the "Nama Travel" typed in the
+// checkout) personalises the example in the refusal: a subdomain made from that name which is itself
+// acceptable and still free, instead of the fixed "idris-tours" (founder request 7 Oct 2026).
+func (s *publicSignupService) CheckSlug(ctx context.Context, slug string, travelName ...string) (bool, string, error) {
 	cleaned := strings.ToLower(strings.TrimSpace(slug))
-	if len(cleaned) < 3 || len(cleaned) > 50 || !slugRegex.MatchString(cleaned) {
-		return false, "Slug harus berupa 3-50 karakter alfanumerik huruf kecil dan tanda hubung (-)", nil
+	name := ""
+	if len(travelName) > 0 {
+		name = travelName[0]
+	}
+	if reason := slugProblem(cleaned); reason != "" {
+		if strings.HasSuffix(reason, slugExampleMarker) {
+			example, err := s.suggestSlug(ctx, name, cleaned)
+			if err != nil {
+				return false, "", err
+			}
+			reason = strings.TrimSuffix(reason, slugExampleMarker) + " Gunakan nama travel Anda, contoh: " + example + "."
+		}
+		return false, reason, nil
 	}
 
-	if reservedSlugs[cleaned] {
-		return false, "Slug ini telah dicadangkan untuk sistem", nil
-	}
-
-	existing, err := s.tenantRepo.GetBySlug(ctx, cleaned)
-	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+	taken, err := s.slugTaken(ctx, cleaned)
+	if err != nil {
 		return false, "", err
 	}
-	if existing != nil {
-		return false, "Slug sudah digunakan oleh travel lain", nil
+	if taken {
+		reason := "Subdomain sudah digunakan travel lain."
+		if name != "" {
+			example, err := s.suggestSlug(ctx, name, cleaned)
+			if err != nil {
+				return false, "", err
+			}
+			if example != defaultSlugExample {
+				reason += " Coba: " + example + "."
+			}
+		}
+		return false, reason, nil
 	}
 
 	return true, "", nil
+}
+
+func (s *publicSignupService) slugTaken(ctx context.Context, slug string) (bool, error) {
+	existing, err := s.tenantRepo.GetBySlug(ctx, slug)
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return false, err
+	}
+	return existing != nil, nil
+}
+
+// suggestSlug returns a subdomain made from the travel name that passes the wording rules, differs from
+// the refused one and is not taken yet; it tries the name itself, then with -tours, -travel and -umroh.
+// Without a usable name it falls back to the fixed example.
+func (s *publicSignupService) suggestSlug(ctx context.Context, travelName, refused string) (string, error) {
+	base := slugifyTravelName(travelName)
+	if base == "" {
+		return defaultSlugExample, nil
+	}
+	for _, suffix := range []string{"", "-tours", "-travel", "-umroh"} {
+		candidate := base
+		if suffix != "" {
+			candidate = strings.TrimRight(truncateRunes(base, slugMaxLength-len(suffix)), "-") + suffix
+		}
+		if candidate == refused || slugProblem(candidate) != "" {
+			continue
+		}
+		taken, err := s.slugTaken(ctx, candidate)
+		if err != nil {
+			return "", err
+		}
+		if !taken {
+			return candidate, nil
+		}
+	}
+	return defaultSlugExample, nil
 }
 
 func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignupRequest) (*TenantSignupResult, error) {
@@ -196,7 +342,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 	}
 
 	slug := strings.ToLower(strings.TrimSpace(req.Slug))
-	available, reason, err := s.CheckSlug(ctx, slug)
+	available, reason, err := s.CheckSlug(ctx, slug, travelName)
 	if err != nil {
 		return nil, err
 	}

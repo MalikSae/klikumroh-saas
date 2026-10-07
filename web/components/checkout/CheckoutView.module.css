@@ -1,47 +1,45 @@
 .page { min-height: 100vh; background: var(--km-paper); color: var(--km-ink); font-family: var(--font-body); font-size: var(--km-v2-type-small); line-height: var(--km-v2-leading-normal); }
 .page * { box-sizing: border-box; }
 .navbar { border-bottom: var(--km-v2-border-width) solid var(--km-line); background: var(--km-paper); }
-.navInner { max-width: var(--km-v3-content-width); margin: auto; padding: var(--km-v2-space-4) var(--km-v3-gutter); display: flex; align-items: center; justify-content: space-between; gap: var(--km-v2-space-4); min-height: var(--km-v2-nav-height); }
-.navBrand { text-decoration: none; }
+.navInner { max-width: var(--km-v3-content-width); margin: auto; padding: var(--km-v2-space-3) var(--km-v3-gutter); display: flex; align-items: center; justify-content: space-between; gap: var(--km-v2-space-4); min-height: var(--km-v2-nav-height); }
+.navBrand { display: inline-flex; text-decoration: none; flex-shrink: 0; }
 .navSecure { display: flex; align-items: center; gap: var(--km-v2-space-2); color: var(--km-muted); font-size: var(--km-v2-type-label); }
-.navSecureIcon, .backArrow, .featureCheck, .securityIcon { flex-shrink: 0; }
+.navSecureIcon, .backArrow, .featureCheck { flex-shrink: 0; }
 .mainInner { max-width: var(--km-checkout-content-width); margin: auto; padding: var(--km-v2-space-10) var(--km-v3-gutter) var(--km-v2-space-16); display: grid; grid-template-columns: var(--km-checkout-columns); align-items: start; gap: var(--km-v2-space-12); }
 .formColumn, .formCard, .formFields, .summaryCard, .summaryTitleGroup, .priceBlock, .couponSection, .orderTotals, .planAccordionList { display: flex; flex-direction: column; min-width: 0; }
 .formColumn { gap: var(--km-v2-space-8); }
 .backLink { display: inline-flex; align-items: center; gap: var(--km-v2-space-2); color: var(--km-muted); text-decoration: none; width: fit-content; }
 .backLink:hover, .loginLink:hover { color: var(--km-ink); }
 .headingGroup { display: flex; flex-direction: column; gap: var(--km-v2-space-3); }
-.checkoutTitle { margin: 0; font-family: var(--font-heading); font-size: var(--km-checkout-title-size); font-weight: 600; line-height: var(--km-v2-leading-tight); text-wrap: balance; }
+/* Page title in the marketing display serif (approved landing exception, extended to the checkout). */
+.checkoutTitle { margin: 0; font-family: var(--km-font-display), serif; font-size: var(--km-checkout-title-size); font-weight: 400; line-height: var(--km-v3-heading-leading); letter-spacing: var(--km-v2-hero-tracking); text-wrap: balance; }
 .checkoutDesc { margin: 0; font-size: var(--km-v2-type-body); color: var(--km-neutral-600); line-height: var(--km-v2-leading-relaxed); }
 .formCard { gap: var(--km-v2-space-6); }
 .formSectionHeading { margin: 0; padding-bottom: var(--km-v2-space-4); border-bottom: var(--km-v2-border-width) solid var(--km-line); font-family: var(--font-heading); font-size: var(--km-v2-type-subhead); font-weight: 600; }
 .formFields { gap: var(--km-v2-space-6); }
-.fieldGroup { display: flex; flex-direction: column; gap: var(--km-v2-space-2); min-width: 0; }
-.fieldLabel { font-weight: 500; }
-.fieldInput, .subdomainContainer, .passwordContainer, .couponInputContainer { width: 100%; min-width: 0; min-height: var(--km-v2-touch-target); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); background: var(--km-paper); }
-.fieldInput { padding: 0 var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-v2-type-body); }
-.fieldInput::placeholder, .subdomainInputField::placeholder, .passwordInputField::placeholder, .couponInputField::placeholder { color: var(--km-muted); }
-.fieldInput:focus, .subdomainContainer:focus-within, .passwordContainer:focus-within, .couponInputContainer:focus-within { outline: none; border-color: var(--km-ink); box-shadow: var(--km-checkout-focus-ring); }
+.fieldGroup { display: flex; flex-direction: column; gap: var(--km-checkout-field-label-gap); min-width: 0; }
+.fieldLabel { font-weight: 500; font-size: var(--km-checkout-field-text); }
+.fieldInput, .subdomainContainer, .passwordContainer, .couponInputContainer { width: 100%; min-width: 0; height: var(--km-checkout-field-height); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); background: var(--km-paper); }
+.fieldInput { padding: 0 var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-checkout-field-text); }
+.fieldInput::placeholder, .subdomainInputField::placeholder, .passwordInputField::placeholder, .couponInputField::placeholder { color: var(--km-checkout-field-placeholder); }
+.fieldInput:focus, .subdomainContainer:focus-within, .passwordContainer:focus-within, .couponInputContainer:focus-within { outline: none; border-color: var(--km-ink); box-shadow: var(--km-checkout-field-focus-ring); }
 .fieldInputError { border-color: var(--km-danger-strong); }
 .subdomainContainer, .passwordContainer, .couponInputContainer { display: flex; align-items: center; overflow: hidden; }
-.subdomainInputField, .passwordInputField, .couponInputField { min-width: 0; width: 100%; flex: 1; align-self: stretch; border: none; outline: none; background: transparent; padding: var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-v2-type-body); }
+.subdomainInputField, .passwordInputField, .couponInputField { min-width: 0; width: 100%; flex: 1; align-self: stretch; border: none; outline: none; background: transparent; padding: 0 var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-checkout-field-text); }
 .subdomainSuffixBox { align-self: stretch; display: flex; align-items: center; background: var(--km-surface-alt); border-left: var(--km-v2-border-width) solid var(--km-line); padding: 0 var(--km-v2-space-3); }
 .subdomainSuffixText { font-size: var(--km-v2-type-label); white-space: nowrap; }
 .twoColRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--km-v2-space-4); }
-.passwordToggleBtn { border: none; background: transparent; color: var(--km-muted); min-width: var(--km-v2-touch-target); min-height: var(--km-v2-touch-target); display: grid; place-items: center; cursor: pointer; }
+.passwordToggleBtn { border: none; background: transparent; color: var(--km-muted); min-width: var(--km-checkout-field-height); align-self: stretch; display: grid; place-items: center; cursor: pointer; }
 .errorText, .statusUnavailable, .couponError { color: var(--km-danger-strong); font-size: var(--km-v2-type-label); }
 .statusChecking, .statusAvailable { display: flex; align-items: center; gap: var(--km-v2-space-2); font-size: var(--km-v2-type-label); color: var(--km-muted); }
 .statusAvailable, .couponSuccess { color: var(--km-accent); }
 .alertError { display: flex; align-items: start; gap: var(--km-v2-space-3); padding: var(--km-v2-space-4); background: var(--km-danger-bg); border: var(--km-v2-border-width) solid var(--km-danger-line); border-radius: var(--km-v2-radius-control); color: var(--km-danger-strong); }
 .alertError svg { flex-shrink: 0; }
-.termsAgreement { display: flex; align-items: start; gap: var(--km-v2-space-3); cursor: pointer; }
-.termsCheckbox { width: var(--km-v2-icon-size); height: var(--km-v2-icon-size); flex-shrink: 0; margin: 0; accent-color: var(--km-accent); }
-.termsText { color: var(--km-neutral-600); }
-.termsText a, .loginLink { color: var(--km-ink); text-underline-offset: var(--km-v2-space-1); }
+.consentText a, .loginLink { color: var(--km-ink); text-underline-offset: var(--km-v2-space-1); }
 .submitBtn { display: flex; align-items: center; justify-content: center; gap: var(--km-v2-space-3); min-height: var(--km-v2-touch-target); width: 100%; border: var(--km-v2-border-width) solid var(--km-accent); border-radius: var(--km-v2-radius-media); background: var(--km-accent); box-shadow: var(--km-v2-cta-shadow); color: var(--km-paper); font: 600 var(--km-v2-type-small) var(--font-heading); cursor: pointer; }
 .submitBtn:hover:not(:disabled) { background: var(--km-accent-hover); }
 .submitBtn:disabled, .applyCouponBtn:disabled { opacity: var(--km-checkout-disabled-opacity); cursor: not-allowed; }
-.trustPoints { display: flex; flex-direction: column; gap: var(--km-v2-space-2); }
+.trustPoints { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--km-v2-space-2); }
 .trustItem { display: flex; align-items: start; gap: var(--km-v2-space-2); color: var(--km-muted); font-size: var(--km-v2-type-label); }
 .trustIcon { flex-shrink: 0; }
 .existingAccountPrompt { padding-top: var(--km-v2-space-4); border-top: var(--km-v2-border-width) solid var(--km-line); color: var(--km-muted); }
@@ -57,6 +55,9 @@
 .monthlyPrice { font: 600 var(--km-v2-type-section) var(--font-heading); font-variant-numeric: tabular-nums; }
 .perMonth, .billingNote, .planOptionTotal { font-size: var(--km-v2-type-label); color: var(--km-neutral-600); }
 .changePlanBtn, .applyCouponBtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--km-v2-space-2); min-height: var(--km-v2-touch-target); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); padding: 0 var(--km-v2-space-3); color: var(--km-ink); background: var(--km-paper); font: 500 var(--km-v2-type-small) var(--font-body); cursor: pointer; }
+/* "Ubah Paket" sits beside the price, not in a form row: its height follows the text through padding
+   (founder request) instead of the 48px touch-target minimum the inputs use. */
+.changePlanBtn { min-height: 0; padding: var(--km-v2-space-2) var(--km-v2-space-3); line-height: var(--km-v2-leading-tight); }
 .changePlanBtn:hover, .applyCouponBtn:hover:not(:disabled) { border-color: var(--km-ink); }
 .changePlanChevron { transition: transform var(--km-v2-motion-fast); }
 .changePlanChevronOpen { transform: rotate(180deg); }
@@ -78,17 +79,71 @@
 .couponStatusMessage { font-size: var(--km-v2-type-label); }
 .totalRow, .grandTotalRow { display: flex; align-items: baseline; justify-content: space-between; gap: var(--km-v2-space-3); flex-wrap: wrap; }
 .subtotalLabel, .discountLabel { color: var(--km-neutral-600); }
-.grandTotalRow { border-top: var(--km-v2-border-width) solid var(--km-line); padding-top: var(--km-v2-space-4); }
+.grandTotalRowRuled { border-top: var(--km-v2-border-width) solid var(--km-line); padding-top: var(--km-v2-space-4); }
 .grandTotalLabel { font-weight: 500; }
 .grandTotalValue { font: 700 var(--km-v2-type-subhead) var(--font-heading); font-variant-numeric: tabular-nums; }
 .uniqueCodeNote { margin: 0; color: var(--km-muted); font-size: var(--km-v2-type-label); }
-.securityNote { display: flex; gap: var(--km-v2-space-2); align-items: start; padding: var(--km-v2-space-4); color: var(--km-muted); font-size: var(--km-v2-type-label); }
-.page button:focus-visible, .page a:focus-visible, .termsCheckbox:focus-visible { outline: var(--km-v2-border-width) solid var(--km-ink); outline-offset: var(--km-v2-space-1); }
+/* Same focus ring as the landing page (MarketingV3View). */
+.page button:focus-visible, .page a:focus-visible { outline: var(--km-v2-space-1) solid var(--km-accent); outline-offset: var(--km-v2-space-1); }
 .spinner { animation: spin var(--km-checkout-spinner-duration) linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 960px) { .mainInner { grid-template-columns: minmax(0, 1fr); gap: var(--km-v2-space-8); } .summaryColumn { position: static; } }
-@media (max-width: 600px) { .twoColRow { grid-template-columns: minmax(0, 1fr); } .mainInner { padding-top: var(--km-v2-space-6); } .summaryCard { padding: var(--km-v2-space-5); } .navSecureText { display: none; } }
+@media (max-width: 600px) { .twoColRow { grid-template-columns: minmax(0, 1fr); } .mainInner { padding-top: var(--km-v2-space-6); } .summaryCard { padding: var(--km-v2-space-5); } .navInner { padding: var(--km-v2-space-2) var(--km-v2-space-4); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } .changePlanChevron { transition: none; } }
-.summaryHeader, .popularBadgeText, .featureText, .couponLabel, .subtotalValue, .discountValue, .securityText, .backText, .trustText, .existingAccountText { min-width: 0; }
+.summaryHeader, .popularBadgeText, .featureText, .couponLabel, .subtotalValue, .discountValue, .backText, .trustText, .existingAccountText { min-width: 0; }
 .intro { max-width: var(--km-checkout-content-width); margin: auto; padding: var(--km-v2-space-8) var(--km-v3-gutter) 0; display: flex; flex-direction: column; gap: var(--km-v2-space-6); }
-@media (max-width: 960px) { .summaryColumn { order: -1; } }
+
+.billingNote { margin: 0; }
+
+/* Coupon field collapsed behind a text link. */
+.couponToggle { display: inline-flex; align-items: center; gap: var(--km-v2-space-2); width: fit-content; min-height: var(--km-v2-touch-target); padding: 0; border: none; background: transparent; color: var(--km-ink); font: 500 var(--km-v2-type-small) var(--font-body); text-decoration: underline; text-underline-offset: var(--km-v2-space-1); cursor: pointer; }
+.couponToggleIcon { flex-shrink: 0; color: var(--km-muted); }
+.couponField { display: flex; flex-direction: column; gap: var(--km-v2-space-3); }
+.couponLabel { font-weight: 500; }
+
+/* Step indicator: thin progress bars like the landing journey, ink (not the accent) for the current step. */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--km-v2-space-2); }
+.step { display: flex; align-items: baseline; gap: var(--km-v2-space-2); padding-top: var(--km-v2-space-2); border-top: var(--km-v2-space-1) solid var(--km-line); color: var(--km-muted); font-size: var(--km-v2-type-label); line-height: var(--km-v2-leading-normal); }
+.stepCurrent { border-top-color: var(--km-ink); color: var(--km-ink); font-weight: 500; }
+.stepNumber { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.stepLabel { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Commit area: guarantee, CTA, next step, consent. */
+.ctaGroup { display: flex; flex-direction: column; gap: var(--km-v2-space-2); }
+.guarantee { display: flex; align-items: center; gap: var(--km-v2-space-2); margin: var(--km-v2-space-1) 0 0; color: var(--km-ink); font-weight: 500; }
+.guaranteeIcon { flex-shrink: 0; }
+.consentText { margin: 0; color: var(--km-muted); font-size: var(--km-v2-type-label); }
+
+/* Compact summary line: only in the single-column layout, where the full summary follows the form. */
+.compactSummary { display: none; }
+.compactSummaryRow { display: flex; align-items: center; justify-content: space-between; gap: var(--km-v2-space-3); }
+.compactSummaryText { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--km-v2-space-3); row-gap: var(--km-v2-space-1); min-width: 0; }
+.compactSummaryPlan { font-weight: 500; color: var(--km-ink); }
+.compactSummaryAmount { font: 600 var(--km-v2-type-body) var(--font-heading); color: var(--km-ink); font-variant-numeric: tabular-nums; }
+.compactChangeBtn { display: inline-flex; align-items: center; gap: var(--km-v2-space-1); flex-shrink: 0; min-height: var(--km-v2-touch-target); padding: 0 var(--km-v2-space-2); border: none; background: transparent; color: var(--km-ink); font: 500 var(--km-v2-type-small) var(--font-body); text-decoration: underline; text-underline-offset: var(--km-v2-space-1); cursor: pointer; }
+@media (max-width: 960px) {
+  .compactSummary { display: flex; flex-direction: column; gap: var(--km-v2-space-3); padding: var(--km-v2-space-2) var(--km-v2-space-4); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); background: var(--km-surface-alt); }
+  .compactSummary .planAccordion { padding-bottom: var(--km-v2-space-2); }
+  /* One plan-change control per viewport: the compact line's "Ubah" replaces the summary's "Ubah Paket". */
+  .summaryChangePlanBtn, .summaryPlanChooser { display: none; }
+}
+@media (max-width: 600px) {
+  .intro { padding-top: var(--km-v2-space-6); gap: var(--km-v2-space-4); }
+  .mainInner { padding-top: var(--km-v2-space-5); }
+}
+
+/* Coupon: compact controls whose height comes from padding + 16px text (about 40px), not the 48px
+   touch-target minimum of the main form fields. */
+.couponInputContainer { min-height: 0; }
+.couponInputField { padding: var(--km-v2-space-2) var(--km-v2-space-3); line-height: var(--km-v2-leading-normal); }
+.applyCouponBtn { min-height: 0; align-self: stretch; flex-shrink: 0; white-space: nowrap; }
+.couponApplied { display: flex; align-items: center; gap: var(--km-v2-space-2); padding: var(--km-v2-space-2) 0; }
+.couponApplied .couponIcon { margin-left: 0; }
+.couponAppliedText { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.couponAppliedCode { font-weight: 600; color: var(--km-ink); }
+.couponRemoveBtn { flex-shrink: 0; white-space: nowrap; padding: var(--km-v2-space-1) var(--km-v2-space-2); border: none; background: transparent; color: var(--km-ink); font: 500 var(--km-v2-type-small) var(--font-body); text-decoration: underline; text-underline-offset: var(--km-v2-space-1); cursor: pointer; }
+
+/* Phone: field text 16px so iOS Safari does not zoom into the field (AGENTS.md 3.10). */
+@media (max-width: 768px) {
+  .fieldInput, .subdomainInputField, .passwordInputField, .couponInputField { font-size: var(--km-checkout-field-text-mobile); }
+}

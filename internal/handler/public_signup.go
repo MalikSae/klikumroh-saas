@@ -82,7 +82,7 @@ func (h *PublicSignupHandler) CheckSlug(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	available, reason, err := h.publicSignupService.CheckSlug(r.Context(), slug)
+	available, reason, err := h.publicSignupService.CheckSlug(r.Context(), slug, r.URL.Query().Get("name"))
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memeriksa ketersediaan slug"})
 		return

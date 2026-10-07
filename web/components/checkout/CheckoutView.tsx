@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { capitalizeName } from '@/lib/personName';
 import Link from 'next/link';
+import { Instrument_Serif } from 'next/font/google';
 import {
   ArrowLeft,
   Lock,
@@ -14,7 +16,8 @@ import {
   EyeOff,
   ArrowRight,
   Database,
-  Zap,
+  Clock,
+  Headset,
   ChevronDown,
 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -31,7 +34,20 @@ import {
 } from '@/lib/dashboardSession';
 import { newPasswordError } from '../../lib/passwordRules';
 import { readJsonSafe, apiErrorMessage } from '@/lib/safeJson';
+import {
+  SLUG_MIN_LENGTH,
+  SLUG_MAX_LENGTH,
+  slugifyTravelName,
+  isCouponFieldOpen,
+  showCouponBreakdown,
+  formatRupiah,
+  billingPeriodNote,
+} from '@/lib/checkoutForm';
 import styles from './CheckoutView.module.css';
+
+// Display serif of the klikumroh.id marketing site (same font and variable as MarketingV3View), used
+// for the page title only so the checkout reads as part of the same site.
+const serif = Instrument_Serif({ weight: '400', subsets: ['latin'], variable: '--km-font-display', display: 'swap' });
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -60,7 +76,6 @@ interface FormErrors {
   admin_whatsapp?: string;
   admin_email?: string;
   admin_password?: string;
-  agree_terms?: string;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -71,6 +86,9 @@ const INCLUDED_FEATURES = [
   'Portal agen dan materi promosi',
   'Jumlah agen tidak dibatasi',
 ];
+
+// Signup steps shown above the form; the checkout is step 1, payment happens on the next page.
+const SIGNUP_STEPS = ['Data travel', 'Pembayaran', 'Aktif'];
 
 // ─── Format Validations ───────────────────────────────────────────────────
 
@@ -109,15 +127,14 @@ function validateForm(
   adminWhatsApp: string,
   adminEmail: string,
   adminPassword: string,
-  agreeTerms: boolean,
 ): FormErrors {
   const errs: FormErrors = {};
 
   if (!travelName.trim() || travelName.trim().length < 2)
     errs.travel_name = 'Nama travel minimal 2 karakter';
 
-  if (!slug.trim() || slug.trim().length < 3)
-    errs.slug = 'Subdomain minimal 3 karakter';
+  if (!slug.trim() || slug.trim().length < SLUG_MIN_LENGTH)
+    errs.slug = `Subdomain minimal ${SLUG_MIN_LENGTH} karakter`;
   else if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug.trim()))
     errs.slug = 'Hanya huruf kecil, angka, dan tanda hubung (-)';
 
@@ -134,11 +151,60 @@ function validateForm(
   const pwErr = newPasswordError(adminPassword);
   if (pwErr) errs.admin_password = pwErr;
 
-  if (!agreeTerms)
-    errs.agree_terms = 'Anda harus menyetujui Syarat & Ketentuan';
-
   return errs;
 }
+
+// ─── Plan chooser (shared by the summary and the mobile compact summary line) ───
+
+interface PlanChooserProps {
+  id: string;
+  plans: PricingPlan[];
+  selectedPlan: PricingPlan;
+  onPlanChange: (plan: PricingPlan) => void;
+  onClose: () => void;
+  disabled: boolean;
+}
+
+const PlanChooser: React.FC<PlanChooserProps> = ({ id, plans, selectedPlan, onPlanChange, onClose, disabled }) => (
+  <div id={id} className={styles.planAccordion}>
+    <div className={styles.planAccordionList}>
+      {plans.map((plan) => {
+        const isSelected = plan.id === selectedPlan.id;
+        return (
+          <button
+            key={plan.id}
+            type="button"
+            className={`${styles.planAccordionOption} ${isSelected ? styles.planAccordionOptionSelected : ''}`}
+            onClick={() => {
+              onPlanChange(plan);
+              onClose();
+            }}
+            // No plan change while a coupon is being checked for the current plan.
+            disabled={disabled}
+            aria-pressed={isSelected}
+          >
+            <div className={styles.planOptionRadioCircle}>
+              {isSelected && <div className={styles.planOptionRadioDot} />}
+            </div>
+            <div className={styles.planOptionInfo}>
+              <div className={styles.planOptionTop}>
+                <span className={styles.planOptionTitle}>{plan.name}</span>
+                {plan.popular && <span className={styles.planOptionPopularTag}>Direkomendasikan</span>}
+                {plan.discount_badge && !plan.popular && (
+                  <span className={styles.planOptionDiscountTag}>{plan.discount_badge}</span>
+                )}
+              </div>
+              <div className={styles.planOptionPrice}>
+                <span>{formatRupiah(plan.monthly_equivalent)}/bln</span>
+                <span className={styles.planOptionTotal}>(Total {formatRupiah(plan.price)})</span>
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
 
 // ─── Order Summary subcomponent ────────────────────────────────────────────
 
@@ -153,6 +219,9 @@ interface OrderSummaryProps {
   onRemoveCoupon: () => void;
   couponLoading: boolean;
   couponError: string | null;
+  planChooserOpen: boolean;
+  onTogglePlanChooser: () => void;
+  onClosePlanChooser: () => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -166,10 +235,15 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   onRemoveCoupon,
   couponLoading,
   couponError,
+  planChooserOpen,
+  onTogglePlanChooser,
+  onClosePlanChooser,
 }) => {
-  const [isPlanAccordionOpen, setIsPlanAccordionOpen] = useState(false);
+  const [couponOpened, setCouponOpened] = useState(false);
   // Same rounding as the backend invoice.
   const { discount, finalAmount } = discountedPrice(selectedPlan.price, coupon ? coupon.discount_percentage : 0);
+  const breakdown = showCouponBreakdown(!!coupon);
+  const couponOpen = isCouponFieldOpen({ opened: couponOpened, couponApplied: !!coupon, couponError, couponCode });
 
   return (
     <aside className={styles.summaryColumn} aria-label="Ringkasan Pesanan">
@@ -183,7 +257,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               <h2 className={styles.selectedPlanTitle}>{selectedPlan.name}</h2>
               {selectedPlan.popular && (
                 <div className={styles.popularBadge}>
-                  <span className={styles.popularBadgeText}>PALING POPULER</span>
+                  <span className={styles.popularBadgeText}>DIREKOMENDASIKAN</span>
                 </div>
               )}
             </div>
@@ -194,9 +268,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className={styles.priceBlock}>
           <div className={styles.priceRow}>
             <div className={styles.priceMain}>
-              <span className={styles.monthlyPrice}>
-                Rp{selectedPlan.monthly_equivalent.toLocaleString('id-ID')}
-              </span>
+              <span className={styles.monthlyPrice}>{formatRupiah(selectedPlan.monthly_equivalent)}</span>
               <span className={styles.perMonth}>/bln</span>
             </div>
 
@@ -204,72 +276,34 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               <button
                 type="button"
                 id="change-plan-toggle-btn"
-                className={styles.changePlanBtn}
-                onClick={() => setIsPlanAccordionOpen((prev) => !prev)}
-                aria-expanded={isPlanAccordionOpen}
+                // Two-column layout only; in the single-column layout the compact line's "Ubah" changes the plan.
+                className={`${styles.changePlanBtn} ${styles.summaryChangePlanBtn}`}
+                onClick={onTogglePlanChooser}
+                aria-expanded={planChooserOpen}
                 aria-controls="plan-accordion-options"
               >
                 <span>Ubah Paket</span>
                 <ChevronDown
                   size={14}
-                  className={`${styles.changePlanChevron} ${
-                    isPlanAccordionOpen ? styles.changePlanChevronOpen : ''
-                  }`}
+                  className={`${styles.changePlanChevron} ${planChooserOpen ? styles.changePlanChevronOpen : ''}`}
                 />
               </button>
             )}
           </div>
-          <span className={styles.billingNote}>
-            Dibayar satu kali untuk masa aktif {selectedPlan.period_months} bulan
-          </span>
+          {/* Billing period under the monthly price (the amount itself appears once, in the total) */}
+          <p className={styles.billingNote}>{billingPeriodNote(selectedPlan.period_months)}</p>
 
           {/* Accordion: Opsi Pilihan Paket */}
-          {isPlanAccordionOpen && plans.length > 1 && (
-            <div id="plan-accordion-options" className={styles.planAccordion}>
-              <div className={styles.planAccordionList}>
-                {plans.map((plan) => {
-                  const isSelected = plan.id === selectedPlan.id;
-                  return (
-                    <button
-                      key={plan.id}
-                      type="button"
-                      className={`${styles.planAccordionOption} ${
-                        isSelected ? styles.planAccordionOptionSelected : ''
-                      }`}
-                      onClick={() => {
-                        onPlanChange(plan);
-                        setIsPlanAccordionOpen(false);
-                      }}
-                      // No plan change while a coupon is being checked for the current plan.
-                      disabled={couponLoading}
-                      aria-pressed={isSelected}
-                    >
-                      <div className={styles.planOptionRadioCircle}>
-                        {isSelected && <div className={styles.planOptionRadioDot} />}
-                      </div>
-                      <div className={styles.planOptionInfo}>
-                        <div className={styles.planOptionTop}>
-                          <span className={styles.planOptionTitle}>{plan.name}</span>
-                          {plan.popular && (
-                            <span className={styles.planOptionPopularTag}>Paling Populer</span>
-                          )}
-                          {plan.discount_badge && !plan.popular && (
-                            <span className={styles.planOptionDiscountTag}>
-                              {plan.discount_badge}
-                            </span>
-                          )}
-                        </div>
-                        <div className={styles.planOptionPrice}>
-                          <span>Rp{plan.monthly_equivalent.toLocaleString('id-ID')}/bln</span>
-                          <span className={styles.planOptionTotal}>
-                            (Total Rp{plan.price.toLocaleString('id-ID')})
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+          {planChooserOpen && plans.length > 1 && (
+            <div className={styles.summaryPlanChooser}>
+              <PlanChooser
+                id="plan-accordion-options"
+                plans={plans}
+                selectedPlan={selectedPlan}
+                onPlanChange={onPlanChange}
+                onClose={onClosePlanChooser}
+                disabled={couponLoading}
+              />
             </div>
           )}
         </div>
@@ -286,52 +320,81 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           ))}
         </ul>
 
-        {/* Coupon Section */}
+        {/* Coupon Section: collapsed behind a link until opened, applied, or showing an error */}
         <div className={styles.couponSection}>
-          <label htmlFor="coupon-input" className={styles.couponLabel}>
-            Punya kupon?
-          </label>
-          <div className={styles.couponRow}>
-            <div className={styles.couponInputContainer}>
-              <Tag size={15} className={styles.couponIcon} />
-              <input
-                id="coupon-input"
-                type="text"
-                className={styles.couponInputField}
-                placeholder="Masukkan kode"
-                value={couponCode}
-                onChange={(e) => onCouponCodeChange(e.target.value.toUpperCase())}
-                disabled={couponLoading || !!coupon}
-                maxLength={20}
-              />
-            </div>
+          {!couponOpen ? (
             <button
               type="button"
-              id="apply-coupon-btn"
-              className={styles.applyCouponBtn}
-              // An applied coupon can be removed, then another code entered (totals follow the coupon state).
-              onClick={coupon ? onRemoveCoupon : onApplyCoupon}
-              disabled={couponLoading || (!coupon && !couponCode.trim())}
+              id="coupon-toggle-btn"
+              className={styles.couponToggle}
+              onClick={() => {
+                setCouponOpened(true);
+                // Move focus into the field that just opened.
+                requestAnimationFrame(() => document.getElementById('coupon-input')?.focus());
+              }}
+              aria-expanded={false}
+              aria-controls="coupon-field"
             >
-              {couponLoading ? (
-                <Loader2 size={14} className={styles.spinner} />
-              ) : coupon ? (
-                'Hapus kupon'
-              ) : (
-                'Pakai'
-              )}
+              <Tag size={15} className={styles.couponToggleIcon} />
+              <span>Punya kode kupon?</span>
             </button>
-          </div>
-
-          {coupon && (
-            <span className={`${styles.couponStatusMessage} ${styles.couponSuccess}`}>
-              Kupon {coupon.code} hemat {coupon.discount_percentage}%!
-            </span>
-          )}
-          {couponError && (
-            <span className={`${styles.couponStatusMessage} ${styles.couponError}`}>
-              {couponError}
-            </span>
+          ) : (
+            <div id="coupon-field" className={styles.couponField}>
+              {coupon ? (
+                // Applied: one compact line (code, saving, remove action) instead of a disabled input.
+                <div className={styles.couponApplied}>
+                  <Tag size={15} className={styles.couponIcon} aria-hidden="true" />
+                  <span className={styles.couponAppliedText}>
+                    <span className={styles.couponAppliedCode}>{coupon.code}</span>{' '}
+                    <span className={styles.couponSuccess}>hemat {coupon.discount_percentage}%</span>
+                  </span>
+                  <button
+                    type="button"
+                    id="remove-coupon-btn"
+                    className={styles.couponRemoveBtn}
+                    // The coupon can be removed, then another code entered (totals follow the coupon state).
+                    onClick={onRemoveCoupon}
+                    aria-label="Hapus kupon"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <label htmlFor="coupon-input" className={styles.couponLabel}>
+                    Kode kupon
+                  </label>
+                  <div className={styles.couponRow}>
+                    <div className={styles.couponInputContainer}>
+                      <Tag size={15} className={styles.couponIcon} />
+                      <input
+                        id="coupon-input"
+                        type="text"
+                        className={styles.couponInputField}
+                        placeholder="Masukkan kode"
+                        value={couponCode}
+                        onChange={(e) => onCouponCodeChange(e.target.value.toUpperCase())}
+                        disabled={couponLoading}
+                        maxLength={20}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      id="apply-coupon-btn"
+                      className={styles.applyCouponBtn}
+                      onClick={onApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                    >
+                      {couponLoading ? <Loader2 size={14} className={styles.spinner} /> : 'Pakai'}
+                    </button>
+                  </div>
+                </>
+              )}
+              {couponError && (
+                <span className={`${styles.couponStatusMessage} ${styles.couponError}`}>{couponError}</span>
+              )}
+            </div>
           )}
         </div>
 
@@ -339,37 +402,49 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
         {/* Order Totals */}
         <div className={styles.orderTotals}>
-          <div className={styles.totalRow}>
-            <span className={styles.subtotalLabel}>Subtotal</span>
-            <span className={styles.subtotalValue}>
-              Rp{selectedPlan.price.toLocaleString('id-ID')}
-            </span>
-          </div>
-          <div className={styles.totalRow}>
-            <span className={styles.discountLabel}>Diskon</span>
-            <span className={styles.discountValue}>
-              {discount > 0 ? `− Rp${discount.toLocaleString('id-ID')}` : 'Rp0'}
-            </span>
-          </div>
-          <div className={styles.grandTotalRow}>
+          {/* Subtotal and Diskon only with a coupon; otherwise the total alone */}
+          {breakdown && (
+            <>
+              <div className={styles.totalRow}>
+                <span className={styles.subtotalLabel}>Subtotal</span>
+                <span className={styles.subtotalValue}>{formatRupiah(selectedPlan.price)}</span>
+              </div>
+              <div className={styles.totalRow}>
+                <span className={styles.discountLabel}>Diskon</span>
+                <span className={styles.discountValue}>
+                  {discount > 0 ? `− ${formatRupiah(discount)}` : 'Rp0'}
+                </span>
+              </div>
+            </>
+          )}
+          <div className={`${styles.grandTotalRow} ${breakdown ? styles.grandTotalRowRuled : ''}`}>
             <span className={styles.grandTotalLabel}>Total pembayaran</span>
-            <span className={styles.grandTotalValue}>
-              Rp{finalAmount.toLocaleString('id-ID')}
-            </span>
+            <span className={styles.grandTotalValue}>{formatRupiah(finalAmount)}</span>
           </div>
           {finalAmount > 0 && (
             <p className={styles.uniqueCodeNote}>Tagihan ditambah kode unik beberapa ratus rupiah untuk verifikasi transfer.</p>
           )}
         </div>
+
+        <div className={styles.summaryDivider} />
+
+        {/* Trust lines (the 24-hour verification is stated only here) */}
+        <ul className={styles.trustPoints}>
+          <li className={styles.trustItem}>
+            <Clock size={14} className={styles.trustIcon} />
+            <span className={styles.trustText}>Pembayaran diverifikasi maksimal 24 jam</span>
+          </li>
+          <li className={styles.trustItem}>
+            <Database size={14} className={styles.trustIcon} />
+            <span className={styles.trustText}>Data travel terisolasi aman per akun</span>
+          </li>
+          <li className={styles.trustItem}>
+            <Headset size={14} className={styles.trustIcon} />
+            <span className={styles.trustText}>Didampingi tim KlikUmroh sampai aktif</span>
+          </li>
+        </ul>
       </div>
 
-      {/* Payment Security Note */}
-      <div className={styles.securityNote}>
-        <ShieldCheck size={18} className={styles.securityIcon} />
-        <span className={styles.securityText}>
-          Data akun dan transaksi Anda dilindungi.
-        </span>
-      </div>
     </aside>
   );
 };
@@ -461,13 +536,14 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable' | 'unknown'>('idle');
   const [slugReason, setSlugReason] = useState('');
   const slugDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  // The subdomain follows Nama Travel until the user types in the subdomain field (emptying it hands it back).
+  const [slugEditedManually, setSlugEditedManually] = useState(false);
 
   const [adminName, setAdminName] = useState('');
   const [adminWhatsApp, setAdminWhatsApp] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
   const {
     settings: platformSettings,
     loaded: settingsLoaded,
@@ -486,6 +562,9 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   const [coupon, setCoupon] = useState<CouponResult | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  // The one plan chooser: opened from the compact line (single column) or "Ubah Paket" (two columns).
+  // CSS shows only the copy that belongs to the current layout, so there is one button and one list per viewport.
+  const [planChooserOpen, setPlanChooserOpen] = useState(false);
 
   const liveErrors = useMemo(
     () =>
@@ -495,18 +574,18 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         adminName,
         adminWhatsApp,
         adminEmail,
-        adminPassword,
-        agreeTerms
+        adminPassword
       ),
-    [travelName, slug, adminName, adminWhatsApp, adminEmail, adminPassword, agreeTerms]
+    [travelName, slug, adminName, adminWhatsApp, adminEmail, adminPassword]
   );
 
   // Only the newest slug check may set the status: an older check answering late must not show its
   // "sudah digunakan" / "tersedia" under the slug typed since.
   const slugCheckSeqRef = useRef(0);
-  const checkSlugAvailability = useCallback(async (candidate: string) => {
+  // name: the travel name, so a refusal can suggest a subdomain made from it instead of a fixed example.
+  const checkSlugAvailability = useCallback(async (candidate: string, name: string) => {
     const seq = ++slugCheckSeqRef.current;
-    if (!candidate || candidate.length < 3) {
+    if (!candidate || candidate.length < SLUG_MIN_LENGTH) {
       setSlugStatus('idle');
       return;
     }
@@ -514,7 +593,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     setSlugReason('');
     try {
       const res = await fetch(
-        `/api/public/check-slug?slug=${encodeURIComponent(candidate)}`
+        `/api/public/check-slug?slug=${encodeURIComponent(candidate)}&name=${encodeURIComponent(name.trim())}`
       );
       // A 429 or gateway error may not be JSON; it is "could not check", never "already taken".
       const data = await res.json().catch(() => null);
@@ -534,14 +613,14 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-');
     setSlug(cleaned);
-    setTouched((t) => ({ ...t, slug: true }));
+    setSlugEditedManually(cleaned !== '');
 
     if (slugDebounceRef.current) clearTimeout(slugDebounceRef.current);
     slugCheckSeqRef.current++; // the slug changed: drop any check still in flight
     setSlugStatus('idle');
-    if (cleaned.length >= 3) {
+    if (cleaned.length >= SLUG_MIN_LENGTH) {
       slugDebounceRef.current = setTimeout(() => {
-        checkSlugAvailability(cleaned);
+        checkSlugAvailability(cleaned, travelName);
       }, 500);
     } else {
       setSlugStatus('idle');
@@ -550,21 +629,22 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
 
   const handleTravelNameChange = (val: string) => {
     setTravelName(val);
-    if (!touched.slug) {
-      const autoSlug = val
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .slice(0, 50);
+    // A refused subdomain typed by hand: check again so the suggested example follows the new name.
+    if (slugEditedManually && slugStatus === 'unavailable' && slug.length >= SLUG_MIN_LENGTH) {
+      if (slugDebounceRef.current) clearTimeout(slugDebounceRef.current);
+      slugDebounceRef.current = setTimeout(() => {
+        checkSlugAvailability(slug, val);
+      }, 600);
+    }
+    if (!slugEditedManually) {
+      const autoSlug = slugifyTravelName(val);
       setSlug(autoSlug);
       if (slugDebounceRef.current) clearTimeout(slugDebounceRef.current);
       slugCheckSeqRef.current++; // the slug changed: drop any check still in flight
       setSlugStatus('idle');
-      if (autoSlug.length >= 3) {
+      if (autoSlug.length >= SLUG_MIN_LENGTH) {
         slugDebounceRef.current = setTimeout(() => {
-          checkSlugAvailability(autoSlug);
+          checkSlugAvailability(autoSlug, val);
         }, 600);
       } else {
         setSlugStatus('idle');
@@ -575,16 +655,17 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   const handleWhatsAppChange = (val: string) => {
     const sanitized = val.replace(/[^0-9+\s-]/g, '');
     setAdminWhatsApp(sanitized);
-    setTouched((t) => ({ ...t, admin_whatsapp: true }));
   };
 
   const handleEmailChange = (val: string) => {
     const sanitized = val.replace(/\s/g, '');
     setAdminEmail(sanitized);
-    setTouched((t) => ({ ...t, admin_email: true }));
   };
 
-  const handleBlur = (field: string) => {
+  // Field errors appear after the user leaves a field they typed in, or after submit; never on first render,
+  // while typing the first characters, or when an empty field is merely tapped and left.
+  const handleBlur = (field: string, value: string) => {
+    if (!value.trim()) return;
     setTouched((t) => ({ ...t, [field]: true }));
   };
 
@@ -629,6 +710,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+    // Consent is given by submitting (text under the button), so signup needs the published documents.
+    if (!legalReady) return;
 
     setTouched({
       travel_name: true,
@@ -637,7 +720,6 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       admin_whatsapp: true,
       admin_email: true,
       admin_password: true,
-      agree_terms: true,
     });
 
     const errs = validateForm(
@@ -646,8 +728,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
       adminName,
       adminWhatsApp,
       adminEmail,
-      adminPassword,
-      agreeTerms
+      adminPassword
     );
 
     if (Object.keys(errs).length > 0) {
@@ -663,8 +744,6 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         setSubmitError(errs.admin_name);
       } else if (errs.admin_password) {
         setSubmitError(errs.admin_password);
-      } else if (errs.agree_terms) {
-        setSubmitError(errs.agree_terms);
       } else {
         setSubmitError('Mohon lengkapi semua data formulir dengan benar.');
       }
@@ -761,14 +840,17 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     );
   }
 
+  // Amount after the coupon, for the compact summary line (same rounding as the backend invoice).
+  const compactTotal = discountedPrice(selectedPlan.price, coupon ? coupon.discount_percentage : 0).finalAmount;
+
   // ─── Main Checkout View ───
   return (
-    <div className={styles.page}>
-      {/* Checkout Navigation */}
+    <div className={`${styles.page} ${serif.variable}`}>
+      {/* Checkout Navigation: same bar as the klikumroh.id landing header (brand, height, rule) */}
       <header className={styles.navbar}>
         <div className={styles.navInner}>
-          <Link href="/" className={styles.navBrand}>
-            <KlikUmrohBrand theme="light" iconSize={26} />
+          <Link href="/" className={styles.navBrand} aria-label="KlikUmroh">
+            <KlikUmrohBrand />
           </Link>
           <div className={styles.navSecure}>
             <Lock size={14} className={styles.navSecureIcon} />
@@ -798,6 +880,42 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         <div className={styles.mainInner}>
           {/* ── Left: Checkout Form Column (w: 700px, gap: 22px) ── */}
           <div className={styles.formColumn}>
+            {/* Compact summary line (single-column layout only): the full summary follows the form. */}
+            <div className={styles.compactSummary} data-testid="checkout-compact-summary">
+              <div className={styles.compactSummaryRow}>
+                <p className={styles.compactSummaryText}>
+                  <span className={styles.compactSummaryPlan}>{selectedPlan.name}</span>
+                  <span className={styles.compactSummaryAmount}>{formatRupiah(compactTotal)}</span>
+                </p>
+                {plans.length > 1 && (
+                  <button
+                    type="button"
+                    id="compact-change-plan-btn"
+                    className={styles.compactChangeBtn}
+                    onClick={() => setPlanChooserOpen((open) => !open)}
+                    aria-expanded={planChooserOpen}
+                    aria-controls="compact-plan-options"
+                  >
+                    <span>Ubah</span>
+                    <ChevronDown
+                      size={14}
+                      className={`${styles.changePlanChevron} ${planChooserOpen ? styles.changePlanChevronOpen : ''}`}
+                    />
+                  </button>
+                )}
+              </div>
+              {planChooserOpen && plans.length > 1 && (
+                <PlanChooser
+                  id="compact-plan-options"
+                  plans={plans}
+                  selectedPlan={selectedPlan}
+                  onPlanChange={handlePlanChange}
+                  onClose={() => setPlanChooserOpen(false)}
+                  disabled={couponLoading}
+                />
+              )}
+            </div>
+
             {submitError && (
               <div className={styles.alertError} role="alert">
                 <AlertCircle size={18} />
@@ -807,6 +925,20 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
 
             {/* Travel Registration Form Card */}
             <div className={styles.formCard}>
+              {/* Step indicator: this page is step 1 */}
+              <ol className={styles.steps} aria-label="Langkah pendaftaran" data-testid="checkout-steps">
+                {SIGNUP_STEPS.map((label, i) => (
+                  <li
+                    key={label}
+                    className={`${styles.step} ${i === 0 ? styles.stepCurrent : ''}`}
+                    aria-current={i === 0 ? 'step' : undefined}
+                  >
+                    <span className={styles.stepNumber}>{i + 1}</span>
+                    <span className={styles.stepLabel}>{label}</span>
+                  </li>
+                ))}
+              </ol>
+
               <h2 className={styles.formSectionHeading}>Informasi travel</h2>
 
               <form id="checkout-form" onSubmit={handleSubmit} noValidate>
@@ -820,13 +952,14 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                       id="travel-name"
                       name="travel_name"
                       type="text"
+                      autoComplete="organization"
                       className={`${styles.fieldInput} ${
                         touched.travel_name && liveErrors.travel_name ? styles.fieldInputError : ''
                       }`}
                       placeholder="Contoh: Al-Barakah Tour & Travel"
                       value={travelName}
                       onChange={(e) => handleTravelNameChange(e.target.value)}
-                      onBlur={() => handleBlur('travel_name')}
+                      onBlur={() => handleBlur('travel_name', travelName)}
                     />
                     {touched.travel_name && liveErrors.travel_name && (
                       <span className={styles.errorText}>{liveErrors.travel_name}</span>
@@ -849,10 +982,13 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                         type="text"
                         className={styles.subdomainInputField}
                         placeholder="nama-travel"
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
                         value={slug}
                         onChange={(e) => handleSlugChange(e.target.value)}
-                        onBlur={() => handleBlur('slug')}
-                        maxLength={50}
+                        onBlur={() => handleBlur('slug', slug)}
+                        maxLength={SLUG_MAX_LENGTH}
                       />
                       <div className={styles.subdomainSuffixBox}>
                         <span className={styles.subdomainSuffixText}>.klikumroh.id</span>
@@ -889,13 +1025,15 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                         id="admin-name"
                         name="admin_name"
                         type="text"
+                        autoComplete="name"
                         className={`${styles.fieldInput} ${
                           touched.admin_name && liveErrors.admin_name ? styles.fieldInputError : ''
                         }`}
                         placeholder="Nama penanggung jawab"
                         value={adminName}
-                        onChange={(e) => setAdminName(e.target.value)}
-                        onBlur={() => handleBlur('admin_name')}
+                        onChange={(e) => setAdminName(capitalizeName(e.target.value))}
+                        autoCapitalize="words"
+                        onBlur={() => handleBlur('admin_name', adminName)}
                       />
                       {touched.admin_name && liveErrors.admin_name && (
                         <span className={styles.errorText}>{liveErrors.admin_name}</span>
@@ -911,13 +1049,14 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                         name="admin_whatsapp"
                         type="tel"
                         inputMode="tel"
+                        autoComplete="tel"
                         className={`${styles.fieldInput} ${
                           touched.admin_whatsapp && liveErrors.admin_whatsapp ? styles.fieldInputError : ''
                         }`}
                         placeholder="08xxxxxxxxxx"
                         value={adminWhatsApp}
                         onChange={(e) => handleWhatsAppChange(e.target.value)}
-                        onBlur={() => handleBlur('admin_whatsapp')}
+                        onBlur={() => handleBlur('admin_whatsapp', adminWhatsApp)}
                       />
                       {touched.admin_whatsapp && liveErrors.admin_whatsapp && (
                         <span className={styles.errorText}>{liveErrors.admin_whatsapp}</span>
@@ -936,13 +1075,14 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                         name="admin_email"
                         type="email"
                         inputMode="email"
+                        autoComplete="email"
                         className={`${styles.fieldInput} ${
                           touched.admin_email && liveErrors.admin_email ? styles.fieldInputError : ''
                         }`}
                         placeholder="nama@travel.com"
                         value={adminEmail}
                         onChange={(e) => handleEmailChange(e.target.value)}
-                        onBlur={() => handleBlur('admin_email')}
+                        onBlur={() => handleBlur('admin_email', adminEmail)}
                       />
                       {touched.admin_email && liveErrors.admin_email && (
                         <span className={styles.errorText}>{liveErrors.admin_email}</span>
@@ -966,7 +1106,7 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                           placeholder="Minimal 8 karakter"
                           value={adminPassword}
                           onChange={(e) => setAdminPassword(e.target.value)}
-                          onBlur={() => handleBlur('admin_password')}
+                          onBlur={() => handleBlur('admin_password', adminPassword)}
                           autoComplete="new-password"
                         />
                         <button
@@ -985,29 +1125,8 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                     </div>
                   </div>
 
-                  {/* Terms Agreement: signup stays closed until the owner publishes both documents */}
-                  {legalReady ? (
-                    <label className={styles.termsAgreement} htmlFor="agree-terms">
-                      <input
-                        id="agree-terms"
-                        type="checkbox"
-                        className={styles.termsCheckbox}
-                        checked={agreeTerms}
-                        onChange={(e) => setAgreeTerms(e.target.checked)}
-                      />
-                      <span className={styles.termsText}>
-                        Saya menyetujui{' '}
-                        <a href={platformSettings.terms_url} target="_blank" rel="noopener noreferrer">
-                          Syarat & Ketentuan
-                        </a>{' '}
-                        dan{' '}
-                        <a href={platformSettings.privacy_url} target="_blank" rel="noopener noreferrer">
-                          Kebijakan Privasi
-                        </a>{' '}
-                        KlikUmroh.
-                      </span>
-                    </label>
-                  ) : settingsFailed ? (
+                  {/* Legal documents: signup stays closed until the owner publishes both (consent text sits under the button) */}
+                  {legalReady ? null : settingsFailed ? (
                     // The settings request failed: never claim the documents are missing; offer a retry.
                     <div className={styles.alertError} role="alert">
                       <AlertCircle size={18} />
@@ -1028,40 +1147,47 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
                     )
                   )}
 
-                  {/* Continue to Payment Button */}
-                  <button
-                    id="checkout-submit-btn"
-                    type="submit"
-                    className={styles.submitBtn}
-                    disabled={submitting || !legalReady}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={17} className={styles.spinner} />
-                        <span>Memproses...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Lanjut ke pembayaran</span>
-                        <ArrowRight size={17} />
-                      </>
-                    )}
-                  </button>
+                  <div className={styles.ctaGroup}>
+                    {/* Continue to Payment Button */}
+                    <button
+                      id="checkout-submit-btn"
+                      type="submit"
+                      className={styles.submitBtn}
+                      disabled={submitting || !legalReady}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={17} className={styles.spinner} />
+                          <span>Memproses...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Lanjut ke pembayaran</span>
+                          <ArrowRight size={17} />
+                        </>
+                      )}
+                    </button>
 
-                  {/* Trust Points */}
-                  <div className={styles.trustPoints}>
-                    <div className={styles.trustItem}>
-                      <Zap size={13} className={styles.trustIcon} />
-                      <span className={styles.trustText}>Aktivasi akun travel instan setelah verifikasi</span>
-                    </div>
-                    <div className={styles.trustItem}>
-                      <Database size={13} className={styles.trustIcon} />
-                      <span className={styles.trustText}>Data travel terisolasi aman per akun</span>
-                    </div>
-                    <div className={styles.trustItem}>
-                      <ShieldCheck size={13} className={styles.trustIcon} />
-                      <span className={styles.trustText}>Didampingi tim KlikUmroh sampai aktif</span>
-                    </div>
+                    {/* Money-back guarantee, one line directly under the CTA */}
+                    <p className={styles.guarantee}>
+                      <ShieldCheck size={16} className={styles.guaranteeIcon} aria-hidden="true" />
+                      <span>Garansi 14 hari uang kembali 100%</span>
+                    </p>
+
+                    {/* Consent by submitting (the backend contract has no terms field) */}
+                    {legalReady && (
+                      <p className={styles.consentText}>
+                        Dengan mendaftar, Anda menyetujui{' '}
+                        <a href={platformSettings.terms_url} target="_blank" rel="noopener noreferrer">
+                          S&K
+                        </a>{' '}
+                        dan{' '}
+                        <a href={platformSettings.privacy_url} target="_blank" rel="noopener noreferrer">
+                          Kebijakan Privasi
+                        </a>
+                        .
+                      </p>
+                    )}
                   </div>
 
                   {/* Existing Account Prompt */}
@@ -1096,6 +1222,9 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
             }}
             couponLoading={couponLoading}
             couponError={couponError}
+            planChooserOpen={planChooserOpen}
+            onTogglePlanChooser={() => setPlanChooserOpen((open) => !open)}
+            onClosePlanChooser={() => setPlanChooserOpen(false)}
           />
         </div>
       </main>
