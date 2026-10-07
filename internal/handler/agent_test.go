@@ -1316,6 +1316,9 @@ func TestAgentHandler_DashboardSummary(t *testing.T) {
 		if summary.ReferralLink != "https://travela.example.com/ref/AGENTAAA" {
 			t.Errorf("expected referral link 'https://travela.example.com/ref/AGENTAAA', got '%s'", summary.ReferralLink)
 		}
+		if summary.RecruitLink != "https://travela.example.com/agen/daftar?ref=AGENTAAA" {
+			t.Errorf("expected recruit link 'https://travela.example.com/agen/daftar?ref=AGENTAAA', got '%s'", summary.RecruitLink)
+		}
 	})
 
 	// Sub-test 3: Leaderboard ranking with 3 agents with 5, 3, 8 closing jamaah

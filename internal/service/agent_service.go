@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net/mail"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -222,6 +223,7 @@ type AgentDashboardSummary struct {
 	Targets             []AgentTargetView             `json:"targets"`
 	MinimumPayoutAmount *float64                      `json:"minimum_payout_amount"`
 	ReferralLink        string                        `json:"referral_link"`
+	RecruitLink         string                        `json:"recruit_link"` // agent sign-up page with ?ref=<code>: the friend is linked to this agent as upline
 	FunnelRingkasan     repository.AgentFunnelSummary `json:"funnel_ringkasan"`
 	LeaderboardPreview  LeaderboardPreview            `json:"leaderboard_preview"`
 	PhotoURL            *string                       `json:"photo_url"`
@@ -776,11 +778,8 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 		targets = []AgentTargetView{}
 	}
 
-	protocol := "https://"
-	if strings.HasPrefix(host, "localhost") || strings.HasPrefix(host, "127.0.0.1") {
-		protocol = "http://"
-	}
-	refLink := fmt.Sprintf("%s%s/ref/%s", protocol, host, agent.ReferralCode)
+	refLink := fmt.Sprintf("%s%s/ref/%s", linkScheme(host), host, agent.ReferralCode)
+	recruitLink := fmt.Sprintf("%s%s/agen/daftar?ref=%s", linkScheme(host), host, url.QueryEscape(agent.ReferralCode))
 
 	return &AgentDashboardSummary{
 		Name:                agent.Name,
@@ -795,6 +794,7 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 		Targets:             targets,
 		MinimumPayoutAmount: tenant.MinimumPayoutAmount,
 		ReferralLink:        refLink,
+		RecruitLink:         recruitLink,
 		FunnelRingkasan:     *funnel,
 		LeaderboardPreview: LeaderboardPreview{
 			RankSaya:  rankSaya,
@@ -2217,4 +2217,18 @@ func rejectionReasonOf(p repository.CommissionPayoutRequest) *string {
 		return nil
 	}
 	return nonBlank(p.RejectionReason)
+}
+
+// linkScheme is the scheme of links to the travel website: http only for a local development host
+// (localhost, 127.0.0.1 or a travel subdomain of localhost such as ibrahim.localhost:3000, which has no
+// TLS), https everywhere else.
+func linkScheme(host string) string {
+	h := strings.ToLower(host)
+	if i := strings.LastIndex(h, ":"); i >= 0 && !strings.Contains(h[i:], "]") {
+		h = h[:i]
+	}
+	if h == "localhost" || h == "127.0.0.1" || strings.HasSuffix(h, ".localhost") {
+		return "http://"
+	}
+	return "https://"
 }

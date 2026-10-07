@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"klikumroh/internal/repository"
@@ -111,6 +112,12 @@ type domainService struct {
 	staff  StaffLister
 	// now is the clock of the daily job (tests advance it, see SetClock).
 	now func() time.Time
+
+	// Cached lookup of the platform addresses (see PlatformIPs): a live DNS lookup on every request made
+	// the Domain tab wait for DNS, up to seconds when the name does not resolve.
+	ipMu      sync.Mutex
+	ipCache   []string
+	ipExpires time.Time
 }
 
 // SetClock replaces the clock used by the daily DNS job (tests only).
@@ -290,15 +297,30 @@ func (s *domainService) PlatformIPs() []string {
 		}
 		return ips
 	}
+	s.ipMu.Lock()
+	defer s.ipMu.Unlock()
+	now := s.clock()
+	if now.Before(s.ipExpires) {
+		return append([]string(nil), s.ipCache...)
+	}
 	resolved, err := s.resolver.LookupIP(ExpectedCNAMETarget)
 	if err != nil {
+		// A failed lookup is remembered briefly too, so a name that does not resolve is not retried per request.
+		s.ipCache, s.ipExpires = nil, now.Add(platformIPFailTTL)
 		return nil
 	}
 	for _, ip := range resolved {
 		ips = append(ips, ip.String())
 	}
-	return ips
+	s.ipCache, s.ipExpires = ips, now.Add(platformIPTTL)
+	return append([]string(nil), ips...)
 }
+
+// How long PlatformIPs keeps a resolved (or failed) lookup of cname.klikumroh.id.
+const (
+	platformIPTTL     = 10 * time.Minute
+	platformIPFailTTL = time.Minute
+)
 
 // cnameOK reports whether hostname points to the platform: a CNAME to cname.klikumroh.id (subdomains such
 // as www.namatravel.com), or, for a root domain that cannot have a CNAME, A/AAAA records that all point to
