@@ -1,0 +1,77 @@
+{
+  "slug": "pilar-4-agen",
+  "title": "Pilar 4: Agen mengajak agen",
+  "summary": "Memakai jaringan agen yang sudah aktif untuk mengenalkan program ke lingkaran mereka, dengan batasan hukum yang ketat.",
+  "order": 6,
+  "blocks": [
+    { "type": "paragraph", "text": "Setelah ada agen yang aktif, sebagian dari mereka akan mengajak teman atau kerabat yang cocok. Pilar ini tumbuh dari basis yang sudah ada, jadi biayanya paling kecil. Ini juga pilar yang paling dekat dengan batas hukum. Baca bagian batasan dengan teliti sebelum menjalankannya." },
+
+    { "type": "heading", "text": "Mulai hanya kalau basisnya ada" },
+    { "type": "checklist", "items": [
+      "Sudah ada 150 sampai 300 agen terdaftar, dan sebagian sudah memasukkan prospek.",
+      "Ada agen yang sudah mendapat jamaah lunas, sehingga ada cerita nyata yang bisa dibagikan.",
+      "Pembayaran komisi sudah berjalan tepat waktu. Agen yang belum merasakan komisi tidak akan mengajak orang lain.",
+      "Tim Anda sanggup menyapa dan menyetujui pendaftar baru dalam 24 jam."
+    ] },
+
+    { "type": "heading", "text": "Batasan hukum yang tidak boleh dilanggar" },
+    { "type": "paragraph", "text": "Peraturan Menteri Agama Nomor 8 Tahun 2018 melarang penjualan paket umroh dengan skema berjenjang, MLM, atau ponzi. Pilar ini aman hanya kalau uang yang mengalir berasal dari jamaah yang benar-benar berangkat, bukan dari merekrut orang." },
+    { "type": "steps", "items": [
+      "Tidak ada biaya masuk atau setoran dari agen baru yang menjadi penghasilan agen yang mengajak.",
+      "Tidak ada imbalan hanya karena merekrut. Imbalan selalu dikaitkan dengan jamaah yang lunas dan berangkat.",
+      "Tidak ada imbalan per kepala atas rekrutan. Hadiah apresiasi di target Agen baru direkrut hanya diberikan sekali di akhir periode setelah target tercapai, bernilai moderat, dan tidak dijadikan alasan utama mengajak orang bergabung.",
+      "Tidak ada lebih dari satu tingkat. Agen tidak mendapat apa pun dari rekrutan rekrutannya.",
+      "Tidak ada kewajiban merekrut untuk tetap menjadi agen atau naik peringkat."
+    ] },
+    { "type": "paragraph", "text": "Beberapa travel memakai skema imbalan pembinaan satu tingkat atas jamaah lunas dari agen binaan. Itu pilihan yang tersedia di pengaturan, tapi berada di area yang bisa ditafsirkan berbeda oleh regulator. Kalau Anda mengaktifkannya, batasi hanya satu tingkat, hanya dari jamaah lunas, dan konsultasikan dulu dengan penasihat hukum Anda. Kalau ragu, jangan aktifkan. Pilar 4 tetap bisa berjalan tanpa itu." },
+
+    { "type": "heading", "text": "Mengatur imbalan di dashboard" },
+    { "type": "paragraph", "text": "Aturan komisi ada di menu Pengaturan, bagian Aturan agen. Di sana Anda memilih apakah imbalan satu tingkat dari agen binaan aktif, dan berapa persennya. Persentase itu berlaku untuk semua agen. Nilainya dihitung dari komisi agen rekrutan dan dibayar travel sebagai tambahan, tanpa memotong komisi agen rekrutan, dan bukan dari pendaftaran agen. Agen hanya melihat komisinya sendiri, tanpa melihat komisi atasannya." },
+
+    { "type": "heading", "text": "Program ajakan 30 hari" },
+    { "type": "paragraph", "text": "Buat ajakan sederhana yang bisa ditolak tanpa beban. Contoh: dalam 30 hari, agen yang punya teman atau kerabat yang memang berminat boleh membagikan tautan pendaftaran mereka." },
+    { "type": "steps", "items": [
+      "Umumkan di kanal agen Anda, jelaskan bahwa ini ajakan, bukan target.",
+      "Bagikan template pesan di bawah supaya agen tidak canggung.",
+      "Beranda portal agen punya banner Ajak teman jadi agen dengan tombol Salin tautan ajakan dan Kirim lewat WhatsApp. Tautannya membawa kode agen, jadi kode perekrut terisi otomatis di formulir pendaftaran dan Anda tahu siapa yang mengajak. Tunjukkan banner ini ke agen, dan pakai template pesan di bawah sebagai contoh kalimat.",
+      "Sebut hanya manfaat yang nyata: bimbingan, materi siap pakai, dan komisi per jamaah yang lunas.",
+      "Setelah 30 hari, umumkan hasil dengan rendah hati dan beri apresiasi lewat ucapan terima kasih, dan lewat hadiah apresiasi dari target Agen baru direkrut kalau Anda membuatnya. Hadiah itu bukan per rekrutan."
+    ] },
+    { "type": "template", "text": "Assalamu'alaikum [Nama]. Saya sekarang menjadi mitra [Nama Travel] (PPIU berizin Kemenhaj [nomor]). Di sini kita dibimbing dari awal, materi promosi disiapkan, dan komisi diberikan atas setiap jamaah yang lunas dan berangkat. Kalau kamu atau keluarga berminat, ini tautan pendaftarannya: [tautan pendaftaran agen saya]. Tidak ada kewajiban, silakan lihat dulu. Kalau ada yang ingin ditanyakan, kabari saya ya." },
+
+    { "type": "heading", "text": "Reward yang aman" },
+    { "type": "paragraph", "text": "Reward utama tetap dikaitkan dengan prestasi jamaah. Hadiah apresiasi untuk rekrutan boleh ada sebagai tambahan kecil, dan tidak menggantikan reward utama:" },
+    { "type": "steps", "items": [
+      "Reward berdasarkan jumlah jamaah lunas dari agen itu sendiri dalam satu periode.",
+      "Pengakuan terbuka untuk agen yang aktif membimbing agen baru sampai mereka mendapat jamaah pertamanya, tanpa angka rekrutan.",
+      "Prioritas pembagian prospek dari iklan pusat untuk agen yang paling responsif dan terbukti menindaklanjuti dengan baik. Dasarkan pada kinerja menindaklanjuti, bukan pada jumlah rekrutan."
+    ] },
+    { "type": "paragraph", "text": "Menu Target & reward bisa dipakai untuk mengatur target Jamaah closing beserta hadiahnya. Yang dihitung adalah saat prospek menjadi Closing, jadi periksa kelunasan sebelum hadiah diberikan. Target Agen baru direkrut juga tersedia dan kolom hadiahnya wajib diisi. Pakai sebagai apresiasi atas ikhtiar mengenalkan program: bernilai moderat, diberikan sekali di akhir periode, dan tidak dijanjikan kepada calon agen sebagai alasan bergabung. Detailnya di halaman Target dan reward." },
+
+    { "type": "heading", "text": "Menjaga agar jaringan tetap sehat" },
+    { "type": "steps", "items": [
+      "Jangan menilai agen dari jumlah rekrutannya. Nilai dari prospek yang dimasukkan dan jamaah yang lunas.",
+      "Tegur agen yang menjanjikan penghasilan kepada calon agen, atau yang menekan temannya. Satu laporan keluhan cukup untuk merusak kepercayaan.",
+      "Hentikan agen yang menerima uang jamaah ke rekening pribadi. Itu pelanggaran paling berat dan harus diputus.",
+      "Perhatikan agen yang hanya merekrut tapi tidak pernah memasukkan prospek. Itu tanda program berubah arah dari menjual umroh menjadi merekrut."
+    ] },
+
+    { "type": "heading", "text": "Perkiraan hasil" },
+    { "type": "paragraph", "text": "Sebagai gambaran perencanaan: kalau ada sekitar 800 agen terdaftar dan sekitar satu dari empat mengajak satu orang yang mendaftar, hasilnya sekitar 200 agen baru. Itu perkiraan, bukan janji, dan angka travel Anda mungkin lebih rendah. Hitung dari data Anda sendiri setelah 30 hari." },
+
+    { "type": "heading", "text": "Mengukur" },
+    { "type": "checklist", "items": [
+      "Berapa agen yang membagikan tautan pendaftaran mereka.",
+      "Berapa pendaftar baru yang memakai kode agen, dan berapa yang disetujui. Lihat di daftar agen (kolom Rekrutan) dan di detail agen (bagian Agen yang diajak). Target Agen baru direkrut di menu Target & reward juga menghitung rekrutan yang disetujui per agen dalam satu periode.",
+      "Berapa dari agen baru itu yang memasukkan prospek pertama dalam 14 hari.",
+      "Keluhan terkait perilaku agen, dan bagaimana ditangani."
+    ] },
+
+    { "type": "heading", "text": "Hentikan atau tinjau ulang jika" },
+    { "type": "checklist", "items": [
+      "Ada agen yang menjanjikan penghasilan atau menarik biaya dari calon agen.",
+      "Jumlah agen naik tapi jumlah prospek dan jamaah lunas tidak ikut naik.",
+      "Antrean pendaftaran menumpuk lebih dari satu hari kerja."
+    ] }
+  ]
+}

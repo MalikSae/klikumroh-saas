@@ -1,0 +1,83 @@
+{
+  "slug": "pilar-2-iklan",
+  "title": "Pilar 2: Iklan berbayar",
+  "summary": "Menjaring calon agen dari orang yang belum mengenal travel Anda lewat Meta Ads. Mulai kecil, ukur, baru naikkan.",
+  "order": 4,
+  "blocks": [
+    { "type": "paragraph", "text": "Iklan membuka jalur ke orang yang belum mengenal travel Anda. Ini pilar yang paling mudah diskalakan, tapi juga yang paling mudah membakar anggaran. Target perencanaan di panduan ini sekitar 400 agen terdaftar. Anggap itu batas atas, bukan rencana dasar. Mulailah dengan pengujian kecil." },
+
+    { "type": "heading", "text": "Syarat sebelum iklan pertama" },
+    { "type": "checklist", "items": [
+      "Pilar 1 dan Pilar 3 sudah jalan, sehingga ada agen nyata dan cerita nyata untuk ditampilkan.",
+      "Halaman daftar agen sudah menampilkan izin PPIU, penjelasan komisi, dan apa yang didapat agen.",
+      "Ada orang yang bertugas menyetujui dan menyapa pendaftar baru dalam 24 jam.",
+      "Keputusan biaya pendaftaran agen sudah final. Kalau berbayar, jangan memakai kata gratis di iklan.",
+      "Komisi per jamaah sudah dihitung dari margin riil paket."
+    ] },
+    { "type": "paragraph", "text": "Jangan menjalankan iklan sebelum kapasitas menyapa pendaftar siap. Iklan yang berhasil tapi pendaftarnya tidak dihubungi adalah penyebab paling sering target rekrutmen meleset." },
+
+    { "type": "heading", "text": "Ke mana iklan mengarah" },
+    { "type": "steps", "items": [
+      "Halaman daftar agen travel Anda (disarankan). Pendaftar langsung muncul di menu Agen, tab Pendaftaran, lengkap dengan status. Tidak ada data yang tercecer.",
+      "Formulir di dalam Facebook atau Instagram (Lead Form). Volume banyak dan murah, tapi kualitasnya campur dan datanya berada di luar dashboard. Butuh tim yang cepat menghubungi.",
+      "Pesan langsung ke WhatsApp (Click-to-WhatsApp). Terasa akrab, tapi tidak tercatat di dashboard dan kewalahan kalau lonjakan datang. Datanya harus Anda catat sendiri."
+    ] },
+    { "type": "paragraph", "text": "Mulai dengan halaman daftar agen. Pilihan lain bisa Anda uji kemudian, setelah tim terbiasa dengan arus pendaftar." },
+
+    { "type": "heading", "text": "Pengaturan kampanye" },
+    { "type": "steps", "items": [
+      "Tujuan kampanye: pilih yang mengoptimalkan kunjungan ke halaman daftar agen atau pendaftaran, bukan klik biasa.",
+      "Lokasi: nasional atau kota tingkat 2 dan 3 yang punya basis jamaah umroh kuat. Mulai dari 3 sampai 5 kota, bukan seluruh Indonesia.",
+      "Minat: pilih beberapa yang luas dan relevan, misalnya haji dan umroh, majelis taklim dan komunitas muslim, atau bisnis syariah. Jangan menumpuk banyak minat sempit. Biarkan sistem Meta menjangkau yang lebih jauh.",
+      "Tenaga utama ada di materi iklan: hook, judul, dan visual. Itu yang paling menentukan siapa yang tertarik."
+    ] },
+
+    { "type": "heading", "text": "Tiga arah hook" },
+    { "type": "paragraph", "text": "Uji ketiganya dengan anggaran yang sama dan lihat mana yang membawa pendaftar terbaik, bukan klik terbanyak." },
+    { "type": "template", "text": "Punya banyak teman yang ingin umroh tapi bingung memilih travel yang pasti berangkat dan berizin resmi? Jadilah mitra [Nama Travel]. Izin PPIU [nomor], materi promosi disiapkan, dan Anda dibimbing dari awal. Daftar sebagai mitra: [tautan halaman daftar agen]" },
+    { "type": "template", "text": "Membantu orang berangkat ke Baitullah adalah amal yang berlanjut. Jadilah jembatan keberangkatan bersama [Nama Travel], travel berizin resmi. Komisi diberikan atas setiap jamaah yang lunas dan berangkat. Pelajari programnya: [tautan halaman daftar agen]" },
+    { "type": "template", "text": "Ingin punya kegiatan tambahan dari rumah yang sejalan dengan nilai Anda? [Nama Travel] membuka kemitraan pemasaran umroh. Tidak perlu stok barang, materi disediakan, dan ada pendampingan. Lihat syaratnya: [tautan halaman daftar agen]" },
+    { "type": "paragraph", "text": "Hindari janji penghasilan dalam iklan, termasuk kalimat seperti penghasilan belasan juta. Selain mendekati klaim yang dilarang, Meta juga membatasi iklan peluang penghasilan dan bisa menolak iklan Anda. Sebut apa yang didapat agen, bukan berapa yang dijamin." },
+
+    { "type": "heading", "text": "Anggaran dan cara menghitungnya" },
+    { "type": "steps", "items": [
+      "Uji dulu: Rp1 sampai 2 juta selama 3 hari, dua atau tiga materi iklan.",
+      "Catat tiga angka: biaya per kunjungan halaman daftar, biaya per pendaftar, biaya per pendaftar yang disetujui.",
+      "Hitung biaya per agen aktif: total anggaran dibagi jumlah agen yang sudah memasukkan prospek pertama.",
+      "Bandingkan dengan laba bersih rata-rata satu jamaah dari agen (harga jual dikurangi biaya dan komisi). Kalau biaya per agen aktif jauh di bawah itu, funnel sehat dan boleh dinaikkan. Kalau mendekati atau melebihi, perbaiki materi iklan atau halaman daftar dulu."
+    ] },
+    { "type": "paragraph", "text": "Sebagai gambaran perencanaan saja: kalau 20 dari 100 pengunjung halaman daftar menyelesaikan formulir, dan 7 dari 10 pendaftar disetujui, maka untuk 400 agen terdaftar dibutuhkan sekitar 2.900 pengunjung. Angka ini asumsi. Ganti dengan angka dari pengujian Anda sendiri." },
+
+    { "type": "heading", "text": "Mengukur dari mana pendaftar datang" },
+    { "type": "paragraph", "text": "Pendaftaran agen di dashboard saat ini tidak mencatat sumber iklan secara otomatis, dan tidak ada kejadian Meta khusus untuk pendaftaran agen. Karena itu ukurannya sedikit manual:" },
+    { "type": "steps", "items": [
+      "Tambahkan satu pertanyaan di sapaan pertama ke pendaftar baru: tahu program ini dari mana.",
+      "Bandingkan jumlah pendaftar baru per hari saat iklan aktif dengan saat iklan dimatikan.",
+      "Jalankan satu kampanye pada satu waktu selama pengujian, supaya pendaftar mudah dikaitkan dengan iklannya.",
+      "Catat angka harian di lembar kerja sederhana: anggaran, pengunjung, pendaftar, disetujui."
+    ] },
+
+    { "type": "heading", "text": "Kapan menaikkan, menahan, atau berhenti" },
+    { "type": "steps", "items": [
+      "Naikkan anggaran bertahap, tidak lebih dari sekitar 20 persen sekali naik, selama biaya per agen aktif tetap sehat.",
+      "Tahan kalau antrean pendaftaran yang belum disapa lebih dari 50 atau lebih dari satu hari kerja. Matikan iklan sampai antrean habis.",
+      "Hentikan materi yang biaya per pendaftar-nya terus lebih tinggi dari yang lain setelah cukup data, biasanya setelah beberapa hari.",
+      "Perbaiki halaman daftar sebelum menaikkan anggaran kalau banyak pengunjung tidak menyelesaikan formulir."
+    ] },
+
+    { "type": "heading", "text": "Hal yang dihindari" },
+    { "type": "steps", "items": [
+      "Janji penghasilan, jumlah komisi sebagai jaminan, atau kata mudah kaya.",
+      "Kata gratis kalau ada biaya pendaftaran agen.",
+      "Memotong harga paket atau memberi diskon di iklan agen. Harga paket tetap sesuai harga resmi.",
+      "Menaikkan anggaran besar sekaligus sebelum tim siap menyapa pendaftar."
+    ] },
+
+    { "type": "heading", "text": "Lanjut ke pilar berikutnya jika" },
+    { "type": "checklist", "items": [
+      "Anda punya biaya per agen aktif dari data nyata, bukan perkiraan.",
+      "Antrean pendaftaran tidak menumpuk lebih dari satu hari kerja.",
+      "Ada cukup agen aktif yang bisa menjadi cerita dan contoh untuk Pilar 4 (agen mengajak agen)."
+    ] }
+  ]
+}

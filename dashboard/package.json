@@ -17,7 +17,8 @@
     "test:session-texts": "node --experimental-strip-types test/tab-session-texts.test.mjs",
     "test:list-forms": "node --experimental-strip-types test/list-and-forms.test.mjs",
     "test:session-ledger": "node --experimental-strip-types test/session-ledger-filters.test.mjs",
-    "test:round5": "node --experimental-strip-types test/round5.test.mjs"
+    "test:round5": "node --experimental-strip-types test/round5.test.mjs",
+    "test:playbook-vars": "node --experimental-strip-types test/playbook-vars.test.mjs"
   },
   "dependencies": {
     "@fontsource/instrument-serif": "^5.3.0",

@@ -1,0 +1,85 @@
+{
+  "slug": "pantau-perbaiki",
+  "title": "Pantau dan perbaiki",
+  "summary": "Angka apa yang dilihat tiap minggu, tanda bahaya di hari 30, 60, dan 80, dan cara menemukan bagian yang macet.",
+  "order": 9,
+  "blocks": [
+    { "type": "paragraph", "text": "Jaringan agen jarang gagal karena satu hal besar. Biasanya ada satu tahap yang macet, dan tahap lainnya tampak baik-baik saja. Halaman ini membantu Anda menemukan tahap itu dengan angka yang sudah tersedia di dashboard, lalu memperbaikinya satu per satu. Luangkan sekitar 15 menit setiap minggu pada hari yang sama." },
+
+    { "type": "heading", "text": "Dua pertanyaan dasar" },
+    { "type": "steps", "items": [
+      "Berapa agen yang sudah terdaftar dan disetujui?",
+      "Berapa dari mereka yang benar-benar bergerak, yaitu memasukkan prospek dan menghasilkan jamaah?"
+    ] },
+    { "type": "paragraph", "text": "Jumlah agen terdaftar yang besar tanpa agen yang bergerak tidak menambah jamaah. Karena itu keduanya selalu dilihat bersamaan." },
+
+    { "type": "heading", "text": "Di mana melihat angkanya" },
+    { "type": "steps", "items": [
+      "Menu Agen, bagian Jaringan agen: Terdaftar (agen yang disetujui dan aktif), Aktif (aktif dalam 7 hari terakhir sesuai kebiasaan harian), Produktif (membawa prospek atau closing dalam 30 hari), dan Jamaah closing dalam 30 hari beserta jumlah prospeknya.",
+      "Menu Agen, daftar agen: per agen ada klik 30 hari, jumlah rekrutan yang sudah disetujui (dan yang masih menunggu), prospek, jamaah closing, konversi, komisi, syiar 7 hari, lencana, dan waktu prospek terakhir. Urutkan atau saring untuk menemukan yang diam.",
+      "Menu Agen, tab Pendaftaran: berapa pendaftar yang menunggu persetujuan.",
+      "Menu Kanal: membandingkan prospek dari website, iklan, dan agen.",
+      "Menu Target & reward: progres tiap agen terhadap target yang sedang berjalan. Target Agen baru direkrut menghitung, per agen, rekrutan yang mendaftar dalam satu periode dan sudah disetujui. Itu mengukur agen yang mengajak agen (Pilar 3 dan 4), bukan seluruh pendaftar dari iklan atau alumni. Detail agen juga punya bagian Agen yang diajak.",
+      "Beranda: ringkasan agen untuk pemeriksaan cepat."
+    ] },
+
+    { "type": "heading", "text": "Arti istilah di dashboard dan di panduan ini" },
+    { "type": "paragraph", "text": "Di panduan ini, agen terdaftar berarti Terdaftar di dashboard. Agen yang bergerak paling mendekati Produktif di dashboard (prospek atau closing dalam 30 hari). Aktif di dashboard berarti rajin memakai kebiasaan harian di portal, yang bagus tapi tidak selalu berarti membawa prospek. Gunakan Produktif sebagai ukuran utama." },
+
+    { "type": "heading", "text": "Ritme mingguan (15 menit)" },
+    { "type": "checklist", "items": [
+      "Catat angka minggu ini: Terdaftar, Produktif, Jamaah closing, dan pendaftar yang masih menunggu.",
+      "Bandingkan dengan minggu lalu. Naik, turun, atau datar?",
+      "Periksa antrean pendaftaran. Tidak ada yang menunggu lebih dari satu hari kerja.",
+      "Lihat agen yang pernah produktif tapi sudah lama tidak memasukkan prospek. Satu pesan personal sering cukup.",
+      "Lihat target yang sedang berjalan dan target yang sudah lewat periodenya tapi belum diakhiri. Akhiri dan tandai hadiah yang diberikan.",
+      "Pilih satu hal untuk diperbaiki minggu depan. Hanya satu."
+    ] },
+    { "type": "template", "text": "Ringkasan minggu [tanggal]. Terdaftar: [angka] (minggu lalu [angka]). Produktif 30 hari: [angka]. Jamaah closing 30 hari: [angka]. Pendaftar menunggu: [angka]. Pilar yang jalan: [nama]. Pilar yang tertinggal: [nama]. Satu perbaikan minggu depan: [tindakan]." },
+
+    { "type": "heading", "text": "Tanda bahaya hari 30, 60, dan 80" },
+    { "type": "paragraph", "text": "Angka ini patokan perencanaan untuk target 1.000 agen terdaftar dalam 100 hari. Ganti dengan target travel Anda sendiri kalau lebih kecil." },
+    { "type": "steps", "items": [
+      "Hari 30: kurang dari sekitar 150 agen terdaftar.",
+      "Hari 60: kurang dari sekitar 450.",
+      "Hari 80: kurang dari sekitar 600."
+    ] },
+    { "type": "paragraph", "text": "Kalau angka di bawah patokan, jangan menambah pilar baru. Cari pilar yang tertinggal dari data sumber pendaftar (pertanyaan di sapaan pertama) dan perbaiki yang itu. Menambah pilar sebelum satu pilar terbukti hanya membagi tenaga." },
+
+    { "type": "heading", "text": "Mencari tahap yang macet" },
+    { "type": "paragraph", "text": "Telusuri dari depan ke belakang. Berhenti di tahap pertama yang angkanya jelek. Itu yang diperbaiki dulu." },
+    { "type": "steps", "items": [
+      "Pendaftar sedikit. Periksa sumbernya. Alumni: pesan dan data kontak. Iklan: materi, tujuan, dan halaman daftar. Tokoh: jumlah yang didekati dan kualitas materi yang mereka pegang. Lihat halaman pilar yang bersangkutan.",
+      "Pendaftar banyak tapi yang disetujui sedikit. Periksa syarat dan ketentuan, biaya pendaftaran, dan proses verifikasi bukti. Mungkin banyak yang tidak menyelesaikan atau ditolak karena alasan yang sama.",
+      "Agen disetujui banyak tapi yang produktif sedikit. Ini masalah aktivasi, bukan rekrutmen. Buka halaman Aktivasi agen baru, dan periksa apakah sapaan hari 0 dan langkah hari 1 sampai 7 benar-benar dijalankan.",
+      "Agen produktif banyak tapi jamaah closing sedikit. Prospek masuk tapi tidak menjadi jamaah. Periksa kecepatan menindaklanjuti prospek, kejelasan harga dan paket, dan kualitas jawaban atas keberatan.",
+      "Closing ada tapi agen mengeluh soal komisi. Periksa jadwal pencairan, ketepatan waktu, dan apakah status lunas ditandai tepat waktu. Agen yang tidak dibayar tepat waktu berhenti menjual.",
+      "Banyak agen berhenti setelah beberapa minggu. Tanyakan alasannya langsung ke beberapa agen. Jawaban yang sering muncul: tidak tahu harus mulai dari mana, tidak ada yang menjawab pertanyaan, atau komisi tidak jelas."
+    ] },
+
+    { "type": "heading", "text": "Aturan saat memperbaiki" },
+    { "type": "steps", "items": [
+      "Ubah satu hal pada satu waktu, supaya Anda tahu apa yang berhasil.",
+      "Catat tanggal dan apa yang diubah, dan lihat hasilnya setelah dua minggu.",
+      "Kalau perbaikan tidak membantu, kembalikan, jangan menumpuk perbaikan di atas yang belum jelas.",
+      "Jangan menaikkan hadiah sebagai jalan pintas. Hadiah yang terlalu besar mengundang agen yang hanya mengejar hadiah dan menekan margin Anda."
+    ] },
+
+    { "type": "heading", "text": "Tinjauan bulanan" },
+    { "type": "checklist", "items": [
+      "Biaya iklan per agen produktif, dibandingkan dengan laba bersih rata-rata satu jamaah dari agen (setelah komisi). Naikkan anggaran hanya kalau jauh lebih kecil.",
+      "Tokoh mana yang paling banyak mendatangkan prospek atau pendaftar. Beri perhatian lebih dan cari yang serupa.",
+      "Total komisi yang tertahan dan yang siap dicairkan, dibandingkan dengan arus kas. Pastikan Anda sanggup membayarnya tepat waktu.",
+      "Keluhan terkait perilaku agen: janji penghasilan, potongan harga, atau uang jamaah yang tidak lewat rekening resmi. Tindak tegas.",
+      "Apakah komisi dan reward masih sehat terhadap margin paket. Hitung ulang kalau harga atau biaya berubah."
+    ] },
+
+    { "type": "heading", "text": "Kapan menambah waktu atau menghentikan" },
+    { "type": "steps", "items": [
+      "Kalau tahap yang macet sudah ditemukan dan sedang diperbaiki, tambah waktu. Perpanjang jadwal ke 150 hari lebih sehat daripada memaksakan target.",
+      "Kalau ada agen terdaftar tetapi hampir tidak ada yang produktif setelah dua bulan, berhenti merekrut dan fokus pada aktivasi dulu.",
+      "Kalau muncul keluhan serius tentang cara agen menjanjikan penghasilan atau menerima uang, hentikan perekrutan sampai aturan ditegakkan."
+    ] },
+    { "type": "paragraph", "text": "Angka 1.000 agen adalah kerangka perencanaan, bukan jaminan. Hasil nyata bergantung pada konsistensi menjalankan sistem ini dan karakter jaringan travel Anda. Sesuaikan, catat apa yang berubah, dan jalankan versi Anda sendiri." }
+  ]
+}

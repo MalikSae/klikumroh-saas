@@ -18,6 +18,7 @@ import (
 
 	"klikumroh/internal/handler"
 	appMiddleware "klikumroh/internal/middleware"
+	"klikumroh/internal/playbook"
 	"klikumroh/internal/repository"
 	"klikumroh/internal/service"
 	"klikumroh/internal/util"
@@ -215,6 +216,11 @@ func main() {
 	teamHandler := handler.NewTeamHandler(teamService)
 	dashboardOverviewHandler := handler.NewDashboardOverviewHandler(dashboardOverviewService)
 	onboardingHandler := handler.NewOnboardingHandler(onboardingService)
+	playbookLibrary, err := playbook.Load()
+	if err != nil {
+		log.Fatalf("playbook content: %v", err)
+	}
+	playbookHandler := handler.NewPlaybookHandler(subscriptionService, playbookLibrary, service.NewPlaybookCheckService(repository.NewPlaybookCheckRepository(db)))
 	staffHandler := handler.NewStaffHandler(staffService)
 	accessLogHandler := handler.NewAccessLogHandler(accessLogService)
 	pricingPlanHandler := handler.NewPricingPlanHandler(pricingPlanService)
@@ -363,6 +369,7 @@ func main() {
 		// Team, Profile, Package, Prospect, Tenant, Content, Agent, Domain & Overview Dashboard Routes
 		dashboardOverviewHandler.RegisterDashboardRoutes(protected)
 		onboardingHandler.RegisterDashboardRoutes(protected)
+		playbookHandler.RegisterDashboardRoutes(protected)
 		teamHandler.RegisterDashboardRoutes(protected)
 		tenantHandler.RegisterDashboardRoutes(protected)
 		packageHandler.RegisterDashboardRoutes(protected)

@@ -1,0 +1,78 @@
+{
+  "slug": "aktivasi-agen",
+  "title": "Aktivasi agen baru",
+  "summary": "Tujuh hari pertama setelah agen disetujui. Di sinilah sebagian besar agen berhenti atau mulai bergerak.",
+  "order": 7,
+  "blocks": [
+    { "type": "paragraph", "text": "Mendapat agen terdaftar baru separuh pekerjaan. Masalah yang lebih besar adalah agen yang mendaftar lalu tidak pernah bergerak. Tujuh hari pertama menentukan banyak hal. Agen yang dalam seminggu sudah memasukkan prospek pertamanya jauh lebih mungkin bertahan daripada yang hanya membaca-baca." },
+
+    { "type": "heading", "text": "Yang sudah disiapkan di portal agen" },
+    { "type": "paragraph", "text": "Agen yang disetujui masuk ke portal agen travel Anda. Beberapa alat di dalamnya sudah mencakup sebagian besar kurikulum ebook, jadi Anda tidak perlu membuat materi dari awal:" },
+    { "type": "steps", "items": [
+      "Script chat: kumpulan balasan WhatsApp siap pakai, termasuk untuk menjawab keberatan umum calon jamaah.",
+      "Bank caption: teks siap pakai untuk status dan unggahan.",
+      "99 sumber jamaah: daftar tempat dan kelompok orang yang bisa didekati, dengan penanda progres.",
+      "Kebiasaan: lima kebiasaan harian tetap, hari dihitung aktif kalau minimal tiga selesai, dan deretan hari aktif ditampilkan.",
+      "Link referral (di Beranda dan Profil, lengkap dengan kode QR) dan menu Jamaah, tempat agen memasukkan dan memantau prospeknya."
+    ] },
+    { "type": "paragraph", "text": "Tugas Anda adalah mengarahkan agen memakai alat ini dengan urutan yang jelas, bukan menciptakan materi baru. Portal tidak mengirim pengingat otomatis, jadi sapaan dan dorongan dari tim Anda tetap dilakukan manual." },
+
+    { "type": "heading", "text": "Sapaan pertama (hari 0)" },
+    { "type": "paragraph", "text": "Kirim dalam 24 jam setelah agen disetujui. Personal, dari nomor staf Anda." },
+    { "type": "template", "text": "Assalamu'alaikum [Nama]. Alhamdulillah akun mitra Bapak/Ibu di [Nama Travel] sudah aktif. Selamat bergabung. Untuk seminggu pertama kami siapkan langkah singkat supaya Bapak/Ibu bisa mulai dengan tenang. Hari ini cukup masuk ke portal agen dan lihat-lihat dulu. Kalau ada yang membingungkan, balas pesan ini ya. Boleh kami tahu, Bapak/Ibu tahu program ini dari mana?" },
+    { "type": "paragraph", "text": "Pertanyaan terakhir sekaligus mencatat sumber pendaftar, yang berguna untuk mengukur Pilar 1 sampai 4." },
+
+    { "type": "heading", "text": "Tujuh hari pertama" },
+    { "type": "steps", "items": [
+      "Hari 1, niat dan etika. Kirim pesan singkat tentang tujuan menjadi agen: membantu orang berangkat ke Baitullah, bukan sekadar menjual. Tekankan amanah, jujur, dan tidak melebih-lebihkan fasilitas. Ini mengurangi rasa malu dan takut ditolak.",
+      "Hari 2, mengenal produk. Minta agen membuka halaman paket di website travel Anda dan bisa menjelaskan hotel dan jaraknya, maskapai, jenis visa, dan fasilitas, dengan kata-katanya sendiri. Kirim satu ringkasan paket yang paling sering ditanya.",
+      "Hari 3, menjawab keberatan. Arahkan agen ke Script chat dan minta membaca jawaban untuk keberatan paling umum: harga lebih mahal dari travel lain, ragu soal keamanan travel, dan mau tanya keluarga dulu.",
+      "Hari 4, mencoba berbagi. Minta agen menyalin satu caption dari Bank caption dan membagikan tautan referralnya sekali, misalnya ke satu grup keluarga.",
+      "Hari 5, daftar siapa yang didekati. Arahkan ke 99 sumber jamaah, dan minta agen menandai sumber yang paling dekat dengan dirinya. Atau minta menuliskan sekitar 50 nama yang ia kenal dan yang mungkin berniat umroh.",
+      "Hari 6, pengumuman perdana. Minta agen memasang satu status atau cerita dengan caption dari Bank caption, memakai tautan referralnya.",
+      "Hari 7, sepuluh pesan pertama. Minta agen mengirim pesan silaturahmi personal ke sepuluh orang dari daftarnya, memakai script dari Script chat, dan memasukkan siapa saja yang berminat lewat menu Jamaah di portal."
+    ] },
+    { "type": "paragraph", "text": "Satu langkah per hari, ditulis pendek, di kanal yang sama setiap hari. Jangan mengirim semua langkah sekaligus." },
+
+    { "type": "heading", "text": "Pesan harian yang ringan" },
+    { "type": "template", "text": "Assalamu'alaikum [Nama]. Langkah hari ini: [langkah singkat]. Waktunya sekitar 10 menit. Kalau sudah, kabari kami ya, dan kalau ada kendala, balas pesan ini." },
+
+    { "type": "heading", "text": "Memakai Kebiasaan" },
+    { "type": "paragraph", "text": "Halaman Kebiasaan di portal agen menunjukkan lima kebiasaan harian dan jumlah hari aktif berturut-turut. Itu cukup untuk membangun ritme tanpa Anda mengirim pengingat. Sebutkan di hari 4 supaya agen tahu fitur ini ada. Jangan menjadikannya syarat atau menekan agen yang streak-nya putus." },
+
+    { "type": "heading", "text": "Hari 7 dan 14: lihat siapa yang bergerak" },
+    { "type": "steps", "items": [
+      "Hari 7: lihat di menu Agen siapa yang sudah memasukkan prospek pertama dan siapa yang belum.",
+      "Untuk yang sudah memasukkan prospek: ucapkan terima kasih dan tanyakan apakah ada kendala menindaklanjuti.",
+      "Untuk yang belum: kirim satu pesan personal yang menanyakan kendalanya. Jangan menegur. Sering kali sebabnya canggung, bingung memulai, atau belum punya waktu.",
+      "Hari 14: ulangi. Agen yang sampai hari 14 belum memasukkan satu prospek pun tidak perlu dikejar terus. Beri satu kesempatan bertanya, lalu biarkan."
+    ] },
+    { "type": "template", "text": "Assalamu'alaikum [Nama]. Kami lihat Bapak/Ibu sudah seminggu bergabung. Apakah ada bagian yang membingungkan atau terasa sulit untuk dimulai? Kami senang membantu, dan tidak apa-apa kalau perlu waktu lebih. Silakan sampaikan saja." },
+
+    { "type": "heading", "text": "Menjaga semangat setelah minggu pertama" },
+    { "type": "steps", "items": [
+      "Pertemuan daring mingguan atau dua mingguan untuk bertanya jawab, kalau tim Anda sanggup. Ini kegiatan travel, bukan fitur dashboard.",
+      "Ceritakan kisah agen yang berhasil, dengan izin mereka. Cerita dari sesama agen lebih meyakinkan daripada ajakan dari pimpinan.",
+      "Leaderboard di portal agen menampilkan peringkat. Pakai sebagai pengakuan, bukan alat membandingkan atau mempermalukan.",
+      "Target di menu Target & reward tampil di Beranda portal agen. Target Jamaah closing yang kecil dan realistis untuk 30 hari pertama memberi agen baru sesuatu yang konkret untuk dikejar. Lihat halaman Target dan reward.",
+      "Tanggapi pertanyaan agen dengan cepat. Satu pertanyaan yang tak terjawab seminggu bisa menjadi alasan berhenti."
+    ] },
+
+    { "type": "heading", "text": "Batas yang berlaku sejak hari pertama" },
+    { "type": "steps", "items": [
+      "Pembayaran jamaah selalu ke rekening resmi travel, tidak pernah ke rekening pribadi agen.",
+      "Agen tidak memotong harga paket demi mendapat jamaah.",
+      "Agen tidak menjanjikan hal yang tidak ada di paket, dan tidak menjanjikan penghasilan kepada calon agen.",
+      "Sampaikan ini di sapaan awal atau hari 1, bukan setelah ada masalah."
+    ] },
+
+    { "type": "heading", "text": "Ukur" },
+    { "type": "checklist", "items": [
+      "Persentase agen baru yang memasukkan prospek pertama dalam 7 hari, dan dalam 14 hari.",
+      "Persentase agen baru yang masuk portal minimal sekali dalam 3 hari pertama.",
+      "Pertanyaan yang paling sering muncul di minggu pertama. Jawabannya patut masuk ke materi Anda.",
+      "Jumlah agen yang berhenti sebelum hari 14, dan alasan yang mereka sebutkan."
+    ] },
+    { "type": "paragraph", "text": "Gunakan angka travel Anda sendiri sebagai patokan. Kalau persentase agen yang memasukkan prospek dalam 14 hari rendah, perbaiki sapaan dan langkah hari 1 sampai 7 sebelum menambah jumlah agen baru." }
+  ]
+}

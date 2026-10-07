@@ -1,0 +1,30 @@
+{
+  "slug": "mulai",
+  "title": "Mulai di sini",
+  "summary": "Apa yang dihitung sebagai agen, bagaimana target dibagi, dan cara memakai panduan ini.",
+  "order": 1,
+  "blocks": [
+    { "type": "paragraph", "text": "Panduan ini membantu travel membangun jaringan agen secara bertahap. Angka di dalamnya adalah kerangka perencanaan, bukan jaminan hasil. Yang menentukan hasil adalah seberapa konsisten Anda menjalankannya." },
+    { "type": "heading", "text": "Yang dihitung sebagai agen" },
+    { "type": "paragraph", "text": "Ukur dua angka terpisah. Agen terdaftar adalah pendaftar yang sudah Anda setujui. Agen produktif adalah agen yang membawa prospek atau closing dalam 30 hari terakhir, sesuai istilah di dashboard. Target 1.000 yang realistis dalam 100 hari adalah agen terdaftar, bukan agen produktif." },
+    { "type": "heading", "text": "Pembagian target" },
+    { "type": "steps", "items": [
+      "Alumni jamaah: sekitar 100 agen. Sumber termurah dan paling dipercaya, mulai dari sini.",
+      "Tokoh dan majelis taklim: perkiraan optimistis sekitar 300 agen dari 15 tokoh, kira-kira 20 pendaftar per tokoh. Sebagian besar pengikut tokoh biasanya menjadi calon jamaah, bukan agen, jadi hitung dua hasil itu terpisah.",
+      "Iklan berbayar: sekitar 400 agen. Mulai dengan anggaran kecil untuk mengukur biaya per agen terdaftar.",
+      "Agen mengajak agen: sekitar 200 agen, tumbuh dari basis yang sudah ada."
+    ] },
+    { "type": "heading", "text": "Tanda bahaya" },
+    { "type": "paragraph", "text": "Jika agen terdaftar kurang dari 150 di hari 30, kurang dari 450 di hari 60, atau kurang dari 600 di hari 80, jangan menambah pilar baru. Cari pilar yang tertinggal dan perbaiki yang itu." },
+    { "type": "heading", "text": "Sebelum hari pertama" },
+    { "type": "checklist", "items": [
+      "Komisi per paket sudah dihitung mundur dari margin riil, bukan dari angka yang tampak menarik di brosur.",
+      "Halaman daftar agen sudah menampilkan izin PPIU dan penjelasan komisi.",
+      "Siapa yang menyetujui pendaftar baru dan batas waktunya (24 jam) sudah ditentukan.",
+      "Staf yang membalas calon agen sudah paham larangan skema berjenjang dan tidak menjanjikan penghasilan.",
+      "Keputusan biaya pendaftaran agen sudah final. Jika berbayar, jangan memakai kata gratis di materi mana pun."
+    ] },
+    { "type": "heading", "text": "Pesan pembuka untuk alumni" },
+    { "type": "template", "text": "Assalamu'alaikum Bapak/Ibu [Nama]. Semoga selalu dalam berkah dan kesehatan sepulang dari Baitullah. [Nama Travel] membuka program kemitraan khusus alumni. Bapak/Ibu dapat membantu saudara atau tetangga yang berniat umroh, dan mendapat komisi atas setiap jamaah yang berangkat melalui Bapak/Ibu. Berkenan kami kirimkan panduan singkatnya?" }
+  ]
+}

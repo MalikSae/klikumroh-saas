@@ -1,0 +1,85 @@
+{
+  "slug": "persiapan",
+  "title": "Persiapan sebelum hari 1",
+  "summary": "Keputusan dan pengaturan yang harus selesai sebelum mengajak orang pertama. Kekeliruan di sini mahal diperbaiki nanti.",
+  "order": 2,
+  "blocks": [
+    { "type": "paragraph", "text": "Sebagian besar masalah rekrutmen agen berasal dari persiapan yang terburu-buru: komisi yang ternyata tidak sehat, aturan yang tidak tertulis, atau pendaftar yang tidak ada yang menyapa. Kerjakan halaman ini sampai selesai sebelum mengirim pesan pertama atau menjalankan iklan." },
+
+    { "type": "heading", "text": "1. Putuskan empat hal dulu" },
+    { "type": "steps", "items": [
+      "Skema komisi: komisi tetap per jamaah saja, atau ditambah komisi override satu tingkat untuk perekrut. Kalau ragu, mulai dengan komisi tetap saja. Lihat Pilar 4 untuk batas hukumnya.",
+      "Biaya pendaftaran agen: gratis atau berbayar. Putuskan sekali dan konsisten. Kalau berbayar, jangan memakai kata gratis di materi mana pun.",
+      "Kapan komisi boleh dicairkan: setelah jamaah lunas, atau langsung saat DP. Setelah lunas lebih aman kalau jamaah batal.",
+      "Minimal pencairan: berapa saldo yang boleh diajukan. Kosongkan kalau tidak ingin ada batas."
+    ] },
+
+    { "type": "heading", "text": "2. Hitung komisi dari margin" },
+    { "type": "paragraph", "text": "Komisi dihitung mundur dari margin riil paket, bukan ditentukan dulu supaya tampak menarik di brosur. Kalau urutannya terbalik, arus kas travel yang menanggung akibatnya." },
+    { "type": "steps", "items": [
+      "Hitung margin riil satu paket setelah semua biaya: tiket, hotel, visa, transportasi, perlengkapan, dan operasional.",
+      "Tentukan komisi per jamaah dari bagian margin itu, dan sisakan margin yang cukup untuk operasional.",
+      "Kalau memakai override, tambahkan biayanya ke hitungan. Override dibayar travel di atas komisi agen rekrutan, bukan dipotong dari komisi itu.",
+      "Isi komisi di setiap paket, di menu Paket, kolom Komisi agen per jamaah. Komisi tidak boleh melebihi harga paket."
+    ] },
+    { "type": "paragraph", "text": "Paket tanpa komisi tidak memberi penghasilan kepada agen. Pastikan paket yang ingin dijual agen sudah berkomisi sebelum agen pertama bergabung." },
+
+    { "type": "heading", "text": "3. Atur aturan agen" },
+    { "type": "paragraph", "text": "Buka menu Pengaturan lalu Aturan agen. Di sana tersedia:" },
+    { "type": "steps", "items": [
+      "Komisi override: centang kalau ingin memberi komisi ke perekrut, lalu isi persentase dari komisi agen rekrutan.",
+      "Pencairan komisi: pilih setelah lunas atau saat DP, dan isi minimal pencairan.",
+      "Pendaftaran agen: biaya pendaftaran (kosong atau 0 kalau gratis), rekening tujuan kalau berbayar, daftar keuntungan menjadi agen, syarat dan ketentuan, dan poster rekrutmen."
+    ] },
+    { "type": "paragraph", "text": "Agen yang mendaftar harus menyetujui syarat dan ketentuan itu, jadi isinya penting. Lihat bagian aturan di bawah." },
+
+    { "type": "heading", "text": "4. Tulis aturan main" },
+    { "type": "paragraph", "text": "Agen bertahan atau pergi tergantung pada apakah aturan jelas dan ditegakkan. Tulis ini di syarat dan ketentuan, dan tegakkan secara konsisten:" },
+    { "type": "steps", "items": [
+      "Prospek yang sama: tentukan siapa yang berhak atas komisi kalau dua agen memasukkan calon jamaah yang sama, dan tulis batas waktunya. Aturan umum: siapa yang pertama memasukkan datanya, dalam jangka waktu tertentu.",
+      "Larangan memotong harga: agen tidak boleh menawarkan harga di bawah harga resmi paket. Pelanggaran berakibat penonaktifan.",
+      "Pembayaran jamaah hanya ke rekening resmi travel. Agen dilarang menerima uang jamaah ke rekening pribadi atau tunai. Pelanggaran berakibat pemutusan seketika.",
+      "Jadwal pencairan komisi: tetapkan hari proses pengajuan, misalnya dua kali sebulan, dan beri tahu agen. Kepastian jadwal lebih penting daripada kecepatan.",
+      "Larangan menjanjikan penghasilan kepada calon agen, dan larangan menarik biaya dari calon agen yang direkrutnya."
+    ] },
+
+    { "type": "heading", "text": "5. Akad kemitraan dan hukum" },
+    { "type": "steps", "items": [
+      "Pastikan izin PPIU travel Anda berlaku dan tampil jelas di website. Calon agen dan calon jamaah akan memeriksanya.",
+      "Bentuk hubungan dengan agen sebagai perantara pemasaran di bawah travel Anda, bukan cabang yang menghimpun dana.",
+      "Tuliskan akad kemitraan: komisi disepakati nominalnya di awal untuk setiap jamaah yang lunas. Untuk bonus tambahan atau reward periode, tulis syarat pencapaiannya dengan jelas.",
+      "Konsultasikan seluruh skema, terutama override, reward, dan infaq lembaga, dengan penasihat hukum dan, kalau perlu, dewan syariah Anda sebelum diumumkan."
+    ] },
+    { "type": "paragraph", "text": "Peraturan Menteri Agama Nomor 8 Tahun 2018 melarang penjualan paket umroh dengan skema berjenjang, MLM, atau ponzi. Panduan ini mengikuti prinsip: imbalan hanya dari jamaah yang benar-benar berangkat, bukan dari merekrut orang. Ini panduan umum, bukan nasihat hukum." },
+
+    { "type": "heading", "text": "6. Siapkan kapasitas menyapa dan menyetujui" },
+    { "type": "steps", "items": [
+      "Tentukan siapa yang menyetujui pendaftar baru di menu Agen, tab Pendaftaran. Targetnya dalam 24 jam.",
+      "Kalau lebih dari satu orang yang bertugas, tambahkan mereka di menu Pengaturan, bagian Tim.",
+      "Siapkan sapaan pertama dari Halaman Aktivasi agen baru, dan tentukan siapa yang mengirimnya.",
+      "Siapkan satu orang yang menjawab pertanyaan agen di minggu pertama, dan target waktu jawabnya."
+    ] },
+    { "type": "paragraph", "text": "Jangan menjalankan iklan atau membuka rekrutmen besar sebelum kapasitas ini ada. Pendaftar yang menunggu lebih dari satu hari kerja jarang menjadi agen aktif." },
+
+    { "type": "heading", "text": "7. Uji coba dengan satu orang" },
+    { "type": "steps", "items": [
+      "Minta satu orang yang Anda percaya mendaftar lewat halaman daftar agen travel Anda, dari ponselnya sendiri.",
+      "Kalau pendaftaran berbayar, minta ia mencoba mengunggah bukti transfer.",
+      "Setujui pendaftarannya di tab Pendaftaran dan pastikan ia bisa masuk ke portal agen.",
+      "Minta ia memasukkan satu jamaah uji lewat menu Jamaah di portal agen (Tambah jamaah manual), lalu lihat apakah muncul di menu Prospek dengan nama agennya.",
+      "Catat bagian yang membingungkan dan perbaiki teks atau aturan sebelum membuka untuk umum."
+    ] },
+    { "type": "paragraph", "text": "Setelah uji coba, bersihkan data uji supaya tidak mengotori angka laporan Anda. Agen tidak bisa dihapus, hanya dinonaktifkan: buka detail agen lalu pilih Nonaktifkan agen. Prospek uji bisa dihapus dari detail prospek. Karena agen uji tetap tercatat sebagai nonaktif, jangan menjadikannya bagian dari angka agen terdaftar." },
+
+    { "type": "heading", "text": "Daftar periksa sebelum hari 1" },
+    { "type": "checklist", "items": [
+      "Skema komisi, biaya pendaftaran, waktu pencairan, dan minimal pencairan sudah diputuskan dan diisi di Aturan agen.",
+      "Komisi per jamaah sudah diisi di paket yang akan dijual agen, dan dihitung dari margin riil.",
+      "Satu target Jamaah closing untuk 30 hari pertama sudah dibuat di menu Target & reward, dengan hadiah yang sudah dihitung dari margin.",
+      "Syarat dan ketentuan agen sudah ditulis dan sudah ditinjau pihak yang paham hukum.",
+      "Izin PPIU tampil di website, dan poster rekrutmen sudah diunggah.",
+      "Ada orang yang bertugas menyetujui pendaftar dalam 24 jam, dan ada yang menyapa.",
+      "Uji coba dengan satu orang sudah berjalan tanpa masalah, dan data ujinya sudah dibersihkan."
+    ] }
+  ]
+}

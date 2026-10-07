@@ -1,0 +1,73 @@
+{
+  "slug": "pilar-1-alumni",
+  "title": "Pilar 1: Alumni jamaah",
+  "summary": "Mengubah jamaah yang sudah berangkat menjadi agen pertama. Sumber termurah dan paling dipercaya.",
+  "order": 3,
+  "blocks": [
+    { "type": "paragraph", "text": "Alumni adalah sumber agen pertama yang paling masuk akal. Mereka sudah percaya pada layanan Anda, sudah merasakan sendiri perjalanannya, dan kerinduan pada Baitullah masih terasa. Target di panduan ini sekitar 100 agen terdaftar dari pilar ini. Kalau travel Anda baru berjalan dan belum punya alumni, lewati pilar ini dan mulai dari Pilar 2 atau Pilar 3." },
+
+    { "type": "heading", "text": "Siapa yang dihubungi" },
+    { "type": "steps", "items": [
+      "Kumpulkan daftar alumni dari data keberangkatan Anda: nama, nomor WhatsApp, kota, dan musim berangkat.",
+      "Utamakan alumni dari 12 bulan terakhir. Ingatan mereka masih segar dan nomornya masih aktif.",
+      "Utamakan yang puas. Kalau Anda punya hasil survei kepuasan atau rating, mulai dari yang paling tinggi.",
+      "Singkirkan alumni yang pernah mengeluh dan belum selesai ditangani. Selesaikan dulu keluhannya sebelum menawarkan apa pun."
+    ] },
+
+    { "type": "heading", "text": "Waktu terbaik" },
+    { "type": "paragraph", "text": "Jendela terbaik adalah 3 sampai 14 hari setelah jamaah pulang. Untuk alumni lama, tidak ada jendela khusus, tapi pendekatannya tetap sama: mulai dengan menanyakan kabar, bukan dengan tawaran." },
+
+    { "type": "heading", "text": "Tiga langkah setelah kepulangan" },
+    { "type": "steps", "items": [
+      "Hari ke-3: kirim pesan menanyakan kabar dan kesehatan, disertai formulir singkat penilaian layanan. Belum ada tawaran apa pun di pesan ini.",
+      "Hari ke-7: untuk jamaah yang memberi penilaian baik, kirim ucapan terima kasih dan tawarkan akun mitra. Ajukan sebagai undangan, bukan kewajiban.",
+      "Hari ke-14: undang ke pertemuan alumni daring yang berisi cerita perjalanan dan penjelasan program mitra. Ini tempat bertanya, bukan tempat menjual."
+    ] },
+
+    { "type": "heading", "text": "Pesan pertama" },
+    { "type": "paragraph", "text": "Kirim pesan secara personal, satu per satu, dari nomor staf Anda. Jangan kirim massal. Sebut nama jamaah, dan pakai bahasa silaturahmi. Nama travel, nomor PPIU, dan tautan halaman daftar agen terisi otomatis dari data travel Anda. Ganti sisa isian dalam kurung siku sebelum mengirim." },
+    { "type": "template", "text": "Assalamu'alaikum Bapak/Ibu [Nama]. Semoga selalu dalam limpahan berkah dan kesehatan sepulang dari Baitullah. Banyak alumni bercerita betapa rindunya mereka untuk kembali sujud di depan Ka'bah bersama keluarga. Karena itu [Nama Travel] membuka program kemitraan khusus alumni. Melalui program ini Bapak/Ibu dapat membantu saudara, kerabat, atau tetangga yang berniat umroh bersama travel kita, dan mendapat komisi atas setiap jamaah yang berangkat melalui Bapak/Ibu. Akun dan materi informasinya sudah kami siapkan. Berkenan kami kirimkan panduan singkatnya?" },
+
+    { "type": "heading", "text": "Jika alumni menjawab tertarik" },
+    { "type": "template", "text": "Alhamdulillah, terima kasih Bapak/Ibu [Nama]. Untuk bergabung, Bapak/Ibu cukup mendaftar lewat tautan berikut: [tautan halaman daftar agen travel Anda]. Setelah mendaftar, tim kami akan memeriksa dan mengaktifkan akun Bapak/Ibu, biasanya dalam satu hari kerja. Kalau ada yang ingin ditanyakan, silakan balas pesan ini." },
+    { "type": "paragraph", "text": "Pendaftar muncul di menu Agen, tab Pendaftaran. Setujui dalam 24 jam. Alumni yang menunggu lebih lama dari itu jarang menjadi agen yang aktif." },
+
+    { "type": "heading", "text": "Jika alumni ragu" },
+    { "type": "template", "text": "Terima kasih atas keterbukaannya, Bapak/Ibu [Nama]. Tidak ada kewajiban atau biaya untuk mencoba. Bapak/Ibu bisa melihat dulu cara kerjanya dan memutuskan kemudian. Kalau berkenan, saya kirimkan contoh materi dan penjelasan komisinya." },
+
+    { "type": "heading", "text": "Reward dan komisi: hitung dulu" },
+    { "type": "paragraph", "text": "Ebook sumber panduan ini memakai contoh program berjenjang, misalnya sejumlah jamaah terdaftar mendapat diskon umroh pribadi, lalu sejumlah lebih besar mendapat satu seat gratis. Angka di contoh itu hanya ilustrasi. Jangan menyalinnya." },
+    { "type": "steps", "items": [
+      "Hitung margin riil satu paket setelah semua biaya, bukan harga jual.",
+      "Tentukan komisi per jamaah dari margin itu, dan pastikan masih ada sisa untuk biaya operasional.",
+      "Kalau Anda menawarkan reward (misalnya satu seat), hitung nilainya sebagai biaya, dan tentukan berapa jamaah lunas yang membuat biaya itu sepadan.",
+      "Kaitkan reward dengan jamaah yang lunas dan berangkat, bukan dengan jumlah orang yang didaftarkan atau jumlah agen yang direkrut."
+    ] },
+    { "type": "paragraph", "text": "Menu Target & reward memungkinkan Anda mengatur target periode dan hadiahnya, dan agen melihat progresnya di Beranda portal mereka. Untuk agen alumni, mulai dengan satu target Jamaah closing selama 30 hari dengan jumlah kecil yang realistis, supaya closing pertama terasa dekat. Panduan lengkapnya ada di halaman Target dan reward." },
+
+    { "type": "heading", "text": "Batas dan hal yang dihindari" },
+    { "type": "steps", "items": [
+      "Jangan menjanjikan penghasilan tertentu. Sebut komisi per jamaah yang lunas, dan hanya itu.",
+      "Jangan menyebut program ini gratis kalau travel Anda memungut biaya pendaftaran agen. Putuskan dulu mana yang berlaku.",
+      "Jangan menekan atau menindaklanjuti berulang kali. Satu pengingat sopan setelah tiga hari sudah cukup.",
+      "Jangan memakai kontak alumni untuk keperluan lain. Gunakan hanya untuk menawarkan program ini, dan hormati yang menolak.",
+      "Pembayaran jamaah selalu ke rekening resmi travel, tidak pernah ke rekening pribadi agen."
+    ] },
+
+    { "type": "heading", "text": "Ukur hasilnya" },
+    { "type": "checklist", "items": [
+      "Jumlah alumni yang dihubungi minggu ini.",
+      "Berapa yang membalas, berapa yang tertarik, berapa yang mendaftar.",
+      "Berapa pendaftar yang disetujui dalam 24 jam.",
+      "Berapa agen alumni yang sudah memasukkan prospek pertama dalam 14 hari setelah disetujui."
+    ] },
+    { "type": "paragraph", "text": "Sebagai gambaran perencanaan: dari 400 alumni yang dihubungi, mungkin 100 bergabung. Itu perkiraan, bukan janji. Ukur angka travel Anda sendiri setelah minggu pertama, lalu sesuaikan. Kalau balasan rendah, periksa dulu nada pesan dan kualitas data kontak sebelum menambah jumlah yang dihubungi." },
+
+    { "type": "heading", "text": "Lanjut ke pilar berikutnya jika" },
+    { "type": "checklist", "items": [
+      "Sekitar 100 alumni sudah dihubungi dan Anda punya angka pendaftar yang nyata.",
+      "Antrean pendaftaran tidak menumpuk lebih dari satu hari kerja.",
+      "Ada agen alumni yang sudah memasukkan prospek, sehingga Anda punya cerita nyata untuk Pilar 2 dan Pilar 3."
+    ] }
+  ]
+}

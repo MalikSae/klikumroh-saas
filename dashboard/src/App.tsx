@@ -7,6 +7,7 @@ import { ProspectsScreen } from './screens/prospects/ProspectsScreen';
 import { SettingsScreen } from './screens/settings/SettingsScreen';
 import { AgentsScreen, PayoutsScreen } from './screens/agents/AgentsScreen';
 import { ProgramsScreen } from './screens/programs/ProgramsScreen';
+import { PlaybookScreen } from './screens/playbook/PlaybookScreen';
 import { PackagesScreen } from './screens/packages/PackagesScreen';
 import { ChannelsScreen } from './screens/channels/ChannelsScreen';
 import { TrackingScreen } from './screens/channels/TrackingScreen';
@@ -71,6 +72,7 @@ export const App: React.FC = () => {
           <Route path="/programs/rules" element={<Navigate to="/settings/agent-rules" replace />} />
           <Route path="/agent-rules" element={<Navigate to="/settings/agent-rules" replace />} />
           <Route path="/programs/*" element={<ProgramsScreen />} />
+          <Route path="/playbook/*" element={<PlaybookScreen />} />
           <Route path="/settings/*" element={<SettingsScreen />} />
           <Route path="/account" element={<AccountScreen />} />
           <Route path="/website/*" element={<WebsiteScreen />} />

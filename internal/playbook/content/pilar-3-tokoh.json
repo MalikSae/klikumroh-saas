@@ -1,0 +1,79 @@
+{
+  "slug": "pilar-3-tokoh",
+  "title": "Pilar 3: Tokoh dan majelis taklim",
+  "summary": "Bermitra dengan ustadz, pimpinan majelis taklim, dan tokoh komunitas yang sudah punya jamaah dan kepercayaan sendiri.",
+  "order": 5,
+  "blocks": [
+    { "type": "paragraph", "text": "Satu tokoh yang dipercaya bisa mengenalkan program Anda ke puluhan orang dalam satu pengumuman pengajian. Itu lebih efisien daripada menjangkau orang satu per satu lewat iklan, dan tidak bergantung pada anggaran. Pilar ini bergantung pada hubungan, jadi hasilnya ditentukan oleh kesabaran dan kesungguhan pendekatan Anda, bukan oleh volume." },
+
+    { "type": "heading", "text": "Dua jenis hasil dari satu tokoh" },
+    { "type": "steps", "items": [
+      "Tokoh menjadi agen, lalu pengikutnya mendaftar sebagai calon jamaah lewat tautan referral tokoh. Ini hasil yang paling umum dan paling alami.",
+      "Sebagian pengikut tertarik menjadi agen juga. Mereka mendaftar lewat halaman daftar agen dengan kode tokoh itu. Hasil ini lebih jarang, jadi jangan menghitung semua pengikut sebagai calon agen."
+    ] },
+    { "type": "paragraph", "text": "Saat merencanakan target, hitung dua jenis hasil itu terpisah. Angka 15 tokoh dengan sekitar 20 pendaftar agen per tokoh di halaman Mulai adalah perkiraan optimistis. Tokoh yang mendatangkan banyak calon jamaah tetap berharga walau sedikit yang menjadi agen." },
+
+    { "type": "heading", "text": "Siapa yang didekati" },
+    { "type": "steps", "items": [
+      "Buat daftar sekitar 60 tokoh di wilayah Anda: ustadz, pimpinan majelis taklim, pengurus masjid, ketua komunitas muslim, guru, dan pembina pengajian.",
+      "Utamakan yang sudah punya jamaah rutin dan dikenal amanah. Jumlah pengikut media sosial bukan ukuran utama.",
+      "Perkirakan sekitar satu dari empat yang didekati akan bermitra. Itu perkiraan, bukan janji.",
+      "Mulai dari tokoh yang sudah Anda kenal atau yang dikenalkan oleh alumni atau agen Anda."
+    ] },
+
+    { "type": "heading", "text": "Cara mendekati" },
+    { "type": "steps", "items": [
+      "Datang bersilaturahmi, bukan bertamu untuk menjual. Bawa bingkisan sederhana dan proposal kemitraan tertulis.",
+      "Dengarkan dulu kebutuhan dakwah dan sarana jamaah mereka. Jangan langsung menyodorkan komisi.",
+      "Tunjukkan legalitas: izin PPIU, track record keberangkatan, dan satu atau dua contoh nyata dari alumni.",
+      "Tawarkan peran yang bermakna, misalnya pembimbing ibadah untuk rombongan jamaahnya sendiri. Bukan posisi penjual.",
+      "Tinggalkan satu halaman ringkas berisi apa yang ditawarkan, apa yang diminta, dan siapa yang bisa dihubungi."
+    ] },
+    { "type": "paragraph", "text": "Pesan pembuka bisa dikirim sebelum berkunjung, untuk membuat janji. Kirim dari nomor staf Anda, personal, satu per satu." },
+    { "type": "template", "text": "Assalamu'alaikum Ustadz [Nama]. Kami dari [Nama Travel], penyelenggara umroh berizin resmi PPIU [nomor]. Kami ingin bersilaturahmi dan mendengar kebutuhan jamaah Ustadz, serta menyampaikan program kemitraan yang mungkin bermanfaat bagi jamaah yang berniat umroh. Kapan kira-kira Ustadz berkenan kami berkunjung? Terima kasih atas waktunya." },
+
+    { "type": "heading", "text": "Menawarkan manfaat yang tepat" },
+    { "type": "paragraph", "text": "Sebagian tokoh sungkan menerima komisi pribadi. Tawarkan pilihan yang bisa mereka terima dengan nyaman, dan biarkan mereka memilih." },
+    { "type": "steps", "items": [
+      "Komisi sebagai agen, sama seperti agen lain.",
+      "Infaq untuk masjid, pesantren, atau yayasan per jamaah yang berangkat, ditransfer ke rekening atas nama lembaga, bukan rekening pribadi.",
+      "Honorarium resmi sebagai pembimbing ibadah atau manasik, dengan peran dan jadwal yang jelas.",
+      "Fasilitas untuk majelis, misalnya modul manasik atau perlengkapan kajian."
+    ] },
+    { "type": "paragraph", "text": "Tulis kesepakatannya, apa pun bentuknya: apa yang diberikan, kapan, kepada siapa, dan dengan syarat apa. Infaq lembaga, honorarium, dan fasilitas adalah biaya travel dan harus dicatat sebagai biaya, bukan komisi agen. Konsultasikan bentuknya dengan penasihat hukum atau akuntan Anda sebelum dipakai, terutama soal pencatatan dan pajak." },
+
+    { "type": "heading", "text": "Yang harus dijaga" },
+    { "type": "steps", "items": [
+      "Jangan menjanjikan penghasilan kepada tokoh. Sebut manfaat yang nyata dan yang tertulis.",
+      "Jangan menekan tokoh agar mengumumkan program di forum jamaah. Biarkan itu keputusan mereka.",
+      "Jangan meminta tokoh mengajak jamaah menyetor uang kepadanya. Pembayaran jamaah selalu ke rekening resmi travel.",
+      "Jangan menggeser harga paket demi tokoh tertentu. Harga tetap harga resmi.",
+      "Jaga adab. Tokoh yang merasa dimanfaatkan akan berhenti, dan cerita itu menyebar di komunitasnya."
+    ] },
+
+    { "type": "heading", "text": "Setelah tokoh setuju" },
+    { "type": "steps", "items": [
+      "Minta tokoh mendaftar lewat halaman daftar agen, lalu setujui di menu Agen, tab Pendaftaran.",
+      "Berikan tautan referral pribadinya dan jelaskan cara membagikannya.",
+      "Siapkan materi siap pakai: flyer dengan ruang foto, teks pengumuman singkat untuk pengajian, dan jawaban atas pertanyaan yang pasti muncul.",
+      "Datang ke satu pengajian pertama bersama tokoh kalau diundang, untuk menjawab pertanyaan jamaah.",
+      "Pantau di daftar agen berapa klik, prospek, dan rekrutan yang datang lewat tautan dan kode tokoh itu. Untuk pengikut yang mendaftar sebagai agen, minta tokoh membagikan tautan ajakan dari banner Ajak teman jadi agen di Beranda portal agen. Tautan itu membawa kode tokoh dan mengisinya otomatis di formulir pendaftaran agen. Kode juga terisi kalau calon agen sebelumnya membuka tautan referral tokoh, dan tersimpan sekitar 30 hari."
+    ] },
+    { "type": "template", "text": "Assalamu'alaikum Ustadz [Nama]. Alhamdulillah, terima kasih atas kesediaan Ustadz bermitra. Berikut tautan khusus Ustadz untuk jamaah yang ingin tahu paket umroh: [tautan referral]. Kami siapkan juga materi pengumuman singkat untuk pengajian. Kami siap mendampingi, termasuk hadir menjawab pertanyaan jamaah kalau Ustadz berkenan." },
+
+    { "type": "heading", "text": "Mengukur per tokoh" },
+    { "type": "checklist", "items": [
+      "Jumlah tokoh yang dihubungi, yang dikunjungi, dan yang bermitra.",
+      "Per tokoh: klik dan prospek jamaah yang masuk lewat tautannya di daftar agen. Untuk pendaftar agen yang memakai kodenya, buka detail agen tokoh itu: bagian Agen yang diajak menampilkan siapa saja yang mendaftar dengan kodenya, dan di daftar agen ada kolom Rekrutan. Untuk menambah semangat, buat target di menu Target & reward (lihat halaman Target dan reward).",
+      "Tokoh yang menghasilkan di atas rata-rata. Beri mereka perhatian lebih dan cari tokoh serupa.",
+      "Tokoh yang diam setelah satu bulan. Tanyakan apa yang kurang, bukan sekadar menagih hasil."
+    ] },
+
+    { "type": "heading", "text": "Lanjut ke pilar berikutnya jika" },
+    { "type": "checklist", "items": [
+      "Sekitar 10 sampai 15 tokoh sudah bermitra, dan sebagian sudah menghasilkan prospek atau pendaftar.",
+      "Kesepakatan tertulis dengan tiap tokoh sudah ada dan biayanya tercatat benar.",
+      "Anda tahu tokoh mana yang paling efektif, sehingga bisa menyalin pola itu ke tokoh baru."
+    ] }
+  ]
+}

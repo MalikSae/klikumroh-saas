@@ -1,0 +1,21 @@
+/* Panduan rekrutmen agen. Tokens only. */
+.pb { max-width: 760px; }
+.pb-page { display: flex; flex-direction: column; gap: var(--ku-space-3); align-items: flex-start; }
+.pb-page > .ku-card { align-self: stretch; }
+.pb-pad { padding: var(--ku-space-4) var(--ku-space-5) var(--ku-space-5); }
+
+.pb-blocks { display: flex; flex-direction: column; gap: var(--ku-space-3); }
+.pb-heading { margin: var(--ku-space-3) 0 0; font: var(--ku-weight-semibold) var(--ku-text-lg) / var(--ku-leading-tight) var(--ku-font-head); }
+.pb-heading:first-child { margin-top: 0; }
+.pb-text { margin: 0; color: var(--ku-ink-2); font-size: var(--ku-text-base); line-height: var(--ku-leading-loose); }
+
+.pb-steps, .pb-checklist { margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ku-space-2); color: var(--ku-ink-2); font-size: var(--ku-text-base); line-height: var(--ku-leading-loose); }
+.pb-steps { padding-left: var(--ku-space-5); }
+.pb-checklist { list-style: none; }
+.pb-check { display: flex; gap: var(--ku-space-3); align-items: flex-start; cursor: pointer; }
+.pb-check input { flex-shrink: 0; width: 16px; height: 16px; margin: 3px 0 0; accent-color: var(--ku-ink); cursor: pointer; }
+.pb-check input:focus-visible { outline: 2px solid var(--ku-focus-ring); outline-offset: 2px; }
+.pb-check--on span { color: var(--ku-ink-3); text-decoration: line-through; }
+
+.pb-template { display: flex; flex-direction: column; gap: var(--ku-space-3); align-items: flex-start; padding: var(--ku-space-4); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-inner); background: var(--ku-soft); }
+.pb-template__text { margin: 0; color: var(--ku-ink); font-size: var(--ku-text-base); line-height: var(--ku-leading-loose); white-space: pre-wrap; }

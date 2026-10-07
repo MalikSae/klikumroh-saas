@@ -1,0 +1,77 @@
+{
+  "slug": "target-reward",
+  "title": "Target dan reward",
+  "summary": "Memakai menu Target & reward untuk mengarahkan agen: dua jenis target, cara merancangnya, dan cara menutup periode dengan benar.",
+  "order": 8,
+  "blocks": [
+    { "type": "paragraph", "text": "Menu Target & reward sudah ada di dashboard dan paling cocok untuk menjaga agen tetap bergerak. Agen melihat target, progres, dan hadiahnya di Beranda portal mereka. Satu target berlaku untuk semua agen yang berstatus aktif, jadi rancang target yang masuk akal bagi kebanyakan agen, bukan hanya agen terbaik." },
+
+    { "type": "heading", "text": "Dua jenis target" },
+    { "type": "steps", "items": [
+      "Jamaah closing: menjumlahkan jamaah dari prospek agen yang berstatus Closing dalam periode target. Yang dihitung adalah saat prospek menjadi Closing (DP), bukan saat lunas.",
+      "Agen baru direkrut: menghitung agen yang mendaftar memakai kode agen itu dalam periode target dan sudah disetujui (berstatus Aktif). Penjualan agen rekrutan tidak ikut dihitung. Rekrutan yang masih menunggu persetujuan belum dihitung."
+    ] },
+    { "type": "paragraph", "text": "Pilihan jenis tidak bisa diubah setelah target dibuat. Kalau salah pilih, hapus dan buat ulang sebelum agen mulai mengejarnya." },
+
+    { "type": "heading", "text": "Membuat target" },
+    { "type": "steps", "items": [
+      "Buka menu Target & reward, lalu Buat target.",
+      "Isi nama (boleh kosong, nama otomatis dibuat), pilih yang dihitung, dan isi jumlahnya.",
+      "Isi tanggal mulai dan selesai. Periode pendek, misalnya 30 hari, menjaga semangat lebih baik daripada periode setahun.",
+      "Isi hadiah. Kolom ini wajib, supaya agen tahu apa yang dikejar. Tulis jelas dan spesifik."
+    ] },
+
+    { "type": "heading", "text": "Merancang target yang sehat" },
+    { "type": "steps", "items": [
+      "Mulai dari biaya. Hitung berapa hadiah yang masih sehat terhadap margin satu jamaah, lalu tentukan jumlah target yang membuat hadiah itu sepadan.",
+      "Targetnya terjangkau oleh agen yang rajin. Target yang terlalu tinggi membuat agen menyerah sejak awal, dan target yang terlalu rendah membuat hadiah mahal tanpa dorongan.",
+      "Satu atau dua target berjalan bersamaan sudah cukup. Terlalu banyak target membuat agen bingung mana yang dikejar.",
+      "Jangan mengubah jumlah atau hadiah di tengah periode. Agen yang sudah berusaha akan merasa aturan berubah."
+    ] },
+
+    { "type": "heading", "text": "Contoh target sesuai fase" },
+    { "type": "paragraph", "text": "Contoh berikut hanya ilustrasi. Sesuaikan angka dan hadiah dengan margin travel Anda." },
+    { "type": "steps", "items": [
+      "Fase awal dengan alumni (Pilar 1): Jamaah closing, 30 hari, jumlah kecil yang bisa dicapai agen baru, misalnya satu atau dua jamaah. Hadiah kecil tapi nyata. Tujuannya membantu agen mendapatkan closing pertama.",
+      "Fase pembinaan (Pilar 3 dan Aktivasi): Jamaah closing per bulan dengan jumlah sedang. Umumkan pemenangnya di kanal agen.",
+      "Fase agen mengajak agen (Pilar 4): Agen baru direkrut, 30 hari, dengan hadiah apresiasi. Lihat catatan di bagian berikut."
+    ] },
+
+    { "type": "heading", "text": "Hadiah untuk target Agen baru direkrut" },
+    { "type": "paragraph", "text": "Kolom hadiah wajib diisi di semua jenis target, termasuk Agen baru direkrut. Untuk target jenis ini, hadiah dimaksudkan sebagai apresiasi atas ikhtiar mengenalkan program, bukan sebagai imbalan per rekrutan. Jagalah beberapa hal: nilainya moderat dan jauh lebih kecil daripada komisi dari jamaah, diberikan sekali di akhir periode setelah target tercapai (bukan per orang yang direkrut), dan tidak dijadikan alasan utama dalam ajakan kepada calon agen. Imbalan utama agen tetap komisi dari jamaah yang berangkat. Peraturan Menteri Agama Nomor 8 Tahun 2018 melarang skema berjenjang, dan hadiah yang tampak seperti bayaran per rekrutan bisa dibaca ke arah itu, jadi konsultasikan bentuknya dengan penasihat hukum Anda." },
+
+    { "type": "heading", "text": "Memantau progres" },
+    { "type": "steps", "items": [
+      "Buka target di daftar untuk melihat progres tiap agen aktif, dan berapa agen yang sudah mencapai jumlahnya.",
+      "Untuk target Agen baru direkrut, buka detail agen untuk melihat bagian Agen yang diajak: siapa saja yang mendaftar dengan kodenya, dan berapa yang masih menunggu persetujuan.",
+      "Setujui pendaftar baru dengan cepat. Rekrutan yang masih menunggu persetujuan belum dihitung, jadi antrean yang lama merugikan agen yang sudah berusaha."
+    ] },
+
+    { "type": "heading", "text": "Menutup periode" },
+    { "type": "paragraph", "text": "Saat periode target lewat, dashboard menampilkan peringatan bahwa target sudah lewat periodenya. Penutupan tidak otomatis. Lakukan ini dalam beberapa hari setelah periode berakhir, selagi data masih segar." },
+    { "type": "steps", "items": [
+      "Buka target yang sudah lewat, lalu pilih Akhiri target. Sistem mencatat agen yang berhak mendapat hadiah berdasarkan progres saat itu.",
+      "Akhiri sebelum periode selesai hanya bila ada alasan khusus. Sistem akan menanyakan konfirmasi.",
+      "Untuk target Jamaah closing, periksa dulu bahwa jamaahnya benar-benar lunas dan tidak dibatalkan sebelum hadiah diberikan. Progres dihitung saat Closing, jadi pembatalan setelah itu perlu Anda cermati sendiri.",
+      "Setelah hadiah diberikan, tandai pada agen yang bersangkutan lewat Hadiah sudah diberikan. Anda bisa menambahkan catatan, misalnya tanggal dan bentuk penyerahannya.",
+      "Jangan memakai Hapus target untuk menutup. Menghapus membuat target dan progresnya hilang dari dashboard agen."
+    ] },
+
+    { "type": "heading", "text": "Setelah target selesai" },
+    { "type": "steps", "items": [
+      "Umumkan pemenang di kanal agen, dengan izin mereka. Cerita agen yang berhasil lebih memotivasi daripada ajakan dari pimpinan.",
+      "Catat berapa agen yang mencapai target, dan bandingkan biaya hadiah dengan jamaah tambahan yang didapat.",
+      "Buat target berikutnya dengan pelajaran dari periode ini: terlalu mudah, terlalu sulit, atau pas.",
+      "Pakai leaderboard di portal agen sebagai pengakuan. Jangan menampilkannya untuk membandingkan atau mempermalukan agen."
+    ] },
+
+    { "type": "heading", "text": "Daftar periksa" },
+    { "type": "checklist", "items": [
+      "Hadiah sudah dihitung dari margin dan masih sehat terhadap biaya.",
+      "Jenis target sesuai tujuan: Jamaah closing untuk penjualan, Agen baru direkrut dipakai untuk apresiasi bernilai moderat, bukan imbalan per rekrutan.",
+      "Periode pendek dan tanggal selesai sudah dicatat di kalender tim.",
+      "Ada orang yang bertugas menutup periode dan menandai hadiah yang diberikan.",
+      "Pendaftar baru disetujui dalam 24 jam supaya rekrutan terhitung tepat waktu."
+    ] }
+  ]
+}
