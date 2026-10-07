@@ -316,6 +316,11 @@ func (s *domainService) PlatformIPs() []string {
 	return append([]string(nil), ips...)
 }
 
+// reasonPlatformIPsUnknown: a root domain's A records cannot be checked because the platform's own
+// addresses are unknown (lookup of cname.klikumroh.id failed, PLATFORM_IPS unset). That is KlikUmroh's
+// problem, not the travel's, so the daily job does not count it as a failed check.
+const reasonPlatformIPsUnknown = "alamat IP server KlikUmroh belum tersedia untuk verifikasi A record; hubungi tim KlikUmroh"
+
 // How long PlatformIPs keeps a resolved (or failed) lookup of cname.klikumroh.id.
 const (
 	platformIPTTL     = 10 * time.Minute
@@ -353,7 +358,7 @@ func (s *domainService) cnameOK(hostname string) (bool, string) {
 		return false, fmt.Sprintf("domain belum mengarah ke KlikUmroh (CNAME ke '%s' atau A record ke IP server)", ExpectedCNAMETarget)
 	}
 	if len(platform) == 0 {
-		return false, "alamat IP server KlikUmroh belum tersedia untuk verifikasi A record; hubungi tim KlikUmroh"
+		return false, reasonPlatformIPsUnknown
 	}
 	var foreign []string
 	for _, ip := range addrs {
@@ -526,6 +531,11 @@ func (s *domainService) dailyCheck(ctx context.Context, domain *repository.Domai
 	if ok, reason := s.cnameOK(domain.Hostname); ok {
 		domain.CheckFailures = 0
 		domain.VerificationFailureReason = nil
+	} else if reason == reasonPlatformIPsUnknown {
+		// The platform lookup failed (cached for a minute, so it hits every root domain in this run):
+		// not counted against the travel, which would otherwise lose its domain after 3 such days
+		// (security audit 7 Oct 2026). The counter stays as it was.
+		log.Printf("[Domain] daily recheck of %s skipped: platform IPs unknown", domain.Hostname)
 	} else {
 		domain.CheckFailures++
 		domain.VerificationFailureReason = &reason
