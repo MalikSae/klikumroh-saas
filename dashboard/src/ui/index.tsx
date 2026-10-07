@@ -926,6 +926,21 @@ export const errorText = (e: unknown, fallback: string) => {
 };
 
 /* ---------- Money input: digits only, shown with thousand separators, "Rp" prefix ---------- */
+/** Digits of the whole-rupiah part of a typed or pasted amount. The field shows whole rupiah only
+ * ("150.000", dots as thousands), so a comma can only come from a paste: "150.000,50" (Indonesian) or
+ * "1,000,000.00" (English) drop their 1-2 decimal digits instead of turning them into ×100 (security audit
+ * 7 Oct 2026). Without a comma every dot is a thousands separator, so deleting a digit ("150.00") is safe. */
+export const wholeRupiahDigits = (text: string): string => {
+  let t = text.trim();
+  const comma = t.lastIndexOf(',');
+  if (comma >= 0) {
+    const dot = t.lastIndexOf('.');
+    if (dot > comma && /^\d{1,2}$/.test(t.slice(dot + 1))) t = t.slice(0, dot);
+    else if (/^\d{1,2}$/.test(t.slice(comma + 1))) t = t.slice(0, comma);
+  }
+  return t.replace(/\D/g, '');
+};
+
 export const MoneyInput: React.FC<{ id?: string; value: number | null; onChange: (v: number | null) => void; invalid?: boolean; placeholder?: string; disabled?: boolean }> = ({ id, value, onChange, invalid, placeholder, disabled }) => (
   <div className={cx('ku-money', invalid && 'ku-money--invalid', disabled && 'ku-money--disabled')}>
     <span className="ku-money__prefix" aria-hidden="true">Rp</span>
@@ -937,9 +952,9 @@ export const MoneyInput: React.FC<{ id?: string; value: number | null; onChange:
       disabled={disabled}
       aria-invalid={invalid || undefined}
       placeholder={placeholder}
-      value={value === null ? '' : value.toLocaleString('id-ID')}
+      value={value === null ? '' : Math.round(value).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
       onChange={(e) => {
-        const digits = e.target.value.replace(/\D/g, '').slice(0, 13);
+        const digits = wholeRupiahDigits(e.target.value).slice(0, 13);
         onChange(digits === '' ? null : Number(digits));
       }}
     />
