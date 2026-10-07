@@ -33,6 +33,9 @@ var (
 	// ErrImageTooHeavy: a high bit-depth image (16 bits per channel) whose decoded size would pass
 	// MaxDecodedImageBytes although its pixel count is within MaxImagePixels. Answered 400.
 	ErrImageTooHeavy = errors.New("gambar 16-bit ini terlalu besar untuk diproses, simpan ulang sebagai JPG atau PNG 8-bit lalu unggah lagi")
+	// ErrJPEGTooHeavy: a progressive JPEG whose decode would need more than MaxJPEGDecodeBytes (the decoder
+	// keeps every DCT coefficient in RAM until the last scan). Answered 400.
+	ErrJPEGTooHeavy = errors.New("gambar JPG ini terlalu berat untuk diproses, perkecil gambar atau simpan ulang sebagai JPG biasa lalu unggah lagi")
 	// ErrImageBusy: every decode slot stayed taken for imageDecodeWait. Handlers answer 503 with this message.
 	ErrImageBusy = errors.New("Server sedang memproses gambar lain, coba lagi sebentar.")
 )
@@ -109,7 +112,77 @@ func checkImageDimensions(fileBytes []byte) error {
 	if pixels*decodedBytesPerPixel(cfg.ColorModel) > MaxDecodedImageBytes {
 		return ErrImageTooHeavy
 	}
+	if extra := jpegCoefficientBytes(fileBytes, pixels); extra > 0 && pixels*4+extra > MaxJPEGDecodeBytes {
+		return ErrJPEGTooHeavy
+	}
 	return nil
+}
+
+// MaxJPEGDecodeBytes caps what a progressive JPEG decode holds at its peak: the decoded image (counted as
+// 4 bytes per pixel, like decodedBytesPerPixel) plus Go's coefficient buffer. Go's image/jpeg keeps every
+// 8x8 block's 64 int32 coefficients (256 bytes, i.e. 4 bytes per pixel per full-resolution component)
+// until the last scan, and allocates it from the declared size alone, so a few-KB file declaring 24 MP
+// 4:4:4 would cost ~360 MiB (CMYK ~480 MiB) per decode (security audit 7 Oct 2026). 160 MiB keeps the
+// peak near the ~170 MiB per slot measured for the other uploads: a usual 4:2:0 progressive photo passes
+// up to ~16 MP, 4:4:4 up to ~10 MP, CMYK up to ~8 MP. Baseline JPEGs have no such buffer.
+const MaxJPEGDecodeBytes = 160 << 20
+
+// jpegCoefficientBytes estimates the coefficient buffer Go's decoder allocates for a progressive JPEG
+// (0 for baseline JPEGs and for other formats), read from the SOF2/6/10/14 frame header: each component
+// costs 4 bytes per pixel scaled by its share of blocks (H*V / Hmax*Vmax, so subsampled chroma costs less).
+func jpegCoefficientBytes(b []byte, pixels int64) int64 {
+	if len(b) < 4 || b[0] != 0xFF || b[1] != 0xD8 {
+		return 0
+	}
+	for i := 2; i+4 <= len(b); {
+		if b[i] != 0xFF {
+			return 0 // not at a marker: malformed, the decoder will refuse it
+		}
+		marker := b[i+1]
+		if marker == 0xFF { // fill byte
+			i++
+			continue
+		}
+		if marker == 0xD8 || (marker >= 0xD0 && marker <= 0xD7) || marker == 0x01 {
+			i += 2
+			continue
+		}
+		if marker == 0xD9 || marker == 0xDA { // EOI or start of scan: no frame header before it
+			return 0
+		}
+		segLen := int(b[i+2])<<8 | int(b[i+3])
+		if segLen < 2 || i+2+segLen > len(b) {
+			return 0
+		}
+		seg := b[i+4 : i+2+segLen]
+		switch marker {
+		case 0xC2, 0xC6, 0xCA, 0xCE: // progressive frame
+			if len(seg) < 6 {
+				return 0
+			}
+			n := int(seg[5])
+			if n <= 0 || len(seg) < 6+3*n {
+				return 0
+			}
+			hMax, vMax, units := 1, 1, 0
+			for c := 0; c < n; c++ {
+				hv := seg[6+3*c+1]
+				h, v := int(hv>>4), int(hv&0x0F)
+				if h > hMax {
+					hMax = h
+				}
+				if v > vMax {
+					vMax = v
+				}
+				units += h * v
+			}
+			return pixels * 4 * int64(units) / int64(hMax*vMax)
+		case 0xC0, 0xC1, 0xC3, 0xC5, 0xC7, 0xC9, 0xCB, 0xCD, 0xCF: // other frame types: no coefficient buffer
+			return 0
+		}
+		i += 2 + segLen
+	}
+	return 0
 }
 
 // decodedUpload is an upload decoded at full size in the orientation it was stored in, plus its EXIF
@@ -150,6 +223,18 @@ func sameImage(a, b image.Image) (same bool) {
 	return a == b
 }
 
+// decodeRecovering decodes the image and turns a decoder panic (a malformed file hitting a decoder bug)
+// into an error, so the caller still releases its decode slot instead of leaking it until a restart.
+func decodeRecovering(fileBytes []byte) (img image.Image, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			img, err = nil, fmt.Errorf("decoder panic: %v", r)
+		}
+	}()
+	img, _, err = image.Decode(bytes.NewReader(fileBytes))
+	return img, err
+}
+
 // decodeUpload validates the format (JPEG/PNG/WebP), checks the declared pixel size before allocating
 // anything, takes a decode slot, then decodes and reads the EXIF orientation. The caller must call
 // release once it no longer holds the decoded image (after encoding); release is nil when err is not.
@@ -165,7 +250,7 @@ func decodeUpload(fileBytes []byte) (*decodedUpload, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	img, _, err := image.Decode(bytes.NewReader(fileBytes))
+	img, err := decodeRecovering(fileBytes)
 	if err != nil {
 		release()
 		return nil, nil, fmt.Errorf("%w: %v", ErrCorruptImage, err)
@@ -420,7 +505,7 @@ func toNRGBA(img image.Image) *image.NRGBA {
 // corrupt file, too many pixels) and should be answered 400 with err.Error().
 func IsImageClientError(err error) bool {
 	return errors.Is(err, ErrInvalidImageFormat) || errors.Is(err, ErrCorruptImage) || errors.Is(err, ErrImageTooLarge) ||
-		errors.Is(err, ErrImageTooHeavy)
+		errors.Is(err, ErrImageTooHeavy) || errors.Is(err, ErrJPEGTooHeavy)
 }
 
 // IsImageBusyError reports ErrImageBusy: answered 503 with err.Error() (the upload can be retried).
