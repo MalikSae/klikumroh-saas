@@ -101,15 +101,20 @@
 .planBenefits li { display: flex; align-items: flex-start; gap: var(--km-v2-space-2); font-size: var(--km-v2-type-small); color: var(--km-neutral-600); }
 .planBenefits svg { width: var(--km-v2-space-4); height: var(--km-v2-space-4); margin-top: var(--km-v2-space-1); flex-shrink: 0; }
 .page .monthly { margin-top: var(--km-v2-space-6); color: var(--km-ink); font-family: var(--tw-font-heading), sans-serif; font-size: var(--km-v2-type-section); font-weight: 600; }
-.monthly span { color: var(--km-muted); font-family: var(--tw-font-body), sans-serif; font-size: var(--km-v2-type-small); font-weight: 400; }
+/* Normal monthly price struck through beside the promo monthly price. */
+.monthly .oldMonthly { display: block; margin-bottom: var(--km-v2-space-1); color: var(--km-danger-strong); font-family: var(--tw-font-body), sans-serif; font-size: var(--km-v2-type-body); font-weight: 400; }
+.monthly span { white-space: nowrap; color: var(--km-muted); font-family: var(--tw-font-body), sans-serif; font-size: var(--km-v2-type-small); font-weight: 400; }
 .page .planNote { margin-top: var(--km-v2-space-1); font-size: var(--km-v2-type-small); }
 .total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--km-v2-space-2); width: 100%; padding-top: var(--km-v2-space-5); margin-top: var(--km-v2-space-6); border-top: var(--km-v2-border-width) solid var(--km-line); font-size: var(--km-v2-type-small); }
 .total dt { color: var(--km-neutral-600); }
 .total dd { margin: 0; color: var(--km-ink); font-weight: 600; }
 /* Normal price struck through beside the promo price (plan promo, 7 Oct 2026). */
-.oldPrice { margin-right: var(--km-v2-space-2); color: var(--km-muted); font-weight: 400; }
+.oldPrice { margin-right: var(--km-v2-space-2); color: var(--km-danger-strong); font-weight: 400; }
+.page .planPayNote { margin-top: var(--km-v2-space-2); font-size: var(--km-v2-type-label); color: var(--km-muted); }
 .page .billingNote { margin-top: var(--km-v2-space-6); font-size: var(--km-v2-type-label); color: var(--km-muted); }
 .discountBadge { display: inline-flex; align-items: center; padding: var(--km-v2-space-1) var(--km-v2-space-2); border-radius: var(--km-v2-radius-control); background: var(--km-ink); color: var(--km-paper); font-size: var(--km-v2-type-small); font-weight: 600; line-height: var(--km-v2-leading-normal); }
+/* Plan promo badge: red like the struck-through normal prices; "Hemat" badges stay black. */
+.promoBadge { background: var(--km-danger-strong); }
 .planLink { display: flex; align-items: center; justify-content: center; gap: var(--km-v2-space-3); width: 100%; min-height: var(--km-v2-touch-target); padding: var(--km-v2-space-3) var(--km-v2-space-4); margin-top: var(--km-v2-space-5); border: var(--km-v2-border-width) solid var(--km-accent); border-radius: var(--km-v2-radius-media); background: var(--km-accent); color: var(--km-paper); box-shadow: var(--km-v2-cta-shadow); font-family: var(--tw-font-heading), sans-serif; font-size: var(--km-v2-type-small); font-weight: 600; text-decoration: none; }
 .planLink:hover { background: var(--km-accent-hover); }
 .unavailable { padding-block: var(--km-v2-space-4); }

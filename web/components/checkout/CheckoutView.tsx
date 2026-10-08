@@ -66,6 +66,9 @@ interface PricingPlan {
   promoEndsAt?: string | null;
 }
 
+/** Monthly price before any plan promo (the struck-through price beside the promo monthly price). */
+const normalMonthly = (plan: PricingPlan): number => Math.round(plan.price / plan.period_months);
+
 interface CouponResult {
   code: string;
   discount_percentage: number;
@@ -195,14 +198,14 @@ const PlanChooser: React.FC<PlanChooserProps> = ({ id, plans, selectedPlan, onPl
                 <span className={styles.planOptionTitle}>{plan.name}</span>
                 {plan.popular && <span className={styles.planOptionPopularTag}>Direkomendasikan</span>}
                 {plan.promoPercent ? (
-                  <span className={styles.planOptionDiscountTag}>Promo {plan.promoPercent}%</span>
+                  <span className={`${styles.planOptionDiscountTag} ${styles.planOptionPromoTag}`}>Promo {plan.promoPercent}%</span>
                 ) : plan.discount_badge && !plan.popular && (
                   <span className={styles.planOptionDiscountTag}>{plan.discount_badge}</span>
                 )}
               </div>
               <div className={styles.planOptionPrice}>
-                <span>{formatRupiah(plan.monthly_equivalent)}/bln</span>
-                <span className={styles.planOptionTotal}>(Total {formatRupiah(payablePrice(plan))})</span>
+                <span>{plan.promoPrice != null && <s className={styles.oldPrice}>{formatRupiah(normalMonthly(plan))}</s>}{formatRupiah(plan.monthly_equivalent)}/bln</span>
+                <span className={styles.planOptionTotal}>(Total {plan.promoPrice != null && <s className={styles.oldPrice}>{formatRupiah(plan.price)}</s>}{formatRupiah(payablePrice(plan))})</span>
               </div>
             </div>
           </button>
@@ -277,6 +280,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className={styles.priceBlock}>
           <div className={styles.priceRow}>
             <div className={styles.priceMain}>
+              {selectedPlan.promoPrice != null && <s className={styles.oldPrice}>{formatRupiah(normalMonthly(selectedPlan))}</s>}
               <span className={styles.monthlyPrice}>{formatRupiah(selectedPlan.monthly_equivalent)}</span>
               <span className={styles.perMonth}>/bln</span>
             </div>

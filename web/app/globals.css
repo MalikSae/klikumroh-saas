@@ -240,6 +240,14 @@
   --km-v3-column-gap: 88px;
 }
 
+/* Checkout and login fields: 38px with a mouse, the 48px touch target on touch screens and phones
+   (WCAG 2.5.5, Material, web.dev). Buttons next to these fields already use the touch target. */
+@media (pointer: coarse), (max-width: 768px) {
+  :root {
+    --km-checkout-field-height: var(--km-v2-touch-target);
+  }
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

@@ -50,6 +50,10 @@
 .planTitleRow, .priceRow, .priceMain, .planOptionTop { display: flex; align-items: center; flex-wrap: wrap; gap: var(--km-v2-space-2); }
 .selectedPlanTitle { font: 600 var(--km-v2-type-subhead) var(--font-heading); margin: 0; }
 .popularBadge, .planOptionPopularTag, .planOptionDiscountTag { border-radius: var(--km-v2-radius-control); background: var(--km-ink); color: var(--km-paper); padding: var(--km-v2-space-1) var(--km-v2-space-2); font-size: var(--km-v2-type-label); }
+/* Plan promo tag: red like the struck-through prices on the landing; "Hemat" tags stay black. */
+.planOptionPromoTag { background: var(--km-danger-strong); }
+/* Normal price struck through beside the promo price (same red as the landing pricing cards). */
+.oldPrice { margin-right: var(--km-v2-space-1); color: var(--km-danger-strong); font-weight: 400; font-size: var(--km-v2-type-label); }
 .priceBlock { gap: var(--km-v2-space-3); }
 .priceRow { justify-content: space-between; }
 .monthlyPrice { font: 600 var(--km-v2-type-section) var(--font-heading); font-variant-numeric: tabular-nums; }

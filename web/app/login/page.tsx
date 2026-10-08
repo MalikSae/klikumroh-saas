@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Instrument_Serif } from 'next/font/google';
 import {
   AlertCircle,
   ArrowRight,
@@ -16,6 +17,9 @@ import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { clearDashboardSession, dashboardUrl, openDashboard, storeDashboardSession } from '@/lib/dashboardSession';
 import { isBlankPassword } from '@/lib/passwordRules';
 import styles from './login.module.css';
+
+// Same display serif as the marketing landing (MarketingV3View) for the headings.
+const serif = Instrument_Serif({ weight: '400', subsets: ['latin'], variable: '--km-font-display', display: 'swap' });
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -89,7 +93,7 @@ function LoginForm() {
   };
 
   return (
-    <main className={styles.loginPage}>
+    <main className={`${styles.loginPage} ${serif.variable}`}>
       {/* Main Content Area */}
       <div className={styles.contentWrapper}>
         <div className={styles.cardContainer}>
@@ -234,7 +238,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className={styles.loginPage}>
+        <main className={`${styles.loginPage} ${serif.variable}`}>
           <div className={styles.contentWrapper}>
             <div className={styles.cardContainer}>
               <div className={`${styles.card} ${styles.loadingCard}`}>
