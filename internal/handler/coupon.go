@@ -130,7 +130,11 @@ func (h *CouponHandler) CreateStaff(w http.ResponseWriter, r *http.Request) {
 	coupon, err := h.couponService.Create(r.Context(), req.Code, req.DiscountPercentage, req.MaxUses, expiresAt, req.PlanID)
 	if err != nil {
 		if errors.Is(err, service.ErrEmptyCouponCode) ||
-			errors.Is(err, service.ErrInvalidDiscount) {
+			errors.Is(err, service.ErrInvalidDiscount) ||
+			errors.Is(err, service.ErrInvalidCouponCode) ||
+			errors.Is(err, service.ErrInvalidCouponUses) ||
+			errors.Is(err, service.ErrCouponExpiryPast) ||
+			errors.Is(err, service.ErrCouponPlanNotExists) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}

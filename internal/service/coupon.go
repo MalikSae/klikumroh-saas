@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,7 +17,12 @@ var (
 	ErrCouponExhausted    = errors.New("kuota pemakaian kupon sudah habis")
 	ErrCouponPlanMismatch = errors.New("kupon ini tidak berlaku untuk paket yang dipilih")
 	ErrInvalidDiscount    = errors.New("persentase diskon harus antara 0 dan 100")
-	ErrEmptyCouponCode    = errors.New("kode kupon wajib diisi")
+	// Staff coupon input errors, shown to staff as 400.
+	ErrInvalidCouponCode   = errors.New("kode kupon 3-30 karakter: huruf besar, angka, tanda hubung, atau garis bawah")
+	ErrInvalidCouponUses   = errors.New("batas penggunaan harus antara 1 dan 1.000.000")
+	ErrCouponExpiryPast    = errors.New("tanggal kedaluwarsa kupon sudah lewat")
+	ErrCouponPlanNotExists = errors.New("paket untuk kupon ini tidak ditemukan")
+	ErrEmptyCouponCode     = errors.New("kode kupon wajib diisi")
 	// ErrCouponOwnedByAffiliator: an affiliator coupon is switched off by deactivating its affiliator, so
 	// payment approval can tell "affiliator replaced its code" (honored) from "switched off" (refused).
 	ErrCouponOwnedByAffiliator = errors.New("kupon affiliator dinonaktifkan lewat menonaktifkan affiliatornya")
@@ -24,6 +30,13 @@ var (
 	// already paid with it, or another open invoice of the travel carries it.
 	ErrCouponUsedByTenant = errors.New("Kupon ini sudah pernah dipakai travel Anda")
 )
+
+// MaxCouponUses caps a coupon's usage limit.
+const MaxCouponUses = 1_000_000
+
+// staffCouponPattern is the shape of a staff coupon code (uppercased first). Hyphen and underscore are
+// allowed (REF-ALI-10); affiliators keep their own stricter letters-and-digits rule.
+var staffCouponPattern = regexp.MustCompile(`^[A-Z0-9][A-Z0-9_-]{2,29}$`)
 
 // CouponService provides business logic for managing and validating coupons.
 type CouponService interface {
@@ -51,13 +64,23 @@ func (s *couponService) Create(ctx context.Context, code string, discountPercent
 	if trimmedCode == "" {
 		return nil, ErrEmptyCouponCode
 	}
+	if !staffCouponPattern.MatchString(trimmedCode) {
+		return nil, ErrInvalidCouponCode
+	}
 
 	if discountPercentage <= 0 || discountPercentage > 100 {
 		return nil, ErrInvalidDiscount
 	}
 
-	if maxUses != nil && *maxUses <= 0 {
-		return nil, errors.New("batas penggunaan harus lebih dari 0")
+	if maxUses != nil && (*maxUses <= 0 || *maxUses > MaxCouponUses) {
+		return nil, ErrInvalidCouponUses
+	}
+	if expiresAt != nil {
+		// expires_at is a calendar day in WIB: today is still allowed, yesterday is not.
+		y, m, d := time.Now().In(jakartaLocation).Date()
+		if expiresAt.Before(time.Date(y, m, d, 0, 0, 0, 0, time.UTC)) {
+			return nil, ErrCouponExpiryPast
+		}
 	}
 
 	coupon := &repository.Coupon{
@@ -70,6 +93,10 @@ func (s *couponService) Create(ctx context.Context, code string, discountPercent
 	}
 
 	if err := s.repo.Create(ctx, coupon); err != nil {
+		// coupons.plan_id is a foreign key: a plan that does not exist is the staff's input error, not a 500.
+		if planID != nil && strings.Contains(strings.ToLower(err.Error()), "foreign key") {
+			return nil, ErrCouponPlanNotExists
+		}
 		return nil, err
 	}
 

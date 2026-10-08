@@ -1554,3 +1554,57 @@ func TestUpdateVerificationPlan_StaffUpsell(t *testing.T) {
 		t.Errorf("expected status 400 when changing plan of approved pv, got %d", failW.Code)
 	}
 }
+
+// Staff coupon creation: bad input is a 400 with a clear message (never a 500), good input is created.
+func TestCreateStaffCoupon_Validation(t *testing.T) {
+	couponRepo, _, _, _, _, _, r := setupSubTestEnv()
+
+	post := func(body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/staff/coupons", bytes.NewReader([]byte(body)))
+		req.Header.Set("Authorization", "Bearer valid-staff-token")
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		return rr
+	}
+	yesterday := time.Now().AddDate(0, 0, -2).Format("2006-01-02")
+	today := time.Now().In(time.FixedZone("WIB", 7*3600)).Format("2006-01-02")
+
+	bad := map[string]string{
+		"zero max_uses":      `{"code":"BATAS0","discount_percentage":10,"max_uses":0}`,
+		"negative max_uses":  `{"code":"BATAS1","discount_percentage":10,"max_uses":-5}`,
+		"huge max_uses":      `{"code":"BATAS2","discount_percentage":10,"max_uses":1000001}`,
+		"code with space":    `{"code":"HEMAT 10","discount_percentage":10}`,
+		"code too short":     `{"code":"AB","discount_percentage":10}`,
+		"code too long":      `{"code":"ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567","discount_percentage":10}`,
+		"code with symbols":  `{"code":"HEMAT<10>","discount_percentage":10}`,
+		"expired yesterday":  `{"code":"LEWAT1","discount_percentage":10,"expires_at":"` + yesterday + `"}`,
+		"discount over 100":  `{"code":"TERLALU","discount_percentage":101}`,
+	}
+	for name, body := range bad {
+		if rr := post(body); rr.Code != http.StatusBadRequest {
+			t.Errorf("%s: expected 400, got %d (%s)", name, rr.Code, rr.Body.String())
+		}
+	}
+	for _, c := range couponRepo.coupons {
+		switch c.Code {
+		case "BATAS0", "BATAS1", "BATAS2", "LEWAT1", "TERLALU":
+			t.Errorf("rejected coupon %s must not be stored", c.Code)
+		}
+	}
+
+	good := map[string]string{
+		"plain":        `{"code":"hemat10","discount_percentage":10,"max_uses":5}`,
+		"with hyphen":  `{"code":"REF-ALI-10","discount_percentage":15}`,
+		"expires today": `{"code":"HARIINI","discount_percentage":5,"expires_at":"` + today + `"}`,
+	}
+	for name, body := range good {
+		if rr := post(body); rr.Code != http.StatusCreated {
+			t.Errorf("%s: expected 201, got %d (%s)", name, rr.Code, rr.Body.String())
+		}
+	}
+	// A duplicate stays a clear 400.
+	if rr := post(`{"code":"HEMAT10","discount_percentage":10}`); rr.Code != http.StatusBadRequest {
+		t.Errorf("duplicate: expected 400, got %d (%s)", rr.Code, rr.Body.String())
+	}
+}
