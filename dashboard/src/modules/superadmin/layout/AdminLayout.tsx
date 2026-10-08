@@ -14,6 +14,7 @@ import {
   HelpCircle,
   ArrowLeft,
   Handshake,
+  FileText,
 } from 'lucide-react';
 import { Tooltip } from '../shared/Tooltip';
 import { NotificationDropdown } from '../shared/NotificationDropdown';
@@ -149,6 +150,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           to: '/internal/staff',
           label: 'Manajemen Staf',
           icon: <Users size={16} />,
+        },
+        {
+          to: '/internal/legal',
+          label: 'Dokumen Legal',
+          icon: <FileText size={16} />,
         },
         {
           to: '/internal/settings',

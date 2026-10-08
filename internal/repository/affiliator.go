@@ -120,6 +120,8 @@ type AffiliatorRepository interface {
 	Create(ctx context.Context, a *Affiliator) error
 	GetByID(ctx context.Context, id uint64) (*Affiliator, error)
 	FindByEmail(ctx context.Context, email string) (*Affiliator, error)
+	// FindByWhatsApp looks an affiliator up by its normalized number (62...); ErrNotFound when none has it.
+	FindByWhatsApp(ctx context.Context, whatsapp string) (*Affiliator, error)
 	FindActiveByLinkCode(ctx context.Context, code string) (*Affiliator, error)
 	UpdateBank(ctx context.Context, id uint64, bankName, accountNumber, accountHolder string) error
 	SetStatus(ctx context.Context, id uint64, status string) error
@@ -233,6 +235,10 @@ func (r *mysqlAffiliatorRepository) GetByID(ctx context.Context, id uint64) (*Af
 func (r *mysqlAffiliatorRepository) FindByEmail(ctx context.Context, email string) (*Affiliator, error) {
 	return scanAffiliator(r.db.QueryRowContext(ctx, `SELECT `+affiliatorColumns+` FROM affiliators a WHERE a.email = ?`,
 		strings.ToLower(strings.TrimSpace(email))))
+}
+
+func (r *mysqlAffiliatorRepository) FindByWhatsApp(ctx context.Context, whatsapp string) (*Affiliator, error) {
+	return scanAffiliator(r.db.QueryRowContext(ctx, `SELECT `+affiliatorColumns+` FROM affiliators a WHERE a.whatsapp = ?`, strings.TrimSpace(whatsapp)))
 }
 
 func (r *mysqlAffiliatorRepository) FindActiveByLinkCode(ctx context.Context, code string) (*Affiliator, error) {

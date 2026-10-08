@@ -16,27 +16,27 @@
 .checkoutDesc { margin: 0; font-size: var(--km-v2-type-body); color: var(--km-neutral-600); line-height: var(--km-v2-leading-relaxed); }
 .formCard { gap: var(--km-v2-space-6); }
 .formSectionHeading { margin: 0; padding-bottom: var(--km-v2-space-4); border-bottom: var(--km-v2-border-width) solid var(--km-line); font-family: var(--font-heading); font-size: var(--km-v2-type-subhead); font-weight: 600; }
-.formFields { gap: var(--km-v2-space-6); }
+.formFields { gap: var(--km-checkout-field-gap); }
 .fieldGroup { display: flex; flex-direction: column; gap: var(--km-checkout-field-label-gap); min-width: 0; }
 .fieldLabel { font-weight: 500; font-size: var(--km-checkout-field-text); }
-.fieldInput, .subdomainContainer, .passwordContainer, .couponInputContainer { width: 100%; min-width: 0; height: var(--km-checkout-field-height); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); background: var(--km-paper); }
-.fieldInput { padding: 0 var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-checkout-field-text); }
-.fieldInput::placeholder, .subdomainInputField::placeholder, .passwordInputField::placeholder, .couponInputField::placeholder { color: var(--km-checkout-field-placeholder); }
-.fieldInput:focus, .subdomainContainer:focus-within, .passwordContainer:focus-within, .couponInputContainer:focus-within { outline: none; border-color: var(--km-ink); box-shadow: var(--km-checkout-field-focus-ring); }
+.subdomainContainer, .couponInputContainer { width: 100%; min-width: 0; height: var(--km-checkout-field-height); border: var(--km-v2-border-width) solid var(--km-checkout-field-border); border-radius: var(--km-v2-radius-control); background: var(--km-paper); }
+/* Plain text and password fields are the shared TextField / PasswordField (components/marketing/ui). */
+.subdomainInputField::placeholder, .couponInputField::placeholder { color: var(--km-checkout-field-placeholder); }
+.subdomainContainer:focus-within, .couponInputContainer:focus-within { outline: none; border-color: var(--km-ink); box-shadow: var(--km-checkout-field-focus-ring); }
 .fieldInputError { border-color: var(--km-danger-strong); }
-.subdomainContainer, .passwordContainer, .couponInputContainer { display: flex; align-items: center; overflow: hidden; }
-.subdomainInputField, .passwordInputField, .couponInputField { min-width: 0; width: 100%; flex: 1; align-self: stretch; border: none; outline: none; background: transparent; padding: 0 var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-checkout-field-text); }
+.subdomainContainer, .couponInputContainer { display: flex; align-items: center; overflow: hidden; }
+.subdomainInputField, .couponInputField { min-width: 0; width: 100%; flex: 1; align-self: stretch; border: none; outline: none; background: transparent; padding: 0 var(--km-v2-space-3); color: var(--km-ink); font: inherit; font-size: var(--km-checkout-field-text); }
 .subdomainSuffixBox { align-self: stretch; display: flex; align-items: center; background: var(--km-surface-alt); border-left: var(--km-v2-border-width) solid var(--km-line); padding: 0 var(--km-v2-space-3); }
 .subdomainSuffixText { font-size: var(--km-v2-type-label); white-space: nowrap; }
-.twoColRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--km-v2-space-4); }
-.passwordToggleBtn { border: none; background: transparent; color: var(--km-muted); min-width: var(--km-checkout-field-height); align-self: stretch; display: grid; place-items: center; cursor: pointer; }
+/* Row gap = the gap between every field group in .formFields; column gap 24px between side-by-side fields. */
+.twoColRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--km-checkout-field-gap) var(--km-v2-space-6); }
 .errorText, .statusUnavailable, .couponError { color: var(--km-danger-strong); font-size: var(--km-v2-type-label); }
 .statusChecking, .statusAvailable { display: flex; align-items: center; gap: var(--km-v2-space-2); font-size: var(--km-v2-type-label); color: var(--km-muted); }
 .statusAvailable, .couponSuccess { color: var(--km-accent); }
 .alertError { display: flex; align-items: start; gap: var(--km-v2-space-3); padding: var(--km-v2-space-4); background: var(--km-danger-bg); border: var(--km-v2-border-width) solid var(--km-danger-line); border-radius: var(--km-v2-radius-control); color: var(--km-danger-strong); }
 .alertError svg { flex-shrink: 0; }
 .consentText a, .loginLink { color: var(--km-ink); text-underline-offset: var(--km-v2-space-1); }
-.submitBtn { display: flex; align-items: center; justify-content: center; gap: var(--km-v2-space-3); min-height: var(--km-v2-touch-target); width: 100%; border: var(--km-v2-border-width) solid var(--km-accent); border-radius: var(--km-v2-radius-media); background: var(--km-accent); box-shadow: var(--km-v2-cta-shadow); color: var(--km-paper); font: 600 var(--km-v2-type-small) var(--font-heading); cursor: pointer; }
+.submitBtn { display: flex; align-items: center; justify-content: center; gap: var(--km-v2-space-3); min-height: var(--km-checkout-field-height); width: 100%; border: var(--km-v2-border-width) solid var(--km-accent); border-radius: var(--km-v2-radius-media); background: var(--km-accent); box-shadow: var(--km-v2-cta-shadow); color: var(--km-paper); font: 600 var(--km-v2-type-small) var(--font-heading); cursor: pointer; }
 .submitBtn:hover:not(:disabled) { background: var(--km-accent-hover); }
 .submitBtn:disabled, .applyCouponBtn:disabled { opacity: var(--km-checkout-disabled-opacity); cursor: not-allowed; }
 .trustPoints { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--km-v2-space-2); }
@@ -58,10 +58,12 @@
 .priceRow { justify-content: space-between; }
 .monthlyPrice { font: 600 var(--km-v2-type-section) var(--font-heading); font-variant-numeric: tabular-nums; }
 .perMonth, .billingNote, .planOptionTotal { font-size: var(--km-v2-type-label); color: var(--km-neutral-600); }
-.changePlanBtn, .applyCouponBtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--km-v2-space-2); min-height: var(--km-v2-touch-target); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); padding: 0 var(--km-v2-space-3); color: var(--km-ink); background: var(--km-paper); font: 500 var(--km-v2-type-small) var(--font-body); cursor: pointer; }
+.changePlanBtn, .applyCouponBtn { display: inline-flex; align-items: center; justify-content: center; gap: var(--km-v2-space-2); min-height: var(--km-checkout-field-height); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-control); padding: 0 var(--km-v2-space-3); color: var(--km-ink); background: var(--km-paper); font: 500 var(--km-v2-type-small) var(--font-body); cursor: pointer; }
 /* "Ubah Paket" sits beside the price, not in a form row: its height follows the text through padding
    (founder request) instead of the 48px touch-target minimum the inputs use. */
 .changePlanBtn { min-height: 0; padding: var(--km-v2-space-2) var(--km-v2-space-3); line-height: var(--km-v2-leading-tight); }
+/* Icon-only edit button beside the monthly price in the summary. */
+.summaryChangePlanBtn { padding: var(--km-v2-space-2); }
 .changePlanBtn:hover, .applyCouponBtn:hover:not(:disabled) { border-color: var(--km-ink); }
 .changePlanChevron { transition: transform var(--km-v2-motion-fast); }
 .changePlanChevronOpen { transform: rotate(180deg); }
@@ -151,5 +153,5 @@
 
 /* Phone: field text 16px so iOS Safari does not zoom into the field (AGENTS.md 3.10). */
 @media (max-width: 768px) {
-  .fieldInput, .subdomainInputField, .passwordInputField, .couponInputField { font-size: var(--km-checkout-field-text-mobile); }
+  .subdomainInputField, .couponInputField { font-size: var(--km-checkout-field-text-mobile); }
 }

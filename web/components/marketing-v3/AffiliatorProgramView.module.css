@@ -11,9 +11,13 @@
 .steps li::marker, .terms li::marker { font-weight: 600; color: var(--km-ink); }
 .steps b { color: var(--km-ink); font-weight: 600; }
 
-.figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--km-v3-affiliator-figure-min-width), 1fr)); gap: var(--km-v2-space-5); margin: var(--km-v2-space-8) 0; padding-block: var(--km-v2-space-5); border-block: var(--km-v2-border-width) solid var(--km-line); }
-.figures dt { font-size: var(--km-v2-type-label); color: var(--km-muted); }
-.figures dd { margin: var(--km-v2-space-1) 0 0; font-family: var(--tw-font-heading), sans-serif; font-size: var(--km-v2-type-subhead); font-weight: 600; color: var(--km-ink); }
+/* Five figures: two columns on phones, three from 640px (3 + 2 rows). Each cell keeps its number at the
+   bottom, so numbers line up whether a label takes one line or two. */
+.figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--km-v2-space-6) var(--km-v2-space-5); margin: var(--km-v2-space-8) 0; padding-block: var(--km-v2-space-6); border-block: var(--km-v2-border-width) solid var(--km-line); }
+.figures > div { display: flex; flex-direction: column; justify-content: space-between; gap: var(--km-v2-space-1); }
+.figures dt { font-size: var(--km-v2-type-label); line-height: var(--km-v2-leading-normal); color: var(--km-muted); }
+.figures dd { margin: 0; font-family: var(--tw-font-heading), sans-serif; font-size: var(--km-v2-type-subhead); font-weight: 600; color: var(--km-ink); }
+@media (min-width: 640px) { .figures { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 .rules, .terms { display: grid; gap: var(--km-v2-space-3); margin: var(--km-v2-space-5) 0 0; padding-left: var(--km-v2-space-5); }
 .note { margin-top: var(--km-v2-space-4); }

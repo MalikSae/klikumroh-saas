@@ -1,29 +1,10 @@
 // Affiliator home: the balance first (the one primary action is the payout), then what to share (link and
 // coupon), then the numbers behind it.
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
-import { Banner, Button, Card, CardBody, Field, IconButton, errorText, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
+import { Banner, Button, Card, CardBody, CopyButton, Field, errorText, fmtNumber, fmtPercent, fmtRupiah } from '../../ui';
 import { affiliatorLink, fetchAffiliatorOverview, setAffiliatorCoupon, type AffiliatorOverview } from '../../services/affiliatorApi';
-import { copyText } from '../../utils/clipboard';
 import { affiliatorPayoutState } from './payoutRule';
 import './affiliator.css';
-
-export const CopyButton: React.FC<{ text: string; label: string }> = ({ text, label }) => {
-  const [done, setDone] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const copy = async () => {
-    // When copying fails the text stays selectable on the page.
-    const ok = await copyText(text);
-    setDone(ok);
-    setFailed(!ok);
-    setTimeout(() => (ok ? setDone(false) : setFailed(false)), 2000);
-  };
-  return (
-    <IconButton label={done ? `${label} tersalin` : failed ? 'Gagal menyalin, salin manual' : label} onClick={copy}>
-      {done ? <Check className="ku-icon" aria-hidden="true" /> : <Copy className="ku-icon" aria-hidden="true" />}
-    </IconButton>
-  );
-};
 
 const COUPON_PATTERN = /^[A-Z0-9]{4,20}$/;
 
@@ -94,27 +75,29 @@ export const AffiliatorHomeView: React.FC = () => {
                 <div className="af-share__label">Link Anda</div>
                 <div className="af-share__value af-share__value--link">{link}</div>
               </div>
-              <CopyButton text={link} label="Salin link" />
+              <CopyButton value={link}>Salin</CopyButton>
             </div>
 
-            <div className="af-share__row">
-              <div className="af-share__text">
-                <div className="af-share__label">Kupon diskon {fmtPercent(data.coupon_discount, 2)} untuk travel baru</div>
-                {data.coupon_code ? <div className="af-share__value">{data.coupon_code}</div> : <div className="af-muted">Belum ada kupon.</div>}
-              </div>
-              {data.coupon_code && !editing && (
-                <div className="af-share__actions">
-                  <CopyButton text={data.coupon_code} label="Salin kupon" />
-                  <Button size="sm" variant="ghost" onClick={() => { setEditing(true); setCode(data.coupon_code ?? ''); }}>Ubah</Button>
+            {data.coupon_code && (
+              <div className="af-share__row">
+                <div className="af-share__text">
+                  <div className="af-share__label">Kupon diskon {fmtPercent(data.coupon_discount, 2)} untuk travel baru</div>
+                  <div className="af-share__value">{data.coupon_code}</div>
                 </div>
-              )}
-            </div>
+                {!editing && (
+                  <div className="af-share__actions">
+                    <Button size="sm" variant="ghost" onClick={() => { setEditing(true); setCode(data.coupon_code ?? ''); }}>Ubah</Button>
+                    <CopyButton value={data.coupon_code}>Salin</CopyButton>
+                  </div>
+                )}
+              </div>
+            )}
 
             {showCouponForm && (
               <form className="af-coupon" onSubmit={saveCoupon} noValidate>
                 <Field
-                  label={data.coupon_code ? 'Kode kupon baru' : 'Buat kode kupon'}
-                  hint={data.coupon_code ? 'Kupon lama langsung tidak berlaku. Travel yang sudah terdaftar tetap tercatat milik Anda.' : 'Contoh: BERKAH20. Hanya huruf dan angka.'}
+                  label={data.coupon_code ? 'Kode kupon baru' : `Buat kode kupon (diskon ${fmtPercent(data.coupon_discount, 2)} untuk travel baru)`}
+                  hint={data.coupon_code ? 'Kupon lama langsung tidak berlaku. Travel yang sudah terdaftar tetap tercatat milik Anda.' : 'Contoh: BERKAH20. 4-20 karakter, hanya huruf dan angka.'}
                   error={codeError}
                 >
                   {(id) => (
@@ -123,7 +106,7 @@ export const AffiliatorHomeView: React.FC = () => {
                 </Field>
                 <div className="af-coupon__actions">
                   {data.coupon_code && <Button variant="ghost" onClick={() => { setEditing(false); setCodeError(null); }}>Batal</Button>}
-                  <Button type="submit" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan kupon'}</Button>
+                  <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan kupon'}</Button>
                 </div>
               </form>
             )}

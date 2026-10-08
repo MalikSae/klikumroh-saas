@@ -99,7 +99,7 @@
   color: var(--ku-ink-3);
   min-width: 0;
 }
-.ku-search:focus-within { border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
+.ku-search:focus-within { border-color: var(--ku-accent); box-shadow: none; }
 .ku-search input { border: 0; outline: 0; flex: 1; min-width: 0; font: var(--ku-text-base) var(--ku-font-body); color: var(--ku-ink); background: none; }
 .ku-search--sm { height: 36px; }
 
@@ -107,7 +107,7 @@
 .ku-select { position: relative; display: inline-flex; min-width: 0; }
 .ku-select__trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: var(--ku-space-2); width: 100%; height: var(--ku-size-control-sm); padding: 0 10px 0 var(--ku-space-3); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); color: var(--ku-ink-2); font: var(--ku-text-md) var(--ku-font-body); text-align: left; cursor: pointer; }
 .ku-select__trigger:hover:not(:disabled) { border-color: var(--ku-ink-4); }
-.ku-select__trigger:focus-visible, .ku-select--open .ku-select__trigger { outline: none; border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
+.ku-select__trigger:focus-visible, .ku-select--open .ku-select__trigger { outline: none; border-color: var(--ku-accent); box-shadow: none; }
 .ku-select__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ku-select__value--empty { color: var(--ku-ink-4); }
 .ku-select__chev { width: 16px; height: 16px; flex-shrink: 0; color: var(--ku-ink-3); transition: transform 120ms ease; }
@@ -138,7 +138,7 @@
   color: var(--ku-ink);
 }
 .ku-textarea { height: auto; min-height: 96px; padding: var(--ku-space-2) var(--ku-space-3); line-height: var(--ku-leading-loose); resize: vertical; }
-.ku-input:focus, .ku-textarea:focus { outline: none; border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
+.ku-input:focus, .ku-textarea:focus { outline: none; border-color: var(--ku-accent); box-shadow: none; }
 .ku-input[aria-invalid='true'], .ku-textarea[aria-invalid='true'] { border-color: var(--ku-red); }
 /* Inside a form every control shares one size and text style; the compact select stays for toolbars. */
 .ku-field .ku-select, .ku-filter__panel .ku-select { display: flex; width: 100%; }
@@ -329,14 +329,14 @@ a.ku-notice:hover { background: var(--ku-hover); }
 .ag > .ku-list > .ku-tools:first-child, .st > .ku-list > .ku-tools:first-child { padding-top: 0; }
 /* Money input */
 .ku-money { display: flex; align-items: center; width: 100%; height: var(--ku-size-control); border: 1px solid var(--ku-line); border-radius: var(--ku-radius-ctl); background: var(--ku-panel); }
-.ku-money:focus-within { border-color: var(--ku-accent); box-shadow: 0 0 0 1px var(--ku-accent); }
+.ku-money:focus-within { border-color: var(--ku-accent); box-shadow: none; }
 .ku-money--invalid { border-color: var(--ku-red); }
 .ku-money--disabled { background: var(--ku-soft); }
 .ku-money__prefix { padding: 0 0 0 var(--ku-space-3); color: var(--ku-ink-3); font-size: var(--ku-text-base); }
 .ku-money__input { flex: 1; min-width: 0; height: 100%; padding: 0 var(--ku-space-3) 0 6px; border: 0; background: transparent; font: var(--ku-text-base) var(--ku-font-body); color: var(--ku-ink); font-variant-numeric: tabular-nums; outline: none; }
 .ku-money__input::placeholder { color: var(--ku-ink-4); }
-/* Focused field with an error: one thick red border (same shape as the black focus border). */
-.ku-input[aria-invalid='true']:focus, .ku-textarea[aria-invalid='true']:focus, .ku-select--invalid .ku-select__trigger:focus-visible, .ku-money--invalid:focus-within { border-color: var(--ku-red); box-shadow: 0 0 0 1px var(--ku-red); }
+/* Focused field with an error: the same 1px border as the black focus border, in red. */
+.ku-input[aria-invalid='true']:focus, .ku-textarea[aria-invalid='true']:focus, .ku-select--invalid .ku-select__trigger:focus-visible, .ku-money--invalid:focus-within { border-color: var(--ku-red); box-shadow: none; }
 .ku-city__opt { justify-content: flex-start; }
 .ku-city__opt .ku-icon--sm { color: var(--ku-ink-3); }
 

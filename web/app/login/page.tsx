@@ -3,30 +3,27 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Instrument_Serif } from 'next/font/google';
-import {
-  AlertCircle,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  CheckCircle2,
-  Loader2,
-  ShieldCheck,
-} from 'lucide-react';
-import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
+import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { AuthCard, AuthPage, PasswordField, PrimaryButton, TextField } from '@/components/marketing/ui';
 import { clearDashboardSession, dashboardUrl, openDashboard, storeDashboardSession } from '@/lib/dashboardSession';
 import { isBlankPassword } from '@/lib/passwordRules';
 import styles from './login.module.css';
 
-// Same display serif as the marketing landing (MarketingV3View) for the headings.
-const serif = Instrument_Serif({ weight: '400', subsets: ['latin'], variable: '--km-font-display', display: 'swap' });
+// The server answers in English ("invalid credentials"); the page speaks Indonesian and says what to do next.
+function loginErrorText(status: number, serverMessage?: string): string {
+  if (status === 401 || serverMessage === 'invalid credentials') {
+    return 'Email atau kata sandi salah. Periksa kembali lalu coba masuk lagi.';
+  }
+  if (status === 429) return 'Terlalu banyak percobaan masuk. Tunggu beberapa menit lalu coba lagi.';
+  if (status >= 500) return 'Server sedang bermasalah. Coba lagi beberapa saat lagi.';
+  return 'Gagal masuk. Periksa email dan kata sandi Anda, lalu coba lagi.';
+}
 
 function LoginForm() {
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginSuccess, setLoginSuccess] = useState<{
@@ -72,7 +69,7 @@ function LoginForm() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login gagal, periksa email dan kata sandi Anda');
+        throw new Error(loginErrorText(res.status, data.error));
       }
 
       // Active and pending travels both go to the dashboard. A pending travel lands on its
@@ -93,144 +90,66 @@ function LoginForm() {
   };
 
   return (
-    <main className={`${styles.loginPage} ${serif.variable}`}>
-      {/* Main Content Area */}
-      <div className={styles.contentWrapper}>
-        <div className={styles.cardContainer}>
-          {/* Brand Presentation */}
-          <div className={styles.brandHeader}>
-            <Link href="/marketing" className={styles.brandLink} aria-label="KlikUmroh.id">
-              <KlikUmrohBrand theme="light" iconSize={34} showBadge={true} />
-            </Link>
+    <AuthPage>
+      <AuthCard
+        title="Masuk ke Dashboard Travel"
+        subtitle="Kelola prospek, sistem agen referral, dan paket umroh travel Anda"
+        error={error}
+        trust="Koneksi Terenkripsi HTTPS • Data Terisolasi Per-Travel"
+        footer={
+          <div>
+            <span>Belum berlangganan KlikUmroh?</span>
+            <Link href="/marketing/checkout">Mulai Berlangganan</Link>
           </div>
-
-          {/* Login Card */}
-          <div className={styles.card}>
-            {/* Header Text */}
-            <div className={styles.header}>
-              <h1 className={styles.title}>Masuk ke Dashboard Travel</h1>
-              <p className={styles.subtitle}>
-                Kelola prospek, sistem agen referral, dan paket umroh travel Anda
-              </p>
+        }
+      >
+        {loginSuccess ? (
+          <div className={styles.successCard} role="status">
+            <div className={styles.successIconWrapper}>
+              <CheckCircle2 size={28} />
             </div>
-
-            {/* Error Alert */}
-            {error && (
-              <div className={styles.errorBanner} role="alert">
-                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '1px' }} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {loginSuccess ? (
-              <div className={styles.successCard} role="status">
-                <div className={styles.successIconWrapper}>
-                  <CheckCircle2 size={28} />
-                </div>
-                <h2 className={styles.successTitle}>Login Berhasil</h2>
-                <p className={styles.successDesc}>
-                  Selamat datang kembali, <strong>{loginSuccess.travelName}</strong>.{' '}
-                  {loginSuccess.isPending ? 'Mengarahkan ke halaman tagihan...' : 'Mengarahkan ke dashboard travel...'}
-                </p>
-                <a
-                  href={loginSuccess.dashboardUrl}
-                  className={styles.dashboardRedirectBtn}
-                >
-                  <span>Buka Dashboard Sekarang</span>
-                  <ArrowRight size={16} />
-                </a>
-              </div>
-            ) : (
-              /* Login Form */
-              <form onSubmit={handleSubmit} className={styles.form}>
-                <div className={styles.fieldGroup}>
-                  <label htmlFor="login-email" className={styles.label}>
-                    Email Akun Travel
-                  </label>
-                  <div className={styles.inputWrapper}>
-                    <input
-                      id="login-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@travelanda.com"
-                      required
-                      autoComplete="email"
-                      className={styles.input}
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <div className={styles.labelRow}>
-                    <label htmlFor="login-password" className={styles.label}>
-                      Kata Sandi
-                    </label>
-                  </div>
-                  <div className={styles.inputWrapper}>
-                    <input
-                      id="login-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Masukkan kata sandi akun"
-                      required
-                      autoComplete="current-password"
-                      className={`${styles.input} ${styles.passwordInput}`}
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className={styles.togglePasswordBtn}
-                      aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={styles.submitBtn}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={18} className={styles.spinner} />
-                      <span>Memverifikasi...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Masuk ke Dashboard</span>
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            {/* Card Footer */}
-            <div className={styles.cardFooter}>
-              <div className={styles.signupPrompt}>
-                <span>Belum berlangganan KlikUmroh?</span>
-                <Link href="/marketing/checkout" className={styles.signupLink}>
-                  Mulai Berlangganan
-                </Link>
-              </div>
-            </div>
+            <h2 className={styles.successTitle}>Login Berhasil</h2>
+            <p className={styles.successDesc}>
+              Selamat datang kembali, <strong>{loginSuccess.travelName}</strong>.{' '}
+              {loginSuccess.isPending ? 'Mengarahkan ke halaman tagihan...' : 'Mengarahkan ke dashboard travel...'}
+            </p>
+            <PrimaryButton href={loginSuccess.dashboardUrl}>
+              <span>Buka Dashboard Sekarang</span>
+              <ArrowRight size={16} />
+            </PrimaryButton>
           </div>
-
-          {/* Trust and Security Badge */}
-          <div className={styles.trustBadge}>
-            <ShieldCheck size={14} className={styles.trustIcon} />
-            <span>Koneksi Terenkripsi HTTPS • Data Terisolasi Per-Travel</span>
-          </div>
-        </div>
-      </div>
-    </main>
+        ) : (
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <TextField
+              id="login-email"
+              type="email"
+              label="Email Akun Travel"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@travelanda.com"
+              required
+              autoComplete="username"
+              spellCheck={false}
+              readOnly={loading}
+            />
+            <PasswordField
+              id="login-password"
+              label="Kata Sandi"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Masukkan kata sandi akun"
+              required
+              autoComplete="current-password"
+              readOnly={loading}
+            />
+            <PrimaryButton type="submit" loading={loading} loadingText="Memverifikasi...">
+              <span>Masuk ke Dashboard</span>
+              <ArrowRight size={16} />
+            </PrimaryButton>
+          </form>
+        )}
+      </AuthCard>
+    </AuthPage>
   );
 }
 
@@ -238,15 +157,13 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className={`${styles.loginPage} ${serif.variable}`}>
-          <div className={styles.contentWrapper}>
-            <div className={styles.cardContainer}>
-              <div className={`${styles.card} ${styles.loadingCard}`}>
-                <Loader2 size={32} className={styles.loadingSpinner} />
-              </div>
+        <AuthPage>
+          <AuthCard title="" bare>
+            <div className={styles.loading}>
+              <Loader2 size={32} className={styles.loadingSpinner} />
             </div>
-          </div>
-        </main>
+          </AuthCard>
+        </AuthPage>
       }
     >
       <LoginForm />

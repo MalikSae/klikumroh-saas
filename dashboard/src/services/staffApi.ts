@@ -610,6 +610,43 @@ export const resetTenantAdminPassword = async (
   }
 };
 
+/** One legal page (Syarat & Ketentuan, Kebijakan Privasi): the draft staff edit and whether it is published. */
+export interface LegalDocument {
+  slug: string;
+  title: string;
+  draft_content: string;
+  published: boolean;
+  published_at: string | null;
+  /** The draft differs from what the public page shows (only when published). */
+  has_unpublished_changes: boolean;
+  updated_at: string;
+}
+
+const legalRequest = async (path: string, init: RequestInit, fallback: string): Promise<any> => {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...getStaffAuthHeader() },
+  });
+  const json = await readStaffJson(res);
+  if (!res.ok) {
+    if (res.status === 401) clearStaffAuthSession();
+    throw new Error(json.error || fallback);
+  }
+  return json;
+};
+
+export const fetchLegalDocuments = async (): Promise<LegalDocument[]> =>
+  (await legalRequest('/api/staff/legal-documents', {}, 'Gagal memuat dokumen legal')).documents;
+
+export const saveLegalDraft = async (slug: string, title: string, content: string): Promise<LegalDocument> =>
+  (await legalRequest(`/api/staff/legal-documents/${slug}`, { method: 'PUT', body: JSON.stringify({ title, content }) }, 'Gagal menyimpan draf')).document;
+
+export const publishLegalDocument = async (slug: string): Promise<LegalDocument> =>
+  (await legalRequest(`/api/staff/legal-documents/${slug}/publish`, { method: 'POST' }, 'Gagal menerbitkan dokumen')).document;
+
+export const unpublishLegalDocument = async (slug: string): Promise<LegalDocument> =>
+  (await legalRequest(`/api/staff/legal-documents/${slug}/unpublish`, { method: 'POST' }, 'Gagal menarik dokumen dari tayang')).document;
+
 export interface PlatformSettings {
   whatsapp_number: string;
   bank_name: string;

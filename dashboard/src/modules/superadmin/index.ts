@@ -11,6 +11,7 @@ export * from './views/AdminTenantsView';
 export * from './views/AdminTenantDetailView';
 export * from './views/AdminPaymentsView';
 export * from './views/AdminPlansView';
+export * from './views/AdminLegalView';
 export * from './views/AdminCouponsView';
 export * from './views/AdminSettingsView';
 export * from './views/AdminStaffView';

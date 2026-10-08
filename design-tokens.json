@@ -142,6 +142,8 @@
       "_note": "Dashboard travel v2, dari prototipe yang disetujui pendiri (dashboard/design/prototype.html). Dipetakan ke CSS var --ku-* oleh scripts/build-ui-tokens.js. Komponen src/ui, src/app, src/screens hanya memakai --ku-*.",
       "color": {
         "frame": "#F4F4F5",
+        "authFrame": "#F6F6F5",
+        "authBorder": "#8A8A93",
         "panel": "#FFFFFF",
         "soft": "#FAFAFA",
         "hover": "#FAFAFA",
@@ -236,6 +238,7 @@
         "ring": "0 0 0 1px #E7E7E3",
         "btn": "inset 0 -2px 2px #F4F4F4, inset 0 2px 2px #FFFFFF, 0 1px 2px rgba(0, 0, 0, 0.05)",
         "btnPrimary": "inset 0 -2px 2px #000000, inset 0 2px 2px #3F3F46, 0 1px 2px rgba(0, 0, 0, 0.05)",
+        "auth": "0 1px 2px rgba(0, 0, 0, 0.05)",
         "btnDanger": "inset 0 -2px 2px #991B1B, inset 0 2px 2px #F87171, 0 1px 2px rgba(0, 0, 0, 0.05)"
       },
       "size": {
@@ -249,6 +252,7 @@
         "tabbar": "64px",
         "sheet-grip": "36px",
         "touch": "40px",
+        "authControl": "44px",
         "meter": "6px"
       },
       "affiliator": {
@@ -568,11 +572,13 @@
       "radioDotSize": "8px",
       "focusRing": "0 0 0 3px var(--km-line)",
       "_noteField": "6 Okt 2026: kolom isian checkout disamakan dengan kolom dashboard travel (.ku-input): tinggi 38px, teks 14px (16px di HP agar Safari iOS tidak zoom), garis fokus 1px hitam, placeholder zinc-400, jarak label 6px.",
-      "fieldHeight": "38px",
-      "fieldText": "14px",
+      "fieldHeight": "44px",
+      "fieldText": "16px",
       "fieldTextMobile": "16px",
       "fieldLabelGap": "6px",
-      "fieldPlaceholder": "var(--km-neutral-400)",
+      "fieldGap": "16px",
+      "fieldPlaceholder": "var(--km-muted)",
+      "fieldBorder": "#8A8A93",
       "fieldFocusRing": "0 0 0 1px var(--km-ink)"
     }
   }

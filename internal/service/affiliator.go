@@ -30,6 +30,7 @@ import (
 var (
 	ErrAffiliatorInvalidCredentials = errors.New("email atau kata sandi salah")
 	ErrAffiliatorEmailInUse         = errors.New("email sudah terdaftar sebagai affiliator")
+	ErrAffiliatorWhatsAppInUse      = errors.New("nomor WhatsApp sudah terdaftar sebagai affiliator")
 	ErrAffiliatorNameRequired       = errors.New("nama wajib diisi")
 	ErrAffiliatorInvalidEmail       = errors.New("format email tidak valid")
 	ErrAffiliatorInvalidWhatsApp    = errors.New("nomor WhatsApp tidak valid")
@@ -272,6 +273,15 @@ func (s *affiliatorService) Register(ctx context.Context, req AffiliatorRegister
 	} else if err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return nil, err
 	}
+	// One number, one affiliator (the number is part of the self-referral guard). The UNIQUE key is the
+	// last line of defence for a race; this check gives the friendly message first.
+	if wa != nil {
+		if existing, err := s.repo.FindByWhatsApp(ctx, *wa); err == nil && existing != nil {
+			return nil, ErrAffiliatorWhatsAppInUse
+		} else if err != nil && !errors.Is(err, repository.ErrNotFound) {
+			return nil, err
+		}
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -292,6 +302,11 @@ func (s *affiliatorService) Register(ctx context.Context, req AffiliatorRegister
 		}
 		if existing, findErr := s.repo.FindByEmail(ctx, email); findErr == nil && existing != nil {
 			return nil, ErrAffiliatorEmailInUse
+		}
+		if wa != nil {
+			if existing, findErr := s.repo.FindByWhatsApp(ctx, *wa); findErr == nil && existing != nil {
+				return nil, ErrAffiliatorWhatsAppInUse
+			}
 		}
 		if attempt >= 4 {
 			return nil, err

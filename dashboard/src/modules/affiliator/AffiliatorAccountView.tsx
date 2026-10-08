@@ -7,6 +7,13 @@ import { PasswordInput } from './PasswordInput';
 import { MIN_PASSWORD_LENGTH as MIN_PASSWORD, passwordLongEnough } from '../../utils/password';
 import './affiliator.css';
 
+/** "6281222771761" -> "+62 812-2277-1761": the stored number (62...) in a readable form. */
+const formatWhatsApp = (n: string): string => {
+  if (!/^62\d{8,13}$/.test(n)) return n;
+  const rest = n.slice(2);
+  return `+62 ${rest.slice(0, 3)}-${rest.slice(3, 7)}-${rest.slice(7)}`;
+};
+
 export const AffiliatorAccountView: React.FC = () => {
   const [me, setMe] = useState<Affiliator | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -103,8 +110,8 @@ export const AffiliatorAccountView: React.FC = () => {
           <dl className="af-profile">
             <div><dt>Nama</dt><dd>{me.name}</dd></div>
             <div><dt>Email</dt><dd>{me.email}</dd></div>
-            {me.whatsapp && <div><dt>WhatsApp</dt><dd>{me.whatsapp}</dd></div>}
-            <div><dt>Kode link</dt><dd>{me.link_code}</dd></div>
+            {me.whatsapp && <div><dt>WhatsApp</dt><dd>{formatWhatsApp(me.whatsapp)}</dd></div>}
+            <div><dt>Kode link referral</dt><dd>{me.link_code}</dd></div>
           </dl>
         </CardBody>
       </Card>
@@ -114,11 +121,27 @@ export const AffiliatorAccountView: React.FC = () => {
           <form className="af-form" onSubmit={save} noValidate>
             {error && <Banner tone="danger">{error}</Banner>}
             <Field label="Nama bank">{(id) => <input id={id} className="ku-input" placeholder="Contoh: BSI" value={bankName} onChange={edit(setBankName)} />}</Field>
-            <Field label="Nomor rekening">{(id) => <input id={id} className="ku-input" inputMode="numeric" value={accountNumber} onChange={edit(setAccountNumber)} />}</Field>
-            <Field label="Nama pemilik rekening">{(id) => <input id={id} className="ku-input" value={holder} onChange={edit(setHolder)} />}</Field>
-            <Field label="Kata sandi Anda" hint="Diperlukan untuk mengubah rekening pencairan.">
-              {(id) => <PasswordInput id={id} autoComplete="current-password" value={bankPassword} onChange={(v) => { setBankPassword(v); setSaved(false); }} />}
+            <Field label="Nomor rekening" hint="Hanya angka, tanpa spasi atau tanda hubung.">
+              {(id) => (
+                <input
+                  id={id}
+                  className="ku-input"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={30}
+                  placeholder="Contoh: 1234567890"
+                  value={accountNumber}
+                  onChange={(e) => { setAccountNumber(e.target.value.replace(/\D/g, '')); setSaved(false); }}
+                />
+              )}
             </Field>
+            <Field label="Nama pemilik rekening">{(id) => <input id={id} className="ku-input" placeholder="Sesuai buku tabungan" autoComplete="off" value={holder} onChange={edit(setHolder)} />}</Field>
+            {/* Confirmation, not a bank detail: kept apart so it does not read as a fourth account field. */}
+            <div className="af-form__confirm">
+              <Field label="Kata sandi Anda" hint="Diperlukan untuk mengubah rekening pencairan.">
+                {(id) => <PasswordInput id={id} autoComplete="current-password" placeholder="Masukkan kata sandi akun" value={bankPassword} onChange={(v) => { setBankPassword(v); setSaved(false); }} />}
+              </Field>
+            </div>
             <div className="af-form__actions">
               {saved && (
                 <span className="af-saved" role="status">

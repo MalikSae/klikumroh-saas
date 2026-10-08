@@ -1,10 +1,12 @@
 // Affiliator KlikUmroh: sign up (open to anyone, active at once) and log in.
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { Banner, Button, Checkbox, Field, errorText } from '../../ui';
 import { PasswordInput } from './PasswordInput';
 import { loginAffiliator, registerAffiliator } from '../../services/affiliatorApi';
 import brandIcon from '../../assets/icon-klikumroh.svg';
+import '@fontsource/instrument-serif/400.css';
 import './affiliator.css';
 
 const MIN_PASSWORD = 8;
@@ -58,34 +60,38 @@ export const AffiliatorAuthView: React.FC<{ mode: 'login' | 'register' }> = ({ m
 
   return (
     <div className="ku af-auth">
-      <div className="af-auth__panel">
-        <div className="af-auth__brand">
-          <img src={brandIcon} alt="" width={28} height={28} />
-          <span><b>Klik</b>Umroh</span>
+      <div className="af-auth__wrap">
+        <a className="af-auth__brand" href={programUrl()} aria-label="KlikUmroh.id, program affiliator">
+          <img src={brandIcon} alt="" width={34} height={34} />
+          <span className="af-auth__wordmark"><b>Klik</b>Umroh</span>
+          <span className="af-auth__badge">.id</span>
+        </a>
+        <div className="af-auth__panel">
+        <div className="af-auth__header">
+          <h1 className="af-auth__title">{isRegister ? 'Daftar Affiliator KlikUmroh' : 'Masuk Affiliator'}</h1>
+          <p className="af-auth__lead">
+            {isRegister ? (
+              <>Ajak travel umroh berlangganan KlikUmroh dan dapatkan komisi dari setiap pembayarannya. <a href={programUrl()}>Pelajari programnya</a>.</>
+            ) : (
+              'Pantau travel yang Anda bawa dan komisi Anda.'
+            )}
+          </p>
         </div>
-        <h1 className="af-auth__title">{isRegister ? 'Daftar Affiliator KlikUmroh' : 'Masuk Affiliator'}</h1>
-        <p className="af-auth__lead">
-          {isRegister ? (
-            <>Ajak travel umroh berlangganan KlikUmroh dan dapatkan komisi dari setiap pembayarannya. <a href={programUrl()}>Pelajari programnya</a>.</>
-          ) : (
-            'Pantau travel yang Anda bawa dan komisi Anda.'
-          )}
-        </p>
 
         {error && <Banner tone="danger">{error}</Banner>}
 
         <form className="af-auth__form" onSubmit={submit} noValidate>
           {isRegister && (
-            <Field label="Nama lengkap">{(id) => <input id={id} className="ku-input" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />}</Field>
+            <Field label="Nama lengkap">{(id) => <input id={id} className="ku-input" autoComplete="name" placeholder="Nama lengkap Anda" value={name} onChange={(e) => setName(e.target.value)} />}</Field>
           )}
-          <Field label="Email">{(id) => <input id={id} className="ku-input" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
+          <Field label="Email">{(id) => <input id={id} className="ku-input" type="email" autoComplete={isRegister ? 'email' : 'username'} spellCheck={false} placeholder="nama@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
           {isRegister && (
             <Field label="Nomor WhatsApp" optional>
               {(id) => <input id={id} className="ku-input" type="tel" inputMode="tel" autoComplete="tel" placeholder="08xxxxxxxxxx" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />}
             </Field>
           )}
           <Field label="Kata sandi" hint={isRegister ? `Minimal ${MIN_PASSWORD} karakter.` : undefined}>
-            {(id) => <PasswordInput id={id} value={password} onChange={setPassword} autoComplete={isRegister ? 'new-password' : 'current-password'} />}
+            {(id) => <PasswordInput id={id} value={password} onChange={setPassword} autoComplete={isRegister ? 'new-password' : 'current-password'} placeholder={isRegister ? 'Buat kata sandi' : 'Masukkan kata sandi akun'} />}
           </Field>
           {isRegister && (
             <Checkbox
@@ -105,13 +111,19 @@ export const AffiliatorAuthView: React.FC<{ mode: 'login' | 'register' }> = ({ m
           </Button>
         </form>
 
-        <p className="af-auth__switch">
-          {isRegister ? (
-            <>Sudah terdaftar? <Link to="/affiliator/login">Masuk</Link></>
-          ) : (
-            <>Belum jadi affiliator? <Link to="/affiliator/daftar">Daftar gratis</Link></>
-          )}
-        </p>
+        <div className="af-auth__footer">
+          <p className="af-auth__switch">
+            {isRegister ? (
+              <>Sudah terdaftar? <Link to="/affiliator/login">Masuk</Link></>
+            ) : (
+              <>Belum jadi affiliator? <Link to="/affiliator/daftar">Daftar gratis</Link></>
+            )}
+          </p>
+          <a className="af-auth__back" href={programUrl()}>
+            <ArrowLeft size={14} aria-hidden="true" /> Kembali ke Program Affiliator
+          </a>
+        </div>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,52 @@
+/* Legal document page (Syarat & Ketentuan, Kebijakan Privasi). Only --km-* tokens (web/app/globals.css). */
+
+.page {
+  min-height: 100vh;
+  background-color: var(--km-paper);
+  color: var(--km-ink);
+  font-family: var(--tw-font-body, 'Roboto', sans-serif);
+  line-height: var(--km-v2-leading-relaxed);
+}
+
+.header {
+  width: calc(100% - var(--km-v2-gutter) - var(--km-v2-gutter));
+  max-width: var(--km-v2-copy-width);
+  margin-inline: auto;
+  padding-block: var(--km-v2-space-6);
+}
+
+.brand { display: inline-flex; text-decoration: none; }
+
+.article {
+  width: calc(100% - var(--km-v2-gutter) - var(--km-v2-gutter));
+  max-width: var(--km-v2-copy-width);
+  margin-inline: auto;
+  padding-bottom: var(--km-v2-space-12);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--km-font-display), serif;
+  font-size: var(--km-v3-type-section);
+  font-weight: 400;
+  letter-spacing: var(--km-v2-hero-tracking);
+  line-height: var(--km-v3-heading-leading);
+}
+
+.updated { margin: var(--km-v2-space-3) 0 0; color: var(--km-neutral-600); font-size: var(--km-v2-type-small); }
+
+.body { margin-top: var(--km-v2-space-8); }
+.body p, .body ul { margin: 0 0 var(--km-v2-space-4); font-size: var(--km-v2-type-body); color: var(--km-neutral-700); overflow-wrap: anywhere; }
+.body h2 { margin: var(--km-v2-space-8) 0 var(--km-v2-space-3); font-family: var(--tw-font-heading), sans-serif; font-size: var(--km-v2-type-subhead); font-weight: 600; line-height: var(--km-v2-leading-normal); color: var(--km-ink); }
+.body ul { padding-left: var(--km-v2-space-6); }
+.body li { margin-bottom: var(--km-v2-space-2); }
+
+.footer {
+  width: calc(100% - var(--km-v2-gutter) - var(--km-v2-gutter));
+  max-width: var(--km-v2-copy-width);
+  margin-inline: auto;
+  padding-block: var(--km-v2-space-6);
+  border-top: var(--km-v2-border-width) solid var(--km-line);
+  font-size: var(--km-v2-type-small);
+}
+.footer a { color: var(--km-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }

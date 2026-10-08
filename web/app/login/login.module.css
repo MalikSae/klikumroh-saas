@@ -1,230 +1,66 @@
-/* login.module.css — mengikuti landing marketing (MarketingV3View): judul serif, kontrol 48px dengan
-   radius media, fokus hijau aksen. Tombol utama tetap hitam (--km-ink).
-   Palet: token --km-* di app/globals.css (design-tokens.json -> marketing)
-*/
-
-.loginPage {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--km-surface-alt);
-  font-family: var(--tw-font-body, 'Roboto', sans-serif);
-  line-height: var(--km-v2-leading-normal);
-  color: var(--km-ink);
-  position: relative;
-  overflow-x: hidden;
-  /* Same bevel as the landing CTA (--km-v2-cta-shadow), with ink edges instead of green ones. */
-  /* Height of fields and buttons: the checkout field token (38px with a mouse, 48px on touch screens and
-     phones, see globals.css). */
-  --login-control-height: var(--km-checkout-field-height);
-  --login-cta-shadow: inset 0 -2px 2px var(--km-shadow-color), inset 0 2px 2px var(--km-neutral-700), var(--km-tactile-shadow);
-}
-
-/* ─── Content Wrapper ────────────────────────────────────────────────────── */
-
-.contentWrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px 48px;
-  z-index: 10;
-}
-
-.cardContainer {
-  width: 100%;
-  max-width: 440px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--km-v2-space-5);
-}
-
-/* ─── Brand Section ──────────────────────────────────────────────────────── */
-
-.brandHeader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.brandLink {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-
-.brandLink:hover {
-  opacity: 0.9;
-}
-
-/* ─── Login Card ─────────────────────────────────────────────────────────── */
-
-.card {
-  width: 100%;
-  background-color: var(--km-paper);
-  border: 1px solid var(--km-line);
-  border-radius: var(--km-v2-radius-panel);
-  padding: var(--km-v2-space-8);
-  box-shadow: var(--km-tactile-shadow);
-}
-
-.header {
-  margin-bottom: var(--km-v2-space-6);
-}
-
-.title {
-  font-family: var(--km-font-display), serif;
-  font-size: var(--km-v2-type-section);
-  font-weight: 400;
-  color: var(--km-ink);
-  margin: 0 0 var(--km-v2-space-2) 0;
-  letter-spacing: var(--km-v2-hero-tracking);
-  line-height: var(--km-v3-heading-leading);
-}
-
-.subtitle {
-  font-size: var(--km-v2-type-small);
-  color: var(--km-neutral-600);
-  margin: 0;
-  line-height: var(--km-v2-leading-normal);
-}
-
-/* ─── Form ───────────────────────────────────────────────────────────────── */
+/* login.module.css: only what is specific to the login page (form column, success message, loading).
+   The page frame, card, fields, and buttons are the shared marketing components (components/marketing/ui). */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--km-v2-space-6);
+  gap: var(--km-checkout-field-gap);
 }
 
-.fieldGroup {
+/* ─── Success State ──────────────────────────────────────────────────────── */
+
+.successCard {
   display: flex;
   flex-direction: column;
-  gap: var(--km-checkout-field-label-gap);
-  min-width: 0;
-}
-
-.labelRow {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
+  text-align: center;
+  gap: var(--km-v2-space-4);
+  padding: var(--km-v2-space-3) 0;
 }
 
-.label {
-  font-size: var(--km-checkout-field-text);
-  font-weight: 500;
-  color: var(--km-ink);
-}
-
-.inputWrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.input {
-  width: 100%;
-  min-width: 0;
-  height: var(--login-control-height);
-  padding: 0 var(--km-v2-space-3);
-  font-size: var(--km-checkout-field-text);
-  font-family: inherit;
-  color: var(--km-ink);
-  background-color: var(--km-paper);
-  border: var(--km-v2-border-width) solid var(--km-line);
-  border-radius: var(--km-v2-radius-control);
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-}
-
-.input::placeholder {
-  color: var(--km-checkout-field-placeholder);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--km-ink);
-  box-shadow: var(--km-checkout-field-focus-ring);
-}
-
-.input:disabled {
+.successIconWrapper {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
   background-color: var(--km-surface-subtle);
-  color: var(--km-muted);
-  cursor: not-allowed;
-}
-
-.passwordInput {
-  padding-right: var(--login-control-height);
-}
-
-.togglePasswordBtn {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  min-width: var(--login-control-height);
-  background: transparent;
-  border: none;
-  color: var(--km-muted);
-  cursor: pointer;
-  padding: 0;
-  display: grid;
-  place-items: center;
-}
-
-.togglePasswordBtn:hover {
-  color: var(--km-ink);
-}
-
-/* Phone: field text 16px so iOS Safari does not zoom into the field (AGENTS.md 3.10). */
-@media (max-width: 768px) {
-  .input {
-    font-size: var(--km-checkout-field-text-mobile);
-  }
-}
-
-/* ─── Submit Button ──────────────────────────────────────────────────────── */
-
-.submitBtn {
-  width: 100%;
-  height: var(--login-control-height);
+  border: var(--km-v2-border-width) solid var(--km-line);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--km-v2-space-2);
-  background-color: var(--km-ink);
-  color: var(--km-paper);
-  font-family: var(--tw-font-heading, 'Plus Jakarta Sans', sans-serif);
+  color: var(--km-ink);
+}
+
+.successTitle {
+  margin: 0;
+  font-family: var(--km-font-display), serif;
+  font-size: var(--km-v2-type-section);
+  font-weight: 400;
+  letter-spacing: var(--km-v2-hero-tracking);
+  line-height: var(--km-v3-heading-leading);
+  color: var(--km-ink);
+}
+
+.successDesc {
+  margin: 0;
   font-size: var(--km-v2-type-small);
-  font-weight: 600;
-  border: var(--km-v2-border-width) solid var(--km-ink);
-  border-radius: var(--km-v2-radius-media);
-  cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
-  box-shadow: var(--login-cta-shadow);
+  color: var(--km-muted);
+  line-height: var(--km-v2-leading-normal);
 }
 
-.submitBtn:hover:not(:disabled) {
-  background-color: var(--km-neutral-800);
-  border-color: var(--km-neutral-800);
+.successDesc strong {
+  color: var(--km-ink);
 }
 
-.submitBtn:active:not(:disabled) {
-  transform: translateY(1px);
+/* ─── Loading State ──────────────────────────────────────────────────────── */
+
+.loading {
+  text-align: center;
+  padding: 60px 32px;
 }
 
-.submitBtn:disabled {
-  background-color: var(--km-muted);
-  border-color: var(--km-muted);
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.spinner {
+.loadingSpinner {
+  color: var(--km-ink);
+  margin: 0 auto;
   animation: spin 1s linear infinite;
 }
 
@@ -235,147 +71,4 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ─── Banners / Alerts ───────────────────────────────────────────────────── */
-
-.errorBanner {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--km-v2-radius-media);
-  background-color: var(--km-danger-bg);
-  border: 1px solid var(--km-danger-line);
-  color: var(--km-danger-text);
-  font-size: 13px;
-  line-height: 1.45;
-  margin-bottom: 20px;
-}
-
-/* ─── Success State ──────────────────────────────────────────────────────── */
-
-.successCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 16px;
-  padding: 12px 0;
-}
-
-.successIconWrapper {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background-color: var(--km-surface-subtle);
-  border: 1px solid var(--km-line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--km-ink);
-}
-
-.successTitle {
-  font-family: var(--km-font-display), serif;
-  font-size: var(--km-v2-type-section);
-  font-weight: 400;
-  color: var(--km-ink);
-  margin: 0;
-  letter-spacing: var(--km-v2-hero-tracking);
-  line-height: var(--km-v3-heading-leading);
-}
-
-.successDesc {
-  font-size: 14px;
-  color: var(--km-muted);
-  line-height: 1.55;
-  margin: 0;
-}
-
-.successDesc strong {
-  color: var(--km-ink);
-}
-
-.dashboardRedirectBtn {
-  width: 100%;
-  height: var(--login-control-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--km-v2-space-2);
-  background-color: var(--km-ink);
-  color: var(--km-paper);
-  font-family: var(--tw-font-heading, 'Plus Jakarta Sans', sans-serif);
-  font-size: var(--km-v2-type-small);
-  font-weight: 600;
-  border-radius: var(--km-v2-radius-media);
-  box-shadow: var(--login-cta-shadow);
-  text-decoration: none;
-  transition: background-color 0.15s ease;
-  margin-top: 8px;
-}
-
-.dashboardRedirectBtn:hover {
-  background-color: var(--km-neutral-800);
-}
-
-/* ─── Card Footer ────────────────────────────────────────────────────────── */
-
-.cardFooter {
-  margin-top: var(--km-v2-space-6);
-  padding-top: var(--km-v2-space-6);
-  border-top: 1px solid var(--km-line);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  text-align: center;
-}
-
-.signupPrompt {
-  font-size: 13.5px;
-  color: var(--km-muted);
-}
-
-.signupLink {
-  color: var(--km-ink);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-left: 4px;
-  transition: color 0.15s ease;
-}
-
-.signupLink:hover {
-  color: var(--km-accent);
-}
-
-/* ─── Trust & Security Badge ─────────────────────────────────────────────── */
-
-.trustBadge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--km-muted);
-  letter-spacing: 0.01em;
-  padding: 4px 0;
-}
-
-.trustIcon {
-  color: var(--km-muted);
-}
-
-/* ─── Loading State ──────────────────────────────────────────────────────── */
-
-.loadingCard {
-  text-align: center;
-  padding: 60px 32px;
-}
-
-.loadingSpinner {
-  color: var(--km-ink);
-  margin: 0 auto;
-  animation: spin 1s linear infinite;
 }

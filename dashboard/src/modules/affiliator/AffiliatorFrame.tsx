@@ -1,9 +1,9 @@
 // Affiliator KlikUmroh portal frame: same app frame as the travel dashboard (sidebar on desktop, bottom
 // tab bar on phones), with the affiliator's own four sections. Guards the routes with the affiliator token.
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Home, LogOut, Store, UserRound, Wallet } from 'lucide-react';
-import { getAffiliatorToken, logoutAffiliator } from '../../services/affiliatorApi';
+import { fetchAffiliatorOverview, getAffiliatorToken, logoutAffiliator, type Affiliator } from '../../services/affiliatorApi';
 import brandIcon from '../../assets/icon-klikumroh.svg';
 import '../../ui';
 import '../../app/app.css';
@@ -23,6 +23,10 @@ const TITLES: Record<string, string> = {
   '/affiliator/akun': 'Akun & rekening',
 };
 
+/** "Siti Aminah" -> "SA", "budi" -> "B": the avatar letters. */
+const initialsOf = (name: string): string =>
+  name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('') || '?';
+
 const signOut = () => {
   void logoutAffiliator().then(() => {
     window.location.href = '/affiliator/login';
@@ -32,8 +36,20 @@ const signOut = () => {
 export const AffiliatorFrame: React.FC = () => {
   const token = getAffiliatorToken();
   const { pathname } = useLocation();
+  // Who is signed in: shown in the sidebar (desktop) and the header (phone and tablet).
+  const [me, setMe] = useState<Affiliator | null>(null);
   useEffect(() => {
     if (!token) window.location.href = '/affiliator/login';
+  }, [token]);
+  useEffect(() => {
+    if (!token) return;
+    let alive = true;
+    fetchAffiliatorOverview()
+      .then((o) => alive && setMe(o.affiliator))
+      .catch(() => undefined); // the pages report their own load errors; identity is optional
+    return () => {
+      alive = false;
+    };
   }, [token]);
   if (!token) return null;
 
@@ -55,6 +71,15 @@ export const AffiliatorFrame: React.FC = () => {
           ))}
         </nav>
         <div className="ap-side__bottom">
+          {me && (
+            <Link to="/affiliator/akun" className="ap-me" aria-label={`Akun ${me.name}`} title={`${me.name} (${me.email})`}>
+              <span className="ap-me__avatar" aria-hidden="true">{initialsOf(me.name)}</span>
+              <span className="ap-me__text">
+                <span className="ap-me__name">{me.name}</span>
+                <span className="ap-me__sub">{me.email}</span>
+              </span>
+            </Link>
+          )}
           <nav className="ap-nav">
             <button type="button" className="ap-nav__item" onClick={signOut}>
               <LogOut className="ku-icon" aria-hidden="true" />
@@ -67,6 +92,11 @@ export const AffiliatorFrame: React.FC = () => {
       <main className="ap-main">
         <header className="ap-head">
           <h1 className="ap-head__title">{title}</h1>
+          {me && (
+            <Link to="/affiliator/akun" className="ap-head__me" aria-label={`Akun ${me.name}`} title={me.name}>
+              <span className="ap-me__avatar" aria-hidden="true">{initialsOf(me.name)}</span>
+            </Link>
+          )}
         </header>
         <div className="ap-body">
           <Outlet />

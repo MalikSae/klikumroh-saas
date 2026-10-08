@@ -41,7 +41,7 @@
 .db-form-select:focus,
 .db-form-textarea:focus {
   border-color: var(--db-accent-teal);
-  box-shadow: 0 0 0 3px var(--db-focus-ring);
+  box-shadow: none;
 }
 
 .db-form-input--error,

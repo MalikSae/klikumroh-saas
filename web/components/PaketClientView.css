@@ -101,7 +101,7 @@
 
 .tw-home .tw-pkg-search-box:focus-within {
   border-color: var(--tw-brand-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tw-brand-primary) 15%, transparent);
+  box-shadow: none;
   background-color: var(--tw-background);
 }
 

@@ -19,8 +19,10 @@ import {
   Clock,
   Headset,
   ChevronDown,
+  Pencil,
 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { TextField, PasswordField } from '@/components/marketing/ui';
 import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSettings';
 import { formatPromoDay, payablePrice, toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
@@ -196,7 +198,8 @@ const PlanChooser: React.FC<PlanChooserProps> = ({ id, plans, selectedPlan, onPl
             <div className={styles.planOptionInfo}>
               <div className={styles.planOptionTop}>
                 <span className={styles.planOptionTitle}>{plan.name}</span>
-                {plan.popular && <span className={styles.planOptionPopularTag}>Direkomendasikan</span>}
+                {/* One tag per option: the promo wins; "Direkomendasikan" is already in the summary title. */}
+                {plan.popular && !plan.promoPercent && <span className={styles.planOptionPopularTag}>Direkomendasikan</span>}
                 {plan.promoPercent ? (
                   <span className={`${styles.planOptionDiscountTag} ${styles.planOptionPromoTag}`}>Promo {plan.promoPercent}%</span>
                 ) : plan.discount_badge && !plan.popular && (
@@ -283,25 +286,22 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               {selectedPlan.promoPrice != null && <s className={styles.oldPrice}>{formatRupiah(normalMonthly(selectedPlan))}</s>}
               <span className={styles.monthlyPrice}>{formatRupiah(selectedPlan.monthly_equivalent)}</span>
               <span className={styles.perMonth}>/bln</span>
+              {plans.length > 1 && (
+                <button
+                  type="button"
+                  id="change-plan-toggle-btn"
+                  // Two-column layout only; in the single-column layout the compact line's "Ubah" changes the plan.
+                  className={`${styles.changePlanBtn} ${styles.summaryChangePlanBtn}`}
+                  onClick={onTogglePlanChooser}
+                  aria-expanded={planChooserOpen}
+                  aria-controls="plan-accordion-options"
+                  aria-label="Ubah paket"
+                  title="Ubah paket"
+                >
+                  <Pencil size={14} aria-hidden="true" />
+                </button>
+              )}
             </div>
-
-            {plans.length > 1 && (
-              <button
-                type="button"
-                id="change-plan-toggle-btn"
-                // Two-column layout only; in the single-column layout the compact line's "Ubah" changes the plan.
-                className={`${styles.changePlanBtn} ${styles.summaryChangePlanBtn}`}
-                onClick={onTogglePlanChooser}
-                aria-expanded={planChooserOpen}
-                aria-controls="plan-accordion-options"
-              >
-                <span>Ubah Paket</span>
-                <ChevronDown
-                  size={14}
-                  className={`${styles.changePlanChevron} ${planChooserOpen ? styles.changePlanChevronOpen : ''}`}
-                />
-              </button>
-            )}
           </div>
           {/* Billing period under the monthly price (the amount itself appears once, in the total) */}
           <p className={styles.billingNote}>{billingPeriodNote(selectedPlan.period_months)}</p>
@@ -991,27 +991,18 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
               <form id="checkout-form" onSubmit={handleSubmit} noValidate>
                 <div className={styles.formFields}>
                   {/* Nama Travel */}
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel} htmlFor="travel-name">
-                      Nama Travel
-                    </label>
-                    <input
-                      id="travel-name"
-                      name="travel_name"
-                      type="text"
-                      autoComplete="organization"
-                      className={`${styles.fieldInput} ${
-                        touched.travel_name && liveErrors.travel_name ? styles.fieldInputError : ''
-                      }`}
-                      placeholder="Contoh: Al-Barakah Tour & Travel"
-                      value={travelName}
-                      onChange={(e) => handleTravelNameChange(e.target.value)}
-                      onBlur={() => handleBlur('travel_name', travelName)}
-                    />
-                    {touched.travel_name && liveErrors.travel_name && (
-                      <span className={styles.errorText}>{liveErrors.travel_name}</span>
-                    )}
-                  </div>
+                  <TextField
+                    id="travel-name"
+                    name="travel_name"
+                    type="text"
+                    label="Nama Travel"
+                    autoComplete="organization"
+                    placeholder="Contoh: Al-Barakah Tour & Travel"
+                    value={travelName}
+                    onChange={(e) => handleTravelNameChange(e.target.value)}
+                    onBlur={() => handleBlur('travel_name', travelName)}
+                    error={touched.travel_name ? liveErrors.travel_name : null}
+                  />
 
                   {/* Subdomain */}
                   <div className={styles.fieldGroup}>
@@ -1064,112 +1055,63 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
 
                   {/* PIC & WhatsApp Row */}
                   <div className={styles.twoColRow}>
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel} htmlFor="admin-name">
-                        Nama PIC
-                      </label>
-                      <input
-                        id="admin-name"
-                        name="admin_name"
-                        type="text"
-                        autoComplete="name"
-                        className={`${styles.fieldInput} ${
-                          touched.admin_name && liveErrors.admin_name ? styles.fieldInputError : ''
-                        }`}
-                        placeholder="Nama penanggung jawab"
-                        value={adminName}
-                        onChange={(e) => setAdminName(capitalizeName(e.target.value))}
-                        autoCapitalize="words"
-                        onBlur={() => handleBlur('admin_name', adminName)}
-                      />
-                      {touched.admin_name && liveErrors.admin_name && (
-                        <span className={styles.errorText}>{liveErrors.admin_name}</span>
-                      )}
-                    </div>
+                    <TextField
+                      id="admin-name"
+                      name="admin_name"
+                      type="text"
+                      label="Nama PIC"
+                      autoComplete="name"
+                      autoCapitalize="words"
+                      placeholder="Nama penanggung jawab"
+                      value={adminName}
+                      onChange={(e) => setAdminName(capitalizeName(e.target.value))}
+                      onBlur={() => handleBlur('admin_name', adminName)}
+                      error={touched.admin_name ? liveErrors.admin_name : null}
+                    />
 
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel} htmlFor="admin-whatsapp">
-                        No. WhatsApp
-                      </label>
-                      <input
-                        id="admin-whatsapp"
-                        name="admin_whatsapp"
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel"
-                        className={`${styles.fieldInput} ${
-                          touched.admin_whatsapp && liveErrors.admin_whatsapp ? styles.fieldInputError : ''
-                        }`}
-                        placeholder="08xxxxxxxxxx"
-                        value={adminWhatsApp}
-                        onChange={(e) => handleWhatsAppChange(e.target.value)}
-                        onBlur={() => handleBlur('admin_whatsapp', adminWhatsApp)}
-                      />
-                      {touched.admin_whatsapp && liveErrors.admin_whatsapp && (
-                        <span className={styles.errorText}>{liveErrors.admin_whatsapp}</span>
-                      )}
-                    </div>
+                    <TextField
+                      id="admin-whatsapp"
+                      name="admin_whatsapp"
+                      type="tel"
+                      inputMode="tel"
+                      label="No. WhatsApp"
+                      autoComplete="tel"
+                      placeholder="08xxxxxxxxxx"
+                      value={adminWhatsApp}
+                      onChange={(e) => handleWhatsAppChange(e.target.value)}
+                      onBlur={() => handleBlur('admin_whatsapp', adminWhatsApp)}
+                      error={touched.admin_whatsapp ? liveErrors.admin_whatsapp : null}
+                    />
                   </div>
 
                   {/* Email & Password Row */}
                   <div className={styles.twoColRow}>
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel} htmlFor="admin-email">
-                        Email
-                      </label>
-                      <input
-                        id="admin-email"
-                        name="admin_email"
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        className={`${styles.fieldInput} ${
-                          touched.admin_email && liveErrors.admin_email ? styles.fieldInputError : ''
-                        }`}
-                        placeholder="nama@travel.com"
-                        value={adminEmail}
-                        onChange={(e) => handleEmailChange(e.target.value)}
-                        onBlur={() => handleBlur('admin_email', adminEmail)}
-                      />
-                      {touched.admin_email && liveErrors.admin_email && (
-                        <span className={styles.errorText}>{liveErrors.admin_email}</span>
-                      )}
-                    </div>
+                    <TextField
+                      id="admin-email"
+                      name="admin_email"
+                      type="email"
+                      inputMode="email"
+                      label="Email"
+                      autoComplete="email"
+                      placeholder="nama@travel.com"
+                      value={adminEmail}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      onBlur={() => handleBlur('admin_email', adminEmail)}
+                      error={touched.admin_email ? liveErrors.admin_email : null}
+                    />
 
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel} htmlFor="admin-password">
-                        Password
-                      </label>
-                      <div
-                        className={`${styles.passwordContainer} ${
-                          touched.admin_password && liveErrors.admin_password ? styles.fieldInputError : ''
-                        }`}
-                      >
-                        <input
-                          id="admin-password"
-                          name="admin_password"
-                          type={showPassword ? 'text' : 'password'}
-                          className={styles.passwordInputField}
-                          placeholder="Minimal 8 karakter"
-                          value={adminPassword}
-                          onChange={(e) => setAdminPassword(e.target.value)}
-                          onBlur={() => handleBlur('admin_password', adminPassword)}
-                          autoComplete="new-password"
-                        />
-                        <button
-                          type="button"
-                          id="toggle-password-btn"
-                          className={styles.passwordToggleBtn}
-                          onClick={() => setShowPassword((s) => !s)}
-                          aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                        >
-                          {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                        </button>
-                      </div>
-                      {touched.admin_password && liveErrors.admin_password && (
-                        <span className={styles.errorText}>{liveErrors.admin_password}</span>
-                      )}
-                    </div>
+                    <PasswordField
+                      id="admin-password"
+                      toggleId="toggle-password-btn"
+                      name="admin_password"
+                      label="Password"
+                      autoComplete="new-password"
+                      placeholder="Minimal 8 karakter"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      onBlur={() => handleBlur('admin_password', adminPassword)}
+                      error={touched.admin_password ? liveErrors.admin_password : null}
+                    />
                   </div>
 
                   {/* Legal documents: signup stays closed until the owner publishes both (consent text sits under the button) */}

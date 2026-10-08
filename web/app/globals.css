@@ -106,12 +106,15 @@
   --km-checkout-radio-dot-size: 8px;
   --km-checkout-focus-ring: 0 0 0 3px var(--km-line);
   /* Checkout fields match the travel dashboard fields (.ku-input), 6 Oct 2026. */
-  --km-checkout-field-height: 38px;
-  --km-checkout-field-text: 14px;
+  --km-checkout-field-height: 44px;
+  --km-checkout-field-text: 16px;
   --km-checkout-field-text-mobile: 16px;
   --km-checkout-field-label-gap: 6px;
-  --km-checkout-field-placeholder: var(--km-neutral-400);
-  --km-checkout-field-focus-ring: 0 0 0 1px var(--km-ink);
+  /* Space between field groups: 16px on every screen (UI-STANDARDS.md 15). */
+  --km-checkout-field-gap: 16px;
+  --km-checkout-field-placeholder: var(--km-muted);
+  --km-checkout-field-border: #8A8A93;
+  --km-checkout-field-focus-ring: none; /* focus = the 1px ink border only */
   --km-bg: #FAFAFA;
   --km-paper: #FFFFFF;
   --km-ink: #09090B;
@@ -238,14 +241,6 @@
   --km-v3-section-padding: 104px;
   --km-v3-mobile-section-padding: 48px;
   --km-v3-column-gap: 88px;
-}
-
-/* Checkout and login fields: 38px with a mouse, the 48px touch target on touch screens and phones
-   (WCAG 2.5.5, Material, web.dev). Buttons next to these fields already use the touch target. */
-@media (pointer: coarse), (max-width: 768px) {
-  :root {
-    --km-checkout-field-height: var(--km-v2-touch-target);
-  }
 }
 
 * {

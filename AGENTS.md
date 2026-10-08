@@ -125,6 +125,8 @@ Aturan konkret:
 
 ### 3.10 Checklist Anti-Generik ("AI Slop") — Wajib Dicek Sebelum Lapor UI Selesai
 
+**Form dan halaman auth/checkout wajib mengikuti `UI-STANDARDS.md`** (ukuran kontrol, kontras, keyboard, error, aksesibilitas, beserta sumbernya) dan daftar periksanya sebelum dilaporkan selesai. Pakai komponen bersama di `web/components/marketing/ui/` untuk situs marketing.
+
 Disarikan dari riset publik soal ciri-ciri desain yang gampang ketauan "asal dibikin AI" (bukan didesain sengaja) — berlaku untuk SEMUA kerjaan UI di project ini (Dashboard Admin, Web Publik, Dashboard Agen), bukan cuma sekali pakai.
 
 **Layout & Kartu:**

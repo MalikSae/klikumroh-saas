@@ -232,6 +232,10 @@ func main() {
 	pvHandler := handler.NewPaymentVerificationHandler(subscriptionService)
 	platformSettingsService := service.NewPlatformSettingsService(platformSettingsRepo)
 	platformSettingsHandler := handler.NewPlatformSettingsHandler(platformSettingsService)
+	// Legal documents (Syarat & Ketentuan, Kebijakan Privasi): written in the internal dashboard, shown on the
+	// public site. PLATFORM_ORIGIN is where the public pages live (default https://klikumroh.id).
+	legalDocumentService := service.NewLegalDocumentService(repository.NewLegalDocumentRepository(db), platformSettingsRepo, os.Getenv("PLATFORM_ORIGIN"))
+	legalDocumentHandler := handler.NewLegalDocumentHandler(legalDocumentService)
 
 	publicSignupService := service.NewPublicSignupService(tenantRepo, adminUserRepo, pricingPlanRepo, couponService, pvRepo, domainRepo)
 	publicSignupService.SetPlatformSettingsRepo(platformSettingsRepo)
@@ -288,6 +292,7 @@ func main() {
 	// Public Marketing & Signup Routes
 	publicSignupHandler.RegisterPublicRoutes(r)
 	r.Get("/api/public/platform-settings", platformSettingsHandler.GetPublic)
+	r.Get("/api/public/legal/{slug}", legalDocumentHandler.GetPublic)
 
 	// Affiliator KlikUmroh portal (own login and sessions, never a travel or staff token)
 	affiliatorHandler.RegisterPublicRoutes(r)
@@ -336,6 +341,10 @@ func main() {
 		// Staff Platform Settings
 		staffProtected.Get("/api/staff/platform-settings", platformSettingsHandler.GetStaff)
 		staffProtected.Put("/api/staff/platform-settings", platformSettingsHandler.UpdateStaff)
+		staffProtected.Get("/api/staff/legal-documents", legalDocumentHandler.List)
+		staffProtected.Put("/api/staff/legal-documents/{slug}", legalDocumentHandler.SaveDraft)
+		staffProtected.Post("/api/staff/legal-documents/{slug}/publish", legalDocumentHandler.Publish)
+		staffProtected.Post("/api/staff/legal-documents/{slug}/unpublish", legalDocumentHandler.Unpublish)
 
 		// Staff Affiliator KlikUmroh
 		affiliatorHandler.RegisterStaffRoutes(staffProtected)

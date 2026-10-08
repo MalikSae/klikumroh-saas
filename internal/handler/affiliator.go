@@ -104,7 +104,7 @@ func respondAffiliatorError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrAffiliatorInvalidCredentials):
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
-	case errors.Is(err, service.ErrAffiliatorEmailInUse), errors.Is(err, service.ErrAffiliatorCouponTaken),
+	case errors.Is(err, service.ErrAffiliatorEmailInUse), errors.Is(err, service.ErrAffiliatorWhatsAppInUse), errors.Is(err, service.ErrAffiliatorCouponTaken),
 		errors.Is(err, repository.ErrPayoutPending), errors.Is(err, repository.ErrStatusConflict):
 		respondJSON(w, http.StatusConflict, map[string]string{"error": conflictMessage(err)})
 	case errors.Is(err, repository.ErrNotFound):

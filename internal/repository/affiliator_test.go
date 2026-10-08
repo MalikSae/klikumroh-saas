@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -720,5 +721,75 @@ func TestAffiliator_BankChangeRequiresPassword(t *testing.T) {
 	}
 	if got := stored(); got != "1111" {
 		t.Fatalf("a refused change must keep the old account, got %q", got)
+	}
+}
+
+// A WhatsApp number belongs to one affiliator: the same number, in any format, is refused at sign-up (service and
+// HTTP 409), and the UNIQUE key refuses it even if the service check is bypassed. No number can be shared by many.
+func TestAffiliator_WhatsAppIsUnique(t *testing.T) {
+	db := setupTestDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	ctx := context.Background()
+	affRepo := repository.NewAffiliatorRepository(db)
+	svc := service.NewAffiliatorService(affRepo, repository.NewCouponRepository(db),
+		repository.NewPaymentVerificationRepository(db), repository.NewPlatformSettingsRepository(db))
+
+	var ids []uint64
+	t.Cleanup(func() {
+		for _, id := range ids {
+			_, _ = db.Exec("DELETE FROM affiliators WHERE id = ?", id)
+		}
+	})
+	stamp := time.Now().UnixNano()
+	local := fmt.Sprintf("0812%08d", stamp%100000000)      // 0812xxxxxxxx
+	intl := "+62" + local[1:]                              // same number, international format
+	register := func(label, whatsapp string) (*service.AffiliatorLoginResult, error) {
+		res, err := svc.Register(ctx, service.AffiliatorRegisterRequest{Name: "Affiliator " + label, Password: "sandi-unik-123",
+			Email: fmt.Sprintf("aff-wa-%s-%d@klikumroh.test", label, stamp), WhatsApp: whatsapp})
+		if err == nil {
+			ids = append(ids, res.Affiliator.ID)
+		}
+		return res, err
+	}
+
+	first, err := register("a", local)
+	if err != nil {
+		t.Fatalf("first registration: %v", err)
+	}
+	if _, err := register("b", intl); !errors.Is(err, service.ErrAffiliatorWhatsAppInUse) {
+		t.Fatalf("same number in another format must be refused, got %v", err)
+	}
+	if _, err := register("c", local); !errors.Is(err, service.ErrAffiliatorWhatsAppInUse) {
+		t.Fatalf("same number must be refused, got %v", err)
+	}
+
+	// Over HTTP it is a 409 with the Indonesian message.
+	r := chi.NewRouter()
+	handler.NewAffiliatorHandler(svc).RegisterPublicRoutes(r)
+	body, _ := json.Marshal(map[string]string{"name": "Lewat HTTP", "email": fmt.Sprintf("aff-wa-http-%d@klikumroh.test", stamp),
+		"password": "sandi-unik-123", "whatsapp": local})
+	req := httptest.NewRequest(http.MethodPost, "/api/affiliator/register", bytes.NewBuffer(body))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "WhatsApp sudah terdaftar") {
+		t.Fatalf("expected 409 with the WhatsApp message, got %d %s", w.Code, w.Body.String())
+	}
+
+	// The database key is the last line of defence, whatever the service does.
+	dup := &repository.Affiliator{Name: "Langsung ke repo", Email: fmt.Sprintf("aff-wa-repo-%d@klikumroh.test", stamp),
+		PasswordHash: "x", WhatsApp: first.Affiliator.WhatsApp, LinkCode: fmt.Sprintf("ZZ%06d", stamp%1000000), Status: "active"}
+	if err := affRepo.Create(ctx, dup); !errors.Is(err, repository.ErrDuplicate) {
+		if err == nil {
+			ids = append(ids, dup.ID)
+		}
+		t.Fatalf("the UNIQUE key must refuse a shared number, got %v", err)
+	}
+
+	// No number is fine, and many affiliators can have none.
+	for _, label := range []string{"d", "e"} {
+		if _, err := register(label, ""); err != nil {
+			t.Fatalf("registration without a number must work (%s): %v", label, err)
+		}
 	}
 }

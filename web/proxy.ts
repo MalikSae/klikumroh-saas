@@ -8,7 +8,8 @@ const getBackendBaseUrl = (): string => {
 // Hosts that serve KlikUmroh itself (same list as the marketing check in app/page.tsx).
 const PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id', 'klikumroh.local', 'localhost', '127.0.0.1']);
 // /demo runs KlikUmroh's demo login and handoff to the platform dashboard, so it is platform-only too.
-const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing', '/affiliator', '/demo'];
+// Syarat & Ketentuan and Kebijakan Privasi are KlikUmroh's own documents (written in the internal dashboard).
+const PLATFORM_ONLY_PATHS = ['/login', '/checkout', '/marketing', '/affiliator', '/demo', '/syarat-ketentuan', '/kebijakan-privasi'];
 // Travel-only pages, blocked on KlikUmroh's public production domain (dev hosts are left alone).
 const TRAVEL_ONLY_PATHS = ['/agen', '/paket'];
 const PUBLIC_PLATFORM_HOSTS = new Set(['klikumroh.id', 'www.klikumroh.id']);
