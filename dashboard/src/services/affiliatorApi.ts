@@ -79,6 +79,8 @@ export interface AffiliatorBankInput {
   bank_name: string;
   bank_account_number: string;
   bank_account_holder: string;
+  /** The affiliator's current password: required to change the payout account. */
+  current_password: string;
 }
 
 export const getAffiliatorToken = (): string | null => {

@@ -88,7 +88,7 @@ func TestAffiliator_StaffRequestPayout(t *testing.T) {
 		affiliatorIDs = append(affiliatorIDs, res.Affiliator.ID)
 		if withBank {
 			if err := svc.UpdateBank(ctx, res.Affiliator.ID, service.AffiliatorBankRequest{
-				BankName: "BSI", BankAccountNumber: "7001" + label, BankAccountHolder: "Pemilik " + label}); err != nil {
+				BankName: "BSI", BankAccountNumber: "7001" + label, BankAccountHolder: "Pemilik " + label, CurrentPassword: "rahasia-test-123"}); err != nil {
 				t.Fatalf("UpdateBank %s: %v", label, err)
 			}
 		}

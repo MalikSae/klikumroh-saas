@@ -13,6 +13,7 @@ export const AffiliatorAccountView: React.FC = () => {
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [holder, setHolder] = useState('');
+  const [bankPassword, setBankPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -42,10 +43,15 @@ export const AffiliatorAccountView: React.FC = () => {
       setError('Nama bank, nomor rekening, dan nama pemilik wajib diisi.');
       return;
     }
+    if (!bankPassword) {
+      setError('Masukkan kata sandi Anda untuk menyimpan rekening.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      await updateAffiliatorBank({ bank_name: bankName.trim(), bank_account_number: accountNumber.trim(), bank_account_holder: holder.trim() });
+      await updateAffiliatorBank({ bank_name: bankName.trim(), bank_account_number: accountNumber.trim(), bank_account_holder: holder.trim(), current_password: bankPassword });
+      setBankPassword('');
       setSaved(true);
     } catch (err) {
       setError(errorText(err, 'Gagal menyimpan rekening'));
@@ -110,6 +116,9 @@ export const AffiliatorAccountView: React.FC = () => {
             <Field label="Nama bank">{(id) => <input id={id} className="ku-input" placeholder="Contoh: BSI" value={bankName} onChange={edit(setBankName)} />}</Field>
             <Field label="Nomor rekening">{(id) => <input id={id} className="ku-input" inputMode="numeric" value={accountNumber} onChange={edit(setAccountNumber)} />}</Field>
             <Field label="Nama pemilik rekening">{(id) => <input id={id} className="ku-input" value={holder} onChange={edit(setHolder)} />}</Field>
+            <Field label="Kata sandi Anda" hint="Diperlukan untuk mengubah rekening pencairan.">
+              {(id) => <PasswordInput id={id} autoComplete="current-password" value={bankPassword} onChange={(v) => { setBankPassword(v); setSaved(false); }} />}
+            </Field>
             <div className="af-form__actions">
               {saved && (
                 <span className="af-saved" role="status">

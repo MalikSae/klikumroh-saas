@@ -86,6 +86,9 @@ type AffiliatorBankRequest struct {
 	BankName          string `json:"bank_name"`
 	BankAccountNumber string `json:"bank_account_number"`
 	BankAccountHolder string `json:"bank_account_holder"`
+	// CurrentPassword is required to change the account: payouts go to it, so a leaked session token alone
+	// must not be enough to redirect them.
+	CurrentPassword string `json:"current_password"`
 }
 
 // AffiliatorLoginResult is returned by register and login.
@@ -439,6 +442,13 @@ func (s *affiliatorService) UpdateBank(ctx context.Context, affiliatorID uint64,
 	bank, num, holder := strings.TrimSpace(req.BankName), strings.TrimSpace(req.BankAccountNumber), strings.TrimSpace(req.BankAccountHolder)
 	if bank == "" || num == "" || holder == "" {
 		return ErrAffiliatorBankRequired
+	}
+	a, err := s.repo.GetByID(ctx, affiliatorID)
+	if err != nil {
+		return err
+	}
+	if bcrypt.CompareHashAndPassword([]byte(a.PasswordHash), []byte(req.CurrentPassword)) != nil {
+		return ErrAffiliatorWrongPassword
 	}
 	return s.repo.UpdateBank(ctx, affiliatorID, bank, num, holder)
 }

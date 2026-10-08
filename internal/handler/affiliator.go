@@ -26,7 +26,13 @@ type AffiliatorHandler struct {
 	// couponLimiters cap PUT /api/affiliator/coupon per affiliator and per IP: a taken code answers 409, so
 	// unlimited tries would let a self-registered affiliator enumerate platform promo codes.
 	couponLimiters []func(http.Handler) http.Handler
+	// bankLimiters cap PUT /api/affiliator/bank per affiliator and per IP: it checks the current password,
+	// so unlimited tries with a stolen session token would let someone guess it.
+	bankLimiters []func(http.Handler) http.Handler
 }
+
+// Bank account changes allowed per minute from the affiliator portal, per affiliator and per IP.
+const affiliatorBankSetPerMinute = 5
 
 // Coupon code changes allowed per minute from the affiliator portal, per affiliator and per IP.
 const affiliatorCouponSetPerMinute = 10
@@ -41,6 +47,10 @@ func NewAffiliatorHandler(svc service.AffiliatorService) *AffiliatorHandler {
 		couponLimiters: []func(http.Handler) http.Handler{
 			middleware.NewIPRateLimiter(affiliatorCouponSetPerMinute, time.Minute),
 			middleware.NewKeyedRateLimiter(affiliatorCouponSetPerMinute, time.Minute, middleware.AffiliatorRateKey),
+		},
+		bankLimiters: []func(http.Handler) http.Handler{
+			middleware.NewIPRateLimiter(affiliatorBankSetPerMinute, time.Minute),
+			middleware.NewKeyedRateLimiter(affiliatorBankSetPerMinute, time.Minute, middleware.AffiliatorRateKey),
 		},
 	}
 }
@@ -58,7 +68,7 @@ func (h *AffiliatorHandler) RegisterPublicRoutes(r chi.Router) {
 func (h *AffiliatorHandler) RegisterProtectedRoutes(r chi.Router) {
 	r.Get("/api/affiliator/me", h.Overview)
 	r.With(h.couponLimiters...).Put("/api/affiliator/coupon", h.SetCoupon)
-	r.Put("/api/affiliator/bank", h.UpdateBank)
+	r.With(h.bankLimiters...).Put("/api/affiliator/bank", h.UpdateBank)
 	r.With(h.authLimiter).Put("/api/affiliator/password", h.ChangePassword)
 	r.Get("/api/affiliator/tenants", h.ListTenants)
 	r.Get("/api/affiliator/commissions", h.ListCommissions)

@@ -264,7 +264,7 @@ func TestAffiliator_Program(t *testing.T) {
 		}
 		t.Cleanup(func() { _, _ = db.Exec("DELETE FROM staff_users WHERE id = ?", staff.ID) })
 		if err := svc.UpdateBank(ctx, affA.Affiliator.ID, service.AffiliatorBankRequest{
-			BankName: "BSI", BankAccountNumber: "123", BankAccountHolder: "Affiliator A"}); err != nil {
+			BankName: "BSI", BankAccountNumber: "123", BankAccountHolder: "Affiliator A", CurrentPassword: "rahasia-test-123"}); err != nil {
 			t.Fatalf("UpdateBank: %v", err)
 		}
 		if _, err := svc.RequestPayout(ctx, affA.Affiliator.ID); !errors.Is(err, repository.ErrPayoutBelowMinimum) {
@@ -657,5 +657,68 @@ func TestAffiliator_ReactivatedAffiliatorReusesOwnCoupon(t *testing.T) {
 	var n int
 	if err := db.QueryRow("SELECT COUNT(*) FROM coupons WHERE code = ?", code).Scan(&n); err != nil || n != 1 {
 		t.Fatalf("expected exactly one row for the code, got %d (%v)", n, err)
+	}
+}
+
+// Changing the payout account needs the current password: a leaked session token alone cannot redirect
+// payouts. A wrong password is a 400 and leaves the stored account untouched.
+func TestAffiliator_BankChangeRequiresPassword(t *testing.T) {
+	db := setupTestDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	ctx := context.Background()
+	affRepo := repository.NewAffiliatorRepository(db)
+	svc := service.NewAffiliatorService(affRepo, repository.NewCouponRepository(db),
+		repository.NewPaymentVerificationRepository(db), repository.NewPlatformSettingsRepository(db))
+
+	res, err := svc.Register(ctx, service.AffiliatorRegisterRequest{Name: "Affiliator rekening", Password: "sandi-rekening-123",
+		Email: fmt.Sprintf("aff-bank-%d@klikumroh.test", time.Now().UnixNano())})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	t.Cleanup(func() { _, _ = db.Exec("DELETE FROM affiliators WHERE id = ?", res.Affiliator.ID) })
+
+	r := chi.NewRouter()
+	r.Group(func(g chi.Router) {
+		g.Use(middleware.AffiliatorAuthMiddleware(affRepo))
+		handler.NewAffiliatorHandler(svc).RegisterProtectedRoutes(g)
+	})
+	put := func(password, number string) int {
+		body, _ := json.Marshal(map[string]string{"bank_name": "BSI", "bank_account_number": number,
+			"bank_account_holder": "Pemilik Sah", "current_password": password})
+		req := httptest.NewRequest(http.MethodPut, "/api/affiliator/bank", bytes.NewBuffer(body))
+		req.Header.Set("Authorization", "Bearer "+res.Token)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w.Code
+	}
+	stored := func() string {
+		a, err := affRepo.GetByID(ctx, res.Affiliator.ID)
+		if err != nil || a.BankAccountNumber == nil {
+			return ""
+		}
+		return *a.BankAccountNumber
+	}
+
+	if code := put("", "1111"); code != http.StatusBadRequest {
+		t.Fatalf("no password: expected 400, got %d", code)
+	}
+	if code := put("sandi-salah-000", "1111"); code != http.StatusBadRequest {
+		t.Fatalf("wrong password: expected 400, got %d", code)
+	}
+	if got := stored(); got != "" {
+		t.Fatalf("a refused change must not store the account, got %q", got)
+	}
+	if code := put("sandi-rekening-123", "1111"); code != http.StatusOK {
+		t.Fatalf("right password: expected 200, got %d", code)
+	}
+	if got := stored(); got != "1111" {
+		t.Fatalf("expected the account to be stored, got %q", got)
+	}
+	if code := put("sandi-salah-000", "9999"); code != http.StatusBadRequest {
+		t.Fatalf("wrong password on an existing account: expected 400, got %d", code)
+	}
+	if got := stored(); got != "1111" {
+		t.Fatalf("a refused change must keep the old account, got %q", got)
 	}
 }
