@@ -171,10 +171,12 @@ func (r *mysqlPricingPlanRepository) Create(ctx context.Context, plan *PricingPl
 	return nil
 }
 
+// Update writes the plan's name, period, price and visibility, never its promo: the promo has its own
+// writer (UpdatePromo), so an edit built from a stale read cannot overwrite a promo staff set meanwhile.
 func (r *mysqlPricingPlanRepository) Update(ctx context.Context, plan *PricingPlan) error {
 	query := `
 		UPDATE pricing_plans
-		SET name = ?, period_months = ?, price = ?, is_public = ?, promo_percent = ?, promo_ends_at = ?
+		SET name = ?, period_months = ?, price = ?, is_public = ?
 		WHERE id = ?
 	`
 	res, err := r.db.ExecContext(ctx, query,
@@ -182,8 +184,6 @@ func (r *mysqlPricingPlanRepository) Update(ctx context.Context, plan *PricingPl
 		plan.PeriodMonths,
 		plan.Price,
 		!plan.Hidden,
-		plan.PromoPercent,
-		promoDate(plan.PromoEndsAt),
 		plan.ID,
 	)
 	if err != nil {

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -62,7 +63,7 @@ func (h *PricingPlanHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Create handles POST /api/staff/pricing-plans.
 func (h *PricingPlanHandler) Create(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetStaffUserID(r.Context())
+	staffID, ok := middleware.GetStaffUserID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -83,8 +84,8 @@ func (h *PricingPlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Durasi periode harus 1 sampai 120 bulan"})
 		return
 	}
-	if req.Price < 0 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Harga tidak boleh negatif"})
+	if req.Price < 0 || req.Price > service.MaxPlanPrice {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrInvalidPlanPrice.Error()})
 		return
 	}
 
@@ -93,6 +94,7 @@ func (h *PricingPlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal membuat plan harga baru"})
 		return
 	}
+	log.Printf("[Audit] staff %d created pricing plan %d (price %.0f, %d months)", staffID, plan.ID, req.Price, req.PeriodMonths)
 
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"plan": plan,
@@ -101,7 +103,7 @@ func (h *PricingPlanHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /api/staff/pricing-plans/{id}.
 func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetStaffUserID(r.Context())
+	staffID, ok := middleware.GetStaffUserID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -129,8 +131,8 @@ func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Durasi periode harus 1 sampai 120 bulan"})
 		return
 	}
-	if req.Price < 0 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Harga tidak boleh negatif"})
+	if req.Price < 0 || req.Price > service.MaxPlanPrice {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": service.ErrInvalidPlanPrice.Error()})
 		return
 	}
 
@@ -147,6 +149,7 @@ func (h *PricingPlanHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Gagal memperbarui plan harga"})
 		return
 	}
+	log.Printf("[Audit] staff %d updated pricing plan %d (price %.0f, %d months)", staffID, id, req.Price, req.PeriodMonths)
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"plan": plan,
@@ -163,7 +166,8 @@ type setPlanPromoRequest struct {
 // SetPromo handles PUT /api/staff/pricing-plans/{id}/promo: the promo for new travels' first payment
 // (founder decision 7 Oct 2026).
 func (h *PricingPlanHandler) SetPromo(w http.ResponseWriter, r *http.Request) {
-	if _, ok := middleware.GetStaffUserID(r.Context()); !ok {
+	staffID, ok := middleware.GetStaffUserID(r.Context())
+	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
 	}
@@ -198,12 +202,21 @@ func (h *PricingPlanHandler) SetPromo(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if plan.PromoPercent != nil {
+		ends := "no end date"
+		if plan.PromoEndsAt != nil {
+			ends = plan.PromoEndsAt.Format("2006-01-02")
+		}
+		log.Printf("[Audit] staff %d set promo %.2f%% on pricing plan %d (until %s)", staffID, *plan.PromoPercent, id, ends)
+	} else {
+		log.Printf("[Audit] staff %d cleared promo on pricing plan %d", staffID, id)
+	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{"plan": plan})
 }
 
 // Delete handles DELETE /api/staff/pricing-plans/{id}.
 func (h *PricingPlanHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	_, ok := middleware.GetStaffUserID(r.Context())
+	staffID, ok := middleware.GetStaffUserID(r.Context())
 	if !ok {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
 		return
@@ -238,6 +251,7 @@ func (h *PricingPlanHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("[Audit] staff %d deleted pricing plan %d", staffID, id)
 	respondJSON(w, http.StatusOK, map[string]string{
 		"message": "Plan harga berhasil dihapus",
 	})

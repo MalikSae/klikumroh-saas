@@ -52,8 +52,23 @@ func TestPricingPlanPromo_Persistence(t *testing.T) {
 		t.Fatalf("UpdatePromo must write the promo and keep updated_at, got %v %v", after.PromoPercent, after.UpdatedAt)
 	}
 
-	got.PromoPercent, got.PromoEndsAt = nil, nil
+	// Update never writes the promo: an edit built from a stale read (got still shows the 50% promo
+	// and the 31 Dec end date) must not overwrite the 30% promo set meanwhile.
+	got.Name, got.Price = "Promo Test Renamed", 4500000
 	if err := plans.Update(ctx, got); err != nil {
+		t.Fatal(err)
+	}
+	edited, _ := plans.GetByID(ctx, plan.ID)
+	if edited.Name != "Promo Test Renamed" || edited.Price != 4500000 {
+		t.Fatalf("Update must write name and price, got %q %.0f", edited.Name, edited.Price)
+	}
+	if edited.PromoPercent == nil || *edited.PromoPercent != 30 || edited.PromoEndsAt != nil {
+		t.Fatalf("Update with a stale plan overwrote the promo: %v %v", edited.PromoPercent, edited.PromoEndsAt)
+	}
+
+	if err := plans.(interface {
+		UpdatePromo(context.Context, uint64, *float64, *time.Time) error
+	}).UpdatePromo(ctx, plan.ID, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	cleared, _ := plans.GetByID(ctx, plan.ID)

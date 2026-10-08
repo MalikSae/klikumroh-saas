@@ -214,3 +214,41 @@ func TestPricingPlanUpdate_PeriodLockedByPendingInvoice(t *testing.T) {
 		t.Fatalf("after invoice handled: expected 200, got %d (%s)", rr.Code, rr.Body.String())
 	}
 }
+
+// Plan price is capped (Rp 1 miliar): an absurd value is a 400, not a database error, on create and update.
+func TestPricingPlan_PriceUpperBound(t *testing.T) {
+	_, pvRepo, planRepo, _, staffRepo, sessionRepo, _ := setupSubTestEnv()
+
+	ppHandler := handler.NewPricingPlanHandler(service.NewPricingPlanService(planRepo, pvRepo))
+	r := chi.NewRouter()
+	r.Group(func(sp chi.Router) {
+		sp.Use(middleware.StaffAuthMiddleware(staffRepo, sessionRepo))
+		sp.Post("/api/staff/pricing-plans", ppHandler.Create)
+		sp.Put("/api/staff/pricing-plans/{id}", ppHandler.Update)
+	})
+	send := func(method, path, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, bytes.NewReader([]byte(body)))
+		req.Header.Set("Authorization", "Bearer valid-staff-token")
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		return rr
+	}
+
+	for _, price := range []string{"1000000001", "1e300"} {
+		body := `{"name":"Paket Mahal","period_months":6,"price":` + price + `}`
+		if rr := send(http.MethodPost, "/api/staff/pricing-plans", body); rr.Code != http.StatusBadRequest {
+			t.Fatalf("create price %s: expected 400, got %d (%s)", price, rr.Code, rr.Body.String())
+		}
+		if rr := send(http.MethodPut, "/api/staff/pricing-plans/2", body); rr.Code != http.StatusBadRequest {
+			t.Fatalf("update price %s: expected 400, got %d (%s)", price, rr.Code, rr.Body.String())
+		}
+	}
+	if planRepo.plans[2].Price > service.MaxPlanPrice {
+		t.Fatalf("plan price must stay unchanged, got %.0f", planRepo.plans[2].Price)
+	}
+	// The cap itself is allowed.
+	if rr := send(http.MethodPut, "/api/staff/pricing-plans/2", `{"name":"Paket Batas","period_months":6,"price":1000000000}`); rr.Code != http.StatusOK {
+		t.Fatalf("price at the cap: expected 200, got %d (%s)", rr.Code, rr.Body.String())
+	}
+}

@@ -13,13 +13,16 @@ import (
 var (
 	ErrInvalidPlanName   = errors.New("nama plan tidak boleh kosong")
 	ErrInvalidPlanPeriod = errors.New("periode plan harus 1 sampai 120 bulan")
-	ErrInvalidPlanPrice  = errors.New("harga plan tidak boleh negatif")
+	ErrInvalidPlanPrice  = errors.New("harga plan harus antara 0 dan Rp 1.000.000.000")
 	// ErrPlanPeriodLocked: the period of a plan cannot change while invoices for it wait for approval
 	// (approval reads the period from the plan, so the change would alter what those invoices deliver).
 	ErrPlanPeriodLocked = errors.New("durasi paket tidak bisa diubah karena masih ada tagihan paket ini yang menunggu verifikasi; setujui atau tolak tagihan tersebut dulu, atau buat paket baru")
 	ErrInvalidPlanPromo = errors.New("promo harus 1 sampai 99 persen")
 	ErrPlanPromoEnded   = errors.New("tanggal berakhir promo sudah lewat")
 )
+
+// MaxPlanPrice caps a plan price (Rp 1 miliar); far above any real plan, far below the DECIMAL(15,2) column.
+const MaxPlanPrice = 1_000_000_000
 
 // wibLocation: promo end dates are calendar days in Indonesia (WIB).
 var wibLocation = time.FixedZone("WIB", 7*3600)
@@ -74,7 +77,7 @@ func (s *pricingPlanService) Create(ctx context.Context, name string, periodMont
 	if periodMonths <= 0 || periodMonths > MaxManualPeriodMonths {
 		return nil, ErrInvalidPlanPeriod
 	}
-	if price < 0 {
+	if price < 0 || price > MaxPlanPrice || math.IsNaN(price) {
 		return nil, ErrInvalidPlanPrice
 	}
 
@@ -100,7 +103,7 @@ func (s *pricingPlanService) Update(ctx context.Context, id uint64, name string,
 	if periodMonths <= 0 || periodMonths > MaxManualPeriodMonths {
 		return nil, ErrInvalidPlanPeriod
 	}
-	if price < 0 {
+	if price < 0 || price > MaxPlanPrice || math.IsNaN(price) {
 		return nil, ErrInvalidPlanPrice
 	}
 
