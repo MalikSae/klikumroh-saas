@@ -12,6 +12,16 @@ import {
   type PricingPlanInput,
 } from '../../../services/staffApi';
 import { Tooltip } from '../shared/Tooltip';
+import { MoneyInput } from '../../../ui';
+
+/** Highest plan price the server accepts (service.MaxPlanPrice). */
+const MAX_PLAN_PRICE = 1_000_000_000;
+
+/** Promo percent as typed: up to two digits, optionally a dot or comma and two decimals ("12", "12,5"). */
+const cleanPercentInput = (v: string): string => {
+  const m = v.replace(',', '.').replace(/[^\d.]/g, '').match(/^\d{0,2}(\.\d{0,2})?/);
+  return m ? m[0] : '';
+};
 
 /** Today's date in WIB as YYYY-MM-DD (promo end dates are WIB calendar days). */
 const todayWIB = (): string => new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10);
@@ -32,6 +42,9 @@ export const AdminPlansView: React.FC = () => {
     is_public: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  // The admin types the price per month; the plan price saved (and billed) is that times the duration.
+  const [monthly, setMonthly] = useState<number | null>(null);
+  const [monthlyTouched, setMonthlyTouched] = useState(false);
   // Promo for new travels' first payment (founder decision 7 Oct 2026): percent as typed (empty = none) and
   // an optional last day (YYYY-MM-DD).
   const [promoPercent, setPromoPercent] = useState('');
@@ -65,8 +78,16 @@ export const AdminPlansView: React.FC = () => {
   // "2026-12-31" -> "31 Des 2026"
   const formatDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
+  // Plan price to save: monthly price x duration. An older plan whose price does not divide evenly by its
+  // duration keeps its exact price until the admin changes the monthly price or the duration.
+  const legacyInexact = editingPlan !== null && editingPlan.price % editingPlan.period_months !== 0;
+  const keepLegacyPrice = legacyInexact && !monthlyTouched && formData.period_months === editingPlan?.period_months;
+  const totalPrice = keepLegacyPrice && editingPlan ? editingPlan.price : (monthly ?? 0) * formData.period_months;
+
   const handleOpenCreate = () => {
     setEditingPlan(null);
+    setMonthly(null);
+    setMonthlyTouched(false);
     setFormData({ name: '', period_months: 1, price: 0, is_public: true });
     setPromoPercent('');
     setPromoEndsAt('');
@@ -75,6 +96,8 @@ export const AdminPlansView: React.FC = () => {
 
   const handleOpenEdit = (plan: PricingPlan) => {
     setEditingPlan(plan);
+    setMonthly(plan.price > 0 ? Math.round(plan.price / plan.period_months) : null);
+    setMonthlyTouched(false);
     setFormData({
       name: plan.name,
       period_months: plan.period_months,
@@ -103,8 +126,12 @@ export const AdminPlansView: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Price 0 is a valid free plan (the backend only rejects a negative price), so it must stay editable.
-    if (!formData.name.trim() || !Number.isFinite(formData.price) || formData.price < 0 || formData.period_months <= 0) {
+    if (!formData.name.trim() || !Number.isFinite(totalPrice) || totalPrice < 0 || formData.period_months <= 0) {
       alert('Mohon lengkapi semua field dengan benar');
+      return;
+    }
+    if (totalPrice > MAX_PLAN_PRICE) {
+      alert(`Total harga paket (harga per bulan x durasi) maksimal ${formatIDR(MAX_PLAN_PRICE)}.`);
       return;
     }
 
@@ -127,9 +154,9 @@ export const AdminPlansView: React.FC = () => {
       setSubmitting(true);
       let saved: PricingPlan;
       if (editingPlan) {
-        saved = await updatePricingPlan(editingPlan.id, formData);
+        saved = await updatePricingPlan(editingPlan.id, { ...formData, price: totalPrice });
       } else {
-        saved = await createPricingPlan(formData);
+        saved = await createPricingPlan({ ...formData, price: totalPrice });
         setEditingPlan(saved); // a retry after a failed promo save edits this plan instead of creating another
       }
       if (promoChanged) {
@@ -382,27 +409,22 @@ export const AdminPlansView: React.FC = () => {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                  Harga Langganan (IDR):
+                <label htmlFor="plan-price" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+                  Harga per Bulan (IDR):
                 </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="any"
-                  required
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  style={{
-                    width: '100%',
-                    height: '38px',
-                    padding: '0 12px',
-                    fontSize: 'var(--db-text-input)',
-                    border: '1px solid var(--sa-border)',
-                    borderRadius: 'var(--sa-radius-sm)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
+                <MoneyInput
+                  id="plan-price"
+                  value={monthly}
+                  onChange={(v) => {
+                    setMonthlyTouched(true);
+                    setMonthly(v);
                   }}
+                  placeholder="0"
                 />
+                <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--sa-text-muted)' }}>
+                  Total harga paket: <strong style={{ color: 'var(--sa-text)' }}>{formatIDR(totalPrice)}</strong> untuk {formData.period_months || 0} bulan
+                  {keepLegacyPrice ? ' (harga lama, tidak habis dibagi durasi)' : ''}.
+                </p>
               </div>
 
               <div className="sa-promo">
@@ -417,12 +439,11 @@ export const AdminPlansView: React.FC = () => {
                   <label className="sa-promo__field">
                     <span>Potongan (%)</span>
                     <input
-                      type="number"
-                      min={1}
-                      max={99}
+                      type="text"
+                      inputMode="decimal"
                       placeholder="Tanpa promo"
                       value={promoPercent}
-                      onChange={(e) => setPromoPercent(e.target.value)}
+                      onChange={(e) => setPromoPercent(cleanPercentInput(e.target.value))}
                     />
                   </label>
                   <label className="sa-promo__field">
@@ -430,9 +451,9 @@ export const AdminPlansView: React.FC = () => {
                     <input type="date" min={todayWIB()} value={promoEndsAt} disabled={!promoPercent.trim()} onChange={(e) => setPromoEndsAt(e.target.value)} />
                   </label>
                 </div>
-                {Number(promoPercent) > 0 && Number(promoPercent) < 100 && formData.price > 0 && (
+                {Number(promoPercent) > 0 && Number(promoPercent) < 100 && totalPrice > 0 && (
                   <p className="sa-promo__note">
-                    Travel baru membayar {formatIDR(Math.round(formData.price * (1 - Number(promoPercent) / 100)))}
+                    Travel baru membayar {formatIDR(Math.round(totalPrice * (1 - Number(promoPercent) / 100)))}
                     {promoEndsAt ? ` sampai ${formatDay(promoEndsAt)}` : ', tanpa batas waktu'}.
                   </p>
                 )}

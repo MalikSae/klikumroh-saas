@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, RefreshCw, Save } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
 import { AdminDataGrid, type AdminColumn } from '../components/AdminDataGrid';
 import { FormInput, Modal } from '../shared';
+import { MoneyInput } from '../../../ui';
 import {
   fetchAffiliatorSettings,
   fetchStaffAffiliatorPayouts,
@@ -323,7 +324,17 @@ export const AdminAffiliatorsView: React.FC = () => {
             <FormInput type="text" inputMode="decimal" label="Komisi perpanjangan (%)" value={settings.renewal_rate} onChange={num('renewal_rate')} tooltip="Persen dari setiap pembayaran perpanjangan berikutnya, selama travel terus berlangganan." />
             <FormInput type="text" inputMode="decimal" label="Diskon kupon affiliator (%)" value={settings.coupon_discount} onChange={num('coupon_discount')} tooltip="Sama untuk semua affiliator. Mengubahnya langsung berlaku untuk semua kupon affiliator yang aktif. Kupon affiliator hanya untuk pendaftaran travel baru." />
             <FormInput type="number" label="Masa tahan komisi (hari)" min={0} max={365} step={1} value={settings.hold_days} onChange={num('hold_days')} tooltip="Komisi baru bisa diajukan pencairan setelah sekian hari sejak pembayaran disetujui." />
-            <FormInput type="number" label="Minimal pencairan (Rp)" min={0} step={1} value={settings.min_payout} onChange={num('min_payout')} />
+            <div className="db-form-group">
+              <div className="db-form-label-row">
+                <label htmlFor="min-payout" className="db-form-label">Minimal pencairan (Rp)</label>
+              </div>
+              <MoneyInput
+                id="min-payout"
+                value={settings.min_payout.trim() === '' ? null : Number(settings.min_payout)}
+                onChange={(v) => setSettings({ ...settings, min_payout: v === null ? '' : String(v) })}
+                placeholder="0"
+              />
+            </div>
           </div>
           <p className="sa-aff-modal-text">Persen khusus per affiliator diatur di halaman detail affiliator.</p>
           <div className="sa-aff-settings__foot">
