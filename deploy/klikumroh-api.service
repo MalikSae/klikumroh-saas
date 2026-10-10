@@ -1,0 +1,16 @@
+[Unit]
+Description=KlikUmroh API
+After=network.target mariadb.service mysql.service
+
+[Service]
+Type=simple
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/klikumroh
+ExecStart=/www/wwwroot/klikumroh/bin/klikumroh-api
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
