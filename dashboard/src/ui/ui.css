@@ -397,7 +397,8 @@ a.ku-notice:hover { background: var(--ku-hover); }
   .ku-tools { flex-wrap: wrap; padding: var(--ku-space-3) 0; }
   /* Search and Filter share the first line; extra actions (ku-tools__right) wrap below when needed. */
   .ku-tools .ku-search { flex: 1 1 160px; min-width: 0; }
-  .ku-tools__right { margin-left: 0; }
+  .ku-tools__right { margin-left: 0; flex: 1 1 100%; }
+  .ku-tools__right > .ku-btn { flex: 1 1 0; justify-content: center; height: 36px; }
   .ku-filter__panel { position: fixed; left: var(--ku-space-4); right: var(--ku-space-4); top: auto; width: auto; }
   /* 16px or more: iOS Safari would zoom into smaller fields. */
   .ku-input, .ku-textarea, .ku-select__trigger, .ku-search input { font-size: var(--ku-text-xl); }

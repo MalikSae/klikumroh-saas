@@ -13,7 +13,7 @@ const badgeTier = (days: number) => (days >= 100 ? 'gold' : days >= 30 ? 'silver
 // One key message when the counts are out of balance (what the owner should act on), else nothing.
 const insight = (d: AgentInsight): string | null => {
   if (d.registered === 0) return null;
-  if (d.active_7d === 0) return 'Belum ada agen yang rutin syiar minggu ini. Ajak agen membuka Syiar harian di portal agen.';
+  if (d.active_7d === 0) return 'Belum ada agen yang rutin syiar minggu ini.';
   if (d.productive_30d === 0) return 'Belum ada agen yang membawa prospek dalam 30 hari terakhir.';
   const idle = d.registered - d.productive_30d;
   if (idle > d.registered / 2) return `${idle} dari ${d.registered} agen belum membawa hasil dalam 30 hari terakhir.`;
