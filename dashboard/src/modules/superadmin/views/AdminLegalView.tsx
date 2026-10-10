@@ -42,7 +42,12 @@ const fieldStyle: React.CSSProperties = {
   fontFamily: 'inherit',
 };
 
-export const AdminLegalView: React.FC = () => {
+/**
+ * The editor itself (tabs, title, text, save/publish). Used by the Dokumen Legal page and inside Pengaturan Global.
+ * `onChanged` fires after a save, publish or unpublish, so a host form can refresh what the backend filled in
+ * (the checkout's terms_url / privacy_url).
+ */
+export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onChanged }) => {
   const [docs, setDocs] = useState<LegalDocument[]>([]);
   const [slug, setSlug] = useState<string>('syarat-ketentuan');
   const [title, setTitle] = useState('');
@@ -102,6 +107,7 @@ export const AdminLegalView: React.FC = () => {
     try {
       apply(await action());
       setMessage({ tone: 'ok', text: okText });
+      onChanged?.();
     } catch (err) {
       setMessage({ tone: 'error', text: err instanceof Error ? err.message : 'Terjadi kesalahan' });
     } finally {
@@ -133,16 +139,7 @@ export const AdminLegalView: React.FC = () => {
   const nothingNew = doc !== null && doc.published && !doc.has_unpublished_changes && !dirty;
 
   return (
-    <AdminLayout
-      title="Dokumen Legal"
-      subtitle="Syarat & Ketentuan dan Kebijakan Privasi yang tampil di situs KlikUmroh"
-      headerActions={
-        <button type="button" className="sa-btn sa-btn--secondary" onClick={() => void load(slug)} disabled={loading || busy}>
-          <RefreshCw size={14} className={loading ? 'db-spin' : ''} />
-          <span>Segarkan</span>
-        </button>
-      }
-    >
+    <>
       {message && (
         <div
           role={message.tone === 'error' ? 'alert' : 'status'}
@@ -216,6 +213,10 @@ export const AdminLegalView: React.FC = () => {
                 {statusOf(doc).label}
                 {doc.published && doc.published_at ? ` · sejak ${formatDay(doc.published_at)}` : ''}
               </span>
+              <button type="button" className="sa-btn sa-btn--secondary" onClick={() => void load(slug)} disabled={loading || busy} style={{ marginLeft: 'auto' }}>
+                <RefreshCw size={14} className={loading ? 'db-spin' : ''} />
+                <span>Segarkan</span>
+              </button>
               {doc.published && (
                 <a
                   href={`${publicOrigin()}/${doc.slug}`}
@@ -233,7 +234,7 @@ export const AdminLegalView: React.FC = () => {
               <label htmlFor="legal-title" style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                 Judul halaman:
               </label>
-              <input id="legal-title" type="text" value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(e.target.value)} style={{ ...fieldStyle, height: '38px', padding: '0 12px' }} />
+              <input id="legal-title" type="text" value={title} maxLength={MAX_TITLE} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} style={{ ...fieldStyle, height: '38px', padding: '0 12px' }} />
             </div>
 
             <div style={{ marginBottom: '8px' }}>
@@ -285,6 +286,12 @@ export const AdminLegalView: React.FC = () => {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 };
+
+export const AdminLegalView: React.FC = () => (
+  <AdminLayout title="Dokumen Legal" subtitle="Syarat & Ketentuan dan Kebijakan Privasi yang tampil di situs KlikUmroh">
+    <LegalDocumentsEditor />
+  </AdminLayout>
+);

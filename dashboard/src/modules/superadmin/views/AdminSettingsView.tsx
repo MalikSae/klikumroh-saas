@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle, Building2, Phone, FileText } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
+import { LegalDocumentsEditor } from './AdminLegalView';
 import {
   fetchPlatformSettingsStaff,
   updatePlatformSettingsStaff,
@@ -62,6 +63,18 @@ export const AdminSettingsView: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Publishing a document fills the checkout's terms/privacy links on the backend: pick up only those, so
+  // bank or WhatsApp text typed but not yet saved is left alone.
+  const refreshLegalLinks = async () => {
+    try {
+      const data = await fetchPlatformSettingsStaff();
+      setFormData((prev) => ({ ...prev, terms_url: data.terms_url || '', privacy_url: data.privacy_url || '' }));
+      setMissingFields(data.missing_fields || []);
+    } catch {
+      /* the form keeps what it has; a reload shows the stored links */
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +319,15 @@ export const AdminSettingsView: React.FC = () => {
             </h2>
           </div>
           <p style={{ fontSize: '13px', color: 'var(--sa-text-muted)', margin: '0 0 20px 0' }}>
-            Ditautkan di checkout dan footer. Pendaftaran travel baru ditutup sampai kedua URL diisi (wajib https://).
+            Tulis isinya di sini, lalu terbitkan: halaman /syarat-ketentuan dan /kebijakan-privasi dibuat otomatis dan tautannya terisi di checkout.
+          </p>
+
+          <div style={{ marginBottom: '24px' }}>
+            <LegalDocumentsEditor onChanged={() => void refreshLegalLinks()} />
+          </div>
+
+          <p style={{ fontSize: '13px', color: 'var(--sa-text-muted)', margin: '0 0 12px 0' }}>
+            Tautan di checkout dan footer. Pendaftaran travel baru ditutup sampai kedua URL terisi (wajib https://); mengisi manual hanya bila dokumen ada di alamat lain.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
