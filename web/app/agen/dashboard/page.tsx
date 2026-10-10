@@ -351,9 +351,9 @@ export default function AgenDashboardPage() {
     // Neutral (no greeting) and about what the reader gets, not about the sender. Only facts that hold for
     // every travel: the registration may have a fee, so nothing says free or no capital.
     const text = [
-      'Ingin punya penghasilan tambahan dari membagikan paket umroh?',
+      'Ingin punya penghasilan tambahan dengan mencari jamaah umroh?',
       '',
-      `Gabung jadi agen ${travel?.name || 'travel umroh'}: dapat link referral resmi dan komisi dari setiap jamaah yang mendaftar lewat link Anda.`,
+      `Gabung jadi agen ${travel?.name || 'travel umroh'}: dapat komisi dari setiap jamaah yang closing lewat Anda.`,
       '',
       'Cara daftarnya ada di sini:',
       summary.recruit_link,
