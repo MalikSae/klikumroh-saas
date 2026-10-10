@@ -2,17 +2,9 @@
 
 .lb-muted {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
-}
-
-.lb-title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--tw-neutral-900);
 }
 
 /* Period dropdown in the page toolbar: compact and neutral; the menu lines up with the trigger's right edge. */
@@ -30,7 +22,7 @@
   background-color: var(--tw-background);
   box-shadow: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--tw-neutral-900);
 }
 
@@ -130,7 +122,7 @@
   border-radius: 50%;
   background-color: color-mix(in srgb, var(--tw-on-brand) 18%, transparent);
   font-family: var(--tw-font-heading);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--medal) 30%, transparent);
 }
@@ -149,7 +141,7 @@
 .lb-podium__slot--1 .lb-podium__avatar {
   width: 54px;
   height: 54px;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 /* You on the podium: a white avatar so it stands out. */
@@ -170,7 +162,7 @@
 
 .lb-podium__score {
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: 12px;
   color: color-mix(in srgb, var(--tw-on-brand) 82%, transparent);
 }
 
@@ -245,14 +237,6 @@
 }
 
 /* Ranking list: one panel, rows split by lines. */
-.lb-list {
-  margin: 0;
-  padding: 4px 14px;
-  list-style: none;
-  border-radius: 16px;
-  background-color: var(--tw-background);
-  box-shadow: var(--tw-card-shadow);
-}
 
 .lb-row {
   display: flex;
@@ -297,7 +281,7 @@
   flex-shrink: 0;
   width: 28px;
   font-family: var(--tw-font-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tw-neutral-500);
   font-variant-numeric: tabular-nums;
@@ -322,8 +306,8 @@
   gap: 8px;
   min-width: 0;
   overflow: hidden;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--tw-neutral-900);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -335,14 +319,14 @@
 
 .lb-row__you {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tw-brand-primary);
 }
 
 .lb-row__total {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
@@ -353,33 +337,13 @@
   color: var(--tw-neutral-900);
 }
 
-/* Loading, error, empty */
-.lb-state {
+.lb-more {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 48px 16px;
   color: var(--tw-neutral-400);
-  text-align: center;
-}
-
-.lb-state--more {
   flex-direction: row;
   justify-content: center;
   padding: 12px 0;
 }
 
-.lb-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-  font: 600 14px var(--tw-font-body);
-  cursor: pointer;
-}

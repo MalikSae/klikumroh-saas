@@ -4,10 +4,12 @@
 // Tab page of the agent bottom navbar, so no back button. Brand color marks "your" position.
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, RefreshCw, Medal, Loader2, Crown, User } from 'lucide-react';
+import { Medal, Loader2, Crown, User } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentStateEmpty, AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { CustomDropdown } from '../../../components/CustomDropdown';
 import { HabitBadge } from '../../../components/HabitBadge';
@@ -156,25 +158,15 @@ export default function AgenLeaderboardPage() {
           />
         </div>
         {loading ? (
-          <div className="lb-state">
-            <Loader2 size={24} className="ag-shell-spin" aria-hidden="true" />
-            <p className="lb-muted">Memuat peringkat...</p>
-          </div>
+          <AgentStateLoading text="Memuat peringkat..." />
         ) : error ? (
-          <div className="lb-state">
-            <AlertCircle size={28} aria-hidden="true" />
-            <p className="lb-muted">{error}</p>
-            <button type="button" className="lb-btn" onClick={() => fetchLeaderboard(period)}>
-              <RefreshCw size={16} aria-hidden="true" />
-              <span>Coba lagi</span>
-            </button>
-          </div>
+          <AgentStateError text={error} onRetry={() => fetchLeaderboard(period)} />
         ) : leaderboard.length === 0 || allZero ? (
-          <div className="lb-state">
-            <Medal size={28} aria-hidden="true" />
-            <h2 className="lb-title">Belum ada closing {periodInfo.caption}</h2>
-            <p className="lb-muted">Peringkat muncul setelah ada jamaah closing dari link agen.</p>
-          </div>
+          <AgentStateEmpty
+            icon={<Medal size={28} aria-hidden="true" />}
+            title={`Belum ada closing ${periodInfo.caption}`}
+            text="Peringkat muncul setelah ada jamaah closing dari link agen."
+          />
         ) : (
           <>
             {/* Gamified podium for the top 3 on the travel's brand color, then your own position.
@@ -228,7 +220,7 @@ export default function AgenLeaderboardPage() {
               <p className="lb-muted">Jumlah jamaah closing {periodInfo.caption}</p>
             )}
 
-            <ol className="lb-list">
+            <AgentCard as="ol" variant="list" className="lb-list">
               {displayed.map((item, index) => {
                 // Ranks can repeat (ties) and the API sends no agent id: the list position is the stable key.
                 const medal = medalTier(item.rank);
@@ -256,10 +248,10 @@ export default function AgenLeaderboardPage() {
                 </li>
                 );
               })}
-            </ol>
+            </AgentCard>
 
             {hasMore && (
-              <div ref={sentinelRef} className="lb-state lb-state--more">
+              <div ref={sentinelRef} className="lb-more">
                 <Loader2 size={18} className="ag-shell-spin" aria-hidden="true" />
                 <span className="lb-muted">
                   {displayed.length} dari {leaderboard.length} agen

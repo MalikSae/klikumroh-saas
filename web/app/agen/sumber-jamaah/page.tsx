@@ -3,10 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, X, ChevronRight, ChevronDown, CheckCircle2, Users } from 'lucide-react';
+import { ChevronRight, ChevronDown, CheckCircle2, Users } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentSearch } from '../../../components/agent/AgentSearch';
+import { AgentStateEmpty } from '../../../components/agent/AgentState';
 import './SumberJamaah.css';
 import { fetchSumberDone } from '../../../lib/agentHabits';
 import sumberDataRaw from '../../../data/sumber-jamaah.json';
@@ -129,36 +132,19 @@ export default function SumberJamaahPage() {
         </div>
 
         {/* Search */}
-        <div className="sj-search">
-          <Search size={18} className="sj-search__icon" aria-hidden="true" />
-          <input
-            type="search"
-            aria-label="Cari sumber jamaah"
-            placeholder="Cari ide relasi, contoh obrolan"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="tw-field sj-search__input"
-          />
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery('')} className="sj-search__clear" aria-label="Hapus pencarian">
-              <X size={18} />
-            </button>
-          )}
-        </div>
+        <AgentSearch value={searchQuery} onChange={setSearchQuery} placeholder="Cari ide relasi, contoh obrolan" label="Cari sumber jamaah" />
 
         {isSearching ? (
           filteredItems.length === 0 ? (
-            <div className="sj-empty">
-              <Users size={28} aria-hidden="true" />
-              <p className="sj-muted">Tidak ada sumber yang cocok dengan &quot;{searchQuery.trim()}&quot;.</p>
-              <button type="button" className="sj-btn" onClick={() => setSearchQuery('')}>
-                Hapus pencarian
-              </button>
-            </div>
+            <AgentStateEmpty
+              icon={<Users size={28} aria-hidden="true" />}
+              text={`Tidak ada sumber yang cocok dengan "${searchQuery.trim()}".`}
+              action={{ label: 'Hapus pencarian', onClick: () => setSearchQuery('') }}
+            />
           ) : (
             <>
               <p className="sj-muted">{filteredItems.length} sumber ditemukan</p>
-              <ul className="sj-panel">{filteredItems.map((item) => renderRow(item, true))}</ul>
+              <AgentCard as="ul" variant="flush" className="sj-panel">{filteredItems.map((item) => renderRow(item, true))}</AgentCard>
             </>
           )
         ) : (
@@ -169,7 +155,7 @@ export default function SumberJamaahPage() {
               const done = items.filter((i) => completedIds.includes(i.id)).length;
               const open = openCategories.includes(kategori);
               return (
-                <section key={kategori} className="sj-panel">
+                <AgentCard as="section" variant="flush" key={kategori} className="sj-panel">
                   <button type="button" className="sj-group" onClick={() => toggleCategory(kategori)} aria-expanded={open}>
                     <span className="sj-group__name">{kategori}</span>
                     <span className={`sj-group__count${done === count ? ' sj-group__count--done' : ''}`}>
@@ -178,7 +164,7 @@ export default function SumberJamaahPage() {
                     <ChevronDown size={18} className={`sj-group__chev${open ? ' sj-group__chev--open' : ''}`} aria-hidden="true" />
                   </button>
                   {open && <ul className="sj-list">{items.map((item) => renderRow(item, false))}</ul>}
-                </section>
+                </AgentCard>
               );
             })}
           </div>

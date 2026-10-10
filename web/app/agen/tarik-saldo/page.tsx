@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Clock, CheckCircle2, AlertCircle, RefreshCw, ReceiptText } from 'lucide-react';
+import { Building2, Clock, CheckCircle2, AlertCircle, ReceiptText } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { StatusLabel } from '../../../components/agent/StatusLabel';
+import { rupiah } from '../../../lib/money';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentButton } from '../../../components/agent/AgentButton';
+import { AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { BankField } from '../../../components/BankField';
 import { jakartaDateLabel, jakartaTimeLabel } from '../../../lib/jakartaTime';
 import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
@@ -29,14 +34,6 @@ interface PayoutInfo {
   bank_account_holder: string | null;
   pending_request: PendingRequest | null;
 }
-
-const formatRupiah = (val: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(val);
-};
 
 const formatDate = (dateStr: string): string => {
   if (!dateStr) return '-';
@@ -146,12 +143,12 @@ export default function TarikSaldoPage() {
 
     const minPayout = info.minimum_payout_amount ?? 0;
     if (minPayout > 0 && cleanAmount < minPayout) {
-      setFormError(`Jumlah penarikan minimal ${formatRupiah(minPayout)}`);
+      setFormError(`Jumlah penarikan minimal ${rupiah(minPayout)}`);
       return;
     }
 
     if (cleanAmount > info.saldo_tersedia) {
-      setFormError(`Jumlah penarikan melebihi saldo tersedia (${formatRupiah(info.saldo_tersedia)})`);
+      setFormError(`Jumlah penarikan melebihi saldo tersedia (${rupiah(info.saldo_tersedia)})`);
       return;
     }
 
@@ -223,37 +220,26 @@ export default function TarikSaldoPage() {
 
       <AgentPage>
         <div className="ag-shell-toolbar">
-          <button type="button" className="ag-shell-action" onClick={() => router.push('/agen/riwayat-komisi')}>
+          <AgentButton onClick={() => router.push('/agen/riwayat-komisi')}>
             <ReceiptText size={16} aria-hidden="true" />
             <span>Riwayat komisi</span>
-          </button>
+          </AgentButton>
         </div>
         {loading ? (
-          <div className="ts-center" role="status">
-            <span className="ag-shell-spinner" aria-hidden="true" />
-            <span>Memuat saldo...</span>
-          </div>
+          <AgentStateLoading text="Memuat saldo..." />
         ) : fetchError ? (
-          <div className="ts-center">
-            <AlertCircle size={28} className="ts-center__icon" aria-hidden="true" />
-            <p className="ts-title">Saldo belum bisa dimuat</p>
-            <p className="ts-muted">{fetchError}</p>
-            <button type="button" className="ts-btn ts-btn--outline" onClick={() => fetchPayoutInfo()}>
-              <RefreshCw size={18} aria-hidden="true" />
-              Coba lagi
-            </button>
-          </div>
+          <AgentStateError title="Saldo belum bisa dimuat" text={fetchError} onRetry={() => fetchPayoutInfo()} />
         ) : info?.pending_request ? (
           /* A request is in progress: show it instead of the form. */
           <>
-            <section className="ts-card">
+            <AgentCard as="section">
               <div className="ts-row">
                 <span className="ts-label">Pengajuan sedang diproses</span>
-                <span className={`ts-badge${info.pending_request.status === 'approved' ? ' ts-badge--ok' : ''}`}>
+                <StatusLabel pill tone={info.pending_request.status === 'approved' ? 'success' : 'wait'}>
                   {info.pending_request.status === 'approved' ? 'Disetujui' : 'Menunggu verifikasi'}
-                </span>
+                </StatusLabel>
               </div>
-              <p className="ts-amount">{formatRupiah(info.pending_request.amount_requested)}</p>
+              <p className="ts-amount">{rupiah(info.pending_request.amount_requested)}</p>
               <p className="ts-muted">Diajukan {formatDate(info.pending_request.created_at)}</p>
               <div className="ts-bank">
                 <Building2 size={18} aria-hidden="true" />
@@ -268,24 +254,24 @@ export default function TarikSaldoPage() {
                   ? 'Disetujui, menunggu transfer. Admin travel akan mentransfer dana ke rekening di atas.'
                   : 'Admin travel sedang memverifikasi. Dana ditransfer ke rekening di atas setelah disetujui.'}
               </p>
-            </section>
+            </AgentCard>
             <div className="ts-actions">
-              <button type="button" className="ts-btn ts-btn--outline" onClick={() => router.push('/agen/dashboard')}>
+              <AgentButton size="lg" block onClick={() => router.push('/agen/dashboard')}>
                 Kembali ke beranda
-              </button>
+              </AgentButton>
             </div>
           </>
         ) : (
           <form onSubmit={handleSubmit} className="ts-form" noValidate>
             {/* Balance */}
-            <section className="ts-card">
+            <AgentCard as="section">
               <span className="ts-label">Saldo bisa ditarik</span>
-              <p className="ts-amount">{formatRupiah(saldo)}</p>
-              {minPayout > 0 && <p className="ts-muted">Minimal penarikan {formatRupiah(minPayout)}</p>}
-            </section>
+              <p className="ts-amount">{rupiah(saldo)}</p>
+              {minPayout > 0 && <p className="ts-muted">Minimal penarikan {rupiah(minPayout)}</p>}
+            </AgentCard>
 
             {/* Amount */}
-            <section className="ts-card">
+            <AgentCard as="section">
               <div className="ts-row">
                 <label className="tw-field-label ts-flush" htmlFor="ts-amount">
                   Jumlah penarikan
@@ -311,12 +297,12 @@ export default function TarikSaldoPage() {
                 />
               </div>
               <p id="ts-amount-hint" className="ts-muted">
-                Maks. {formatRupiah(saldo)}
+                Maks. {rupiah(saldo)}
               </p>
-            </section>
+            </AgentCard>
 
             {/* Bank account: one line when saved, the form when missing or editing */}
-            <section className="ts-card">
+            <AgentCard as="section">
               <div className="ts-row">
                 <span className="tw-field-label ts-flush">Rekening tujuan</span>
                 {hasSavedBank && (
@@ -372,7 +358,7 @@ export default function TarikSaldoPage() {
                   </span>
                 </div>
               )}
-            </section>
+            </AgentCard>
 
             {formError && (
               <p className="ts-alert ts-alert--error" role="alert">
@@ -389,9 +375,9 @@ export default function TarikSaldoPage() {
 
             {/* Primary action, always reachable at the bottom of the screen */}
             <div className="ts-submit">
-              <button type="submit" className="ts-btn ts-btn--primary" disabled={submitting}>
+              <AgentButton type="submit" variant="primary" size="lg" block disabled={submitting}>
                 {submitting ? 'Mengirim...' : 'Ajukan penarikan'}
-              </button>
+              </AgentButton>
             </div>
           </form>
         )}

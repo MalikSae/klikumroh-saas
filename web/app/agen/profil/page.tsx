@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Loader2, ChevronRight, Copy, Check, User, Users, Landmark, KeyRound, X } from 'lucide-react';
+import { ImagePlus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Loader2, ChevronRight, Copy, Check, User, Users, Landmark, KeyRound } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentSheet } from '../../../components/agent/AgentSheet';
+import { AgentButton } from '../../../components/agent/AgentButton';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { BankField } from '../../../components/BankField';
 import { CityField } from '../../../components/CityField';
@@ -553,7 +556,7 @@ export default function AgenProfilPage() {
         {msgBox(photoMsg)}
 
         {/* Settings as menu rows; each opens its own sheet. */}
-        <nav className="pf-menu" aria-label="Pengaturan akun">
+        <AgentCard as="nav" variant="list" className="pf-menu" aria-label="Pengaturan akun">
           <button type="button" className="pf-row" onClick={() => openSheet('profile')}>
             <User size={20} className="pf-row__icon" aria-hidden="true" />
             <span className="pf-row__text">
@@ -592,21 +595,12 @@ export default function AgenProfilPage() {
               <span className="pf-row__label">Keluar</span>
             </span>
           </button>
-        </nav>
+        </AgentCard>
       </AgentPage>
 
       {sheet && (
-        <div className="pf-sheet" role="presentation" onClick={() => setSheet(null)}>
-          <div className="pf-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="pf-sheet-title" onClick={(e) => e.stopPropagation()}>
-            <span className="pf-sheet__grip" aria-hidden="true" />
-            <div className="pf-sheet__head">
-              <h2 id="pf-sheet-title" className="pf-title">
-                {sheet === 'profile' ? 'Data diri' : sheet === 'bank' ? 'Rekening pencairan' : sheet === 'password' ? 'Ubah password' : 'Keluar dari akun?'}
-              </h2>
-              <button type="button" className="pf-icon-btn" onClick={() => setSheet(null)} aria-label="Tutup">
-                <X size={20} />
-              </button>
-            </div>
+        <AgentSheet title={sheet === 'profile' ? 'Data diri' : sheet === 'bank' ? 'Rekening pencairan' : sheet === 'password' ? 'Ubah password' : 'Keluar dari akun?'}
+          onClose={() => setSheet(null)}>
 
             {sheet === 'profile' && (
               <form onSubmit={handleSaveProfile} className="pf-form">
@@ -630,9 +624,9 @@ export default function AgenProfilPage() {
                   <input id="pf-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@email.com" className="tw-field" />
                 </div>
                 <CityField id="pf-city" label="Domisili (kota/kabupaten)" value={domisili} onChange={setDomisili} openUp labelClassName="tw-field-label" inputClassName="tw-field" />
-                <button type="submit" className="pf-btn" disabled={savingProfile}>
+                <AgentButton type="submit" variant="primary" size="lg" block disabled={savingProfile}>
                   {savingProfile ? 'Menyimpan...' : 'Simpan'}
-                </button>
+                </AgentButton>
               </form>
             )}
 
@@ -652,9 +646,9 @@ export default function AgenProfilPage() {
                   </label>
                   <input id="pf-holder" type="text" value={bankAccountHolder} onChange={(e) => setBankAccountHolder(e.target.value)} required className="tw-field" />
                 </div>
-                <button type="submit" className="pf-btn" disabled={savingBank}>
+                <AgentButton type="submit" variant="primary" size="lg" block disabled={savingBank}>
                   {savingBank ? 'Menyimpan...' : 'Simpan'}
-                </button>
+                </AgentButton>
               </form>
             )}
 
@@ -664,9 +658,9 @@ export default function AgenProfilPage() {
                 {passwordField('pf-pass-now', 'Password saat ini', currentPassword, setCurrentPassword, showCurrentPass, () => setShowCurrentPass((v) => !v), 'current-password')}
                 {passwordField('pf-pass-new', 'Password baru (minimal 8 karakter)', newPassword, setNewPassword, showNewPass, () => setShowNewPass((v) => !v), 'new-password')}
                 {passwordField('pf-pass-again', 'Ulangi password baru', confirmPassword, setConfirmPassword, showConfirmPass, () => setShowConfirmPass((v) => !v), 'new-password')}
-                <button type="submit" className="pf-btn" disabled={savingPassword}>
+                <AgentButton type="submit" variant="primary" size="lg" block disabled={savingPassword}>
                   {savingPassword ? 'Menyimpan...' : 'Simpan password'}
-                </button>
+                </AgentButton>
               </form>
             )}
 
@@ -674,17 +668,16 @@ export default function AgenProfilPage() {
               <div className="pf-form">
                 <p className="pf-text">Anda perlu masuk lagi untuk membuka portal agen.</p>
                 <div className="pf-actions">
-                  <button type="button" className="pf-btn pf-btn--ghost" onClick={() => setSheet(null)}>
+                  <AgentButton size="lg" block onClick={() => setSheet(null)}>
                     Batal
-                  </button>
-                  <button type="button" className="pf-btn pf-btn--danger" onClick={executeLogout}>
+                  </AgentButton>
+                  <AgentButton variant="danger" size="lg" block onClick={executeLogout}>
                     Ya, keluar
-                  </button>
+                  </AgentButton>
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </AgentSheet>
       )}
 
       <AgentBottomNavbar />
