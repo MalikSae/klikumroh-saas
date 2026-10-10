@@ -34,7 +34,7 @@
   border: none;
   background: none;
   color: var(--tw-text-muted);
-  font: 500 11px var(--tw-font-body);
+  font: var(--tw-type-meta);
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -42,7 +42,6 @@
 
 .agent-bottom-nav__item--active {
   color: var(--tw-brand-primary);
-  font-weight: 600;
 }
 
 .agent-bottom-nav__icon {
@@ -51,7 +50,3 @@
   justify-content: center;
 }
 
-.agent-bottom-nav__label {
-  font-size: 11px;
-  font-weight: inherit;
-}
