@@ -82,9 +82,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!tenantInfo) {
     return {
-      title: 'KlikUmroh.id — Website, Dashboard Travel & Portal Agen',
+      title: 'KlikUmroh.id — Sistem Agen untuk Menambah Jamaah Travel Umroh',
       description:
-        'Bantu agen membawa calon jamaah ke travel Anda. Kelola website travel, link referral, bahan promosi, prospek, dan komisi agen melalui KlikUmroh.',
+        'Buat agen travel umroh Anda bergerak. Agen mendapat link referral, bahan promosi, dan komisi yang tercatat jelas; Anda memantau prospek tanpa rekap manual.',
       alternates: { canonical: 'https://klikumroh.id' },
       icons: {
         icon: [

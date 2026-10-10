@@ -3,6 +3,7 @@ import { Instrument_Serif } from 'next/font/google';
 import { ArrowRight } from 'lucide-react';
 import { KlikUmrohBrand } from '../marketing/KlikUmrohBrand';
 import { MarketingV3Footer } from './MarketingV3Footer';
+import { SupportContact } from './SupportContact';
 import styles from './MarketingV3View.module.css';
 import page from './AffiliatorProgramView.module.css';
 
@@ -104,7 +105,7 @@ export function AffiliatorProgramView({ program, signupUrl, loginUrl }: { progra
             <div className={page.signup}>
               <a href={signupUrl} className={styles.button}>Saya setuju, lanjut daftar <ArrowRight aria-hidden="true" /></a>
               <p className={styles.small}>
-                Pertanyaan tentang program? Hubungi <a href="https://wa.me/6289612779919">WhatsApp</a> atau <a href="mailto:support@klikumroh.id">support@klikumroh.id</a>.
+                Pertanyaan tentang program? Hubungi <SupportContact />.
               </p>
             </div>
           </div>

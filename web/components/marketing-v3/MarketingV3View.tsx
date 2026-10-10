@@ -16,8 +16,13 @@ import styles from './MarketingV3View.module.css';
 import { MarketingPixelPattern } from './MarketingPixelPattern';
 import { MarketingJourney } from './MarketingJourney';
 import { MarketingV3Footer } from './MarketingV3Footer';
+import { SupportContact } from './SupportContact';
 
 const serif = Instrument_Serif({ weight: '400', subsets: ['latin'], variable: '--km-font-display', display: 'swap' });
+// Referral code of the demo travel's demo agent (cmd/seed-demo, the account "Masuk sebagai agen demo" opens).
+// The example website link goes through its /ref/ link, so visitors see a travel site the way an agent's
+// referral link opens it.
+const DEMO_REFERRAL_CODE = process.env.NEXT_PUBLIC_DEMO_REFERRAL_CODE || 'DM1000A';
 const money = (amount: number) => `Rp${amount.toLocaleString('id-ID')}`;
 
 export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
@@ -56,8 +61,8 @@ export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
           <div className={`${styles.container} ${styles.heroGrid}`}>
             <div className={styles.heroCopy}>
               <p className={styles.overline}>KlikUmroh untuk pemilik travel umroh</p>
-              <h1>Bantu <span className={styles.heroHighlight}>agen</span> membawa calon jamaah ke travel Anda.</h1>
-              <p className={styles.lead}>Berikan agen link paket dan bahan promosi. Calon jamaah yang mengisi form tercatat di dashboard, lengkap dengan sumber agennya.</p>
+              <h1>Buat agen travel Anda <span className={styles.heroHighlight}>bergerak</span>, bukan sekadar terdaftar.</h1>
+              <p className={styles.lead}>Agen mendapat link paket, bahan promosi, dan komisi yang tercatat jelas. Anda tidak perlu merekap manual, dan calon jamaah yang masuk selalu terhubung ke agennya.</p>
               <div className={styles.actions}><Link href="/demo" className={styles.button}>Coba demo dashboard <ArrowRight aria-hidden="true" /></Link><a href="#harga" className={styles.textLink}>Lihat harga</a></div>
               <p className={styles.small}>Demo tersedia tanpa membuat akun travel.</p>
             </div>
@@ -69,7 +74,25 @@ export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
 
         <MarketingEcosystemBar />
 
-        <section className={`${styles.section} ${styles.whitelabelSection}`} id="fitur" aria-labelledby="whitelabel-heading">
+        <section id="fitur" className={`${styles.section} ${styles.agentSection} ${styles.patterned}`}>
+          <MarketingPixelPattern />
+          <div className={`${styles.container} ${styles.featureGrid}`}>
+            <div className={styles.featureCopy}><p className={styles.overline}>Portal agen</p><h2>Agen punya alat untuk bergerak, dan komisi yang jelas.</h2><p>Link paket sendiri, caption, dan contoh chat WhatsApp tersedia di portal. Setiap closing tercatat sebagai komisi, jadi agen melihat saldonya sendiri dan tidak perlu menagih rekap.</p><ul className={styles.benefits}><li><Check aria-hidden="true" /> Bagikan paket lewat link referral sendiri</li><li><Check aria-hidden="true" /> Gunakan caption dan contoh chat yang tersedia</li><li><Check aria-hidden="true" /> Komisi tercatat tiap closing, saldo terlihat dari ponsel</li><li><Check aria-hidden="true" /> Satu prospek terhubung ke satu agen, tanpa rebutan</li></ul><a href={`${demoBase}/agen/login?demo=1`} className={styles.textLink}>Lihat portal agen <ArrowRight aria-hidden="true" /></a></div>
+            <figure className={`${styles.visual} ${styles.agentVisual}`}><Image src={agentShot} alt="Portal agen pada ponsel, berisi paket dan bahan promosi" sizes="(min-width: 960px) 560px, 100vw" /><figcaption>Portal agen tetap dirancang untuk ponsel.</figcaption></figure>
+          </div>
+        </section>
+
+
+        <MarketingJourney />
+
+        <section className={styles.section}>
+          <div className={`${styles.container} ${styles.featureGrid}`}>
+            <figure className={styles.visual}><Image src={pipelineShot} alt="Daftar prospek dan status pada dashboard travel" sizes="(min-width: 960px) 50vw, 100vw" /><figcaption>Contoh daftar prospek di dashboard travel.</figcaption></figure>
+            <div className={styles.featureCopy}><p className={styles.overline}>Dashboard travel</p><h2>Anda tidak perlu merekap manual.</h2><p>Sumber, status, dan komisi tiap prospek sudah tercatat. Anda tinggal memeriksa, tanpa meminta laporan satu per satu ke agen.</p><ul className={styles.benefits}><li><Check aria-hidden="true" /> Lihat prospek dari website, iklan, dan agen, lengkap dengan status tindak lanjut</li><li><Check aria-hidden="true" /> Komisi agen tercatat otomatis, tanpa rekap manual</li><li><Check aria-hidden="true" /> Data prospek milik travel dan bisa diunduh dalam CSV</li><li><Check aria-hidden="true" /> Akses staf KlikUmroh ke data travel tercatat dan bisa Anda lihat</li></ul></div>
+          </div>
+        </section>
+
+        <section className={`${styles.section} ${styles.whitelabelSection}`} aria-labelledby="whitelabel-heading">
           <div className={`${styles.container} ${styles.featureGrid}`}>
             <figure className={styles.visual}><Image src={whitelabelShot} alt="Pengaturan logo dan warna travel di dashboard KlikUmroh serta contoh website travel pada ponsel" sizes="(min-width: 960px) 50vw, 100vw" /></figure>
             <div className={styles.featureCopy}>
@@ -81,30 +104,9 @@ export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
                 <li><Check aria-hidden="true" /> Tampilkan paket, banner, dan profil travel</li>
                 <li><Check aria-hidden="true" /> Pakai subdomain travel atau hubungkan domain sendiri</li>
               </ul>
-              <a href={demoBase} className={styles.textLink}>Lihat contoh website travel <ArrowRight aria-hidden="true" /></a>
+              <a href={`${demoBase}/ref/${encodeURIComponent(DEMO_REFERRAL_CODE)}`} className={styles.textLink}>Lihat contoh website travel <ArrowRight aria-hidden="true" /></a>
             </div>
           </div>
-        </section>
-
-        <section className={styles.section}>
-          <div className={`${styles.container} ${styles.featureGrid}`}>
-            <figure className={styles.visual}><Image src={pipelineShot} alt="Daftar prospek dan status pada dashboard travel" sizes="(min-width: 960px) 50vw, 100vw" /><figcaption>Contoh daftar prospek di dashboard travel.</figcaption></figure>
-            <div className={styles.featureCopy}><p className={styles.overline}>Dashboard travel</p><h2>Prospek dari agen mana? Sudah dihubungi?</h2><p>Periksa sumber dan status prospek tanpa meminta laporan satu per satu ke agen.</p><ul className={styles.benefits}><li><Check aria-hidden="true" /> Lihat prospek dari website, iklan, dan agen</li><li><Check aria-hidden="true" /> Catat status tindak lanjut dan pendaftaran</li><li><Check aria-hidden="true" /> Periksa komisi agen dan unduh data CSV</li></ul><Link href="/demo" className={styles.textLink}>Coba demo dashboard <ArrowRight aria-hidden="true" /></Link></div>
-          </div>
-        </section>
-
-        <section className={`${styles.section} ${styles.agentSection} ${styles.patterned}`}>
-          <MarketingPixelPattern />
-          <div className={`${styles.container} ${styles.featureGrid}`}>
-            <div className={styles.featureCopy}><p className={styles.overline}>Portal agen</p><h2>Agen punya link paket dan bahan untuk promosi.</h2><p>Caption, contoh chat WhatsApp, dan ide mencari calon jamaah tersedia di portal. Agen juga bisa melihat progres prospek dan catatan komisinya.</p><ul className={styles.benefits}><li><Check aria-hidden="true" /> Bagikan paket lewat link referral sendiri</li><li><Check aria-hidden="true" /> Gunakan materi promosi yang tersedia</li><li><Check aria-hidden="true" /> Pantau prospek dan komisi dari ponsel</li></ul><a href={`${demoBase}/agen/login?demo=1`} className={styles.textLink}>Lihat portal agen <ArrowRight aria-hidden="true" /></a></div>
-            <figure className={`${styles.visual} ${styles.agentVisual}`}><Image src={agentShot} alt="Portal agen pada ponsel, berisi paket dan bahan promosi" sizes="(min-width: 960px) 560px, 100vw" /><figcaption>Portal agen tetap dirancang untuk ponsel.</figcaption></figure>
-          </div>
-        </section>
-
-        <MarketingJourney />
-
-        <section className={styles.demoSection}>
-          <div className={`${styles.container} ${styles.demoInner}`}><div><h2>Lihat cara kerjanya dengan data demo.</h2><p>Coba daftar prospek sebagai owner, lalu buka portal sebagai agen.</p></div><div className={styles.demoActions}><Link className={styles.button} href="/demo">Coba demo dashboard <ArrowRight aria-hidden="true" /></Link><a className={styles.textLink} href={demoBase}>Lihat website travel demo <ArrowRight aria-hidden="true" /></a></div></div>
         </section>
 
         <section className={`${styles.section} ${styles.testimonials}`} aria-labelledby="testimoni-heading">
@@ -137,7 +139,7 @@ export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
               return <article className={`${styles.plan} ${bestValue ? styles.bestValue : ''}`} key={plan.id}>
                 <div className={styles.planHeader}><h3>{plan.periodMonths} bulan</h3>{plan.promoPercent ? <span className={`${styles.discountBadge} ${styles.promoBadge}`}>Promo {plan.promoPercent}%</span> : plan.discountBadge && <span className={styles.discountBadge}>{plan.discountBadge}</span>}</div>
                 <p className={styles.monthly}>{plan.promoPrice != null && <s className={styles.oldMonthly}>{money(Math.round(plan.price / plan.periodMonths))}</s>}{money(plan.monthlyEquivalent)}<span> / bulan</span></p>
-                <p className={styles.planNote}>{plan.promoPercent ? `Promo travel baru${plan.promoEndsAt ? ` sampai ${formatPromoDay(plan.promoEndsAt)}` : ''}` : bestValue ? 'Biaya per bulan paling rendah' : plan.discountBadge ? 'Lebih hemat dari paket 3 bulan' : 'Durasi langganan paling singkat'}</p>
+                <p className={styles.planNote}>{plan.promoPercent ? <>Promo travel baru{plan.promoEndsAt && <> sampai <strong>{formatPromoDay(plan.promoEndsAt)}</strong></>}</> : bestValue ? 'Biaya per bulan paling rendah' : plan.discountBadge ? 'Lebih hemat dari paket 3 bulan' : 'Durasi langganan paling singkat'}</p>
                 <dl className={styles.total}><dt>Total pembayaran</dt><dd>{plan.promoPrice != null && <s className={styles.oldPrice}>{money(plan.price)}</s>}{money(payablePrice(plan))}</dd></dl>
                 <p className={styles.planPayNote}>Dibayar sekali untuk {plan.periodMonths} bulan.{plan.promoPrice != null ? ' Perpanjangan memakai harga normal.' : ''}</p>
                 <ul className={styles.planBenefits}><li><Check aria-hidden="true" /> Website travel dan form minat</li><li><Check aria-hidden="true" /> Dashboard prospek dan komisi</li><li><Check aria-hidden="true" /> Portal agen dan materi promosi</li><li><Check aria-hidden="true" /> Jumlah agen tidak dibatasi</li></ul>
@@ -152,12 +154,14 @@ export function MarketingV3View({ plans }: { plans: PlanTier[] }) {
           <details><summary>Saya baru mulai merekrut agen. Bisa memakai KlikUmroh?<ChevronDown aria-hidden="true" /></summary><p>Bisa. Travel dapat menyiapkan paket, materi, dan komisi sebelum mengajak agen bergabung. Perekrutan agen tetap dilakukan oleh travel.</p></details>
           <details><summary>Apakah ini menggantikan sistem operasional travel?<ChevronDown aria-hidden="true" /></summary><p>Tidak. KlikUmroh tidak mengelola visa, dokumen perjalanan, akomodasi, atau akuntansi. Anda tetap bisa memakai sistem operasional yang sudah ada.</p></details>
           <details><summary>Bisakah data prospek diunduh?<ChevronDown aria-hidden="true" /></summary><p>Bisa. Dashboard menyediakan unduhan data prospek dalam format CSV.</p></details>
+          <details><summary>Bagaimana komisi agen dicatat?<ChevronDown aria-hidden="true" /></summary><p>Setiap prospek yang closing mencatat komisi sesuai aturan yang Anda atur di paket. Agen melihat catatan dan saldonya di portal. Pencairan dan pembayaran komisi tetap dilakukan travel kepada agennya, sesuai pengaturan pencairan travel.</p></details>
+          <details><summary>Bagaimana data saya jika berhenti berlangganan?<ChevronDown aria-hidden="true" /></summary><p>Setelah masa aktif habis ada masa tenggang 7 hari, lalu layanan ditangguhkan dan data tetap tersimpan 90 hari sehingga bisa diaktifkan lagi dengan memperpanjang. Setelah itu data prospek, agen, dan paket dihapus, dengan pemberitahuan 14 dan 3 hari sebelumnya. Anda bisa mengunduh CSV prospek kapan saja.</p></details>
           <details><summary>Apa yang dimaksud website white label?<ChevronDown aria-hidden="true" /></summary><p>Website memakai nama, logo, dan warna travel Anda. KlikUmroh menyediakan sistem di belakangnya. Anda dapat memakai subdomain travel di klikumroh.id atau menghubungkan domain sendiri.</p></details>
           <details><summary>Apa yang perlu disiapkan sebelum mulai?<ChevronDown aria-hidden="true" /></summary><p>Siapkan identitas travel, informasi paket umroh, dan aturan komisi agen. Tambahkan paket dan ajak agen bergabung untuk mulai membagikan link referral.</p></details>
           <details><summary>Bagaimana jika agen belum terbiasa berpromosi?<ChevronDown aria-hidden="true" /></summary><p>Agen bisa memakai contoh caption dan chat WhatsApp di portal, lalu menyesuaikannya dengan cara bicara mereka. Travel tetap perlu mengajak agen menggunakan materi dan membagikan paket secara rutin.</p></details>
           <details><summary>Apa yang terjadi setelah saya membayar?<ChevronDown aria-hidden="true" /></summary><p>Unggah bukti transfer pada halaman tagihan. Tim KlikUmroh memeriksa pembayaran sebelum mengaktifkan langganan. Setelah aktif, Anda dapat menyiapkan website travel, paket, dan portal agen.</p></details>
-          <details><summary>Bisakah saya meminta bantuan saat menyiapkan travel?<ChevronDown aria-hidden="true" /></summary><p>Hubungi tim KlikUmroh melalui <a href="https://wa.me/6289612779919">WhatsApp</a> atau <a href="mailto:support@klikumroh.id">support@klikumroh.id</a> untuk bantuan penggunaan dan pengaturan awal.</p></details>
-          <details id="garansi"><summary>Apakah ada garansi uang kembali?<ChevronDown aria-hidden="true" /></summary><p>Ya, tersedia garansi 14 hari uang kembali. Untuk mengajukan pengembalian dana, hubungi tim KlikUmroh melalui <a href="https://wa.me/6289612779919">WhatsApp</a> atau <a href="mailto:support@klikumroh.id">support@klikumroh.id</a> dengan informasi akun travel dan tagihan Anda.</p></details>
+          <details><summary>Bisakah saya meminta bantuan saat menyiapkan travel?<ChevronDown aria-hidden="true" /></summary><p>Hubungi tim KlikUmroh melalui <SupportContact /> untuk bantuan penggunaan dan pengaturan awal.</p></details>
+          <details id="garansi"><summary>Apakah ada garansi uang kembali?<ChevronDown aria-hidden="true" /></summary><p>Ya, tersedia garansi 14 hari uang kembali. Untuk mengajukan pengembalian dana, hubungi tim KlikUmroh melalui <SupportContact /> dengan informasi akun travel dan tagihan Anda.</p></details>
         </div></div></section>
 
         <section className={`${styles.closing} ${styles.patterned}`}><MarketingPixelPattern /><div className={styles.container}><h2>Coba KlikUmroh sebelum berlangganan.</h2><p>Buka dashboard demo untuk melihat prospek, sumber agen, dan statusnya.</p><Link href="/demo" className={styles.button}>Coba demo dashboard <ArrowRight aria-hidden="true" /></Link></div></section>

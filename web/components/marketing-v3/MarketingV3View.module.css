@@ -89,13 +89,13 @@
 .testimonialGrid article { padding-top: var(--km-v2-space-3); }
 .testimonialGrid blockquote { margin: 0; }
 .quoteMark { display: block; width: var(--km-v2-space-8); height: var(--km-v2-space-8); margin-bottom: var(--km-v2-space-4); color: var(--km-neutral-400); }
-.testimonialGrid blockquote p { color: var(--km-neutral-700); font-size: var(--km-v3-type-lead); font-style: italic; line-height: var(--km-v2-leading-relaxed); }
+.testimonialGrid blockquote p { color: var(--km-neutral-700); font-size: var(--km-v2-type-body); font-style: italic; line-height: var(--km-v2-leading-relaxed); }
 .page .testimonialRole { margin-top: var(--km-v2-space-5); color: var(--km-muted); font-size: var(--km-v2-type-small); font-weight: 500; }
 .pricingHeading { margin-bottom: var(--km-v2-space-10); text-align: center; }
 .pricingHeading p { margin-top: var(--km-v2-space-4); }
 .plans { display: grid; gap: var(--km-v2-space-6); }
 .plan { display: flex; flex-direction: column; align-items: flex-start; padding: var(--km-v2-space-6); border: var(--km-v2-border-width) solid var(--km-line); border-radius: var(--km-v2-radius-panel); background: var(--km-paper); }
-.bestValue { border-color: var(--km-accent); background: var(--km-surface-alt); }
+.bestValue { border: 2px solid var(--km-accent); background: var(--km-paper); box-shadow: 0 12px 32px color-mix(in srgb, var(--km-accent) 18%, transparent); }
 .planHeader { display: flex; align-items: center; justify-content: space-between; gap: var(--km-v2-space-2); width: 100%; }
 .planBenefits { display: grid; align-content: start; gap: var(--km-v2-space-3); flex: 1; padding: 0; margin-top: var(--km-v2-space-6); margin-bottom: 0; list-style: none; }
 .planBenefits li { display: flex; align-items: flex-start; gap: var(--km-v2-space-2); font-size: var(--km-v2-type-small); color: var(--km-neutral-600); }
@@ -105,6 +105,7 @@
 .monthly .oldMonthly { display: block; margin-bottom: var(--km-v2-space-1); color: var(--km-danger-strong); font-family: var(--tw-font-body), sans-serif; font-size: var(--km-v2-type-body); font-weight: 400; }
 .monthly span { white-space: nowrap; color: var(--km-muted); font-family: var(--tw-font-body), sans-serif; font-size: var(--km-v2-type-small); font-weight: 400; }
 .page .planNote { margin-top: var(--km-v2-space-1); font-size: var(--km-v2-type-small); }
+.page .planNote strong { color: var(--km-ink); font-weight: 700; }
 .total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--km-v2-space-2); width: 100%; padding-top: var(--km-v2-space-5); margin-top: var(--km-v2-space-6); border-top: var(--km-v2-border-width) solid var(--km-line); font-size: var(--km-v2-type-small); }
 .total dt { color: var(--km-neutral-600); }
 .total dd { margin: 0; color: var(--km-ink); font-weight: 600; }
@@ -166,6 +167,8 @@
 }
 @media (min-width: 960px) {
   .plans { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .plans { align-items: center; }
+  .plan.bestValue { padding-block: calc(var(--km-v2-space-6) + var(--km-v2-space-6)); }
   .testimonialGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .footerGrid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.3fr) minmax(0, .85fr); gap: var(--km-v2-space-10); }
   .container { width: calc(100% - var(--km-v3-desktop-gutter) - var(--km-v3-desktop-gutter)); }

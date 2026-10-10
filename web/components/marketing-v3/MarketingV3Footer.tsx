@@ -1,15 +1,21 @@
+'use client';
+
 import Link from 'next/link';
 import { KlikUmrohBrand } from '../marketing/KlikUmrohBrand';
+import { usePlatformSettings, whatsappLink } from '../../lib/usePlatformSettings';
 import styles from './MarketingV3View.module.css';
 
 // Footer of the KlikUmroh marketing pages (landing page and the Affiliator KlikUmroh page).
 export function MarketingV3Footer() {
+  const { settings } = usePlatformSettings();
+  const wa = whatsappLink(settings.whatsapp_number);
+  const local = settings.whatsapp_number.replace(/[^0-9]/g, '').replace(/^62/, '0');
   return (
     <footer className={styles.footer}>
       <div className={`${styles.container} ${styles.footerGrid}`}>
         <div className={styles.footerBrand}>
           <Link href="/" aria-label="KlikUmroh"><KlikUmrohBrand /></Link>
-          <p>Website, dashboard travel, dan portal agen untuk travel umroh.</p>
+          <p>Sistem agen dan pencatatan calon jamaah untuk travel umroh.</p>
         </div>
         <div className={styles.footerAddress}>
           <h3>Alamat KlikUmroh</h3>
@@ -17,7 +23,7 @@ export function MarketingV3Footer() {
         </div>
         <div className={styles.footerContact}>
           <h3>Hubungi kami</h3>
-          <a href="https://wa.me/6289612779919"><span>WhatsApp</span>089612779919</a>
+          {wa && <a href={wa}><span>WhatsApp</span>{local}</a>}
           <a href="mailto:support@klikumroh.id"><span>Email</span>support@klikumroh.id</a>
         </div>
       </div>

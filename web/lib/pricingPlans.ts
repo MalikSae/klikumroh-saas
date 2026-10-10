@@ -9,11 +9,12 @@ export { formatPromoDay, payablePrice, toPlanTiers, type ApiPricingPlan, type Pl
 const getBackendBaseUrl = (): string =>
   process.env.BACKEND_INTERNAL_URL || process.env.API_BASE_URL || 'http://127.0.0.1:8080';
 
-/** Server-side fetch, cached for 5 minutes. Returns [] when the API is unreachable. */
+/** Server-side fetch, cached for 1 minute so a price or promo changed in Pengaturan shows on the landing page
+ *  within a minute (checkout always reads it live). Returns [] when the API is unreachable. */
 export async function fetchPricingPlans(): Promise<ApiPricingPlan[]> {
   try {
     const res = await backendFetch(`${getBackendBaseUrl()}/api/public/pricing-plans`, {
-      next: { revalidate: 300 },
+      next: { revalidate: 60 },
     });
     if (!res.ok) return [];
     const data = await res.json();

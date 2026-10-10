@@ -66,7 +66,7 @@ export function MarketingEcosystemBar() {
   return (
     <section className={styles.logosSection} aria-label="Ekosistem travel umroh di Indonesia">
       <div className={styles.logosContainer}>
-        <p className={styles.logosCaption}>Ekosistem travel umroh di Indonesia</p>
+        <p className={styles.logosCaption}>Dibuat untuk melengkapi ekosistem travel umroh di Indonesia</p>
         <div className={styles.compactLogoGrid}>
           {V3_ECOSYSTEM_LOGOS.map(logo => <Image key={logo.name} src={logo.src} alt={logo.name} width={logo.width} height={logo.height} />)}
         </div>
