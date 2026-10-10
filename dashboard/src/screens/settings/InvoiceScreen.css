@@ -85,3 +85,6 @@
   .st-signup-note .ku-banner__body { flex-basis: 100%; }
   .st-signup-note .ku-banner > .ku-btn { flex: 1; height: 40px; }
 }
+
+/* Recipient on the left, PDF download on the right of the same row. */
+.st-invoice__billto { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--ku-space-4); }

@@ -1,7 +1,7 @@
 // Tagihan: how much to transfer, where, and the transfer proof upload.
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, CheckCircle2, Copy, ExternalLink, ImageIcon, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, Copy, Download, ExternalLink, ImageIcon, ImagePlus } from 'lucide-react';
 import {
   fetchPaymentVerificationDetail,
   fetchPlatformSettings,
@@ -20,6 +20,7 @@ import './InvoiceScreen.css';
 import '@fontsource/instrument-serif/400.css';
 import { MB, fitsUploadLimit } from '../../utils/uploadLimit';
 import { copyText } from '../../utils/clipboard';
+import { downloadInvoicePdf } from '../../utils/invoicePdf';
 import { formatDateTimeWIB } from '../../utils/datetime';
 
 const MAX_PROOF_BYTES = 10 * MB; // server body limit (MaxBytesReader 10<<20)
@@ -58,6 +59,8 @@ export const InvoiceScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   // The travel's open (pending) invoice, if any. A rejected invoice cannot take a new proof while another
   // invoice is open (the backend answers 409), so its transfer details are not shown then.
   const [openInvoice, setOpenInvoice] = useState<PaymentVerification | null>(null);
@@ -172,6 +175,39 @@ export const InvoiceScreen: React.FC = () => {
   const justActivated = !signingUp && subInfo?.status === 'active' && pv.status === 'approved' && pv.id === firstInvoiceId;
   const travelLabel = pv.tenant_name || subInfo?.tenant_name || 'Travel Anda';
 
+  // The PDF repeats what the page shows (same figures, same status), drawn in the browser.
+  const downloadPdf = async () => {
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      const adjustments: Array<{ label: string; value: string }> = [];
+      if (promoCut > 0) adjustments.push({ label: `Promo ${pv.promo_percent}%`, value: '-' + fmtRupiah(promoCut) });
+      if (pv.coupon_code) {
+        const couponCut = Math.max(0, pv.amount - promoCut - (pv.final_amount - (pv.unique_code ?? 0)));
+        adjustments.push({ label: `Diskon kupon ${pv.coupon_code}`, value: '-' + fmtRupiah(couponCut) });
+      }
+      if ((pv.unique_code ?? 0) > 0) adjustments.push({ label: 'Kode unik', value: fmtRupiah(pv.unique_code ?? 0) });
+      await downloadInvoicePdf({
+        id: pv.id,
+        issuedOn: fmtDate(pv.created_at),
+        statusLabel: status.label,
+        customer: pv.tenant_name || frame?.subscription?.tenant_name || 'Travel Anda',
+        itemTitle: 'Langganan KlikUmroh',
+        itemDetail: planText,
+        itemAmount: fmtRupiah(pv.amount),
+        adjustments,
+        totalLabel: needsTransfer ? 'Total transfer' : 'Total tagihan',
+        total: fmtRupiah(pv.final_amount),
+        bank: needsTransfer && !sent && bank ? { bank: bank.bank_name, number: bank.bank_account_number, holder: bank.bank_account_holder } : null,
+        uniqueCodeNote: (pv.unique_code ?? 0) > 0 ? `Transfer sesuai total, termasuk kode unik ${pv.unique_code}, agar pembayaran dapat dicocokkan.` : null,
+      });
+    } catch {
+      setPdfError('Gagal membuat PDF. Coba lagi.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
     <>
     {(signingUp || justActivated) && (
@@ -211,10 +247,16 @@ export const InvoiceScreen: React.FC = () => {
         </div>
         <Pill tone={status.tone}>{status.label}</Pill>
       </header>
-      <div className="st-invoice__recipient">
-        <span className="st-muted">Ditagihkan kepada</span>
-        <strong>{pv.tenant_name || frame?.subscription?.tenant_name || 'Travel Anda'}</strong>
+      <div className="st-invoice__billto">
+        <div className="st-invoice__recipient">
+          <span className="st-muted">Ditagihkan kepada</span>
+          <strong>{pv.tenant_name || frame?.subscription?.tenant_name || 'Travel Anda'}</strong>
+        </div>
+        <Button size="sm" onClick={downloadPdf} disabled={pdfBusy} icon={<Download className="ku-icon--sm" />}>
+          {pdfBusy ? 'Membuat PDF...' : 'Unduh PDF'}
+        </Button>
       </div>
+      {pdfError && <div className="ku-field__error" role="alert">{pdfError}</div>}
       {pv.status === 'rejected' && !otherOpen && <Banner tone="danger"><b>Bukti transfer ditolak.</b> {pv.rejection_reason || 'Bukti belum sesuai dengan tagihan.'} Unggah ulang bukti yang benar.</Banner>}
       {otherOpen && (
         <Banner tone="info">
