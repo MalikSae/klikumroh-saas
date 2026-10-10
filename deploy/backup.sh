@@ -10,14 +10,14 @@ STAMP=$(date +%Y%m%d-%H%M)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
-set -a; . "$APP/.env"; set +a
+# Read .env literally (no shell expansion): passwords may contain $, #, spaces or quotes.
+env_get() { grep -m1 "^$1=" "$APP/.env" | cut -d= -f2- | tr -d '\r' | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/"; }
+DB_HOST=$(env_get DB_HOST); DB_PORT=$(env_get DB_PORT); DB_USER=$(env_get DB_USER); DB_PASSWORD=$(env_get DB_PASSWORD); DB_NAME=$(env_get DB_NAME)
 mkdir -p "$OUT"; chmod 700 "$OUT"
 
-# Credentials go through a temp option file so they never show up in the process list.
-CNF="$WORK/my.cnf"
+# The password goes through MYSQL_PWD: an option file would cut it at characters such as # or quotes.
 umask 077
-printf '[client]\nuser=%s\npassword=%s\nhost=%s\nport=%s\n' "$DB_USER" "$DB_PASSWORD" "$DB_HOST" "${DB_PORT:-3306}" > "$CNF"
-mysqldump --defaults-extra-file="$CNF" --single-transaction --routines --triggers --no-tablespaces "$DB_NAME" > "$WORK/db.sql"
+MYSQL_PWD="$DB_PASSWORD" mysqldump -h "$DB_HOST" -P "${DB_PORT:-3306}" -u "$DB_USER" --single-transaction --routines --triggers --no-tablespaces "$DB_NAME" > "$WORK/db.sql"
 [ -s "$WORK/db.sql" ] || { echo "Dump database kosong, berhenti."; exit 1; }
 
 cp "$APP/.env" "$WORK/env.backup"
