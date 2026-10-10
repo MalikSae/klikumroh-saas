@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Handshake,
   FileText,
+  UserCheck,
 } from 'lucide-react';
 import { Tooltip } from '../shared/Tooltip';
 import { NotificationDropdown } from '../shared/NotificationDropdown';
@@ -140,6 +141,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           to: '/internal/affiliators',
           label: 'Affiliator',
           icon: <Handshake size={16} />,
+        },
+        {
+          to: '/internal/demo-leads',
+          label: 'Lead Demo',
+          icon: <UserCheck size={16} />,
         },
       ],
     },

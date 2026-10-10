@@ -647,6 +647,22 @@ export const publishLegalDocument = async (slug: string): Promise<LegalDocument>
 export const unpublishLegalDocument = async (slug: string): Promise<LegalDocument> =>
   (await legalRequest(`/api/staff/legal-documents/${slug}/unpublish`, { method: 'POST' }, 'Gagal menarik dokumen dari tayang')).document;
 
+/** Someone who opened the demo dashboard (name, WhatsApp, travel, city from the demo form). */
+export interface DemoLead {
+  id: number;
+  name: string;
+  phone: string;
+  travel_name: string;
+  city: string;
+  source: string | null;
+  visit_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+export const fetchDemoLeads = async (): Promise<DemoLead[]> =>
+  (await legalRequest('/api/staff/demo-leads', {}, 'Gagal memuat lead demo')).leads;
+
 export interface PlatformSettings {
   whatsapp_number: string;
   bank_name: string;

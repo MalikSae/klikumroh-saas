@@ -20,3 +20,66 @@
   color: var(--tw-text-primary);
   font-weight: 600;
 }
+
+.form {
+  display: grid;
+  gap: var(--km-v2-space-4);
+  text-align: left;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--km-v2-space-2);
+  color: var(--km-neutral-700);
+  font-size: var(--km-v2-type-label);
+  line-height: var(--km-v2-leading-normal);
+  cursor: pointer;
+}
+
+/* The box is centred on the first line of text: half of the difference between a line and the box. */
+.consent input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: calc((var(--km-v2-type-label) * var(--km-v2-leading-normal) - 16px) / 2) 0 0;
+  accent-color: var(--km-ink);
+  cursor: pointer;
+}
+
+.cityWrap {
+  position: relative;
+}
+
+.suggest {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--km-v2-space-1));
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--km-v2-space-1);
+  list-style: none;
+  background: var(--km-paper);
+  border: var(--km-v2-border-width) solid var(--km-line);
+  border-radius: var(--km-v2-radius-media);
+  box-shadow: var(--km-v2-cta-shadow);
+}
+
+.suggest button {
+  display: block;
+  width: 100%;
+  padding: var(--km-v2-space-2) var(--km-v2-space-3);
+  border: 0;
+  border-radius: var(--km-v2-radius-control);
+  background: transparent;
+  color: var(--km-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggest button:hover,
+.suggestActive {
+  background: var(--km-surface-alt);
+}

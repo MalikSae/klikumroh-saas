@@ -15,6 +15,16 @@ import (
 	"klikumroh/internal/service"
 )
 
+// demoLoginRequest is the short form shown before the demo opens.
+type demoLoginRequest struct {
+	Name       string `json:"name"`
+	Phone      string `json:"phone"`
+	TravelName string `json:"travel_name"`
+	City       string `json:"city"`
+	Consent    bool   `json:"consent"`
+	Source     string `json:"source"`
+}
+
 type loginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -26,7 +36,13 @@ type AuthHandler struct {
 	// Brute-force protection: failed logins per email, plus a per-IP cap on login calls.
 	loginFailures *middleware.LoginFailureLimiter
 	loginLimiter  func(http.Handler) http.Handler
+	// demoLeads records who opens the demo. When set, the demo needs the short form (name, WhatsApp,
+	// travel name, city, consent); when nil (tests, local tools) the demo opens without it.
+	demoLeads *service.DemoLeadService
 }
+
+// SetDemoLeads makes the demo ask for the short form and record the visitor.
+func (h *AuthHandler) SetDemoLeads(svc *service.DemoLeadService) { h.demoLeads = svc }
 
 // NewAuthHandler creates a new AuthHandler instance.
 func NewAuthHandler(authService service.AuthService) *AuthHandler {
@@ -48,6 +64,24 @@ func (h *AuthHandler) RegisterRoutes(r chi.Router) {
 // DemoLogin handles POST /api/auth/demo-login: the "Coba demo" button signs in as the admin of the demo
 // travel (slug DEMO_SLUG, default "demo"). 404 when there is no travel marked is_demo with that slug.
 func (h *AuthHandler) DemoLogin(w http.ResponseWriter, r *http.Request) {
+	if h.demoLeads != nil {
+		var req demoLoginRequest
+		if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&req); err != nil {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Isi data demo terlebih dahulu."})
+			return
+		}
+		err := h.demoLeads.Record(r.Context(), service.DemoLeadInput{
+			Name: req.Name, Phone: req.Phone, TravelName: req.TravelName, City: req.City, Consent: req.Consent, Source: req.Source,
+		})
+		if err != nil {
+			if errors.Is(err, service.ErrDemoLeadInvalid) {
+				respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+				return
+			}
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+			return
+		}
+	}
 	slug := strings.TrimSpace(os.Getenv("DEMO_SLUG"))
 	if slug == "" {
 		slug = "demo"

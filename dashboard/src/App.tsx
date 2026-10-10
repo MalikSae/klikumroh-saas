@@ -24,6 +24,7 @@ import {
   AdminCouponsView,
   AdminSettingsView,
   AdminLegalView,
+  AdminDemoLeadsView,
   AdminStaffView,
   AdminAffiliatorsView,
   AdminAffiliatorDetailView,
@@ -89,6 +90,7 @@ export const App: React.FC = () => {
           <Route path="/internal/tenants/:id" element={<AdminTenantDetailView />} />
           <Route path="/internal/pricing-plans" element={<AdminPlansView />} />
           <Route path="/internal/legal" element={<AdminLegalView />} />
+          <Route path="/internal/demo-leads" element={<AdminDemoLeadsView />} />
           <Route path="/internal/coupons" element={<AdminCouponsView />} />
           <Route path="/internal/payment-verifications" element={<AdminPaymentsView />} />
           <Route path="/internal/staff" element={<AdminStaffView />} />

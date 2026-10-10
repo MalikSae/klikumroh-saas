@@ -192,6 +192,10 @@ func main() {
 	notifHandler := handler.NewNotificationHandler(notifService)
 	tenantHandler := handler.NewTenantHandler(tenantService)
 	authHandler := handler.NewAuthHandler(authService)
+	// The demo asks for a short form first and records who opened it (staff: Lead Demo).
+	demoLeadService := service.NewDemoLeadService(repository.NewDemoLeadRepository(db))
+	authHandler.SetDemoLeads(demoLeadService)
+	demoLeadHandler := handler.NewDemoLeadHandler(demoLeadService)
 	packageHandler := handler.NewPackageHandler(packageService, packagePhotoService)
 	prospectService.SetCommissionPolicyRepo(repository.NewCommissionPolicyRepository(db))
 
@@ -347,6 +351,7 @@ func main() {
 		staffProtected.Get("/api/staff/platform-settings", platformSettingsHandler.GetStaff)
 		staffProtected.Put("/api/staff/platform-settings", platformSettingsHandler.UpdateStaff)
 		staffProtected.Get("/api/staff/legal-documents", legalDocumentHandler.List)
+		staffProtected.Get("/api/staff/demo-leads", demoLeadHandler.List)
 		staffProtected.Put("/api/staff/legal-documents/{slug}", legalDocumentHandler.SaveDraft)
 		staffProtected.Post("/api/staff/legal-documents/{slug}/publish", legalDocumentHandler.Publish)
 		staffProtected.Post("/api/staff/legal-documents/{slug}/unpublish", legalDocumentHandler.Unpublish)
