@@ -35,17 +35,11 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
   onChange,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [internalValue, setInternalValue] = useState<string | number | undefined>(
-    value !== undefined ? value : defaultValue
-  );
+  const [uncontrolledValue, setUncontrolledValue] = useState<string | number | undefined>(defaultValue);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Synchronize controlled value
-  useEffect(() => {
-    if (value !== undefined) {
-      setInternalValue(value);
-    }
-  }, [value]);
+  // A controlled value always wins; the local copy only matters when `value` is not passed.
+  const internalValue = value !== undefined ? value : uncontrolledValue;
 
   // Close on outside click
   useEffect(() => {
@@ -70,7 +64,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
   const handleSelect = (option: DropdownOption) => {
     if (disabled) return;
     if (value === undefined) {
-      setInternalValue(option.value);
+      setUncontrolledValue(option.value);
     }
     setIsOpen(false);
     if (onChange) {

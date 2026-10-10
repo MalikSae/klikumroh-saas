@@ -39,7 +39,7 @@ export const TravelAgencyJsonLd: React.FC<TravelAgencyJsonLdProps> = ({ tenantIn
   if (tenantInfo.social_facebook) socialLinks.push(tenantInfo.social_facebook);
   if (tenantInfo.social_youtube) socialLinks.push(tenantInfo.social_youtube);
 
-  const jsonLd: Record<string, any> = {
+  const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'TravelAgency',
     name: tenantInfo.name,

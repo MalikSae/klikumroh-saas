@@ -7,6 +7,14 @@ export interface FormOption {
   label: string;
 }
 
+// The select variant emits a plain { target: { name, value } } object, native inputs emit a real change
+// event; both satisfy these shapes.
+export interface FormChangeEvent {
+  target: { name: string; value: string };
+}
+
+export type FormBlurEvent = FormChangeEvent;
+
 export interface FormInputProps {
   id?: string;
   name?: string;
@@ -14,8 +22,8 @@ export interface FormInputProps {
   label?: string;
   value?: string | number;
   defaultValue?: string | number;
-  onChange?: (e: any) => void;
-  onBlur?: (e: any) => void;
+  onChange?: (e: FormChangeEvent) => void;
+  onBlur?: (e: FormBlurEvent) => void;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
@@ -75,7 +83,11 @@ export const FormInput: React.FC<FormInputProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           error={error}
-          onChange={onChange}
+          onChange={
+            onChange
+              ? (e) => onChange({ target: { name: e.target.name, value: String(e.target.value) } })
+              : undefined
+          }
           // Assuming CustomDropdown can accept onBlur if needed, but for now we only need it on input/textarea.
         />
       ) : type === 'textarea' ? (

@@ -22,7 +22,7 @@ function loginErrorText(status: number, serverMessage?: string): string {
 function LoginForm() {
   const searchParams = useSearchParams();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,13 +37,6 @@ function LoginForm() {
   useEffect(() => {
     clearDashboardSession();
   }, []);
-
-  useEffect(() => {
-    const emailParam = searchParams.get('email');
-    if (emailParam) {
-      setEmail(emailParam);
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +75,9 @@ function LoginForm() {
         isPending: data.tenant_status === 'pending',
       });
       setTimeout(() => openDashboard(targetDashboardUrl), 1200);
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan saat masuk. Silakan coba lagi.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      setError(message || 'Terjadi kesalahan saat masuk. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }

@@ -77,7 +77,7 @@ export const ProspectModal: React.FC<ProspectModalProps> = ({
     onClose();
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoneChange = (e: { target: { value: string } }) => {
     let val = e.target.value.replace(/[^\d+]/g, '');
     if (val.indexOf('+') > 0) {
       val = val[0] + val.slice(1).replace(/\+/g, '');
