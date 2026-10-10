@@ -330,7 +330,8 @@ const (
 // cnameOK reports whether hostname points to the platform: a CNAME to cname.klikumroh.id (subdomains such
 // as www.namatravel.com), or, for a root domain that cannot have a CNAME, A/AAAA records that all point to
 // the platform server. A record set mixing platform and foreign addresses is rejected (visitors would be
-// split between two servers).
+// split between two servers). A name that resolves only to Cloudflare edge addresses is accepted too (the
+// travel proxies the record through its own Cloudflare account, see allCloudflare).
 func (s *domainService) cnameOK(hostname string) (bool, string) {
 	expected := strings.TrimSuffix(strings.TrimSpace(strings.ToLower(ExpectedCNAMETarget)), ".")
 	cnameResult, cnameErr := s.resolver.LookupCNAME(hostname)
@@ -356,6 +357,13 @@ func (s *domainService) cnameOK(hostname string) (bool, string) {
 			return false, "DNS domain belum bisa ditemukan (belum diatur, salah ketik, atau perubahan DNS belum menyebar). Coba lagi beberapa saat lagi."
 		}
 		return false, fmt.Sprintf("domain belum mengarah ke KlikUmroh (CNAME ke '%s' atau A record ke IP server)", ExpectedCNAMETarget)
+	}
+	// The travel's own Cloudflare account proxies the record (orange cloud): the name resolves to Cloudflare's
+	// edge, which forwards to cname.klikumroh.id. Where the request is sent cannot be read from DNS, so the
+	// TXT record (checked by the caller) is what proves the travel controls the domain; traffic only reaches
+	// this platform when the travel really points the record at it.
+	if allCloudflare(addrs) {
+		return true, ""
 	}
 	if len(platform) == 0 {
 		return false, reasonPlatformIPsUnknown

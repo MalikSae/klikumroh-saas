@@ -57,33 +57,48 @@ const DnsTable: React.FC<{ primary: DomainItem; alias?: DomainItem }> = ({ prima
   );
 };
 
-/** Step-by-step guide, open while the travel has no custom domain yet. */
+/** Step-by-step guide, open while the travel has no custom domain yet. The domain goes through the travel's own
+ *  (free) Cloudflare account: Cloudflare issues the HTTPS certificate and forwards visitors to KlikUmroh. */
 const DomainGuide: React.FC<{ open: boolean }> = ({ open }) => (
   <details className="ws-guide" open={open}>
-    <summary>Panduan menghubungkan domain</summary>
+    <summary>Panduan menghubungkan domain sendiri (dari nol)</summary>
     <ol className="ws-guide__steps">
       <li>
-        <b>Siapkan domain.</b> Beli domain di penyedia domain mana pun, lalu pastikan Anda bisa membuka pengaturan DNS-nya.
+        <b>Beli domain.</b> Pilih nama yang mudah diingat, misalnya <code>namatravel.com</code>, di penyedia domain mana pun (Niagahoster, Rumahweb,
+        Namecheap, dan sejenisnya). Simpan akun dan emailnya.
       </li>
       <li>
-        <b>Tambahkan domain di atas.</b> Alamat utamanya <code>www.namatravel.com</code> (cukup satu record CNAME). Biarkan pilihan{' '}
+        <b>Daftar Cloudflare (gratis).</b> Buka <code>dash.cloudflare.com</code>, buat akun, pilih <i>Add a domain</i>, masukkan domain Anda, lalu pilih
+        paket <i>Free</i>. Cloudflare akan memberi dua alamat <i>nameserver</i>.
+      </li>
+      <li>
+        <b>Arahkan nameserver ke Cloudflare.</b> Di tempat Anda membeli domain, ganti nameserver dengan dua alamat dari Cloudflare. Aktif dalam beberapa
+        menit sampai 24 jam; Cloudflare menandai domain <i>Active</i> bila sudah.
+      </li>
+      <li>
+        <b>Tambahkan domain di KlikUmroh (di atas).</b> Alamat utamanya <code>www.namatravel.com</code>. Biarkan pilihan{' '}
         <i>juga arahkan namatravel.com</i> tercentang agar pengunjung yang mengetik tanpa www ikut sampai ke website Anda.
       </li>
       <li>
-        <b>Buat record di pengelola DNS.</b> Salin Tipe, Host, dan Nilai dari tabel. Isi kolom Host dengan teks tebal di tabel; nama lengkap di bawahnya
-        hanya untuk panel yang meminta nama lengkap. TTL biarkan bawaan.
+        <b>Buat record di Cloudflare (menu DNS &gt; Records).</b> Salin Tipe, Host, dan Nilai dari tabel di atas. Record <i>CNAME</i> dan <i>A</i>{' '}
+        biarkan <i>Proxied</i> (awan oranye). Record <i>TXT</i> selalu <i>DNS only</i>.
       </li>
       <li>
-        <b>Klik Periksa sekarang.</b> Perubahan DNS biasanya terbaca dalam beberapa menit, kadang sampai 48 jam. Setelah aktif, sertifikat HTTPS dibuat
-        otomatis, alamat tanpa www dan alamat bawaan diarahkan ke www, termasuk link referral agen.
+        <b>Atur SSL di Cloudflare.</b> Buka <i>SSL/TLS &gt; Overview</i>, pilih mode <i>Full</i> (bukan <i>Flexible</i> dan bukan <i>Full (strict)</i>).
+        Di <i>Edge Certificates</i>, nyalakan <i>Always Use HTTPS</i>.
+      </li>
+      <li>
+        <b>Klik Periksa sekarang.</b> Perubahan DNS biasanya terbaca dalam beberapa menit. Setelah aktif, HTTPS sudah berjalan dari Cloudflare, alamat tanpa
+        www dan alamat bawaan diarahkan ke www, termasuk link referral agen.
       </li>
     </ol>
     <div className="ws-guide__notes">
-      <b>Jika gagal diverifikasi:</b>
+      <b>Jika gagal diverifikasi atau situs tidak terbuka:</b>
       <ul>
+        <li>Pastikan domain berstatus <i>Active</i> di Cloudflare (nameserver sudah diganti).</li>
         <li>Hapus record A atau CNAME lama untuk host yang sama, misalnya bawaan hosting sebelumnya.</li>
-        <li>Memakai Cloudflare? Setel record ke <i>DNS only</i> (awan abu-abu), bukan <i>Proxied</i>.</li>
         <li>Pastikan TXT berisi nilai persis dari tabel, tanpa tanda kutip atau spasi tambahan.</li>
+        <li>Muncul <i>Error 525</i>/<i>526</i> atau <i>terlalu banyak pengalihan</i>? Periksa mode SSL di Cloudflare: harus <i>Full</i>.</li>
         <li>Alamat tanpa www baru bisa aktif setelah alamat www aktif.</li>
       </ul>
     </div>

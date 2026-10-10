@@ -10,6 +10,9 @@ Dokumen ini memuat panduan langkah manual yang **HARUS dilakukan sendiri oleh pe
 
 ## 0. Build & Urutan Deploy
 
+> [!IMPORTANT]
+> **Server aaPanel bersama (tanpa VPS khusus).** Keputusan 12 Okt 2026: KlikUmroh berjalan di server aaPanel yang dipakai 100+ situs lain, tanpa Caddy dan tanpa mengubah Nginx `stream` di port 80/443. Ikuti **Bagian 7**. Bagian 2, 3, dan 4 (Caddy on-demand TLS, endpoint ask, stream SNI) hanya berlaku bila nanti KlikUmroh pindah ke server sendiri.
+
 ### 0.0 Port produksi (12 Okt 2026)
 
 Server aaPanel yang dipakai bersama banyak situs lain sudah memakai port `8080` dan `3000` (aplikasi lain, status Listening). Karena itu **produksi memakai `18080` untuk backend dan `13000` untuk web**; seluruh dokumen ini sudah memakai angka itu. Pengembangan lokal tetap `8080` dan `3000`.
@@ -163,6 +166,9 @@ Catatan:
 Rancangan ini mengandalkan IP pengunjung asli: penjaga self-referral affiliator, rate limit, dan log klik membaca alamat klien dari PROXY protocol (Bagian 4, 4.2a). Kalau record di-proxy (awan oranye), yang sampai ke server adalah IP Cloudflare dan repo ini belum menangani `CF-Connecting-IP`. Karena itu **saat peluncuran semua record KlikUmroh abu-abu**, dan sertifikat diterbitkan Caddy langsung.
 
 Konsekuensinya: tidak ada perlindungan DDoS Cloudflare di depan situs. Kalau nanti ingin di-proxy, kerjakan dulu sebagai pekerjaan terpisah: percayai `CF-Connecting-IP` hanya dari rentang IP Cloudflare, lalu uji self-referral dan rate limit.
+
+> [!NOTE]
+> Di mode server bersama (Bagian 7) `@`, `*`, dan `www` **di-proxy (oranye)** dan IP pengunjung dibaca dari `CF-Connecting-IP` oleh Nginx. Hanya `cname` yang tetap abu-abu.
 
 ### 1.3 Setelan Cloudflare lain
 
@@ -554,3 +560,75 @@ Travel demo adalah travel biasa di database produksi dengan slug `demo` dan kolo
 **Mengubah isi demo:** atur ulang data travel contoh di lingkungan lokal, jalankan `node scripts/export-demo-fixtures.mjs <tenant_id>` dari root repo (menulis ulang `demo/fixtures.json` dan `demo/assets/`), commit, deploy. Malam berikutnya cron memakai isi baru.
 
 **Catatan:** travel demo tidak dihitung di statistik super admin (jumlah travel, MRR, prospek, agen) dan tampil dengan status "Demo" di daftar travel. Langganannya diisi aktif 10 tahun sehingga tidak pernah ditagih atau ditangguhkan.
+
+---
+
+## 7. Mode server bersama: Nginx aaPanel + Cloudflare (tanpa Caddy)
+
+Dipakai selama KlikUmroh menumpang di server aaPanel bersama. Prinsipnya: TLS selalu dihentikan Cloudflare di depan, Nginx aaPanel hanya meneruskan ke `127.0.0.1:13000` (web) dan `127.0.0.1:18080` (API, lewat rewrite web), dan port 80/443 tidak diubah.
+
+### 7.1 Gambaran
+
+| Lalu lintas | Jalur |
+|---|---|
+| `klikumroh.id`, `app.`, `demo.`, `<slug>.klikumroh.id` | Pengunjung, Cloudflare (zona KlikUmroh, oranye), Nginx aaPanel, Next.js 13000 |
+| `www.namatravel.com` (domain travel) | Pengunjung, Cloudflare **milik travel** (oranye), `cname.klikumroh.id` (abu-abu, IP server), Nginx aaPanel, Next.js 13000 |
+
+Karena Cloudflare yang menerbitkan sertifikat untuk domain travel, **tidak ada ACME, Caddy, atau endpoint `ask`** yang dipakai. Backend tetap hanya melayani host yang terdaftar dan terverifikasi (`TenantResolutionMiddleware`), dan verifikasi DNS menerima domain yang di-proxy Cloudflare selama TXT kepemilikan benar (`internal/service/domain.go`).
+
+### 7.2 DNS zona klikumroh.id
+
+| Name | Type | Content | Proxy |
+|---|---|---|---|
+| `@` | A | `IP_VPS` | Proxied |
+| `*` | A | `IP_VPS` | Proxied |
+| `www` | CNAME | `klikumroh.id` | Proxied |
+| `cname` | A | `IP_VPS` | **DNS only** (wajib: CNAME dari akun Cloudflare lain ke nama yang di-proxy ditolak Cloudflare dengan error 1014) |
+| `store` | CNAME | `domains.scalev.id` | Proxied (milik pihak lain) |
+
+SSL/TLS zona: mode **Full (strict)** setelah sertifikat origin di 7.3 terpasang. Nyalakan *Always Use HTTPS*.
+
+### 7.3 Sertifikat origin dan Nginx untuk klikumroh.id
+
+1. Cloudflare: *SSL/TLS > Origin Server > Create Certificate* untuk `klikumroh.id` dan `*.klikumroh.id` (berlaku 15 tahun). Simpan `.pem` dan kunci privat.
+2. aaPanel: buat **Proxy Project** untuk `klikumroh.id` dengan domain tambahan `*.klikumroh.id`, target `http://127.0.0.1:13000`, **kirim domain asli** (host asli diteruskan). Pasang sertifikat origin di tab SSL.
+3. Jangan isi domain/vhost apa pun untuk port `18080`; API hanya diakses lewat rewrite web.
+4. IP pengunjung asli: tambahkan di konfigurasi situs itu (server block), dengan rentang IP Cloudflare dari <https://www.cloudflare.com/ips/>:
+   ```nginx
+   # satu baris set_real_ip_from per rentang IPv4 dan IPv6 Cloudflare
+   set_real_ip_from 173.245.48.0/20;
+   # ... (semua rentang)
+   real_ip_header CF-Connecting-IP;
+   proxy_set_header X-Forwarded-For $remote_addr;   # menimpa, bukan menambah
+   proxy_set_header X-Forwarded-Host $host;
+   proxy_set_header X-Forwarded-Proto https;
+   ```
+   Backend hanya mempercayai `X-Forwarded-For` dari proxy lokal (`getClientIP`), jadi nilai ini yang dipakai untuk rate limit dan penjaga self-referral.
+
+### 7.4 Domain milik travel (Nginx menerima host yang tidak dikenal)
+
+Request dari Cloudflare travel datang ke `IP_VPS` dengan header `Host: www.namatravel.com`. Nginx harus meneruskannya ke Next.js apa adanya:
+
+1. Cari berkas situs bawaan aaPanel yang memegang `default_server` (umumnya `/www/server/panel/vhost/nginx/0.default.conf`). **Backup dulu**, lalu ubah `location /` di blok default itu menjadi `proxy_pass http://127.0.0.1:13000;` dengan `proxy_set_header Host $host;` serta pengaturan real IP di 7.3 butir 4.
+2. Jalankan `nginx -t`; hanya bila `syntax is ok` lanjut `nginx -s reload`.
+3. Uji: `curl -H "Host: www.contoh-tidak-terdaftar.com" http://IP_VPS/` harus mengembalikan halaman 404 dari KlikUmroh (bukan halaman situs lain), dan situs-situs aaPanel lain tetap normal.
+
+Efek sampingnya: domain asing yang diarahkan ke IP ini akan sampai ke KlikUmroh dan mendapat 404. Situs aaPanel lain tidak terpengaruh karena Nginx mencocokkan `server_name` mereka lebih dulu.
+
+> [!WARNING]
+> Butir 7.4 mengubah konfigurasi Nginx bersama dan **belum pernah diuji di server ini**. Lakukan di luar jam ramai, simpan salinan berkas asli, dan jalankan `nginx -t` sebelum reload. Jika tidak ingin menyentuh Nginx bersama, tunda fitur domain sendiri; subdomain `<slug>.klikumroh.id` tidak membutuhkannya.
+
+### 7.5 Panduan untuk travel
+
+Langkah dari membeli domain sampai aktif ada di dashboard travel (*Website > Domain > Panduan*) dan di `PANDUAN-DOMAIN-TRAVEL.md`. Ringkasnya: beli domain, daftar Cloudflare gratis, ganti nameserver, tambahkan domain di KlikUmroh, buat CNAME (oranye) dan TXT sesuai tabel, SSL mode **Full**.
+
+Catatan untuk dukungan:
+- SSL mode travel harus **Full**. *Flexible* menimbulkan pengalihan berulang, *Full (strict)* gagal (error 526) karena sertifikat origin tidak untuk domain travel.
+- Domain travel wajib memakai DNS Cloudflare. Domain yang DNS-nya di tempat lain tidak mendapat HTTPS di mode ini.
+
+### 7.6 Yang belum tervalidasi
+
+1. Perubahan `default_server` di Nginx aaPanel (7.4) dan dampaknya ke situs lain.
+2. Sertifikat origin wildcard di aaPanel Proxy Project untuk `*.klikumroh.id`.
+3. Pembacaan `CF-Connecting-IP` oleh Nginx di server ini (uji: kunjungi dari HP, lalu cek `referral_clicks.ip_address` bukan IP Cloudflare).
+4. Alur lengkap domain travel dari akun Cloudflare uji.
