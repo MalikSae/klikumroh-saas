@@ -55,6 +55,8 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  // Confirmation shown in the page (window.confirm is blocked in embedded browsers and some phone webviews).
+  const [confirm, setConfirm] = useState<{ kind: 'publish' | 'unpublish' | 'switch'; target?: LegalDocument } | null>(null);
 
   const doc = docs.find((d) => d.slug === slug) ?? null;
   // Line endings differ between the textarea (\n) and the stored text; compare them the same way.
@@ -85,13 +87,21 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
     void load();
   }, [load]);
 
-  const select = (next: LegalDocument) => {
-    if (next.slug === slug) return;
-    if (dirty && !window.confirm('Ada perubahan yang belum disimpan. Pindah dokumen dan buang perubahan itu?')) return;
+  const switchTo = (next: LegalDocument) => {
+    setConfirm(null);
     setSlug(next.slug);
     setTitle(next.title);
     setContent(next.draft_content);
     setMessage(null);
+  };
+
+  const select = (next: LegalDocument) => {
+    if (next.slug === slug) return;
+    if (dirty) {
+      setConfirm({ kind: 'switch', target: next });
+      return;
+    }
+    switchTo(next);
   };
 
   // Replaces one document in the list and puts its saved text in the form.
@@ -119,8 +129,7 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
 
   const publish = async () => {
     if (!doc) return;
-    const ok = window.confirm(`Terbitkan "${title.trim() || doc.title}"? Isinya langsung tampil di ${publicOrigin()}/${doc.slug}.`);
-    if (!ok) return;
+    setConfirm(null);
     await run(async () => {
       if (dirty) await saveLegalDraft(slug, title, content); // what is on screen is what gets published
       return publishLegalDocument(slug);
@@ -129,7 +138,7 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
 
   const unpublish = async () => {
     if (!doc) return;
-    if (!window.confirm(`Tarik "${doc.title}" dari tayang? Halamannya tidak lagi bisa dibuka, dan pendaftaran travel baru ditutup bila dokumen ini kosong.`)) return;
+    setConfirm(null);
     await run(() => unpublishLegalDocument(slug), 'Dokumen ditarik dari tayang. Drafnya tetap tersimpan.');
   };
 
@@ -260,6 +269,52 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
               </span>
             </div>
 
+            {confirm && (
+              <div
+                role="alertdialog"
+                aria-label="Konfirmasi"
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  marginBottom: '12px',
+                  borderRadius: 'var(--sa-radius-sm)',
+                  backgroundColor: 'var(--sa-amber-bg)',
+                  border: '1px solid var(--sa-amber-border)',
+                  color: 'var(--sa-amber-text)',
+                  fontSize: '13px',
+                }}
+              >
+                <span style={{ flex: '1 1 260px' }}>
+                  {confirm.kind === 'publish' &&
+                    `Terbitkan "${title.trim() || doc.title}"? Isinya langsung tampil di ${publicOrigin()}/${doc.slug}.`}
+                  {confirm.kind === 'unpublish' &&
+                    `Tarik "${doc.title}" dari tayang? Halamannya tidak lagi bisa dibuka, dan pendaftaran travel baru ditutup bila dokumen ini kosong.`}
+                  {confirm.kind === 'switch' && 'Ada perubahan yang belum disimpan. Pindah dokumen dan buang perubahan itu?'}
+                </span>
+                <span style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" className="sa-btn sa-btn--secondary sa-btn--sm" onClick={() => setConfirm(null)} disabled={busy}>
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    className="sa-btn sa-btn--primary sa-btn--sm"
+                    disabled={busy}
+                    onClick={() => {
+                      if (confirm.kind === 'publish') void publish();
+                      else if (confirm.kind === 'unpublish') void unpublish();
+                      else if (confirm.target) switchTo(confirm.target);
+                    }}
+                  >
+                    {confirm.kind === 'publish' ? 'Ya, terbitkan' : confirm.kind === 'unpublish' ? 'Ya, tarik' : 'Ya, pindah'}
+                  </button>
+                </span>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid var(--sa-border)', paddingTop: '16px' }}>
               <button type="button" className="sa-btn sa-btn--secondary" onClick={() => void saveDraft()} disabled={busy || !dirty || content.length > MAX_CONTENT}>
                 <Save size={14} />
@@ -268,7 +323,7 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
               <button
                 type="button"
                 className="sa-btn sa-btn--primary"
-                onClick={() => void publish()}
+                onClick={() => setConfirm({ kind: 'publish' })}
                 disabled={busy || emptyDraft || nothingNew || content.length > MAX_CONTENT}
                 title={emptyDraft ? 'Isi dokumen masih kosong' : nothingNew ? 'Tidak ada perubahan untuk diterbitkan' : undefined}
               >
@@ -276,7 +331,7 @@ export const LegalDocumentsEditor: React.FC<{ onChanged?: () => void }> = ({ onC
                 <span>{doc.published ? 'Terbitkan perubahan' : 'Terbitkan'}</span>
               </button>
               {doc.published && (
-                <button type="button" className="sa-btn sa-btn--secondary" onClick={() => void unpublish()} disabled={busy} style={{ marginLeft: 'auto' }}>
+                <button type="button" className="sa-btn sa-btn--secondary" onClick={() => setConfirm({ kind: 'unpublish' })} disabled={busy} style={{ marginLeft: 'auto' }}>
                   <Undo2 size={14} />
                   <span>Tarik dari tayang</span>
                 </button>
