@@ -7,14 +7,21 @@
 // The upline is the signed-in agent: the API takes no agent id.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ChevronLeft, ChevronRight, Loader2, MessageCircle, RefreshCw, Search, User, UserPlus, X } from 'lucide-react';
+import { MessageCircle, User, UserPlus } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentList, AgentListRow } from '../../../components/agent/AgentList';
+import { AgentSearch } from '../../../components/agent/AgentSearch';
+import { AgentChips } from '../../../components/agent/AgentChips';
+import { AgentPager } from '../../../components/agent/AgentPager';
+import { AgentStateEmpty, AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
+import { StatusLabel, type StatusTone } from '../../../components/agent/StatusLabel';
 import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
 import { jakartaDateLabel } from '../../../lib/jakartaTime';
-import { recruitInviteText, rupiahFull, rupiahJt } from '../../../lib/recruitInvite';
+import { recruitInviteText, shareInvite } from '../../../lib/recruitInvite';
+import { rupiah, rupiahJt } from '../../../lib/money';
 import './Jaringan.css';
 
 type MemberStatus = 'pending' | 'active' | 'inactive';
@@ -61,6 +68,12 @@ const STATUS_LABEL: Record<MemberStatus, string> = {
   active: 'Aktif',
   inactive: 'Nonaktif',
   pending: 'Diproses',
+};
+
+const MEMBER_TONE: Record<MemberStatus, StatusTone> = {
+  active: 'success',
+  pending: 'wait',
+  inactive: 'muted',
 };
 
 const PER_PAGE = 10;
@@ -166,25 +179,16 @@ export default function AgenJaringanPage() {
   // One button: the phone's share sheet (WhatsApp, copy, ...) when there is one, otherwise copy the message.
   const invite = async () => {
     if (!home?.recruit_link) return;
-    const text = recruitInviteText({
-      travelName: home.tenant_name,
-      maxCommission: home.max_commission_per_jamaah,
-      link: home.recruit_link,
-    });
-    try {
-      if (typeof navigator.share === 'function') {
-        await navigator.share({ text });
-        return;
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
+    const result = await shareInvite(
+      recruitInviteText({
+        travelName: home.tenant_name,
+        maxCommission: home.max_commission_per_jamaah,
+        link: home.recruit_link,
+      })
+    );
+    if (result === 'copied') {
       setInviteCopied(true);
       setTimeout(() => setInviteCopied(false), 2000);
-    } catch {
-      // No clipboard either: nothing to do.
     }
   };
 
@@ -214,34 +218,22 @@ export default function AgenJaringanPage() {
 
       <AgentPage withTabBar>
         {!network && loading ? (
-          <div className="jr-state" role="status">
-            <Loader2 size={24} className="ag-shell-spin" aria-hidden="true" />
-            <p className="jr-muted">Memuat agen binaan...</p>
-          </div>
+          <AgentStateLoading text="Memuat agen binaan..." />
         ) : error && !network ? (
-          <div className="jr-state">
-            <AlertCircle size={28} aria-hidden="true" />
-            <p className="jr-muted">{error}</p>
-            <button type="button" className="jr-btn" onClick={() => load()}>
-              <RefreshCw size={16} aria-hidden="true" />
-              <span>Coba lagi</span>
-            </button>
-          </div>
+          <AgentStateError text={error} onRetry={() => load()} />
         ) : network && s && !everRecruited ? (
-          <div className="jr-state">
-            <UserPlus size={28} aria-hidden="true" />
-            <h2 className="jr-title">Belum ada agen binaan</h2>
-            <p className="jr-muted">Agen yang mendaftar lewat ajakan Anda muncul di sini.</p>
-            <button type="button" className="jr-btn" onClick={invite} disabled={!home?.recruit_link}>
-              {inviteCopied ? 'Tersalin' : 'Ajak agen'}
-            </button>
-          </div>
+          <AgentStateEmpty
+            icon={<UserPlus size={28} aria-hidden="true" />}
+            title="Belum ada agen binaan"
+            text="Agen yang mendaftar lewat ajakan Anda muncul di sini."
+            action={{ label: inviteCopied ? 'Tersalin' : 'Ajak agen', onClick: invite, disabled: !home?.recruit_link }}
+          />
         ) : network && s ? (
           <>
             {network.override_enabled && (
               <section className="jr-hero" aria-label="Komisi Pembinaan">
                 <p className="jr-hero__label">Komisi Pembinaan</p>
-                <p className="jr-hero__amount">{rupiahFull(s.override_released + s.override_held)}</p>
+                <p className="jr-hero__amount">{rupiah(s.override_released + s.override_held)}</p>
                 <p className="jr-hero__split">
                   Masuk saldo {rupiahJt(s.override_released)} · Tertahan {rupiahJt(s.override_held)}
                 </p>
@@ -261,39 +253,9 @@ export default function AgenJaringanPage() {
               </span>
             </p>
 
-            <div className="jr-search">
-              <Search size={18} className="jr-search__icon" aria-hidden="true" />
-              <input
-                type="search"
-                inputMode="search"
-                className="jr-search__input"
-                placeholder="Cari nama, nomor, atau kota"
-                value={search}
-                onChange={(e) => changeSearch(e.target.value)}
-                aria-label="Cari agen binaan"
-                maxLength={100}
-              />
-              {search && (
-                <button type="button" className="jr-search__clear" onClick={() => changeSearch('')} aria-label="Hapus pencarian">
-                  <X size={16} aria-hidden="true" />
-                </button>
-              )}
-            </div>
+            <AgentSearch value={search} onChange={changeSearch} placeholder="Cari nama, nomor, atau kota" label="Cari agen binaan" maxLength={100} />
 
-            <div className="jr-chips" role="tablist" aria-label="Filter status">
-              {chips.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === c.key}
-                  className={`jr-chip${filter === c.key ? ' jr-chip--on' : ''}`}
-                  onClick={() => changeFilter(c.key)}
-                >
-                  {c.label} {c.count}
-                </button>
-              ))}
-            </div>
+            <AgentChips label="Filter status" value={filter} items={chips} onChange={changeFilter} />
 
             {error && (
               <p className="jr-error" role="alert">
@@ -302,40 +264,43 @@ export default function AgenJaringanPage() {
             )}
 
             {network.members.length === 0 ? (
-              <div className="jr-state jr-state--small">
-                <p className="jr-muted">Tidak ada agen yang cocok.</p>
-                {(filter !== 'all' || search) && (
-                  <button
-                    type="button"
-                    className="jr-btn"
-                    onClick={() => {
-                      setSearch('');
-                      changeFilter('all');
-                    }}
-                  >
-                    Tampilkan semua
-                  </button>
-                )}
-              </div>
+              <AgentStateEmpty
+                compact
+                text="Tidak ada agen yang cocok."
+                action={
+                  filter !== 'all' || search
+                    ? {
+                        label: 'Tampilkan semua',
+                        onClick: () => {
+                          setSearch('');
+                          changeFilter('all');
+                        },
+                      }
+                    : undefined
+                }
+              />
             ) : (
-              <ul className={`jr-list${loading ? ' jr-list--busy' : ''}`}>
+              <AgentList busy={loading}>
                 {network.members.map((m) => (
-                  <li key={m.id} className="jr-row">
-                    <span className="jr-row__avatar" aria-hidden="true">
-                      {m.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
-                        <img src={m.photo_url} alt="" />
-                      ) : (
-                        <User size={20} />
-                      )}
-                    </span>
-                    <div className="jr-row__body">
-                      <p className="jr-row__name">{m.name}</p>
-                      <p className="jr-row__meta">
-                        <span className={`jr-row__status jr-row__status--${m.status}`}>{STATUS_LABEL[m.status]}</span>
+                  <AgentListRow
+                    key={m.id}
+                    lead={
+                      <span className="jr-row__avatar" aria-hidden="true">
+                        {m.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
+                          <img src={m.photo_url} alt="" />
+                        ) : (
+                          <User size={20} />
+                        )}
+                      </span>
+                    }
+                    title={m.name}
+                  >
+                      <span className="jr-row__line">
+                        <StatusLabel tone={MEMBER_TONE[m.status]}>{STATUS_LABEL[m.status]}</StatusLabel>
                         {' · '}bergabung {jakartaDateLabel(m.joined_at, { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
-                      <p className="jr-row__meta">
+                      </span>
+                      <span className="jr-row__line">
                         {m.domisili ? `${m.domisili} · ` : ''}
                         {m.phone ? (
                           <a className="jr-row__phone" href={waLink(m.phone)} target="_blank" rel="noopener noreferrer">
@@ -345,48 +310,23 @@ export default function AgenJaringanPage() {
                         ) : (
                           'Nomor belum ada'
                         )}
-                      </p>
+                      </span>
                       {m.status !== 'pending' && (
-                        <p className="jr-row__figures">
+                        <span className="jr-row__line jr-row__figures">
                           {m.closing_jamaah} pax closing · {m.prospect_count} prospek
                           {network.override_enabled && (
                             <>
                               {' · '}komisi Anda <strong>{rupiahJt(m.override_released + m.override_held)}</strong>
                             </>
                           )}
-                        </p>
+                        </span>
                       )}
-                    </div>
-                  </li>
+                  </AgentListRow>
                 ))}
-              </ul>
+              </AgentList>
             )}
 
-            {network.total_pages > 1 && (
-              <nav className="jr-pager" aria-label="Halaman">
-                <button
-                  type="button"
-                  className="jr-pager__btn"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={network.page <= 1 || loading}
-                  aria-label="Halaman sebelumnya"
-                >
-                  <ChevronLeft size={18} aria-hidden="true" />
-                </button>
-                <span className="jr-pager__info">
-                  Hal {network.page} dari {network.total_pages}
-                </span>
-                <button
-                  type="button"
-                  className="jr-pager__btn"
-                  onClick={() => setPage((p) => Math.min(network.total_pages, p + 1))}
-                  disabled={network.page >= network.total_pages || loading}
-                  aria-label="Halaman berikutnya"
-                >
-                  <ChevronRight size={18} aria-hidden="true" />
-                </button>
-              </nav>
-            )}
+            <AgentPager page={network.page} totalPages={network.total_pages} onChange={setPage} disabled={loading} />
           </>
         ) : null}
       </AgentPage>

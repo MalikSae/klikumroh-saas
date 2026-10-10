@@ -5,7 +5,7 @@
 
 .jr-muted {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
 }
@@ -15,50 +15,9 @@
   font-weight: 400;
 }
 
-.jr-title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--tw-neutral-900);
-}
-
-.jr-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 48px 16px;
-  text-align: center;
-  color: var(--tw-neutral-500);
-}
-
-.jr-state--small {
-  padding: 24px 16px;
-}
-
-.jr-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-  font: 600 14px var(--tw-font-body);
-  cursor: pointer;
-}
-
-.jr-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .jr-error {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-danger-text);
 }
 
@@ -69,14 +28,14 @@
 
 .jr-hero__label {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
 .jr-hero__amount {
   margin: 0;
   font-family: var(--tw-font-heading);
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.25;
   color: var(--tw-neutral-900);
@@ -102,112 +61,6 @@
   color: var(--tw-neutral-900);
 }
 
-.jr-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.jr-search__icon {
-  position: absolute;
-  left: 12px;
-  color: var(--tw-neutral-400);
-  pointer-events: none;
-}
-
-/* 16px: below that Safari on iOS zooms into the field when it is focused. */
-.jr-search__input {
-  width: 100%;
-  height: 44px;
-  padding: 0 40px 0 38px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-  font: 400 16px var(--tw-font-body);
-}
-
-.jr-search__input::placeholder {
-  color: var(--tw-neutral-400);
-}
-
-.jr-search__input:focus-visible {
-  outline: none;
-  border-color: var(--tw-neutral-900);
-}
-
-.jr-search__clear {
-  position: absolute;
-  right: 4px;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: none;
-  color: var(--tw-neutral-500);
-  cursor: pointer;
-}
-
-/* Status chips: one row that scrolls sideways when the phone is narrow. */
-.jr-chips {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  margin: 0 -16px;
-  padding: 0 16px;
-  scrollbar-width: none;
-}
-
-.jr-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.jr-chip {
-  flex: none;
-  height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-700);
-  font: 500 14px var(--tw-font-body);
-  cursor: pointer;
-}
-
-.jr-chip--on {
-  border-color: var(--tw-neutral-900);
-  background-color: var(--tw-neutral-900);
-  color: var(--tw-background);
-}
-
-.jr-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  background-color: var(--tw-background);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 10px;
-  transition: opacity 0.15s ease;
-}
-
-.jr-list--busy {
-  opacity: 0.55;
-}
-
-.jr-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-}
-
-.jr-row + .jr-row {
-  border-top: 1px solid var(--tw-neutral-100);
-}
-
 .jr-row__avatar {
   display: grid;
   place-items: center;
@@ -226,51 +79,21 @@
   object-fit: cover;
 }
 
-.jr-row__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.jr-row__body p {
-  margin: 0;
-}
-
-.jr-row__name {
-  font-weight: 600;
-  color: var(--tw-neutral-900);
-  overflow-wrap: anywhere;
-}
-
-.jr-row__meta {
-  font-size: 13px;
+/* The number is the chat link: tapping it opens WhatsApp. */
+.jr-row__line {
+  display: block;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
 }
 
-.jr-row__status {
-  font-weight: 600;
-}
-
-.jr-row__status--active {
-  color: var(--tw-status-closing-text);
-}
-
-.jr-row__status--pending {
-  color: var(--tw-status-contacted-text);
-}
-
-.jr-row__status--inactive {
-  color: var(--tw-neutral-500);
-}
-
-/* The number is the chat link: tapping it opens WhatsApp. */
 .jr-row__phone {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 24px;
   color: var(--tw-neutral-900);
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -285,33 +108,3 @@
   color: var(--tw-neutral-900);
 }
 
-.jr-pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.jr-pager__btn {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-.jr-pager__btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.jr-pager__info {
-  min-width: 110px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--tw-neutral-700);
-}

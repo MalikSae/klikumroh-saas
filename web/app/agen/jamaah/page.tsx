@@ -2,19 +2,22 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { capitalizeName } from '@/lib/personName';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, RefreshCw, AlertCircle, X, Search, MessageCircle } from 'lucide-react';
+import { Users, Plus, RefreshCw, AlertCircle, X } from 'lucide-react';
 import { CustomDropdown } from '../../../components/CustomDropdown';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { StatusLabel } from '../../../components/agent/StatusLabel';
+import { prospectStatusText, prospectStatusTone } from '../../../lib/prospectStatus';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentList, AgentListRow } from '../../../components/agent/AgentList';
+import { AgentSearch } from '../../../components/agent/AgentSearch';
+import { AgentChips } from '../../../components/agent/AgentChips';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
 import { CityField } from '../../../components/CityField';
 import styles from './page.module.css';
 import './Jamaah.css';
-import { logHabit } from '../../../lib/agentHabits';
 import { jakartaDateLabel, jakartaDayKey, jakartaMonthOptions } from '../../../lib/jakartaTime';
 import { appendUniqueById } from '../../../lib/appendUnique';
 import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
@@ -59,21 +62,6 @@ const STATUS_OPTIONS = [
   { key: 'tidak_lanjut', label: 'Tidak Lanjut' },
 ];
 
-const STATUS_LABEL: Record<string, string> = {
-  baru: 'Baru',
-  dihubungi: 'Dihubungi',
-  tertarik: 'Tertarik',
-  closing: 'Closing',
-  tidak_lanjut: 'Tidak Lanjut',
-};
-
-// wa.me needs the number in international form without "+": 0812... -> 62812...
-const whatsAppUrl = (phone: string, name: string, travelName: string) => {
-  const clean = phone.replace(/\D/g, '').replace(/^0/, '62');
-  const greeting = `Assalamu'alaikum ${name}, perkenalkan saya mitra resmi ${travelName || 'travel kami'}. Terkait rencana ibadah umroh Bapak/Ibu, apakah ada informasi yang ingin ditanyakan?`;
-  return `https://wa.me/${clean}?text=${encodeURIComponent(greeting)}`;
-};
-
 export default function AgenJamaahListPage() {
   const router = useRouter();
 
@@ -91,8 +79,6 @@ export default function AgenJamaahListPage() {
   const requestSeq = useRef(0);
   // The travel's subscription is suspended: the portal is read-only, so adding jamaah is not offered.
   const [travelSuspended, setTravelSuspended] = useState<boolean>(false);
-  // Travel name for the WhatsApp greeting.
-  const [travelName, setTravelName] = useState<string>('');
   // Paged list: the API returns PAGE_SIZE jamaah at a time; "Muat lebih banyak" appends the next page.
   const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
@@ -216,12 +202,6 @@ export default function AgenJamaahListPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the API; state is set when the response lands
     fetchPackages();
-    fetch('/api/public/tenant-info')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (json?.name) setTravelName(json.name);
-      })
-      .catch(() => {});
     const token = localStorage.getItem('agent_token');
     if (!token) return;
     fetch('/api/agent/me', { headers: { Authorization: `Bearer ${token}` } })
@@ -372,45 +352,22 @@ export default function AgenJamaahListPage() {
             </button>
           </div>
         )}
-        <div className="jm-search">
-          <Search size={18} className="jm-search__icon" aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Cari nama, nomor WA, atau paket"
-            aria-label="Cari jamaah"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="tw-field jm-search__input"
-          />
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery('')} className="jm-search__clear" aria-label="Hapus pencarian">
-              <X size={18} />
-            </button>
-          )}
-        </div>
+        <AgentSearch value={searchQuery} onChange={setSearchQuery} placeholder="Cari nama, nomor WA, atau paket" label="Cari jamaah" />
 
         {/* Status filter: scrolls sideways; the right edge fades to show there is more. */}
-        <div className="jm-chips" role="tablist" aria-label="Filter status">
-          {STATUS_OPTIONS.map((tab) => {
-            const isActive = activeStatus === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => {
-                  if (tab.key !== activeStatus) beginLoad(1);
-                  setActiveStatus(tab.key);
-                }}
-                className={`jm-chip${isActive ? ' jm-chip--active' : ''}`}
-              >
-                {tab.label}
-                <span className="jm-chip__count">{(tab.key === '' ? statusCounts.total : statusCounts[tab.key]) || 0}</span>
-              </button>
-            );
-          })}
-        </div>
+        <AgentChips
+          label="Filter status"
+          value={activeStatus}
+          items={STATUS_OPTIONS.map((tab) => ({
+            key: tab.key,
+            label: tab.label,
+            count: (tab.key === '' ? statusCounts.total : statusCounts[tab.key]) || 0,
+          }))}
+          onChange={(key) => {
+            if (key !== activeStatus) beginLoad(1);
+            setActiveStatus(key);
+          }}
+        />
 
         {/* Content Body */}
         {loading ? (
@@ -490,43 +447,29 @@ export default function AgenJamaahListPage() {
           </div>
         ) : (
           <>
-            <ul className="jm-list">
+            <AgentList>
               {filteredJamaah.map((item) => {
                 const isManual = item.entry_method === 'agent_manual';
-                const statusText =
-                  (STATUS_LABEL[item.status] || item.status) +
-                  (item.status === 'closing' ? (item.paid_off_at ? ' · Lunas' : ' · Belum lunas') : '');
+                const statusText = prospectStatusText(item.status, item.paid_off_at);
                 const meta = [`${item.jumlah_jamaah || 1} jamaah`, item.package_name, isManual ? 'Manual' : '']
                   .filter(Boolean)
                   .join(' · ');
                 return (
-                  <li key={item.id} className="jm-row">
-                    <Link href={`/agen/jamaah/${item.id}`} className="jm-row__main">
-                      <span className="jm-row__top">
-                        <span className="jm-row__name">{item.name}</span>
-                        <span className="jm-row__date">{formatDate(item.created_at)}</span>
-                      </span>
-                      <span className="jm-row__meta">
-                        <span className={`jm-status jm-status--${item.status}`}>{statusText}</span>
-                        <span className="jm-row__info">{meta}</span>
-                      </span>
-                    </Link>
-                    {item.phone && (
-                      <a
-                        href={whatsAppUrl(item.phone, item.name, travelName)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="jm-wa"
-                        onClick={() => logHabit('contact')}
-                        aria-label={`Chat WhatsApp ${item.name}`}
-                      >
-                        <MessageCircle size={20} aria-hidden="true" />
-                      </a>
-                    )}
-                  </li>
+                  <AgentListRow
+                    key={item.id}
+                    href={`/agen/jamaah/${item.id}`}
+                    title={item.name}
+                    titleAside={formatDate(item.created_at)}
+                    meta={
+                      <>
+                        <StatusLabel tone={prospectStatusTone(item.status)}>{statusText}</StatusLabel>
+                        <span>{meta}</span>
+                      </>
+                    }
+                  />
                 );
               })}
-            </ul>
+            </AgentList>
             {jamaahList.length < total && (
               <button
                 type="button"
