@@ -6,6 +6,10 @@ import { usePathname } from 'next/navigation';
 import { Home, Users, Trophy, User } from 'lucide-react';
 import './AgentBottomNavbar.css';
 
+// Next keeps the scroll position when the target page is still partly in view, so a tab switch from the
+// middle of a long page would open the next tab in the middle too. A tab tap should always start at the top.
+const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
 export const AgentBottomNavbar: React.FC = () => {
   const pathname = usePathname();
 
@@ -24,6 +28,7 @@ export const AgentBottomNavbar: React.FC = () => {
       <nav className="agent-bottom-nav" aria-label="Navigasi Bawah Agen">
         <Link
           href="/agen/dashboard"
+          onClick={scrollToTop}
           className={`agent-bottom-nav__item ${isBerandaActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
@@ -34,6 +39,7 @@ export const AgentBottomNavbar: React.FC = () => {
 
         <Link
           href="/agen/jamaah"
+          onClick={scrollToTop}
           className={`agent-bottom-nav__item ${isJamaahActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
@@ -44,6 +50,7 @@ export const AgentBottomNavbar: React.FC = () => {
 
         <Link
           href="/agen/leaderboard"
+          onClick={scrollToTop}
           className={`agent-bottom-nav__item ${isLeaderboardActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
@@ -54,6 +61,7 @@ export const AgentBottomNavbar: React.FC = () => {
 
         <Link
           href="/agen/profil"
+          onClick={scrollToTop}
           className={`agent-bottom-nav__item ${isProfilActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
