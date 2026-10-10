@@ -897,3 +897,10 @@
 .ag-icon-btn > svg { position: relative; }
 .ag-icon-btn:hover { background-color: transparent; }
 .ag-icon-btn:hover::before { background-color: var(--tw-neutral-100); }
+
+/* "Lihat jaringan saya" under the recruit buttons: its own row, left aligned, never wraps. */
+.ag-recruit__network {
+  align-self: flex-start;
+  margin-top: 2px;
+  white-space: nowrap;
+}

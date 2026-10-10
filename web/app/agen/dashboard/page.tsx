@@ -348,7 +348,16 @@ export default function AgenDashboardPage() {
 
   const getRecruitWhatsAppUrl = (): string => {
     if (!summary?.recruit_link) return '#';
-    const text = `Assalamu'alaikum, saya bergabung jadi mitra ${travel?.name || 'travel umroh'}. Kalau berminat, silakan lihat dan daftar lewat tautan ini:\n${summary.recruit_link}`;
+    // Neutral (no greeting) and about what the reader gets, not about the sender. Only facts that hold for
+    // every travel: the registration may have a fee, so nothing says free or no capital.
+    const text = [
+      'Ingin punya penghasilan tambahan dari membagikan paket umroh?',
+      '',
+      `Gabung jadi agen ${travel?.name || 'travel umroh'}: dapat link referral resmi dan komisi dari setiap jamaah yang mendaftar lewat link Anda.`,
+      '',
+      'Cara daftarnya ada di sini:',
+      summary.recruit_link,
+    ].join('\n');
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
@@ -588,18 +597,12 @@ export default function AgenDashboardPage() {
         {/* Invite a friend or relative to become an agent */}
         {summary.recruit_link && !summary.travel_suspended && (
           <section className="ag-card ag-recruit" aria-labelledby="ag-recruit">
-            <div className="ag-card__head">
-              <h2 id="ag-recruit" className="ag-title ag-recruit__title">
-                <UserPlus size={18} aria-hidden="true" />
-                Ajak teman jadi agen
-              </h2>
-              <Link href="/agen/jaringan" className="ag-textlink">
-                Jaringan saya
-                <ChevronRight size={16} aria-hidden="true" />
-              </Link>
-            </div>
+            <h2 id="ag-recruit" className="ag-title ag-recruit__title">
+              <UserPlus size={18} aria-hidden="true" />
+              Ajak jadi agen
+            </h2>
             <p className="ag-recruit__text">
-              Bagikan tautan ini. Anda tercatat sebagai pengajak saat mereka mendaftar.
+              Siapa pun yang mendaftar lewat tautan ini tercatat sebagai jaringan Anda.
             </p>
             <div className="ag-recruit__actions">
               <button type="button" className="ag-recruit__copy" onClick={handleCopyRecruit}>
@@ -618,6 +621,11 @@ export default function AgenDashboardPage() {
               </a>
             </div>
             {copyFailedLink === summary.recruit_link && <CopyFailedNote link={copyFailedLink} />}
+            {/* Own row under the buttons: beside the title it wrapped on narrow phones. */}
+            <Link href="/agen/jaringan" className="ag-textlink ag-recruit__network">
+              Lihat jaringan saya
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
           </section>
         )}
 
