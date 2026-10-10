@@ -525,6 +525,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		PasswordHash: string(hash),
 		Name:         adminName,
 		Status:       "active",
+		Role:         repository.RolePIC, // the registrant is the travel's person in charge
 	}
 	if err := s.adminUserRepo.Create(ctx, tenant.ID, adminUser); err != nil {
 		rollback()

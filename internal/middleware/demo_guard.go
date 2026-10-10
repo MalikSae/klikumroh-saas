@@ -21,6 +21,7 @@ var demoBlocked = []demoRule{
 	{http.MethodPut, regexp.MustCompile(`^/api/dashboard/me/password$`)},
 	{http.MethodPost, regexp.MustCompile(`^/api/dashboard/team$`)},
 	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/team/[^/]+/toggle-status$`)},
+	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/team/[^/]+/role$`)},
 	{http.MethodPatch, regexp.MustCompile(`^/api/dashboard/agents/[^/]+/reset-password$`)},
 	// Deactivating or rejecting the shared demo agents would end their sessions and break the agent
 	// demo login for every visitor until the nightly rebuild.

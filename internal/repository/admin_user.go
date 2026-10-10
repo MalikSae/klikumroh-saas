@@ -15,9 +15,18 @@ type AdminUser struct {
 	PasswordHash string    `json:"-"`
 	Name         string    `json:"name"`
 	Status       string    `json:"status"`
+	// Role is RolePIC or RoleAdmin; empty on Create means RoleAdmin.
+	Role         string    `json:"role"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+// Team roles of a travel. The PIC (person in charge) manages subscription/billing and the team; an admin
+// runs the dashboard otherwise.
+const (
+	RolePIC   = "pic"
+	RoleAdmin = "admin"
+)
 
 // AdminUserRepository defines access methods for admin_users records.
 // All standard methods enforce tenant_id isolation.
@@ -53,12 +62,16 @@ func NewAdminUserRepository(db *sql.DB) AdminUserRepository {
 func (r *mysqlAdminUserRepository) Create(ctx context.Context, tenantID uint64, user *AdminUser) error {
 	query := `
 		INSERT INTO admin_users (
-			tenant_id, email, password_hash, name, status
-		) VALUES (?, ?, ?, ?, ?)
+			tenant_id, email, password_hash, name, status, role
+		) VALUES (?, ?, ?, ?, ?, ?)
 	`
 	user.TenantID = tenantID
 	if user.Status == "" {
 		user.Status = "active"
+	}
+
+	if user.Role == "" {
+		user.Role = RoleAdmin
 	}
 
 	result, err := r.db.ExecContext(ctx, query,
@@ -67,6 +80,7 @@ func (r *mysqlAdminUserRepository) Create(ctx context.Context, tenantID uint64, 
 		user.PasswordHash,
 		user.Name,
 		user.Status,
+		user.Role,
 	)
 	if err != nil {
 		return err
@@ -82,7 +96,7 @@ func (r *mysqlAdminUserRepository) Create(ctx context.Context, tenantID uint64, 
 
 func (r *mysqlAdminUserRepository) GetByID(ctx context.Context, tenantID uint64, id uint64) (*AdminUser, error) {
 	query := `
-		SELECT id, tenant_id, email, password_hash, name, status, created_at, updated_at
+		SELECT id, tenant_id, email, password_hash, name, status, role, created_at, updated_at
 		FROM admin_users
 		WHERE id = ? AND tenant_id = ?
 	`
@@ -92,7 +106,7 @@ func (r *mysqlAdminUserRepository) GetByID(ctx context.Context, tenantID uint64,
 
 func (r *mysqlAdminUserRepository) ListByTenant(ctx context.Context, tenantID uint64) ([]AdminUser, error) {
 	query := `
-		SELECT id, tenant_id, email, password_hash, name, status, created_at, updated_at
+		SELECT id, tenant_id, email, password_hash, name, status, role, created_at, updated_at
 		FROM admin_users
 		WHERE tenant_id = ?
 		ORDER BY created_at DESC
@@ -113,6 +127,7 @@ func (r *mysqlAdminUserRepository) ListByTenant(ctx context.Context, tenantID ui
 			&u.PasswordHash,
 			&u.Name,
 			&u.Status,
+			&u.Role,
 			&u.CreatedAt,
 			&u.UpdatedAt,
 		); err != nil {
@@ -130,7 +145,7 @@ func (r *mysqlAdminUserRepository) ListByTenant(ctx context.Context, tenantID ui
 func (r *mysqlAdminUserRepository) Update(ctx context.Context, tenantID uint64, user *AdminUser) error {
 	query := `
 		UPDATE admin_users
-		SET email = ?, password_hash = ?, name = ?, status = ?
+		SET email = ?, password_hash = ?, name = ?, status = ?, role = COALESCE(NULLIF(?, ''), role)
 		WHERE id = ? AND tenant_id = ?
 	`
 	res, err := r.db.ExecContext(ctx, query,
@@ -138,6 +153,7 @@ func (r *mysqlAdminUserRepository) Update(ctx context.Context, tenantID uint64, 
 		user.PasswordHash,
 		user.Name,
 		user.Status,
+		user.Role,
 		user.ID,
 		tenantID,
 	)
@@ -184,7 +200,7 @@ func (r *mysqlAdminUserRepository) Delete(ctx context.Context, tenantID uint64, 
 
 func (r *mysqlAdminUserRepository) FindByTenantAndEmail(ctx context.Context, tenantID uint64, email string) (*AdminUser, error) {
 	query := `
-		SELECT id, tenant_id, email, password_hash, name, status, created_at, updated_at
+		SELECT id, tenant_id, email, password_hash, name, status, role, created_at, updated_at
 		FROM admin_users
 		WHERE tenant_id = ? AND email = ?
 	`
@@ -264,7 +280,7 @@ func (r *mysqlAdminUserRepository) DeactivateKeepingOneActive(ctx context.Contex
 func (r *mysqlAdminUserRepository) FindByEmail(ctx context.Context, email string) (*AdminUser, error) {
 	// SPECIAL EXCEPTION: Used exclusively by login authentication to resolve tenant_id from email.
 	query := `
-		SELECT id, tenant_id, email, password_hash, name, status, created_at, updated_at
+		SELECT id, tenant_id, email, password_hash, name, status, role, created_at, updated_at
 		FROM admin_users
 		WHERE email = ?
 	`
@@ -281,6 +297,7 @@ func (r *mysqlAdminUserRepository) scanAdminUser(row *sql.Row) (*AdminUser, erro
 		&u.PasswordHash,
 		&u.Name,
 		&u.Status,
+		&u.Role,
 		&u.CreatedAt,
 		&u.UpdatedAt,
 	)

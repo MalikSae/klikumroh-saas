@@ -364,15 +364,17 @@ func main() {
 		protected.Use(appMiddleware.SubscriptionEnforcementMiddleware(tenantRepo))
 		protected.Use(appMiddleware.DemoGuard(isDemoTenant))
 
-		// Subscription & Renewal Routes
-		protected.Get("/api/dashboard/subscription", subscriptionHandler.GetSubscription)
-		protected.Get("/api/dashboard/pricing-plans", subscriptionHandler.GetPricingPlans)
-		protected.With(couponHandler.TravelValidateLimiters()...).Get("/api/dashboard/coupons/validate", couponHandler.ValidateTravel)
+		// Subscription & Renewal Routes: PIC only (a team admin cannot see or change billing).
+		requirePIC := appMiddleware.RequirePIC(adminUserRepo)
+		picOnly := protected.With(requirePIC)
+		picOnly.Get("/api/dashboard/subscription", subscriptionHandler.GetSubscription)
+		picOnly.Get("/api/dashboard/pricing-plans", subscriptionHandler.GetPricingPlans)
+		picOnly.With(couponHandler.TravelValidateLimiters()...).Get("/api/dashboard/coupons/validate", couponHandler.ValidateTravel)
 		// Same limiter instances as coupons/validate (shared per-travel and per-IP budget): a renewal request
 		// validates its coupon_code too, so it must not be an unlimited coupon probe.
-		protected.With(couponHandler.TravelValidateLimiters()...).Post("/api/dashboard/subscription/renewal-request", subscriptionHandler.CreateRenewalRequest)
-		protected.Get("/api/dashboard/subscription/payment-verifications/{id}", subscriptionHandler.GetPaymentVerification)
-		protected.Post("/api/dashboard/subscription/payment-verifications/{id}/proof", subscriptionHandler.UploadRenewalProof)
+		picOnly.With(couponHandler.TravelValidateLimiters()...).Post("/api/dashboard/subscription/renewal-request", subscriptionHandler.CreateRenewalRequest)
+		picOnly.Get("/api/dashboard/subscription/payment-verifications/{id}", subscriptionHandler.GetPaymentVerification)
+		picOnly.Post("/api/dashboard/subscription/payment-verifications/{id}/proof", subscriptionHandler.UploadRenewalProof)
 		protected.Get("/api/dashboard/platform-settings", platformSettingsHandler.GetDashboard)
 		protected.Get("/api/dashboard/files", handler.ServeDashboardPrivateFile)
 
@@ -380,7 +382,7 @@ func main() {
 		dashboardOverviewHandler.RegisterDashboardRoutes(protected)
 		onboardingHandler.RegisterDashboardRoutes(protected)
 		playbookHandler.RegisterDashboardRoutes(protected)
-		teamHandler.RegisterDashboardRoutes(protected)
+		teamHandler.RegisterDashboardRoutes(protected, requirePIC)
 		tenantHandler.RegisterDashboardRoutes(protected)
 		packageHandler.RegisterDashboardRoutes(protected)
 		prospectHandler.RegisterDashboardRoutes(protected)

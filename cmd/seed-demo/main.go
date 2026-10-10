@@ -303,7 +303,7 @@ func (s *seeder) run() error {
 	if err != nil {
 		return err
 	}
-	if _, err := s.exec("INSERT INTO admin_users (tenant_id, email, password_hash, name, status) VALUES (?, ?, ?, 'Admin Demo', 'active')",
+	if _, err := s.exec("INSERT INTO admin_users (tenant_id, email, password_hash, name, status, role) VALUES (?, ?, ?, 'Admin Demo', 'active', 'pic')",
 		id, s.cfg.adminEmail, string(hash)); err != nil {
 		return fmt.Errorf("demo admin (is DEMO_ADMIN_EMAIL already used by another travel?): %w", err)
 	}

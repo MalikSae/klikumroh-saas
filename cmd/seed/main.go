@@ -256,6 +256,7 @@ func seedTenant(
 			PasswordHash: mustHash(demoAdminPass),
 			Name:         data.adminName,
 			Status:       "active",
+			Role:         repository.RolePIC,
 		}
 		if err := adminUserRepo.Create(ctx, tenant.ID, adminUser); err != nil {
 			log.Fatalf("Failed to create admin user %s: %v", data.adminEmail, err)

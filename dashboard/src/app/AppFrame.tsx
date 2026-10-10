@@ -5,6 +5,10 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { ChevronsUpDown, ExternalLink, LogOut, Menu, UserRound } from 'lucide-react';
 import {
   fetchDomains,
+  fetchMyProfile,
+  isPicRole,
+  storeUserRole,
+  type TeamRole,
   logoutAdmin,
   fetchDashboardAgents,
   fetchPayoutRequests,
@@ -35,6 +39,8 @@ interface FrameCtx {
   /** Reloads the travel name and icon shown in the header (after they change in Pengaturan or Website). */
   refreshTravel: () => void;
   subscription: TenantSubscriptionInfo | null;
+  /** False for a team admin: only the PIC sees subscription/billing and manages the team. */
+  isPic: boolean;
   /** Base URL of the travel website for links the dashboard hands out: the primary custom domain when it is
    *  active and healthy, otherwise the default subdomain (see ./siteUrl). Null until the travel is known. */
   siteUrl: string | null;
@@ -144,6 +150,17 @@ export const AppFrame: React.FC = () => {
   }, [pageKey]);
   const [title, setTitle] = useState<string | null>(null);
   const [sub, setSub] = useState<TenantSubscriptionInfo | null>(null);
+  // The role comes from the server (it can change while signed in); the stored one is only the first guess.
+  const [role, setRole] = useState<TeamRole | undefined>(() => getStoredUser()?.role);
+  const isPic = isPicRole(role);
+  useEffect(() => {
+    fetchMyProfile()
+      .then((me) => {
+        setRole(me.role);
+        storeUserRole(me.role);
+      })
+      .catch(() => undefined);
+  }, []);
   // Primary custom domain of the travel, if it has an active one (see ./siteUrl).
   const [customHost, setCustomHost] = useState<string | null>(null);
   const tenantSlug = sub?.tenant_slug;
@@ -199,9 +216,12 @@ export const AppFrame: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Billing is PIC-only: the API answers 403 to a team admin, so it is not even asked.
+    if (!isPic) return;
     fetchTenantSubscription().then(setSub).catch(() => {});
-  }, []);
+  }, [isPic]);
   const refreshSubscription = React.useCallback(async () => {
+    if (!isPic) return null;
     try {
       const fresh = await fetchTenantSubscription(true);
       setSub(fresh);
@@ -209,7 +229,7 @@ export const AppFrame: React.FC = () => {
     } catch {
       return null;
     }
-  }, []);
+  }, [isPic]);
   useEffect(() => {
     refreshBadges();
     setMobileNav(false);
@@ -261,7 +281,7 @@ export const AppFrame: React.FC = () => {
   ) : null;
 
   return (
-    <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub, siteUrl, noteDomains, refreshSubscription }}>
+    <FrameContext.Provider value={{ setTitle, refreshBadges, refreshTravel, subscription: sub, isPic, siteUrl, noteDomains, refreshSubscription }}>
       {invoiceRoute ? (
         <div className="ku ap-invoice-frame">
           <header className="ap-invoice-header">

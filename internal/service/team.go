@@ -20,6 +20,8 @@ var (
 	ErrInvalidAction                  = errors.New("action harus 'activate' atau 'deactivate'")
 	ErrNameRequired                   = errors.New("nama harus diisi")
 	ErrEmailRequired                  = errors.New("email harus diisi")
+	ErrInvalidRole                    = errors.New("peran harus 'pic' atau 'admin'")
+	ErrCannotRemoveLastPIC            = errors.New("travel harus punya minimal satu PIC aktif")
 )
 
 // TeamMemberResponse represents safe admin user details for team management.
@@ -28,6 +30,7 @@ type TeamMemberResponse struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Status    string    `json:"status"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -38,6 +41,7 @@ type MyProfileResponse struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Status    string    `json:"status"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -45,7 +49,10 @@ type MyProfileResponse struct {
 // TeamService defines operations for team members and user profile management.
 type TeamService interface {
 	ListTeam(ctx context.Context, tenantID uint64) ([]TeamMemberResponse, error)
-	AddTeamMember(ctx context.Context, tenantID uint64, name, email, password string) (*TeamMemberResponse, error)
+	// AddTeamMember creates a member; role is repository.RolePIC or RoleAdmin (empty means admin).
+	AddTeamMember(ctx context.Context, tenantID uint64, name, email, password, role string) (*TeamMemberResponse, error)
+	// SetRole changes a member's role. A travel always keeps at least one active PIC.
+	SetRole(ctx context.Context, tenantID uint64, targetUserID uint64, role string) (*TeamMemberResponse, error)
 	ToggleStatus(ctx context.Context, tenantID uint64, currentAdminUserID uint64, targetUserID uint64, action string) (*TeamMemberResponse, error)
 	GetMyProfile(ctx context.Context, tenantID uint64, adminUserID uint64) (*MyProfileResponse, error)
 	UpdateMyProfile(ctx context.Context, tenantID uint64, adminUserID uint64, name, email *string) (*MyProfileResponse, error)
@@ -80,13 +87,21 @@ func (s *teamService) ListTeam(ctx context.Context, tenantID uint64) ([]TeamMemb
 			Name:      u.Name,
 			Email:     u.Email,
 			Status:    u.Status,
+			Role:      u.Role,
 			CreatedAt: u.CreatedAt,
 		})
 	}
 	return result, nil
 }
 
-func (s *teamService) AddTeamMember(ctx context.Context, tenantID uint64, name, email, password string) (*TeamMemberResponse, error) {
+func (s *teamService) AddTeamMember(ctx context.Context, tenantID uint64, name, email, password, role string) (*TeamMemberResponse, error) {
+	role = strings.ToLower(strings.TrimSpace(role))
+	if role == "" {
+		role = repository.RoleAdmin
+	}
+	if role != repository.RolePIC && role != repository.RoleAdmin {
+		return nil, ErrInvalidRole
+	}
 	name = strings.TrimSpace(name)
 	email = strings.TrimSpace(strings.ToLower(email))
 
@@ -119,6 +134,7 @@ func (s *teamService) AddTeamMember(ctx context.Context, tenantID uint64, name, 
 		Email:        email,
 		PasswordHash: string(hash),
 		Status:       "active",
+		Role:         role,
 	}
 
 	if err := s.adminUserRepo.Create(ctx, tenantID, user); err != nil {
@@ -130,8 +146,53 @@ func (s *teamService) AddTeamMember(ctx context.Context, tenantID uint64, name, 
 		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
+		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
 	}, nil
+}
+
+// SetRole implements TeamService.
+func (s *teamService) SetRole(ctx context.Context, tenantID uint64, targetUserID uint64, role string) (*TeamMemberResponse, error) {
+	role = strings.ToLower(strings.TrimSpace(role))
+	if role != repository.RolePIC && role != repository.RoleAdmin {
+		return nil, ErrInvalidRole
+	}
+	target, err := s.adminUserRepo.GetByID(ctx, tenantID, targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	if target.Role == role {
+		return teamMemberResponse(target), nil
+	}
+	if target.Role == repository.RolePIC && role == repository.RoleAdmin && target.Status == "active" {
+		if err := s.requireOtherActivePIC(ctx, tenantID, target.ID); err != nil {
+			return nil, err
+		}
+	}
+	target.Role = role
+	if err := s.adminUserRepo.Update(ctx, tenantID, target); err != nil {
+		return nil, err
+	}
+	return teamMemberResponse(target), nil
+}
+
+// requireOtherActivePIC fails with ErrCannotRemoveLastPIC unless the travel has an active PIC besides
+// excludeID.
+func (s *teamService) requireOtherActivePIC(ctx context.Context, tenantID, excludeID uint64) error {
+	users, err := s.adminUserRepo.ListByTenant(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	for _, u := range users {
+		if u.ID != excludeID && u.Role == repository.RolePIC && u.Status == "active" {
+			return nil
+		}
+	}
+	return ErrCannotRemoveLastPIC
+}
+
+func teamMemberResponse(u *repository.AdminUser) *TeamMemberResponse {
+	return &TeamMemberResponse{ID: u.ID, Name: u.Name, Email: u.Email, Status: u.Status, Role: u.Role, CreatedAt: u.CreatedAt}
 }
 
 func (s *teamService) ToggleStatus(ctx context.Context, tenantID uint64, currentAdminUserID uint64, targetUserID uint64, action string) (*TeamMemberResponse, error) {
@@ -147,6 +208,12 @@ func (s *teamService) ToggleStatus(ctx context.Context, tenantID uint64, current
 	targetUser, err := s.adminUserRepo.GetByID(ctx, tenantID, targetUserID)
 	if err != nil {
 		return nil, err
+	}
+
+	if action == "deactivate" && targetUser.Role == repository.RolePIC && targetUser.Status == "active" {
+		if err := s.requireOtherActivePIC(ctx, tenantID, targetUser.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	// The MySQL repository counts and deactivates in one locking transaction, so two admins deactivating
@@ -167,6 +234,7 @@ func (s *teamService) ToggleStatus(ctx context.Context, tenantID uint64, current
 			Name:      targetUser.Name,
 			Email:     targetUser.Email,
 			Status:    targetUser.Status,
+			Role:      targetUser.Role,
 			CreatedAt: targetUser.CreatedAt,
 		}, nil
 	}
@@ -202,6 +270,7 @@ func (s *teamService) ToggleStatus(ctx context.Context, tenantID uint64, current
 		Name:      targetUser.Name,
 		Email:     targetUser.Email,
 		Status:    targetUser.Status,
+		Role:      targetUser.Role,
 		CreatedAt: targetUser.CreatedAt,
 	}, nil
 }
@@ -218,6 +287,7 @@ func (s *teamService) GetMyProfile(ctx context.Context, tenantID uint64, adminUs
 		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
+		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}, nil
@@ -263,6 +333,7 @@ func (s *teamService) UpdateMyProfile(ctx context.Context, tenantID uint64, admi
 		Name:      user.Name,
 		Email:     user.Email,
 		Status:    user.Status,
+		Role:      user.Role,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}, nil

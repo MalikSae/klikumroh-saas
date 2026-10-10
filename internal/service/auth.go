@@ -25,6 +25,7 @@ type AdminUserInfo struct {
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 	Status     string `json:"status"`
+	Role       string `json:"role"`
 }
 
 // LoginResult contains authentication token and user session data.
@@ -157,6 +158,7 @@ func (s *authService) startSession(ctx context.Context, user *repository.AdminUs
 			Email:      user.Email,
 			Name:       user.Name,
 			Status:     user.Status,
+			Role:       user.Role,
 		},
 	}, nil
 }

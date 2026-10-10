@@ -1,8 +1,10 @@
 // Tim: admin accounts of this travel. Each member signs in at klikumroh.id with their own email.
 import React, { useEffect, useState } from 'react';
 import { MoreHorizontal, UserPlus } from 'lucide-react';
-import { addTeamMember, fetchTeamMembers, getStoredUser, toggleTeamMemberStatus, type TeamMemberItem } from '../../services/api';
-import { Avatar, Banner, Button, DataTable, EmptyState, Field, Menu, Modal, Pill, Toolbar, fmtDate, type Column, errorText } from '../../ui';
+import { addTeamMember, fetchTeamMembers, getStoredUser, setTeamMemberRole, toggleTeamMemberStatus, type TeamMemberItem, type TeamRole } from '../../services/api';
+import { Avatar, Banner, Button, DataTable, EmptyState, Field, Menu, Modal, Pill, Select, Toolbar, fmtDate, type Column, errorText } from '../../ui';
+import { useFrame } from '../../app/AppFrame';
+import { PasswordInput } from '../../modules/affiliator/PasswordInput';
 import { resetPasswordProblem } from '../../utils/password';
 
 const MIN_PASSWORD = 8;
@@ -11,6 +13,7 @@ const AddMemberModal: React.FC<{ open: boolean; onClose: () => void; onAdded: (m
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<TeamRole>('admin');
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -20,6 +23,7 @@ const AddMemberModal: React.FC<{ open: boolean; onClose: () => void; onAdded: (m
     setName('');
     setEmail('');
     setPassword('');
+    setRole('admin');
     setErrors({});
     setError(null);
   }, [open]);
@@ -37,7 +41,7 @@ const AddMemberModal: React.FC<{ open: boolean; onClose: () => void; onAdded: (m
     setSaving(true);
     setError(null);
     try {
-      const m = await addTeamMember({ name: name.trim(), email: email.trim(), password });
+      const m = await addTeamMember({ name: name.trim(), email: email.trim(), password, role });
       onAdded(m);
     } catch (err) {
       setError(errorText(err, 'Gagal menambahkan anggota'));
@@ -66,13 +70,27 @@ const AddMemberModal: React.FC<{ open: boolean; onClose: () => void; onAdded: (m
       <form id="st-add-member" className="st-modal-form" onSubmit={submit} noValidate>
         {error && <Banner tone="danger">{error}</Banner>}
         <Field label="Nama" error={errors.name}>
-          {(id) => <input id={id} className="ku-input" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={Boolean(errors.name)} autoFocus />}
+          {(id) => <input id={id} className="ku-input" placeholder="Contoh: Siti Aminah" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={Boolean(errors.name)} autoFocus />}
         </Field>
         <Field label="Email" error={errors.email}>
-          {(id) => <input id={id} className="ku-input" type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(errors.email)} />}
+          {(id) => <input id={id} className="ku-input" type="email" autoComplete="off" placeholder="nama@email.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(errors.email)} />}
+        </Field>
+        <Field label="Peran" hint={role === 'pic' ? 'Mengelola langganan, tim, dan operasional harian.' : 'Mengelola operasional harian. Tidak dapat mengubah langganan dan tim.'}>
+          {(id) => (
+            <Select
+              id={id}
+              label="Peran"
+              value={role}
+              onChange={(v) => setRole(v as TeamRole)}
+              options={[
+                { value: 'admin', label: 'Admin' },
+                { value: 'pic', label: 'PIC' },
+              ]}
+            />
+          )}
         </Field>
         <Field label="Password awal" error={errors.password} hint={`Minimal ${MIN_PASSWORD} karakter. Minta anggota menggantinya di Akun saya.`}>
-          {(id) => <input id={id} className="ku-input" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(errors.password)} />}
+          {(id) => <PasswordInput id={id} autoComplete="new-password" placeholder="Minimal 8 karakter" value={password} onChange={setPassword} invalid={Boolean(errors.password)} />}
         </Field>
       </form>
     </Modal>
@@ -81,6 +99,7 @@ const AddMemberModal: React.FC<{ open: boolean; onClose: () => void; onAdded: (m
 
 export const TeamSettings: React.FC = () => {
   const me = getStoredUser();
+  const isPic = useFrame()?.isPic ?? true;
   const [members, setMembers] = useState<TeamMemberItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +115,15 @@ export const TeamSettings: React.FC = () => {
   }, []);
 
   const replace = (m: TeamMemberItem) => setMembers((list) => list.map((x) => (x.id === m.id ? m : x)));
+
+  const changeRole = async (m: TeamMemberItem, role: TeamRole) => {
+    setError(null);
+    try {
+      replace(await setTeamMemberRole(m.id, role));
+    } catch (e) {
+      setError(errorText(e, 'Gagal mengubah peran anggota'));
+    }
+  };
 
   const toggle = async (m: TeamMemberItem) => {
     setBusy(true);
@@ -126,22 +154,39 @@ export const TeamSettings: React.FC = () => {
       ),
     },
     { key: 'email', header: 'Email', cell: (m) => m.email },
-    { key: 'status', header: 'Status', cell: (m) => (m.status === 'active' ? <Pill tone="green">Aktif</Pill> : <Pill>Nonaktif</Pill>) },
-    { key: 'since', header: 'Ditambahkan', cell: (m) => fmtDate(m.created_at) },
+    {
+      key: 'status',
+      header: 'Peran & status',
+      // One badge: role and access state, e.g. "PIC • Aktif".
+      cell: (m) => {
+        const label = `${m.role === 'pic' ? 'PIC' : 'Admin'} • ${m.status === 'active' ? 'Aktif' : 'Nonaktif'}`;
+        return m.status === 'active' ? <Pill tone="green">{label}</Pill> : <Pill>{label}</Pill>;
+      },
+    },
+    { key: 'since', header: 'Ditambahkan', mobile: 'labeled', cell: (m) => fmtDate(m.created_at) },
     {
       key: 'actions',
       header: '',
       align: 'right',
+      // On the phone the menu sits beside the name and status, not alone on a row of its own.
+      mobile: 'aside',
       cell: (m) =>
-        m.id === me?.id ? null : (
+        !isPic ? null : (
           <Menu
             label={`Aksi untuk ${m.name}`}
             trigger={<MoreHorizontal className="ku-icon--sm" />}
-            items={
-              m.status === 'active'
-                ? [{ label: 'Nonaktifkan akses', danger: true, onClick: () => setConfirm(m) }]
-                : [{ label: 'Aktifkan kembali', onClick: () => toggle(m) }]
-            }
+            items={[
+              m.role === 'pic'
+                ? { label: 'Jadikan Admin', onClick: () => changeRole(m, 'admin') }
+                : { label: 'Jadikan PIC', onClick: () => changeRole(m, 'pic') },
+              ...(m.id === me?.id
+                ? []
+                : [
+                    m.status === 'active'
+                      ? { label: 'Nonaktifkan akses', danger: true, onClick: () => setConfirm(m) }
+                      : { label: 'Aktifkan kembali', onClick: () => toggle(m) },
+                  ]),
+            ]}
           />
         ),
     },
@@ -152,12 +197,16 @@ export const TeamSettings: React.FC = () => {
       {error && <Banner tone="danger">{error}</Banner>}
       <Toolbar
         right={
-          <Button variant="primary" icon={<UserPlus className="ku-icon--sm" />} onClick={() => setAdding(true)}>
-            Tambah anggota
-          </Button>
+          isPic && (
+            <Button variant="primary" icon={<UserPlus className="ku-icon--sm" />} onClick={() => setAdding(true)}>
+              Tambah anggota
+            </Button>
+          )
         }
       >
-        <span className="st-muted">Semua anggota punya akses penuh ke dashboard travel ini.</span>
+        <span className="st-muted">
+          {isPic ? 'PIC mengelola langganan dan tim. Admin mengelola operasional harian.' : 'Hanya PIC yang dapat mengubah tim dan langganan.'}
+        </span>
       </Toolbar>
       <DataTable columns={columns} rows={members} rowKey={(m) => m.id} loading={loading} empty={<EmptyState compact title="Belum ada anggota tim" />} />
 

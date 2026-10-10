@@ -31,11 +31,14 @@ func NewTeamHandler(teamService service.TeamService) *TeamHandler {
 }
 
 // RegisterDashboardRoutes mounts protected dashboard team and profile routes.
-func (h *TeamHandler) RegisterDashboardRoutes(r chi.Router) {
-	// Team management
+// Adding, deactivating and re-roling members need the PIC role: pass middleware.RequirePIC(...) as requirePIC.
+func (h *TeamHandler) RegisterDashboardRoutes(r chi.Router, requirePIC ...func(http.Handler) http.Handler) {
+	// Team management: everyone in the team can see it, only the PIC changes it.
+	managed := r.With(requirePIC...)
 	r.Get("/api/dashboard/team", h.ListTeam)
-	r.Post("/api/dashboard/team", h.AddTeamMember)
-	r.Patch("/api/dashboard/team/{id}/toggle-status", h.ToggleStatus)
+	managed.Post("/api/dashboard/team", h.AddTeamMember)
+	managed.Patch("/api/dashboard/team/{id}/toggle-status", h.ToggleStatus)
+	managed.Patch("/api/dashboard/team/{id}/role", h.SetRole)
 
 	// Personal profile ("me")
 	r.Get("/api/dashboard/me", h.GetMyProfile)
@@ -48,6 +51,12 @@ type AddTeamMemberPayload struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
+// SetRolePayload defines the JSON body for changing a member's role.
+type SetRolePayload struct {
+	Role string `json:"role"`
 }
 
 // ToggleStatusPayload defines the JSON body for toggling active/inactive status.
@@ -98,12 +107,13 @@ func (h *TeamHandler) AddTeamMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	member, err := h.teamService.AddTeamMember(r.Context(), tenantID, payload.Name, payload.Email, payload.Password)
+	member, err := h.teamService.AddTeamMember(r.Context(), tenantID, payload.Name, payload.Email, payload.Password, payload.Role)
 	if err != nil {
 		if errors.Is(err, service.ErrEmailAlreadyExists) ||
 			errors.Is(err, service.ErrPasswordTooShort) ||
 			errors.Is(err, service.ErrNameRequired) ||
-			errors.Is(err, service.ErrEmailRequired) {
+			errors.Is(err, service.ErrEmailRequired) ||
+			errors.Is(err, service.ErrInvalidRole) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
 		}
@@ -140,6 +150,7 @@ func (h *TeamHandler) ToggleStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, service.ErrCannotDeactivateSelf) ||
 			errors.Is(err, service.ErrCannotDeactivateLastActiveAdmin) ||
+			errors.Is(err, service.ErrCannotRemoveLastPIC) ||
 			errors.Is(err, service.ErrInvalidAction) {
 			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 			return
@@ -152,6 +163,39 @@ func (h *TeamHandler) ToggleStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	respondJSON(w, http.StatusOK, updated)
+}
+
+// SetRole handles PATCH /api/dashboard/team/{id}/role.
+func (h *TeamHandler) SetRole(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	targetID, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "ID anggota tidak valid"})
+		return
+	}
+	var payload SetRolePayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "format data tidak valid"})
+		return
+	}
+	updated, err := h.teamService.SetRole(r.Context(), tenantID, targetID, payload.Role)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidRole) || errors.Is(err, service.ErrCannotRemoveLastPIC) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": "anggota tim tidak ditemukan"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "gagal mengubah peran anggota"})
+		return
+	}
 	respondJSON(w, http.StatusOK, updated)
 }
 

@@ -9,7 +9,14 @@ export interface AdminUser {
   email: string;
   name: string;
   status: string;
+  /** Team role: PIC manages subscription and team; admin runs the dashboard. Missing on sessions stored before roles existed. */
+  role?: TeamRole;
 }
+
+export type TeamRole = 'pic' | 'admin';
+
+/** Unknown role (an old stored session) counts as PIC here; the API enforces the real role. */
+export const isPicRole = (role?: TeamRole | null) => role !== 'admin';
 
 export interface PackagePhoto {
   id: number;
@@ -295,6 +302,13 @@ export const getStoredUser = (): AdminUser | null => {
   } catch {
     return null;
   }
+};
+
+/** Keeps the stored user in step with the role the server reports (it can change while signed in). */
+export const storeUserRole = (role: TeamRole) => {
+  const user = getStoredUser();
+  if (!user || user.role === role) return;
+  localStorage.setItem(USER_KEY, JSON.stringify({ ...user, role }));
 };
 
 export const getStoredTravelName = (): string => {
@@ -2028,6 +2042,7 @@ export interface TeamMemberItem {
   name: string;
   email: string;
   status: 'active' | 'inactive';
+  role: TeamRole;
   created_at: string;
 }
 
@@ -2037,6 +2052,7 @@ export interface MyProfileItem {
   name: string;
   email: string;
   status: string;
+  role: TeamRole;
   created_at: string;
   updated_at: string;
 }
@@ -2080,6 +2096,7 @@ export const addTeamMember = async (payload: {
   name: string;
   email: string;
   password: string;
+  role: TeamRole;
 }): Promise<TeamMemberItem> => {
   const headers = await getAuthHeaders();
   const res = await dashboardFetch(`${API_BASE}/api/dashboard/team`, {
@@ -2090,6 +2107,20 @@ export const addTeamMember = async (payload: {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Gagal menambahkan anggota tim' }));
     throw new Error(err.error || 'Gagal menambahkan anggota tim');
+  }
+  return await res.json();
+};
+
+export const setTeamMemberRole = async (id: number, role: TeamRole): Promise<TeamMemberItem> => {
+  const headers = await getAuthHeaders();
+  const res = await dashboardFetch(`${API_BASE}/api/dashboard/team/${id}/role`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Gagal mengubah peran anggota' }));
+    throw new Error(err.error || 'Gagal mengubah peran anggota');
   }
   return await res.json();
 };
