@@ -5,10 +5,17 @@
 // A one-task page reached from Beranda or Tarik saldo: back button, no bottom tab bar.
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { StatusLabel, type StatusTone } from '../../../components/agent/StatusLabel';
+import { rupiah } from '../../../lib/money';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentSheet } from '../../../components/agent/AgentSheet';
+import { AgentList, AgentListRow } from '../../../components/agent/AgentList';
+import { AgentSearch } from '../../../components/agent/AgentSearch';
+import { AgentButton } from '../../../components/agent/AgentButton';
+import { AgentStateEmpty, AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { summarizeCommissionHistory } from '../../../lib/commissionSummary';
 import { jakartaDayKey, jakartaDayLabel, jakartaTimeLabel, jakartaDateLabel } from '../../../lib/jakartaTime';
 import './RiwayatKomisi.css';
@@ -35,8 +42,8 @@ const FILTER_TABS = [
 // The search box appears once the list is long enough to need it.
 const SEARCH_FROM = 10;
 
-const formatRupiah = (val: number): string =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Math.abs(val));
+// Shown as magnitudes: a withdrawal is stored negative and carries its own sign in the label.
+const formatRupiah = (val: number): string => rupiah(Math.abs(val));
 
 // Times are labelled WIB, so days and clock times are all computed in Asia/Jakarta.
 const dayKey = (iso: string) => jakartaDayKey(iso);
@@ -44,7 +51,7 @@ const dayLabel = (key: string) => jakartaDayLabel(key);
 const timeLabel = (iso: string) => jakartaTimeLabel(iso);
 
 // Status shown under the title: what the agent needs to know about this entry, in words.
-const statusOf = (item: CommissionHistoryItem): { text: string; tone: 'ok' | 'wait' | 'muted' | 'info' } => {
+const statusOf = (item: CommissionHistoryItem): { text: string; tone: StatusTone } => {
   if (item.source === 'payout') {
     switch (item.status) {
       case 'pending':
@@ -52,7 +59,7 @@ const statusOf = (item: CommissionHistoryItem): { text: string; tone: 'ok' | 'wa
       case 'approved':
         return { text: 'Menunggu transfer', tone: 'info' };
       case 'paid':
-        return { text: 'Sudah ditransfer', tone: 'ok' };
+        return { text: 'Sudah ditransfer', tone: 'success' };
       case 'rejected':
         return { text: 'Ditolak', tone: 'muted' };
       default:
@@ -60,9 +67,9 @@ const statusOf = (item: CommissionHistoryItem): { text: string; tone: 'ok' | 'wa
     }
   }
   if (item.held) return { text: 'Tertahan', tone: 'wait' };
-  if (item.type === 'override') return { text: 'Komisi Pembinaan · masuk saldo', tone: 'ok' };
+  if (item.type === 'override') return { text: 'Komisi Pembinaan · masuk saldo', tone: 'success' };
   if (item.type === 'correction') return { text: 'Koreksi admin', tone: 'muted' };
-  return { text: 'Masuk saldo', tone: 'ok' };
+  return { text: 'Masuk saldo', tone: 'success' };
 };
 
 const typeLabel = (item: CommissionHistoryItem) => {
@@ -180,26 +187,15 @@ export default function RiwayatKomisiPage() {
 
       <AgentPage>
         <div className="ag-shell-toolbar">
-          <button type="button" className="ag-shell-action" onClick={() => router.push('/agen/tarik-saldo')}>
+          <AgentButton onClick={() => router.push('/agen/tarik-saldo')}>
             <ArrowDownToLine size={16} aria-hidden="true" />
             <span>Tarik saldo</span>
-          </button>
+          </AgentButton>
         </div>
         {loading ? (
-          <div className="rk-center" role="status">
-            <span className="ag-shell-spinner" aria-hidden="true" />
-            <span>Memuat riwayat...</span>
-          </div>
+          <AgentStateLoading text="Memuat riwayat..." />
         ) : error ? (
-          <div className="rk-center">
-            <AlertCircle size={28} className="rk-center__icon" aria-hidden="true" />
-            <p className="rk-title">Riwayat belum bisa dimuat</p>
-            <p className="rk-muted">{error}</p>
-            <button type="button" className="rk-btn" onClick={() => retry()}>
-              <RefreshCw size={18} aria-hidden="true" />
-              Coba lagi
-            </button>
-          </div>
+          <AgentStateError title="Riwayat belum bisa dimuat" text={error} onRetry={() => retry()} />
         ) : (
           <>
             <section className="rk-summary" role="tablist" aria-label="Ringkasan komisi">
@@ -255,41 +251,25 @@ export default function RiwayatKomisiPage() {
             </div>
 
             {items.length >= SEARCH_FROM && (
-              <div className="rk-search">
-                <Search size={18} className="rk-search__icon" aria-hidden="true" />
-                <input
-                  type="text"
-                  className="tw-field rk-search__input"
-                  placeholder="Cari nama jamaah atau nominal"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Cari transaksi"
-                />
-                {searchQuery && (
-                  <button type="button" className="rk-search__clear" onClick={() => setSearchQuery('')} aria-label="Hapus pencarian">
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
+              <AgentSearch value={searchQuery} onChange={setSearchQuery} placeholder="Cari nama jamaah atau nominal" label="Cari transaksi" />
             )}
 
             {groups.length === 0 ? (
-              <div className="rk-center rk-center--empty">
-                <ReceiptText size={32} className="rk-muted-icon" aria-hidden="true" />
-                <p className="rk-title">
-                  {searchQuery ? 'Tidak ada yang cocok' : activeTab === 'keluar' ? 'Belum ada penarikan' : 'Belum ada komisi'}
-                </p>
-                <p className="rk-muted">
-                  {searchQuery
+              <AgentStateEmpty
+                panel
+                icon={<ReceiptText size={32} aria-hidden="true" />}
+                title={searchQuery ? 'Tidak ada yang cocok' : activeTab === 'keluar' ? 'Belum ada penarikan' : 'Belum ada komisi'}
+                text={
+                  searchQuery
                     ? `Tidak ada transaksi yang cocok dengan "${searchQuery}".`
-                    : 'Komisi tercatat di sini setelah calon jamaah dari link Anda closing.'}
-                </p>
-              </div>
+                    : 'Komisi tercatat di sini setelah calon jamaah dari link Anda closing.'
+                }
+              />
             ) : (
               groups.map(([key, list]) => (
                 <section key={key || 'none'} className="rk-day" aria-label={dayLabel(key)}>
                   <h2 className="rk-day__label">{dayLabel(key)}</h2>
-                  <ul className="rk-list">
+                  <AgentList>
                     {list.map((tx) => {
                       const payout = tx.source === 'payout';
                       // Money going out: a withdrawal, or a negative correction (not a withdrawal).
@@ -297,30 +277,34 @@ export default function RiwayatKomisiPage() {
                       const rejected = payout && tx.status === 'rejected';
                       const st = statusOf(tx);
                       return (
-                        <li key={`${tx.source}-${tx.id}`}>
-                          <button type="button" className="rk-row" onClick={() => setDetail(tx)}>
-                          <span className={`rk-row__icon${keluar ? ' rk-row__icon--out' : ''}`} aria-hidden="true">
-                            {keluar ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
-                          </span>
-                          <span className="rk-row__text">
-                            <span className="rk-row__title">{payout ? 'Penarikan ke rekening' : splitDescription(tx.description).title}</span>
-                            <span className="rk-row__meta">
+                        <AgentListRow
+                          key={`${tx.source}-${tx.id}`}
+                          onClick={() => setDetail(tx)}
+                          lead={
+                            <span className={`rk-row__icon${keluar ? ' rk-row__icon--out' : ''}`} aria-hidden="true">
+                              {keluar ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />}
+                            </span>
+                          }
+                          title={payout ? 'Penarikan ke rekening' : splitDescription(tx.description).title}
+                          meta={
+                            <>
                               {/* Second line: jamaah count (or time) then the status; a withdrawal shows its status only. Full time is in the detail. */}
                               {!payout && <span>{splitDescription(tx.description).extra || timeLabel(tx.created_at)}</span>}
-                              {st.text && <span className={`rk-status rk-status--${st.tone}`}>{st.text}</span>}
+                              {st.text && <StatusLabel tone={st.tone}>{st.text}</StatusLabel>}
+                            </>
+                          }
+                          aside={
+                            <span
+                              className={`rk-row__amount${keluar ? '' : ' rk-row__amount--in'}${rejected ? ' rk-row__amount--void' : ''}`}
+                            >
+                              {keluar ? '−' : '+'}
+                              {formatRupiah(tx.amount)}
                             </span>
-                          </span>
-                          <span
-                            className={`rk-row__amount${keluar ? '' : ' rk-row__amount--in'}${rejected ? ' rk-row__amount--void' : ''}`}
-                          >
-                            {keluar ? '−' : '+'}
-                            {formatRupiah(tx.amount)}
-                          </span>
-                          </button>
-                        </li>
+                          }
+                        />
                       );
                     })}
-                  </ul>
+                  </AgentList>
                 </section>
               ))
             )}
@@ -329,9 +313,7 @@ export default function RiwayatKomisiPage() {
       </AgentPage>
 
       {detail && (
-        <div className="rk-sheet" role="presentation" onClick={() => setDetail(null)}>
-          <div className="rk-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="rk-sheet-title" onClick={(e) => e.stopPropagation()}>
-            <span className="rk-sheet__grip" aria-hidden="true" />
+        <AgentSheet onClose={() => setDetail(null)}>
             <p className="rk-muted">{typeLabel(detail)}</p>
             <p
               id="rk-sheet-title"
@@ -349,7 +331,9 @@ export default function RiwayatKomisiPage() {
               </div>
               <div>
                 <dt>Status</dt>
-                <dd className={`rk-status rk-status--${statusOf(detail).tone}`}>{statusOf(detail).text || '-'}</dd>
+                <dd>
+                <StatusLabel tone={statusOf(detail).tone}>{statusOf(detail).text || '-'}</StatusLabel>
+              </dd>
               </div>
               {detail.source === 'payout' && detail.status === 'rejected' && detail.rejection_reason?.trim() && (
                 <div>
@@ -362,11 +346,10 @@ export default function RiwayatKomisiPage() {
                 <dd>{fullDateTime(detail.created_at)}</dd>
               </div>
             </dl>
-            <button type="button" className="rk-btn rk-sheet__close" onClick={() => setDetail(null)}>
+            <AgentButton size="lg" block className="rk-sheet__close" onClick={() => setDetail(null)}>
               Tutup
-            </button>
-          </div>
-        </div>
+            </AgentButton>
+        </AgentSheet>
       )}
     </MobileContainer>
   );

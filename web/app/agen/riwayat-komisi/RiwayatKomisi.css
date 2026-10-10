@@ -2,17 +2,9 @@
 
 .rk-muted {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
-}
-
-.rk-title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--tw-neutral-900);
 }
 
 /* Summary: a deck of credit-card style cards (85.6 x 54 mm proportions). The front card sits left; the cards
@@ -100,7 +92,7 @@
   align-items: center;
   justify-content: center;
   width: var(--peek);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   writing-mode: vertical-rl;
@@ -116,7 +108,7 @@
   margin-bottom: auto;
   overflow: hidden;
   font-family: var(--tw-font-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -124,7 +116,7 @@
 
 .rk-stat__label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   opacity: 0.9;
   white-space: nowrap;
 }
@@ -133,7 +125,7 @@
   max-width: 100%;
   overflow: hidden;
   font-family: var(--tw-font-heading);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: 0.5px;
@@ -146,8 +138,8 @@
 .rk-stat__note {
   max-width: 100%;
   overflow: hidden;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   opacity: 0.9;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -168,7 +160,7 @@
   border: none;
   border-radius: 9px;
   background: none;
-  font: 500 14px var(--tw-font-body);
+  font: 600 14px var(--tw-font-body);
   color: var(--tw-neutral-600);
   cursor: pointer;
 }
@@ -180,39 +172,6 @@
   color: var(--tw-neutral-900);
 }
 
-/* Search (long lists only) */
-.rk-search {
-  position: relative;
-}
-
-.rk-search__icon {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  transform: translateY(-50%);
-  color: var(--tw-neutral-400);
-  pointer-events: none;
-}
-
-.rk-search__input {
-  padding-left: 40px;
-  padding-right: 44px;
-}
-
-.rk-search__clear {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: none;
-  color: var(--tw-neutral-500);
-  cursor: pointer;
-}
-
 /* Day groups */
 .rk-day {
   display: flex;
@@ -222,37 +181,9 @@
 
 .rk-day__label {
   margin: 6px 4px 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tw-neutral-500);
-}
-
-.rk-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 14px;
-  border-radius: 16px;
-  background-color: var(--tw-background);
-  box-shadow: var(--tw-card-shadow);
-}
-
-.rk-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 0;
-  border: none;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.rk-list li + li .rk-row {
-  border-top: 1px solid var(--tw-neutral-100);
 }
 
 .rk-row__icon {
@@ -271,64 +202,10 @@
   color: var(--tw-neutral-700);
 }
 
-.rk-row__text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* One line; the full text is in the detail sheet. */
-.rk-row__title {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--tw-neutral-900);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.rk-row__meta {
-  display: flex;
-  overflow: hidden;
-  white-space: nowrap;
-  gap: 0 8px;
-  font-size: 13px;
-  color: var(--tw-neutral-500);
-}
-
-/* The jamaah count or time stays whole; the status shortens with an ellipsis. */
-.rk-row__meta > span:not(.rk-status) {
-  flex-shrink: 0;
-}
-
-.rk-row__meta > .rk-status {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rk-status--ok {
-  color: var(--tw-success-strong);
-}
-
-.rk-status--wait {
-  color: var(--tw-status-contacted-text);
-}
-
-.rk-status--info {
-  color: var(--tw-status-new-text);
-}
-
-.rk-status--muted {
-  color: var(--tw-neutral-500);
-}
-
 .rk-row__amount {
   flex-shrink: 0;
   font-family: var(--tw-font-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--tw-neutral-900);
   white-space: nowrap;
@@ -344,86 +221,10 @@
   text-decoration: line-through;
 }
 
-/* Loading / error / empty */
-.rk-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 56px 16px;
-  text-align: center;
-  color: var(--tw-neutral-500);
-}
-
-.rk-center--empty {
-  border-radius: 16px;
-  background-color: var(--tw-background);
-}
-
-.rk-center__icon {
-  color: var(--tw-danger-strong);
-}
-
-.rk-muted-icon {
-  color: var(--tw-neutral-400);
-}
-
-.rk-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--tw-neutral-300);
-  border-radius: 10px;
-  background-color: var(--tw-background);
-  font: 600 15px var(--tw-font-body);
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-/* Transaction detail sheet */
-.rk-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background-color: var(--tw-modal-overlay);
-}
-
-.rk-sheet__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  max-width: 428px;
-  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
-  border-radius: 20px 20px 0 0;
-  background-color: var(--tw-background);
-  animation: rk-sheet-in 0.2s ease-out;
-}
-
-@keyframes rk-sheet-in {
-  from {
-    transform: translateY(24px);
-  }
-}
-
-.rk-sheet__grip {
-  align-self: center;
-  width: 40px;
-  height: 4px;
-  margin-bottom: 12px;
-  border-radius: 2px;
-  background-color: var(--tw-neutral-200);
-}
-
 .rk-sheet__amount {
   margin: 0 0 8px;
   font-family: var(--tw-font-heading);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--tw-neutral-900);
   font-variant-numeric: tabular-nums;
@@ -442,35 +243,22 @@
 }
 
 .rk-sheet__list dt {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
 .rk-sheet__list dd {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--tw-neutral-900);
 }
 
-.rk-sheet__list dd.rk-status--ok {
-  color: var(--tw-success-strong);
-}
-
-.rk-sheet__list dd.rk-status--wait {
-  color: var(--tw-status-contacted-text);
-}
-
-.rk-sheet__list dd.rk-status--info {
-  color: var(--tw-status-new-text);
-}
-
 .rk-sheet__close {
-  justify-content: center;
   margin-top: 12px;
 }
 
 /* Billions (Rp 1.250.000.000) get a smaller size so the full amount still fits a small phone. */
 .rk-stat__value--long {
-  font-size: 19px;
+  font-size: 18px;
 }
 

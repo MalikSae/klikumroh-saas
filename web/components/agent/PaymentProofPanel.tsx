@@ -5,10 +5,12 @@
 // status stays (no new pipeline status). A waiting proof shows as such; a rejected one shows the reason and
 // can be sent again.
 import React, { useState } from 'react';
-import { Clock, FileUp, X } from 'lucide-react';
+import { Clock, FileUp } from 'lucide-react';
 import { CustomDropdown } from '../CustomDropdown';
 import { readJsonSafe, apiErrorMessage } from '../../lib/safeJson';
 import { jakartaDateLabel } from '../../lib/jakartaTime';
+import { AgentButton } from './AgentButton';
+import { AgentSheet } from './AgentSheet';
 
 export interface AgentPaymentRequest {
   id: number;
@@ -118,22 +120,15 @@ export const PaymentProofPanel: React.FC<Props> = ({ prospectId, status, paidOff
               {kind === 'closing' ? 'Bukti DP' : 'Bukti pelunasan'} ditolak: {rejected.rejection_reason || 'tidak sesuai'}. Kirim ulang bukti yang benar.
             </p>
           )}
-          <button type="button" className="jd-btn jd-proof__cta" onClick={openForm}>
+          <AgentButton variant="primary" block onClick={openForm}>
             <FileUp size={18} aria-hidden="true" />
             {kind === 'closing' ? (rejected ? 'Kirim ulang bukti transfer' : 'Kirim bukti transfer') : rejected ? 'Kirim ulang bukti lunas' : 'Kirim bukti lunas'}
-          </button>
+          </AgentButton>
         </>
       )}
 
       {open && (
-        <div className="jd-sheet" role="dialog" aria-modal="true" aria-labelledby="jd-proof-title" onClick={() => !sending && setOpen(false)}>
-          <form className="jd-sheet__panel" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-            <div className="jd-sheet__head">
-              <h3 id="jd-proof-title">{kind === 'closing' ? 'Kirim bukti transfer' : 'Kirim bukti lunas'}</h3>
-              <button type="button" className="jd-sheet__close" aria-label="Tutup" onClick={() => setOpen(false)} disabled={sending}>
-                <X size={20} aria-hidden="true" />
-              </button>
-            </div>
+        <AgentSheet title={kind === 'closing' ? 'Kirim bukti transfer' : 'Kirim bukti lunas'} locked={sending} onSubmit={submit} onClose={() => setOpen(false)}>
             <p className="jd-muted">Unggah {label} dari jamaah. Admin travel memeriksa lalu mengubah status.</p>
             {error && <p className="jd-proof__error" role="alert">{error}</p>}
 
@@ -164,11 +159,10 @@ export const PaymentProofPanel: React.FC<Props> = ({ prospectId, status, paidOff
               <textarea className="jd-input jd-input--area" maxLength={500} rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Contoh: DP 2 jamaah via BSI" disabled={sending} />
             </label>
 
-            <button type="submit" className="jd-btn jd-proof__submit" disabled={sending}>
+            <AgentButton type="submit" variant="primary" size="lg" block disabled={sending}>
               {sending ? 'Mengirim...' : 'Kirim ke admin travel'}
-            </button>
-          </form>
-        </div>
+            </AgentButton>
+        </AgentSheet>
       )}
     </div>
   );
