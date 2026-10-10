@@ -221,18 +221,21 @@ type AgentDashboardSummary struct {
 	// SaldoTertahan: komisi dari jamaah yang sudah closing (DP) tapi belum ditandai lunas.
 	SaldoTertahan float64 `json:"saldo_tertahan"`
 	// TotalKomisi: commission from paid-off jamaah (released), before withdrawals. Held commission is not counted.
-	TotalKomisi         float64                       `json:"total_komisi"`
-	JamaahTertundaCount int                           `json:"jamaah_tertunda_count"`
-	TargetBulanan       *TargetBulanan                `json:"target_bulanan"`
-	Targets             []AgentTargetView             `json:"targets"`
-	MinimumPayoutAmount *float64                      `json:"minimum_payout_amount"`
-	ReferralLink        string                        `json:"referral_link"`
-	RecruitLink         string                        `json:"recruit_link"` // agent sign-up page with ?ref=<code>: the friend is linked to this agent as upline
-	FunnelRingkasan     repository.AgentFunnelSummary `json:"funnel_ringkasan"`
-	LeaderboardPreview  LeaderboardPreview            `json:"leaderboard_preview"`
-	PhotoURL            *string                       `json:"photo_url"`
-	TotalClicks         int                           `json:"total_clicks"`
-	TenantName          string                        `json:"tenant_name,omitempty"`
+	TotalKomisi         float64           `json:"total_komisi"`
+	JamaahTertundaCount int               `json:"jamaah_tertunda_count"`
+	TargetBulanan       *TargetBulanan    `json:"target_bulanan"`
+	Targets             []AgentTargetView `json:"targets"`
+	MinimumPayoutAmount *float64          `json:"minimum_payout_amount"`
+	// MaxCommissionPerJamaah is the highest commission per jamaah among the packages still on sale (nil when
+	// none has a commission). It feeds the invite message ("komisi hingga Rp X per jamaah").
+	MaxCommissionPerJamaah *float64                      `json:"max_commission_per_jamaah"`
+	ReferralLink           string                        `json:"referral_link"`
+	RecruitLink            string                        `json:"recruit_link"` // agent sign-up page with ?ref=<code>: the friend is linked to this agent as upline
+	FunnelRingkasan        repository.AgentFunnelSummary `json:"funnel_ringkasan"`
+	LeaderboardPreview     LeaderboardPreview            `json:"leaderboard_preview"`
+	PhotoURL               *string                       `json:"photo_url"`
+	TotalClicks            int                           `json:"total_clicks"`
+	TenantName             string                        `json:"tenant_name,omitempty"`
 	// TravelSuspended: the travel's subscription lapsed past the grace period; the portal is read-only.
 	TravelSuspended bool `json:"travel_suspended"`
 }
@@ -412,8 +415,10 @@ type agentService struct {
 	adminUserRepo        repository.AdminUserRepository
 	notifService         NotificationService
 	targetService        AgentTargetService
-	habitRepo            repository.AgentHabitRepository // optional (WithHabitBadges)
+	habitRepo            repository.AgentHabitRepository   // optional (WithHabitBadges)
 	networkRepo          repository.AgentNetworkRepository // optional (WithAgentNetwork)
+	domainRepo           repository.DomainRepository       // optional (WithCustomDomains)
+	packageRepo          repository.PackageRepository      // optional (WithPackages)
 }
 
 func NewAgentService(
@@ -447,6 +452,58 @@ func NewAgentService(
 
 // AgentServiceOption adds an optional dependency to the agent service.
 type AgentServiceOption func(*agentService)
+
+// WithCustomDomains lets the links an agent shares use the travel's active custom domain.
+func WithCustomDomains(domainRepo repository.DomainRepository) AgentServiceOption {
+	return func(s *agentService) { s.domainRepo = domainRepo }
+}
+
+// WithPackages lets the home summary tell the highest commission among the packages on sale.
+func WithPackages(packageRepo repository.PackageRepository) AgentServiceOption {
+	return func(s *agentService) { s.packageRepo = packageRepo }
+}
+
+// sharedLinkHost is the host that goes into links an agent shares (referral and recruit links). The travel's
+// active custom domain wins over the host of the current request, so a link copied while the portal is open
+// on the default subdomain still points to the travel's own domain. A custom domain whose DNS keeps failing
+// is skipped, the same rule the redirect uses (MaxDomainCheckFailures): links stay on the working host.
+func (s *agentService) sharedLinkHost(ctx context.Context, tenantID uint64, requestHost string) string {
+	if s.domainRepo == nil {
+		return requestHost
+	}
+	d, err := s.domainRepo.GetActiveCustomDomain(ctx, tenantID)
+	if err != nil || d == nil || strings.TrimSpace(d.Hostname) == "" || d.CheckFailures >= MaxDomainCheckFailures {
+		return requestHost
+	}
+	return d.Hostname
+}
+
+// maxCommissionPerJamaah is the highest commission_amount among published packages that have not departed.
+func (s *agentService) maxCommissionPerJamaah(ctx context.Context, tenantID uint64) *float64 {
+	if s.packageRepo == nil {
+		return nil
+	}
+	published := "published"
+	pkgs, err := s.packageRepo.List(ctx, tenantID, &published)
+	if err != nil {
+		return nil
+	}
+	now := time.Now()
+	var best float64
+	for i := range pkgs {
+		p := &pkgs[i]
+		if p.CommissionAmount == nil || *p.CommissionAmount <= 0 || PackageDeparted(p, now) {
+			continue
+		}
+		if *p.CommissionAmount > best {
+			best = *p.CommissionAmount
+		}
+	}
+	if best <= 0 {
+		return nil
+	}
+	return &best
+}
 
 // WithHabitBadges lets the leaderboard show each agent's highest habit streak badge.
 func WithHabitBadges(habitRepo repository.AgentHabitRepository) AgentServiceOption {
@@ -788,24 +845,26 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 		targets = []AgentTargetView{}
 	}
 
-	refLink := fmt.Sprintf("%s%s/ref/%s", linkScheme(host), host, agent.ReferralCode)
-	recruitLink := fmt.Sprintf("%s%s/agen/daftar?ref=%s", linkScheme(host), host, url.QueryEscape(agent.ReferralCode))
+	linkHost := s.sharedLinkHost(ctx, tenantID, host)
+	refLink := fmt.Sprintf("%s%s/ref/%s", linkScheme(linkHost), linkHost, agent.ReferralCode)
+	recruitLink := fmt.Sprintf("%s%s/agen/daftar?ref=%s", linkScheme(linkHost), linkHost, url.QueryEscape(agent.ReferralCode))
 
 	return &AgentDashboardSummary{
-		Name:                agent.Name,
-		TenantName:          tenant.Name,
-		TravelSuspended:     util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()),
-		SaldoSiapCair:       saldoSiapCair,
-		SaldoTertunda:       saldoTertunda,
-		SaldoTertahan:       s.heldCommission(ctx, tenantID, agentID),
-		TotalKomisi:         s.totalCommission(ctx, tenantID, agentID),
-		JamaahTertundaCount: countTertunda,
-		TargetBulanan:       targetBulanan,
-		Targets:             targets,
-		MinimumPayoutAmount: tenant.MinimumPayoutAmount,
-		ReferralLink:        refLink,
-		RecruitLink:         recruitLink,
-		FunnelRingkasan:     *funnel,
+		Name:                   agent.Name,
+		TenantName:             tenant.Name,
+		TravelSuspended:        util.IsTravelSuspended(tenant.Status, tenant.SubscriptionExpiresAt, time.Now()),
+		SaldoSiapCair:          saldoSiapCair,
+		SaldoTertunda:          saldoTertunda,
+		SaldoTertahan:          s.heldCommission(ctx, tenantID, agentID),
+		TotalKomisi:            s.totalCommission(ctx, tenantID, agentID),
+		JamaahTertundaCount:    countTertunda,
+		TargetBulanan:          targetBulanan,
+		Targets:                targets,
+		MinimumPayoutAmount:    tenant.MinimumPayoutAmount,
+		ReferralLink:           refLink,
+		RecruitLink:            recruitLink,
+		MaxCommissionPerJamaah: s.maxCommissionPerJamaah(ctx, tenantID),
+		FunnelRingkasan:        *funnel,
 		LeaderboardPreview: LeaderboardPreview{
 			RankSaya:  rankSaya,
 			TotalAgen: totalAgen,

@@ -112,6 +112,8 @@ func main() {
 		agentTargetService,
 		service.WithHabitBadges(agentHabitRepo),
 		service.WithAgentNetwork(repository.NewAgentNetworkRepository(db)),
+		service.WithCustomDomains(domainRepo),
+		service.WithPackages(packageRepo),
 	)
 	prospectService := service.NewProspectService(
 		prospectRepo,

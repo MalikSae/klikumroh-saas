@@ -80,6 +80,8 @@ interface AgentDashboardSummary {
   referral_link: string;
   // Agent sign-up page of the travel with this agent's code in ?ref= (invite a friend to become an agent).
   recruit_link?: string;
+  // Highest commission per jamaah among the packages on sale (null when none has one): the invite message.
+  max_commission_per_jamaah?: number | null;
   funnel_ringkasan: AgentFunnelSummary;
   leaderboard_preview?: LeaderboardPreview | null;
   photo_url?: string | null;
@@ -348,14 +350,19 @@ export default function AgenDashboardPage() {
 
   const getRecruitWhatsAppUrl = (): string => {
     if (!summary?.recruit_link) return '#';
-    // Neutral (no greeting) and about what the reader gets, not about the sender. Only facts that hold for
-    // every travel: the registration may have a fee, so nothing says free or no capital.
+    // Wording approved by the founder (10 Okt 2026): neutral (no greeting), about what the reader gets. The
+    // figure is the highest commission per jamaah among the packages on sale; with none, the sentence goes
+    // without a number. The registration may have a fee, so nothing says free or no capital.
+    const max = summary.max_commission_per_jamaah;
+    const commissionLine =
+      max && max > 0
+        ? `Raih komisi hingga ${formatRupiah(max)} per jamaah yang Anda ajak.`
+        : 'Raih komisi untuk setiap jamaah yang Anda ajak.';
     const text = [
-      'Ingin punya penghasilan tambahan dengan mencari jamaah umroh?',
+      `Mau dapat penghasilan tambahan? Rekomendasikan relasi Anda untuk berumroh bersama ${travel?.name || 'travel umroh'}.`,
       '',
-      `Gabung jadi agen ${travel?.name || 'travel umroh'}: dapat komisi dari setiap jamaah yang closing lewat Anda.`,
+      commissionLine,
       '',
-      'Cara daftarnya ada di sini:',
       summary.recruit_link,
     ].join('\n');
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
