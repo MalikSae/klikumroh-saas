@@ -2,10 +2,18 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentCardHead } from '../../../components/agent/AgentCardHead';
+import { AgentIconButton } from '../../../components/agent/AgentIconButton';
+import { AgentSheet } from '../../../components/agent/AgentSheet';
+import { AgentSearch } from '../../../components/agent/AgentSearch';
+import { AgentChips } from '../../../components/agent/AgentChips';
+import { AgentButton } from '../../../components/agent/AgentButton';
+import { AgentStateEmpty } from '../../../components/agent/AgentState';
 import './BankCaption.css';
 import { logHabit } from '../../../lib/agentHabits';
 import { copyToClipboard } from '../../../lib/clipboard';
@@ -321,39 +329,16 @@ export default function BankCaptionPage() {
         </button>
 
         {/* Search */}
-        <div className="bc-search">
-          <Search size={18} className="bc-search__icon" aria-hidden="true" />
-          <input
-            type="search"
-            aria-label="Cari caption"
-            placeholder="Cari tema: orang tua, promo, hotel"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="tw-field bc-search__input"
-          />
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery('')} className="bc-search__clear" aria-label="Hapus pencarian">
-              <X size={18} />
-            </button>
-          )}
-        </div>
+        <AgentSearch value={searchQuery} onChange={setSearchQuery} placeholder="Cari tema: orang tua, promo, hotel" label="Cari caption" />
 
         {/* Category chips (brand fill for the active one) */}
-        <div className="bc-chips" role="tablist" aria-label="Kategori caption">
-          {chips.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              role="tab"
-              aria-selected={activeGoal === c.id}
-              onClick={() => setActiveGoal(c.id)}
-              className={`bc-chip${activeGoal === c.id ? ' bc-chip--active' : ''}`}
-            >
-              {c.label}
-              <span className="bc-chip__count">{c.count}</span>
-            </button>
-          ))}
-        </div>
+        <AgentChips
+          tone="brand"
+          label="Kategori caption"
+          value={activeGoal}
+          items={chips.map((c) => ({ key: c.id, label: c.label, count: c.count }))}
+          onChange={setActiveGoal}
+        />
 
         {/* Caption cards */}
         <div className="bc-list">
@@ -365,31 +350,25 @@ export default function BankCaptionPage() {
               .filter(Boolean)
               .join(' · ');
             return (
-              <article key={copy.id} className="bc-card">
-                <div className="bc-card__head">
-                  <div className="bc-card__titles">
-                    <h2 className="bc-card__title">{copy.title}</h2>
-                    {meta && <p className="bc-muted">{meta}</p>}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPartsOpenId(partsOpen ? null : copy.id)}
+              <AgentCard as="article" key={copy.id}>
+                <AgentCardHead title={copy.title} meta={meta || undefined}>
+                  <AgentIconButton
+                    label="Salin sebagian"
+                    active={partsOpen}
                     aria-expanded={partsOpen}
-                    aria-label="Salin sebagian"
-                    className={`bc-icon-btn${partsOpen ? ' bc-icon-btn--on' : ''}`}
+                    onClick={() => setPartsOpenId(partsOpen ? null : copy.id)}
                   >
                     <MoreHorizontal size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleFavorite(copy.id)}
-                    aria-label={isFav ? 'Hapus dari tersimpan' : 'Simpan caption'}
+                  </AgentIconButton>
+                  <AgentIconButton
+                    label={isFav ? 'Hapus dari tersimpan' : 'Simpan caption'}
+                    active={isFav}
                     aria-pressed={isFav}
-                    className={`bc-icon-btn${isFav ? ' bc-icon-btn--fav' : ''}`}
+                    onClick={() => toggleFavorite(copy.id)}
                   >
                     <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
-                  </button>
-                </div>
+                  </AgentIconButton>
+                </AgentCardHead>
 
                 {partsOpen && (
                   <div className="bc-parts" role="group" aria-label="Salin sebagian">
@@ -417,14 +396,14 @@ export default function BankCaptionPage() {
                 </div>
 
                 <div className="bc-card__actions">
-                  <button type="button" onClick={() => handleCopyFull(copy)} className={`bc-btn${fullCopied ? ' bc-btn--done' : ''}`}>
+                  <AgentButton onClick={() => handleCopyFull(copy)} done={fullCopied}>
                     {fullCopied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
                     <span>{fullCopied ? 'Tersalin' : 'Salin'}</span>
-                  </button>
-                  <button type="button" onClick={() => handleShareWA(copy)} className="bc-btn bc-btn--primary">
+                  </AgentButton>
+                  <AgentButton variant="primary" onClick={() => handleShareWA(copy)}>
                     <Share2 size={16} aria-hidden="true" />
                     <span>Kirim ke WA</span>
-                  </button>
+                  </AgentButton>
                 </div>
                 {copyFailedId === copy.id && (
                   <p className="bc-copy-failed" role="alert">
@@ -432,7 +411,7 @@ export default function BankCaptionPage() {
                     <span>Browser ini menolak menyalin otomatis. Pakai &quot;Kirim ke WA&quot;, atau tekan lama teks caption di atas untuk menyalin manual.</span>
                   </p>
                 )}
-              </article>
+              </AgentCard>
             );
           })}
         </div>
@@ -441,12 +420,12 @@ export default function BankCaptionPage() {
         {totalActiveItemsCount > 0 && (
           <div ref={sentinelRef} className="bc-more">
             {hasMore ? (
-              <button type="button" onClick={loadMore} className="bc-btn">
+              <AgentButton onClick={loadMore}>
                 <Loader2 size={16} className="ag-shell-spin" aria-hidden="true" />
                 <span>
                   Memuat caption ({currentlyDisplayedCount} dari {totalActiveItemsCount})
                 </span>
-              </button>
+              </AgentButton>
             ) : totalActiveItemsCount > PAGE_SIZE ? (
               <p className="bc-muted">Semua {totalActiveItemsCount} caption sudah tampil</p>
             ) : null}
@@ -455,38 +434,25 @@ export default function BankCaptionPage() {
 
         {/* Empty */}
         {totalActiveItemsCount === 0 && (
-          <div className="bc-empty">
-            <Star size={28} aria-hidden="true" />
-            <h2 className="bc-card__title">{activeGoal === 'favorites' && !searchQuery && favorites.length === 0 ? 'Belum ada caption tersimpan' : 'Tidak ada caption'}</h2>
-            <p className="bc-muted">
-              {searchQuery.trim()
+          <AgentStateEmpty
+            panel
+            icon={<Star size={28} aria-hidden="true" />}
+            title={activeGoal === 'favorites' && !searchQuery && favorites.length === 0 ? 'Belum ada caption tersimpan' : 'Tidak ada caption'}
+            text={
+              searchQuery.trim()
                 ? `Tidak ada caption yang cocok dengan "${searchQuery}".`
                 : activeGoal === 'favorites' && favorites.length === 0
                 ? 'Ketuk ikon bintang di kartu caption untuk menyimpannya di sini.'
-                : 'Data paket yang dipilih belum cukup untuk caption di sini. Coba pilih paket lain.'}
-            </p>
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="bc-btn">
-                Hapus pencarian
-              </button>
-            )}
-          </div>
+                : 'Data paket yang dipilih belum cukup untuk caption di sini. Coba pilih paket lain.'
+            }
+            action={searchQuery ? { label: 'Hapus pencarian', onClick: () => setSearchQuery('') } : undefined}
+          />
         )}
       </AgentPage>
 
       {/* Package and link sheet */}
       {sheetOpen && (
-        <div className="bc-sheet" role="presentation" onClick={() => setSheetOpen(false)}>
-          <div className="bc-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="bc-sheet-title" onClick={(e) => e.stopPropagation()}>
-            <span className="bc-sheet__grip" aria-hidden="true" />
-            <div className="bc-sheet__head">
-              <h2 id="bc-sheet-title" className="bc-card__title">
-                Paket di caption
-              </h2>
-              <button type="button" className="bc-icon-btn" onClick={() => setSheetOpen(false)} aria-label="Tutup">
-                <X size={20} />
-              </button>
-            </div>
+        <AgentSheet title="Paket di caption" onClose={() => setSheetOpen(false)}>
             <p className="bc-muted">Nama paket, harga, hotel, dan maskapai di caption diambil dari paket ini.</p>
             {packages.length === 0 ? (
               <p className="bc-muted">Belum ada paket yang tayang.</p>
@@ -514,11 +480,10 @@ export default function BankCaptionPage() {
               <input type="checkbox" checked={includeReferralLink} onChange={(e) => setIncludeReferralLink(e.target.checked)} />
               <span>Sertakan link pendaftaran saya di akhir caption</span>
             </label>
-            <button type="button" className="bc-btn bc-btn--primary" onClick={() => setSheetOpen(false)}>
+            <AgentButton variant="primary" onClick={() => setSheetOpen(false)}>
               Selesai
-            </button>
-          </div>
-        </div>
+            </AgentButton>
+        </AgentSheet>
       )}
     </MobileContainer>
   );

@@ -9,6 +9,9 @@ import { Award, CheckCircle2, Circle, Flame, ChevronRight } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentCardHead } from '../../../components/agent/AgentCardHead';
+import { AgentStateEmpty, AgentStateLoading } from '../../../components/agent/AgentState';
 import { HABIT_BADGE_MILESTONES, HabitBadge } from '../../../components/HabitBadge';
 import { HABITS, fetchHabitSummary, habitHeadline, type HabitSummary } from '../../../lib/agentHabits';
 import './Kebiasaan.css';
@@ -48,7 +51,11 @@ export default function KebiasaanPage() {
 
       <AgentPage>
         {!summary ? (
-          <p className="kb-muted kb-state">{failed ? 'Gagal memuat kebiasaan. Coba buka lagi sebentar.' : 'Memuat kebiasaan...'}</p>
+          failed ? (
+          <AgentStateEmpty text="Gagal memuat kebiasaan. Coba buka lagi sebentar." />
+        ) : (
+          <AgentStateLoading text="Memuat kebiasaan..." />
+        )
         ) : (
           <>
             {/* Streak hero: game-like brand card (as the leaderboard podium). Big streak number with a glowing
@@ -93,10 +100,8 @@ export default function KebiasaanPage() {
             </section>
 
             {/* Streak badges: earned ones in their medal color with the date, the rest locked. */}
-            <section className="kb-panel" aria-labelledby="kb-badges">
-              <h2 id="kb-badges" className="kb-title">
-                Lencana istiqamah
-              </h2>
+            <AgentCard as="section" aria-labelledby="kb-badges">
+              <AgentCardHead id="kb-badges" title="Lencana istiqamah" />
               <ul className="kb-badges">
                 {HABIT_BADGE_MILESTONES.map((m) => {
                   const earned = (summary.badges || []).find((b) => b.days === m);
@@ -119,11 +124,11 @@ export default function KebiasaanPage() {
                   );
                 })}
               </ul>
-            </section>
+            </AgentCard>
 
             {/* How it works: shown until the agent has a first active day. */}
             {summary.best_streak === 0 && (
-              <section className="kb-howto" aria-labelledby="kb-howto">
+              <AgentCard as="section" variant="tint" className="kb-howto" aria-labelledby="kb-howto">
                 <h2 id="kb-howto" className="kb-title">
                   Cara main
                 </h2>
@@ -134,19 +139,12 @@ export default function KebiasaanPage() {
                   </li>
                   <li>Hari aktif berturut-turut jadi streak. Satu hari terlewat, streak mulai lagi dari awal.</li>
                 </ol>
-              </section>
+              </AgentCard>
             )}
 
             {/* Today's checklist */}
-            <section className="kb-panel" aria-labelledby="kb-today">
-              <div className="kb-panel__head">
-                <h2 id="kb-today" className="kb-title">
-                  Hari ini
-                </h2>
-                <span className="kb-count">
-                  {doneCount}/{summary.total}
-                </span>
-              </div>
+            <AgentCard as="section" aria-labelledby="kb-today">
+              <AgentCardHead id="kb-today" title="Hari ini" aside={`${doneCount}/${summary.total}`} />
               <ul className="kb-list">
                 {HABITS.map((h) => {
                   const done = summary.done_today.includes(h.key);
@@ -181,16 +179,15 @@ export default function KebiasaanPage() {
               <p className="kb-muted">
                 Hari aktif: minimal {summary.active_min} dari {summary.total} langkah.
               </p>
-            </section>
+            </AgentCard>
 
             {/* Last 30 days */}
-            <section className="kb-panel" aria-labelledby="kb-month">
-              <div className="kb-panel__head">
-                <h2 id="kb-month" className="kb-title">
-                  30 hari terakhir
-                </h2>
-                <span className="kb-count">{summary.calendar.filter((d) => d.active).length} hari aktif</span>
-              </div>
+            <AgentCard as="section" aria-labelledby="kb-month">
+              <AgentCardHead
+                id="kb-month"
+                title="30 hari terakhir"
+                aside={`${summary.calendar.filter((d) => d.active).length} hari aktif`}
+              />
               <ol className="kb-cal">
                 {summary.calendar.map((d) => (
                   <li
@@ -212,7 +209,7 @@ export default function KebiasaanPage() {
                   <span className="kb-cal__day" /> Kosong
                 </span>
               </p>
-            </section>
+            </AgentCard>
           </>
         )}
       </AgentPage>

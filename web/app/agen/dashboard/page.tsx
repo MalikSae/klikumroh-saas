@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -11,7 +10,6 @@ import {
   Share2,
   Trophy,
   ChevronRight,
-  RefreshCw,
   AlertCircle,
   Eye,
   EyeOff,
@@ -32,13 +30,19 @@ import { MobileContainer } from '../../../components/MobileContainer';
 import type { PublicPackage } from '../../../components/publicPackage';
 import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentCardHead } from '../../../components/agent/AgentCardHead';
+import { AgentSheet } from '../../../components/agent/AgentSheet';
+import { AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { initAudioUnlock, playNotificationSound } from '../../../lib/notificationSound';
 import { HABITS, fetchHabitSummary, habitHeadline, logHabit, type HabitSummary } from '../../../lib/agentHabits';
 import { JAKARTA_TZ, jakartaDayKey } from '../../../lib/jakartaTime';
 import { homeRank } from '../../../lib/agentRank';
 import { copyToClipboard } from '../../../lib/clipboard';
 import { packageShareText } from '../../../lib/packageShare';
-import { recruitInviteText } from '../../../lib/recruitInvite';
+import { recruitInviteText, shareInvite } from '../../../lib/recruitInvite';
+import { AgentButton } from '../../../components/agent/AgentButton';
+import { rupiah } from '../../../lib/money';
 import './AgenDashboard.css';
 
 interface AgentFunnelSummary {
@@ -318,11 +322,6 @@ export default function AgenDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const formatRupiah = (val: number | null | undefined): string => {
-    if (val === null || val === undefined) return 'Rp 0';
-    return 'Rp ' + Math.floor(val).toLocaleString('id-ID');
-  };
-
   // 'Tersalin' and the share habit only count once the link is really on the clipboard.
   const handleCopyLink = async () => {
     if (!summary?.referral_link) return;
@@ -339,33 +338,28 @@ export default function AgenDashboardPage() {
 
   // Invitation link for a friend or relative to register as an agent under this agent. Not logged as a share
   // habit: that habit counts sharing a package link with prospects.
-  const handleCopyRecruit = async () => {
+  const handleInvite = async () => {
     if (!summary?.recruit_link) return;
     const link = summary.recruit_link;
-    if (!(await copyToClipboard(link))) {
+    // The wording lives in lib/recruitInvite.ts (shared with the "Agen binaan saya" page).
+    const result = await shareInvite(
+      recruitInviteText({ travelName: travel?.name, maxCommission: summary.max_commission_per_jamaah, link })
+    );
+    if (result === 'failed') {
       setCopyFailedLink(link);
       return;
     }
     setCopyFailedLink(null);
-    setRecruitCopied(true);
-    setTimeout(() => setRecruitCopied(false), 2000);
+    if (result === 'copied') {
+      setRecruitCopied(true);
+      setTimeout(() => setRecruitCopied(false), 2000);
+    }
   };
 
   // The travel's Komisi Pembinaan rate as shown on the card ("10", "7,5").
   const pembinaanLabel = summary?.pembinaan_percentage
     ? summary.pembinaan_percentage.toLocaleString('id-ID', { maximumFractionDigits: 2 })
     : '';
-
-  const getRecruitWhatsAppUrl = (): string => {
-    if (!summary?.recruit_link) return '#';
-    // The wording lives in lib/recruitInvite.ts (shared with the "Agen binaan saya" page).
-    const text = recruitInviteText({
-      travelName: travel?.name,
-      maxCommission: summary.max_commission_per_jamaah,
-      link: summary.recruit_link,
-    });
-    return `https://wa.me/?text=${encodeURIComponent(text)}`;
-  };
 
   // Link to one package through the agent's referral route (counts the click, then opens the package).
   const packageLink = (pkg: PublicPackage): string =>
@@ -409,10 +403,7 @@ export default function AgenDashboardPage() {
     return (
       <MobileContainer>
         <AgentHeader travel={travel} />
-        <div className="ag-center" role="status">
-          <span className="ag-spinner" aria-hidden="true" />
-          <span>Memuat beranda agen...</span>
-        </div>
+        <AgentStateLoading text="Memuat beranda agen..." />
         <AgentBottomNavbar />
       </MobileContainer>
     );
@@ -422,21 +413,13 @@ export default function AgenDashboardPage() {
     return (
       <MobileContainer>
         <AgentHeader travel={travel} />
-        <div className="ag-center">
-          <AlertCircle size={28} className="ag-center__icon" aria-hidden="true" />
-          <h2 className="ag-title">Beranda belum bisa dimuat</h2>
-          <p className="ag-note">{error}</p>
-          <button type="button" className="ag-btn ag-btn--outline" onClick={() => initDashboard()}>
-            <RefreshCw size={18} aria-hidden="true" />
-            Coba lagi
-          </button>
-        </div>
+        <AgentStateError title="Beranda belum bisa dimuat" text={error || 'Coba lagi sebentar.'} onRetry={() => initDashboard()} />
         <AgentBottomNavbar />
       </MobileContainer>
     );
   }
 
-  const money = (v: number | null | undefined) => (showBalance ? formatRupiah(v) : 'Rp ••••••');
+  const money = (v: number | null | undefined) => (showBalance ? rupiah(v) : 'Rp ••••••');
 
   // Only targets whose period is still running (an "active" target whose end date passed is history).
   // Today in WIB, like the period dates and departure dates it is compared with.
@@ -498,7 +481,7 @@ export default function AgenDashboardPage() {
         </div>
 
         {/* Balance card overlapping the band */}
-        <section className="ag-card ag-balance" aria-labelledby="ag-komisi">
+        <AgentCard as="section" className="ag-balance" data-card-spacing="tight" aria-labelledby="ag-komisi">
           <div className="ag-balance__label">
             <h2 id="ag-komisi">Total komisi diraih</h2>
             <button
@@ -517,10 +500,10 @@ export default function AgenDashboardPage() {
               {(summary.saldo_tertahan || 0) > 0 && <> · tertahan {money(summary.saldo_tertahan)}</>}
             </span>
           </div>
-        </section>
+        </AgentCard>
 
         {/* Menu grid */}
-        <nav className="ag-card ag-menu" aria-label="Menu agen">
+        <AgentCard as="nav" className="ag-menu" aria-label="Menu agen">
           {menu.map((m) => {
             const inner = (
               <>
@@ -557,11 +540,11 @@ export default function AgenDashboardPage() {
               </Link>
             );
           })}
-        </nav>
+        </AgentCard>
 
         {/* Habit tracker: today's progress and streak; opens the full checklist. */}
         {habits && (
-          <Link href="/agen/kebiasaan" className="ag-card ag-habit" aria-label={`${habitHeadline(habits).title}. ${habits.done_today.length} dari ${habits.total} langkah, streak ${habits.streak} hari`}>
+          <AgentCard href="/agen/kebiasaan" className="ag-habit" aria-label={`${habitHeadline(habits).title}. ${habits.done_today.length} dari ${habits.total} langkah, streak ${habits.streak} hari`}>
             {/* Text takes the full width (title stays on one line); the five dots sit under it. */}
             <span className="ag-habit__text">
               <span className="ag-habit__title">{habitHeadline(habits).title}</span>
@@ -576,83 +559,61 @@ export default function AgenDashboardPage() {
               <Flame size={18} aria-hidden="true" />
               {habits.streak}
             </span>
-          </Link>
+          </AgentCard>
         )}
 
         {/* Referral link */}
-        <section className="ag-card" aria-labelledby="ag-link">
-          <div className="ag-card__head">
-            <h2 id="ag-link" className="ag-title">
-              Link referral
-            </h2>
-            <span className="ag-muted ag-inline">
-              <MousePointerClick size={16} aria-hidden="true" />
-              {summary.total_clicks ?? 0} klik
-            </span>
-          </div>
+        <AgentCard as="section" aria-labelledby="ag-link">
+          <AgentCardHead
+            id="ag-link"
+            title="Link referral"
+            aside={
+              <>
+                <MousePointerClick size={16} aria-hidden="true" />
+                {summary.total_clicks ?? 0} klik
+              </>
+            }
+          />
           <div className="ag-linkbox">
             <span className="ag-linkbox__url">{summary.referral_link}</span>
-            <button
-              type="button"
+            <AgentButton
+              variant="primary"
               className="ag-linkbox__copy"
               onClick={handleCopyLink}
               aria-label={copied ? 'Link tersalin' : 'Salin link referral'}
             >
               {copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
               {copied ? 'Tersalin' : 'Salin'}
-            </button>
+            </AgentButton>
           </div>
           {copyFailedLink === summary.referral_link && <CopyFailedNote link={copyFailedLink} />}
-        </section>
+        </AgentCard>
 
         {/* Invite a friend or relative to become an agent */}
         {summary.recruit_link && !summary.travel_suspended && !!summary.pembinaan_percentage && (
-          <section className="ag-card ag-recruit" aria-labelledby="ag-recruit">
-            <h2 id="ag-recruit" className="ag-title ag-recruit__title">
-              <UserPlus size={18} aria-hidden="true" />
-              Bina agen, tambah penghasilan
-            </h2>
+          <AgentCard as="section" variant="tint" className="ag-recruit" aria-labelledby="ag-recruit">
+            <AgentCardHead id="ag-recruit" icon={<UserPlus size={18} aria-hidden="true" />} title="Bina agen, tambah penghasilan" />
             <p className="ag-recruit__text">
               Dapat {pembinaanLabel}% Komisi Pembinaan dari setiap closing agen binaan Anda.
             </p>
             <div className="ag-recruit__actions">
-              <button type="button" className="ag-recruit__copy" onClick={handleCopyRecruit}>
-                {recruitCopied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+              <AgentButton variant="primary" className="ag-recruit__action" onClick={handleInvite}>
+                {recruitCopied ? <Check size={18} aria-hidden="true" /> : <Share2 size={18} aria-hidden="true" />}
                 {recruitCopied ? 'Tersalin' : 'Ajak agen'}
-              </button>
-              <a
-                className="ag-recruit__wa"
-                href={getRecruitWhatsAppUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Kirim tautan ajakan lewat WhatsApp"
-                title="Kirim lewat WhatsApp"
-              >
-                <WhatsAppIcon size={20} aria-hidden="true" />
-              </a>
+              </AgentButton>
+              <AgentButton href="/agen/jaringan" className="ag-recruit__action">
+                Lihat agen binaan
+              </AgentButton>
             </div>
             {copyFailedLink === summary.recruit_link && <CopyFailedNote link={copyFailedLink} />}
-            {/* Own row under the buttons: beside the title it wrapped on narrow phones. */}
-            <Link href="/agen/jaringan" className="ag-textlink ag-recruit__network">
-              Lihat agen binaan
-              <ChevronRight size={16} aria-hidden="true" />
-            </Link>
-          </section>
+          </AgentCard>
         )}
 
         {/* Packages to share */}
         {sharePackages.length > 0 && (
-          <section className="ag-card ag-share" aria-labelledby="ag-share">
-            <div className="ag-card__head">
-              <h2 id="ag-share" className="ag-title">
-                Paket untuk dibagikan
-              </h2>
-              {/* The full public catalog; sharing from a package page there uses the agent's referral link. */}
-              <Link href="/paket" className="ag-textlink">
-                Lihat semua
-                <ChevronRight size={16} aria-hidden="true" />
-              </Link>
-            </div>
+          <AgentCard as="section" variant="scroll" className="ag-share" aria-labelledby="ag-share">
+            {/* The full public catalog; sharing from a package page there uses the agent's referral link. */}
+            <AgentCardHead id="ag-share" title="Paket untuk dibagikan" link={{ href: '/paket', label: 'Lihat semua' }} />
             <ul className="ag-share__list">
               {sharePackages.map((pkg) => {
                 const photo = [...(pkg.photos || [])].sort((x, y) => x.sort_order - y.sort_order)[0];
@@ -667,36 +628,30 @@ export default function AgenDashboardPage() {
                           <img src={photo.file_path} alt="" loading="lazy" />
                         )}
                       </span>
-                      <span className="ag-share__name">{pkg.name}</span>
+                      <span className="ag-share__text">
+                        <span className="ag-share__name">{pkg.name}</span>
                       <span className="ag-muted">
                         {pkg.departure_date
                           ? new Date(pkg.departure_date.slice(0, 10) + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                           : 'Jadwal menyusul'}
-                        {pkg.price ? ` · ${formatRupiah(pkg.price)}` : ''}
+                        {pkg.price ? ` · ${rupiah(pkg.price)}` : ''}
+                      </span>
                       </span>
                     </Link>
-                    <button type="button" className="ag-share__btn" onClick={() => { setCopyFailedLink(null); setSyiarPkg(pkg); }}>
+                    <AgentButton block className="ag-share__btn" onClick={() => { setCopyFailedLink(null); setSyiarPkg(pkg); }}>
                       <Megaphone size={16} aria-hidden="true" />
                       Syiarkan!
-                    </button>
+                    </AgentButton>
                   </li>
                 );
               })}
             </ul>
-          </section>
+          </AgentCard>
         )}
 
         {/* Prospect pipeline */}
-        <section className="ag-card" aria-labelledby="ag-jamaah">
-          <div className="ag-card__head">
-            <h2 id="ag-jamaah" className="ag-title">
-              Calon jamaah
-            </h2>
-            <Link href="/agen/prospek" className="ag-textlink">
-              Lihat semua
-              <ChevronRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
+        <AgentCard as="section" aria-labelledby="ag-jamaah">
+          <AgentCardHead id="ag-jamaah" title="Calon jamaah" link={{ href: '/agen/prospek', label: 'Lihat semua' }} />
           <dl className="ag-stats">
             <div className="ag-stat ag-stat--new">
               <dt>Baru</dt>
@@ -711,14 +666,12 @@ export default function AgenDashboardPage() {
               <dd>{summary.funnel_ringkasan.closing}</dd>
             </div>
           </dl>
-        </section>
+        </AgentCard>
 
         {/* Running targets */}
         {targets.length > 0 && (
-          <section className="ag-card" aria-labelledby="ag-target">
-            <h2 id="ag-target" className="ag-title">
-              Target dan reward
-            </h2>
+          <AgentCard as="section" aria-labelledby="ag-target">
+            <AgentCardHead id="ag-target" title="Target dan reward" />
             <ul className="ag-targets">
               {targets.map((t) => {
                 const pct = t.metric_value > 0 ? Math.min(100, Math.max(0, Math.round((t.progress_value / t.metric_value) * 100))) : 0;
@@ -755,18 +708,13 @@ export default function AgenDashboardPage() {
                 );
               })}
             </ul>
-          </section>
+          </AgentCard>
         )}
 
       </div>
 
       {syiarPkg && (
-        <div className="ag-sheet" role="presentation" onClick={() => setSyiarPkg(null)}>
-          <div className="ag-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="ag-sheet-title" onClick={(e) => e.stopPropagation()}>
-            <span className="ag-sheet__grip" aria-hidden="true" />
-            <h2 id="ag-sheet-title" className="ag-title">
-              Syiarkan paket ini
-            </h2>
+        <AgentSheet title="Syiarkan paket ini" onClose={() => setSyiarPkg(null)}>
             <p className="ag-muted">{syiarPkg.name}</p>
             <div className="ag-sheet__options">
               <button type="button" className="ag-sheet__option" onClick={() => copyPackageLink(syiarPkg)}>
@@ -798,11 +746,7 @@ export default function AgenDashboardPage() {
               </a>
             </div>
             {copyFailedLink && copyFailedLink === packageLink(syiarPkg) && <CopyFailedNote link={copyFailedLink} />}
-            <button type="button" className="ag-sheet__cancel" onClick={() => setSyiarPkg(null)}>
-              Batal
-            </button>
-          </div>
-        </div>
+        </AgentSheet>
       )}
 
       <AgentBottomNavbar />

@@ -1,28 +1,8 @@
 .kb-muted {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
-}
-
-.kb-state {
-  padding: 48px 0;
-  text-align: center;
-}
-
-.kb-title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--tw-neutral-900);
-}
-
-.kb-count {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--tw-neutral-500);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Streak hero */
@@ -72,7 +52,7 @@
 }
 
 .kb-hero__count--start {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -103,30 +83,13 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .kb-hero__goal-text svg {
   flex-shrink: 0;
   color: var(--tw-rating-star);
-}
-
-/* Panels */
-.kb-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px 16px;
-  border-radius: 16px;
-  background-color: var(--tw-background);
-  box-shadow: var(--tw-card-shadow);
-}
-
-.kb-panel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 /* Checklist */
@@ -171,8 +134,8 @@ a.kb-row:hover .kb-row__label {
 }
 
 .kb-row__label {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--tw-neutral-900);
 }
 
@@ -190,7 +153,7 @@ a.kb-row:hover .kb-row__label {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 6px;
-  margin: 4px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -218,8 +181,8 @@ a.kb-row:hover .kb-row__label {
 .kb-legend {
   display: flex;
   gap: 16px;
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 0;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
@@ -237,21 +200,12 @@ a.kb-row:hover .kb-row__label {
 /* Motivating line under the streak (changes with today's progress). */
 .kb-hero__cheer {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
 }
 
 /* "Cara main": until the first active day. Numbered steps, plain panel. */
-.kb-howto {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-  border: 1px dashed color-mix(in srgb, var(--tw-brand-primary) 35%, transparent);
-  border-radius: 16px;
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 4%, var(--tw-background));
-}
 
 .kb-howto__list {
   display: flex;
@@ -285,7 +239,7 @@ a.kb-row:hover .kb-row__label {
 }
 
 .kb-badge__name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
   color: var(--tw-text-primary);

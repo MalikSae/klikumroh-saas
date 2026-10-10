@@ -6,8 +6,14 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, MessageCircle, AlertCircle, X, MessageSquare, Lock } from 'lucide-react';
 import { CustomDropdown } from '../../../../components/CustomDropdown';
 import { MobileContainer } from '../../../../components/MobileContainer';
+import { StatusLabel } from '../../../../components/agent/StatusLabel';
+import { prospectStatusLabel, prospectStatusText, prospectStatusTone } from '../../../../lib/prospectStatus';
+import { rupiah } from '../../../../lib/money';
 import { AgentPage } from '../../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../../components/agent/AgentCard';
+import { AgentCardHead } from '../../../../components/agent/AgentCardHead';
+import { AgentButton } from '../../../../components/agent/AgentButton';
 import styles from './page.module.css';
 import './JamaahDetail.css';
 import { logHabit } from '../../../../lib/agentHabits';
@@ -96,15 +102,6 @@ interface ProspectDetailResponse {
   notes: NoteItem[];
   payment_requests?: AgentPaymentRequest[];
 }
-
-// Status labels; colors live in JamaahDetail.css (jd-status--{key}).
-const STATUS_LABEL: Record<string, string> = {
-  baru: 'Baru',
-  dihubungi: 'Dihubungi',
-  tertarik: 'Tertarik',
-  closing: 'Closing',
-  tidak_lanjut: 'Tidak Lanjut',
-};
 
 export default function AgenJamaahDetailPage() {
   const router = useRouter();
@@ -337,14 +334,6 @@ export default function AgenJamaahDetailPage() {
     }
   };
 
-  const formatRupiah = (val: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
-
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '-';
     try {
@@ -394,10 +383,10 @@ export default function AgenJamaahDetailPage() {
           <AlertCircle size={32} className="jd-muted" aria-hidden="true" />
           <h2 className="jd-title">Data tidak ditemukan</h2>
           <p className="jd-muted">{error || 'Informasi jamaah tidak dapat ditampilkan.'}</p>
-          <Link href="/agen/jamaah" className="jd-btn">
+          <AgentButton href="/agen/jamaah">
             <ArrowLeft size={16} aria-hidden="true" />
             <span>Kembali ke daftar jamaah</span>
-          </Link>
+          </AgentButton>
         </AgentPage>
       </MobileContainer>
     );
@@ -408,8 +397,7 @@ export default function AgenJamaahDetailPage() {
   const isAnonymized = !!prospect.anonymized_at;
   // Status and notes cannot change while the data is anonymized or the travel is suspended.
   const isReadOnly = isAnonymized || travelSuspended;
-  const statusText =
-    (STATUS_LABEL[prospect.status] || prospect.status) + (isClosing ? (prospect.paid_off_at ? ' · Lunas' : ' · Belum lunas') : '');
+  const statusText = prospectStatusText(prospect.status, prospect.paid_off_at);
   // Why the jamaah did not continue: fixed category label plus the optional free-text note.
   const lostCategoryLabel = prospect.lost_reason_category
     ? LOST_REASON_OPTIONS.find((o) => o.value === prospect.lost_reason_category)?.label ||
@@ -429,17 +417,17 @@ export default function AgenJamaahDetailPage() {
   // or none booked (closing without commission ledger rows). "Lunas" only when paid_off_at is set.
   const heldAmount = info_komisi?.held_amount || 0;
   const releasedAmount = info_komisi?.released_amount || 0;
-  const komisiState: { text: string; tone: 'muted' | 'ok' | 'wait'; note: string } = !isClosing
+  const komisiState: { text: string; tone: 'muted' | 'success' | 'wait'; note: string } = !isClosing
     ? { text: 'Potensi', tone: 'muted', note: 'Komisi tercatat saat jamaah membayar DP (closing).' }
     : heldAmount > 0
     ? { text: 'Tertahan', tone: 'wait', note: 'Jamaah sudah membayar DP. Komisi bisa ditarik setelah admin menandai jamaah lunas.' }
     : releasedAmount <= 0
     ? { text: 'Tidak ada komisi', tone: 'muted', note: 'Tidak ada komisi yang tercatat untuk jamaah ini.' }
     : prospect.paid_off_at
-    ? { text: 'Siap ditarik', tone: 'ok', note: 'Jamaah sudah lunas. Komisi ini sudah bisa Anda tarik.' }
+    ? { text: 'Siap ditarik', tone: 'success', note: 'Jamaah sudah lunas. Komisi ini sudah bisa Anda tarik.' }
     : {
         text: 'Siap ditarik',
-        tone: 'ok',
+        tone: 'success',
         note: 'Komisi sudah bisa ditarik (travel mencairkan komisi saat DP). Jamaah belum ditandai lunas.',
       };
   // A closing with no commission rows (info_komisi null) still gets the panel, with the neutral note.
@@ -452,10 +440,8 @@ export default function AgenJamaahDetailPage() {
 
       <AgentPage>
         {/* Registration details as label / value rows. */}
-        <section className="jd-panel" aria-labelledby="jd-daftar">
-          <div className="jd-panel__head">
-            <h2 id="jd-daftar" className="jd-panel__title">Pendaftaran</h2>
-          </div>
+        <AgentCard as="section" aria-labelledby="jd-daftar">
+          <AgentCardHead id="jd-daftar" title="Pendaftaran" />
           <dl className="jd-rows">
             <div className="jd-rows__item">
               <dt>Nomor WA</dt>
@@ -495,42 +481,46 @@ export default function AgenJamaahDetailPage() {
           <p className="jd-panel__foot">
             Masuk {formatDate(prospect.created_at)} lewat {prospect.entry_method === 'agent_manual' ? 'input manual Anda' : 'formulir website'}
           </p>
-        </section>
+        </AgentCard>
 
         {/* Commission for this jamaah. */}
         {showKomisi && (
-          <section className="jd-panel" aria-labelledby="jd-komisi">
-            <div className="jd-panel__head">
-              <h2 id="jd-komisi" className="jd-panel__title">Komisi</h2>
-              <span className={`jd-tag jd-tag--${komisiState.tone}`}>{komisiState.text}</span>
-            </div>
+          <AgentCard as="section" aria-labelledby="jd-komisi">
+            <AgentCardHead id="jd-komisi" title="Komisi" aside={<StatusLabel tone={komisiState.tone}>{komisiState.text}</StatusLabel>} />
             {/* Amount, then the per-jamaah breakdown on its own line (it wrapped awkwardly next to the 22px amount). */}
-            {info_komisi && <p className="jd-amount">{formatRupiah(info_komisi.total_amount)}</p>}
+            {info_komisi && <p className="jd-amount">{rupiah(info_komisi.total_amount)}</p>}
             {info_komisi && info_komisi.rate_per_jamaah > 0 && pax > 1 && (
               <p className="jd-amount__calc">
-                {formatRupiah(info_komisi.rate_per_jamaah)} x {pax} jamaah
+                {rupiah(info_komisi.rate_per_jamaah)} x {pax} jamaah
               </p>
             )}
             <p className="jd-muted">{komisiState.note}</p>
-          </section>
+          </AgentCard>
         )}
 
         {/* Status and its history in one panel. */}
-        <section className="jd-panel" aria-labelledby="jd-status">
-          <div className="jd-panel__head">
-            <h2 id="jd-status" className="jd-panel__title">Status</h2>
-            {!isClosing && !isReadOnly ? (
-              <button type="button" onClick={handleOpenStatusModal} className="jd-btn jd-btn--sm">
+        <AgentCard as="section" aria-labelledby="jd-status">
+          <AgentCardHead
+            id="jd-status"
+            title="Status"
+            aside={
+              isClosing || isReadOnly ? (
+                <span className="jd-lock">
+                  <Lock size={14} aria-hidden="true" />
+                  {isClosing ? 'Final' : 'Terkunci'}
+                </span>
+              ) : undefined
+            }
+          >
+            {!isClosing && !isReadOnly && (
+              <AgentButton size="sm" onClick={handleOpenStatusModal}>
                 Ubah status
-              </button>
-            ) : (
-              <span className="jd-lock">
-                <Lock size={14} aria-hidden="true" />
-                {isClosing ? 'Final' : 'Terkunci'}
-              </span>
+              </AgentButton>
             )}
-          </div>
-          <p className={`jd-status jd-status--${prospect.status} jd-status--lg`}>{statusText}</p>
+          </AgentCardHead>
+          <StatusLabel as="p" large tone={prospectStatusTone(prospect.status)}>
+            {statusText}
+          </StatusLabel>
           {lostReasonText && <p className="jd-muted">Alasan: {lostReasonText}</p>}
           <p className="jd-muted">
             {isAnonymized
@@ -558,7 +548,7 @@ export default function AgenJamaahDetailPage() {
             <ol className="jd-history">
               {status_history.map((hist) => (
                 <li key={hist.id} className="jd-history__item">
-                  <span className="jd-history__what">{STATUS_LABEL[hist.new_status] || hist.new_status}</span>
+                  <span className="jd-history__what">{prospectStatusLabel(hist.new_status)}</span>
                   <span className="jd-muted">
                     {formatDateTime(hist.changed_at)} · {hist.changed_by_type === 'agent' ? 'oleh Anda' : 'oleh admin travel'}
                   </span>
@@ -566,13 +556,11 @@ export default function AgenJamaahDetailPage() {
               ))}
             </ol>
           )}
-        </section>
+        </AgentCard>
 
         {/* Notes */}
-        <section className="jd-panel" aria-labelledby="jd-catatan">
-          <div className="jd-panel__head">
-            <h2 id="jd-catatan" className="jd-panel__title">Catatan{notes.length > 0 ? ` (${notes.length})` : ''}</h2>
-          </div>
+        <AgentCard as="section" aria-labelledby="jd-catatan">
+          <AgentCardHead id="jd-catatan" title={`Catatan${notes.length > 0 ? ` (${notes.length})` : ''}`} />
           {!isReadOnly && (
             <form onSubmit={handleAddNote} className="jd-note-form">
               {noteError && (
@@ -589,9 +577,9 @@ export default function AgenJamaahDetailPage() {
                 onChange={(e) => setNewNoteText(e.target.value)}
                 className="tw-field jd-note-form__input"
               />
-              <button type="submit" disabled={noteSubmitting || !newNoteText.trim()} className="jd-btn jd-btn--sm jd-note-form__submit">
+              <AgentButton type="submit" size="sm" className="jd-note-form__submit" disabled={noteSubmitting || !newNoteText.trim()}>
                 {noteSubmitting ? 'Menyimpan...' : 'Simpan catatan'}
-              </button>
+              </AgentButton>
             </form>
           )}
           {notes.length === 0 ? (
@@ -608,20 +596,20 @@ export default function AgenJamaahDetailPage() {
               ))}
             </ul>
           )}
-        </section>
+        </AgentCard>
       </AgentPage>
 
       {/* Contact actions stay at the bottom of the screen while scrolling. */}
       {!isAnonymized && (
         <div className="jd-actions">
-          <a href={getWhatsAppUrl(prospect.phone, prospect.name)} target="_blank" rel="noopener noreferrer" className="jd-btn jd-btn--wa" onClick={() => logHabit('contact')}>
+          <AgentButton variant="wa" href={getWhatsAppUrl(prospect.phone, prospect.name)} target="_blank" rel="noopener noreferrer" onClick={() => logHabit('contact')}>
             <MessageCircle size={18} aria-hidden="true" />
             <span>Chat WhatsApp</span>
-          </a>
-          <Link href={`/agen/script-wa?prospect_id=${prospect.id}`} className="jd-btn jd-btn--soft">
+          </AgentButton>
+          <AgentButton variant="soft" href={`/agen/script-wa?prospect_id=${prospect.id}`}>
             <MessageSquare size={18} aria-hidden="true" />
             <span>Script chat</span>
-          </Link>
+          </AgentButton>
         </div>
       )}
 

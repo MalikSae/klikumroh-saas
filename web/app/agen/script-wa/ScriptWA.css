@@ -8,7 +8,7 @@
 
 .sw-muted {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
 }
@@ -18,7 +18,7 @@
   border: none;
   background: none;
   color: var(--tw-brand-primary);
-  font: 600 13px var(--tw-font-body);
+  font: 600 12px var(--tw-font-body);
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -26,49 +26,15 @@
 
 /* Icon buttons (back, star, copy, expand): 36px, 44px in the header. */
 
-/* Buttons */
-.sw-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-  font: 600 14px var(--tw-font-body);
-  cursor: pointer;
-}
-
-.sw-btn:hover {
-  background-color: var(--tw-neutral-100);
-}
-
-.sw-btn--done {
-  color: var(--tw-brand-primary);
-}
-
-.sw-btn--primary {
-  border-color: transparent;
-  background-color: var(--tw-brand-primary);
-  color: var(--tw-on-brand);
-}
-
-.sw-btn--primary:hover {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900));
-}
-
 /* Recipient row */
 .sw-target {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
+  padding: var(--tw-space-12);
   border: 1px solid var(--tw-neutral-200);
-  border-radius: 12px;
+  border-radius: var(--tw-radius-inset);
   background-color: var(--tw-background);
   font: inherit;
   text-align: left;
@@ -87,13 +53,13 @@
 }
 
 .sw-target__label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
 .sw-target__name {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tw-neutral-900);
   white-space: nowrap;
@@ -102,7 +68,7 @@
 
 .sw-target__meta {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -113,27 +79,6 @@
   color: var(--tw-neutral-500);
 }
 
-/* Status as colored text (pipeline colors). */
-.sw-status {
-  font-weight: 600;
-}
-
-.sw-status--baru {
-  color: var(--tw-status-new-text);
-}
-
-.sw-status--dihubungi {
-  color: var(--tw-status-contacted-text);
-}
-
-.sw-status--tertarik {
-  color: var(--tw-accent-indigo-text);
-}
-
-.sw-status--closing {
-  color: var(--tw-success-strong);
-}
-
 /* Recommendation for the chosen jamaah (brand accent line, as before). */
 .sw-tip {
   margin: 0;
@@ -141,95 +86,9 @@
   border-left: 3px solid var(--tw-brand-primary);
   border-radius: 0 8px 8px 0;
   background-color: var(--tw-background);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-700);
-}
-
-/* Search */
-.sw-search {
-  position: relative;
-}
-
-.sw-search__icon {
-  position: absolute;
-  top: 50%;
-  left: 12px;
-  transform: translateY(-50%);
-  color: var(--tw-neutral-400);
-  pointer-events: none;
-}
-
-.sw-search__input {
-  padding-left: 40px;
-  padding-right: 44px;
-}
-
-.sw-search__input::-webkit-search-cancel-button {
-  display: none;
-}
-
-.sw-search__clear {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: none;
-  color: var(--tw-neutral-500);
-  cursor: pointer;
-}
-
-/* Phase chips: scroll sideways; the active one keeps the brand fill. */
-.sw-chips {
-  display: flex;
-  gap: 8px;
-  margin: 0 -16px;
-  padding: 0 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  mask-image: linear-gradient(to right, var(--tw-neutral-900) calc(100% - 32px), transparent);
-}
-
-.sw-chips::-webkit-scrollbar {
-  display: none;
-}
-
-.sw-chip {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 6px;
-  height: 34px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 999px;
-  background-color: var(--tw-neutral-100);
-  color: var(--tw-neutral-700);
-  font: 500 14px var(--tw-font-body);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.sw-chip:last-child {
-  margin-right: 24px;
-}
-
-.sw-chip--active {
-  background-color: var(--tw-brand-primary);
-  color: var(--tw-on-brand);
-}
-
-.sw-chip__count {
-  font-size: 13px;
-  color: var(--tw-neutral-500);
-}
-
-.sw-chip--active .sw-chip__count {
-  color: color-mix(in srgb, var(--tw-on-brand) 80%, transparent);
 }
 
 /* Phase goal: one line with the brand bulb. */
@@ -237,7 +96,7 @@
   display: flex;
   gap: 8px;
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-600);
 }
@@ -255,68 +114,21 @@
   gap: 12px;
 }
 
-.sw-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px 16px;
-  border-radius: 16px;
-  background-color: var(--tw-background);
-  box-shadow: var(--tw-card-shadow);
-}
-
-.sw-card__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.sw-card__titles,
-.sw-card__toggle {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  text-align: left;
-}
-
-.sw-card__toggle {
-  cursor: pointer;
-}
-
-.sw-card__title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--tw-neutral-900);
-}
-
-.sw-card--open .sw-card__title {
-  color: var(--tw-brand-primary);
-}
-
 .sw-example {
   margin: 0;
   padding: 8px 12px;
   border-radius: 8px;
   background-color: var(--tw-page-bg);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-600);
 }
 
 /* The message itself: light brand tint, as before. */
 .sw-script {
-  padding: 12px;
+  padding: var(--tw-space-12);
   border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 12%, transparent);
-  border-radius: 10px;
+  border-radius: var(--tw-radius-inset);
   background-color: color-mix(in srgb, var(--tw-brand-primary) 3%, var(--tw-background));
   font-size: 14px;
   line-height: 1.6;
@@ -357,7 +169,7 @@
 
 .sw-step__label {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tw-neutral-900);
 }
@@ -392,7 +204,7 @@
 }
 
 .sw-answer__reason {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tw-neutral-500);
   text-transform: capitalize;
@@ -403,62 +215,6 @@
   display: flex;
   justify-content: center;
   padding: 4px 0 8px;
-}
-
-.sw-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 40px 16px;
-  border-radius: 16px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-400);
-  text-align: center;
-}
-
-/* Recipient picker sheet */
-.sw-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background-color: var(--tw-modal-overlay);
-}
-
-.sw-sheet__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 428px;
-  max-height: 85vh;
-  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
-  border-radius: 20px 20px 0 0;
-  background-color: var(--tw-background);
-  animation: sw-sheet-in 0.2s ease-out;
-}
-
-@keyframes sw-sheet-in {
-  from {
-    transform: translateY(24px);
-  }
-}
-
-.sw-sheet__grip {
-  align-self: center;
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: var(--tw-neutral-200);
-}
-
-.sw-sheet__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .sw-seg {
@@ -475,7 +231,7 @@
   border: none;
   border-radius: 9px;
   background: none;
-  font: 500 14px var(--tw-font-body);
+  font: 600 14px var(--tw-font-body);
   color: var(--tw-neutral-600);
   cursor: pointer;
 }
@@ -521,13 +277,13 @@
 }
 
 .sw-pick__name {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--tw-neutral-900);
 }
 
 .sw-pick__meta {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
@@ -537,7 +293,7 @@
   gap: 6px;
 }
 
-.sw-manual .sw-btn {
+.sw-manual .ag-shell-btn {
   margin-top: 8px;
 }
 

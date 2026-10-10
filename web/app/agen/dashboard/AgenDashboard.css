@@ -24,16 +24,13 @@
 
 .ag-header__title {
   margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.25;
+  font: var(--tw-type-page-title);
   color: var(--tw-neutral-900);
 }
 
 .ag-header__travel {
   overflow: hidden;
-  font-size: 13px;
+  font: var(--tw-type-meta);
   color: var(--tw-neutral-500);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -78,8 +75,7 @@
   gap: 12px;
   padding-bottom: calc(84px + env(safe-area-inset-bottom));
   background-color: var(--tw-page-bg);
-  font-size: 14px;
-  line-height: 1.6;
+  font: var(--tw-type-body);
   color: var(--tw-neutral-700);
 }
 
@@ -126,17 +122,13 @@
 }
 
 .ag-greet__hi {
-  font-size: 14px;
-  line-height: 1.4;
+  font: var(--tw-type-body);
   opacity: 0.85;
 }
 
 .ag-greet__name {
   overflow: hidden;
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.3;
+  font: var(--tw-type-section-title);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -146,60 +138,21 @@
   opacity: 0.8;
 }
 
-/* White cards */
-.ag-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0 16px;
-  padding: 16px;
-  border-radius: 16px;
-  background-color: var(--tw-background);
-  box-shadow: var(--tw-card-shadow);
-}
-
-.ag-card__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.ag-title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--tw-neutral-900);
+/* Cards come from AgentCard (components/agent); the home page has no side padding of its own. */
+.ag-home > .ag-card {
+  margin-inline: var(--tw-space-16);
 }
 
 .ag-muted {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font: var(--tw-type-meta);
   color: var(--tw-neutral-500);
 }
 
-.ag-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ag-textlink {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--tw-brand-primary);
-  text-decoration: none;
-}
-
 /* Balance card overlapping the band */
+/* label, amount and footer sit close together; the card overlaps the band above it */
 .ag-balance {
-  gap: 4px;
+  gap: var(--tw-space-4);
   margin-top: -64px;
   box-shadow: var(--tw-card-hover-shadow);
 }
@@ -208,22 +161,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -10px -10px -6px 0;
+}
+
+.ag-balance__label .ag-icon-btn {
+  width: 24px;
+  height: 24px;
 }
 
 .ag-balance__label h2 {
   margin: 0;
-  font-size: 14px;
-  font-weight: 500;
+  font: var(--tw-type-body-strong);
   color: var(--tw-neutral-500);
 }
 
 .ag-balance__amount {
   margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.2;
+  font: var(--tw-type-kpi);
   color: var(--tw-neutral-900);
   font-variant-numeric: tabular-nums;
 }
@@ -233,10 +186,11 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 4px 12px;
+  /* card-margin-ok: the divider is 12px above (4 gap + 8) and 12px below the line */
   margin-top: 8px;
-  padding-top: 10px;
+  padding-top: var(--tw-space-12);
   border-top: 1px dashed var(--tw-neutral-200);
-  font-size: 13px;
+  font: var(--tw-type-meta);
   color: var(--tw-neutral-500);
 }
 
@@ -249,8 +203,9 @@
 .ag-menu {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px 4px;
-  padding: 16px 8px;
+  gap: var(--tw-space-12) var(--tw-space-4);
+  /* tiles need the width: 8px at the sides instead of the card's 16px */
+  padding-inline: var(--tw-space-8);
 }
 
 .ag-menu__item {
@@ -285,9 +240,7 @@
 
 /* One line per label: every tile lines up (labels are kept short). */
 .ag-menu__label {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.3;
+  font: var(--tw-type-label);
   white-space: nowrap;
 }
 
@@ -307,7 +260,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 4px 4px 12px;
-  border-radius: 10px;
+  border-radius: var(--tw-radius-inset);
   background-color: var(--tw-page-bg);
 }
 
@@ -315,25 +268,15 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font: var(--tw-type-body);
   color: var(--tw-neutral-900);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* layout only: the look is AgentButton */
 .ag-linkbox__copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   flex-shrink: 0;
-  min-height: 40px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 8px;
-  background-color: var(--tw-brand-primary);
-  font: 600 14px var(--tw-font-body);
-  color: var(--tw-on-brand);
-  cursor: pointer;
 }
 
 /* Pipeline */
@@ -348,21 +291,17 @@
   display: flex;
   flex-direction: column-reverse;
   gap: 2px;
-  padding: 10px 12px;
+  padding: var(--tw-space-12);
   border-radius: 12px;
 }
 
 .ag-stat dt {
-  font-size: 13px;
-  font-weight: 500;
+  font: var(--tw-type-label);
 }
 
 .ag-stat dd {
   margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.2;
+  font: var(--tw-type-kpi-sm);
 }
 
 /* Same status colors as the travel dashboard (Baru / Dihubungi / Closing). */
@@ -407,15 +346,13 @@
 }
 
 .ag-target__name {
-  font-size: 15px;
-  font-weight: 500;
+  font: var(--tw-type-body-strong);
   color: var(--tw-neutral-900);
 }
 
 .ag-target__count {
   flex-shrink: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font: var(--tw-type-body-strong);
   color: var(--tw-brand-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -443,7 +380,7 @@
   padding: 8px 10px;
   border-radius: 10px;
   background-color: color-mix(in srgb, var(--tw-rating-star) 14%, var(--tw-background));
-  font-size: 14px;
+  font: var(--tw-type-body);
   color: var(--tw-neutral-900);
 }
 
@@ -452,67 +389,15 @@
   color: var(--tw-status-contacted-text);
 }
 
-/* Loading / error */
-.ag-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 72px 24px;
-  text-align: center;
-  color: var(--tw-neutral-500);
-}
-
-.ag-center__icon {
-  color: var(--tw-danger-strong);
-}
-
-.ag-center .ag-note {
-  margin: 0;
-  font-size: 14px;
-}
-
-.ag-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 0 14px;
-  border: 1px solid var(--tw-neutral-300);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  font: 600 15px var(--tw-font-body);
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-.ag-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--tw-neutral-200);
-  border-top-color: var(--tw-neutral-900);
-  border-radius: 50%;
-  animation: ag-spin 0.8s linear infinite;
-}
-
-@keyframes ag-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Packages to share: swipeable cards */
-.ag-share {
-  padding-right: 0;
-}
 
 .ag-share__list {
   list-style: none;
   display: flex;
   gap: 12px;
-  margin: 0;
-  padding: 0 16px 4px 0;
+  /* bleeds to the card's right edge, content still starts at the card padding */
+  margin: 0 calc(-1 * var(--tw-space-16)) 0 0;
+  padding: 0 var(--tw-space-16) 0 0;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
@@ -529,7 +414,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--tw-space-12);
   scroll-snap-align: start;
 }
 
@@ -547,37 +432,24 @@
   object-fit: cover;
 }
 
+/* the name and its line below sit as a pair */
+.ag-share__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tw-space-4);
+  min-width: 0;
+}
+
 .ag-share__name {
-  margin-top: 4px;
   overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
+  font: var(--tw-type-body-strong);
   color: var(--tw-neutral-900);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* layout only: the look is AgentButton */
 .ag-share__btn {
-  width: 100%;
-  background-color: var(--tw-background);
-  font-family: var(--tw-font-body);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 40px;
-  margin-top: 4px;
-  border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 30%, var(--tw-background));
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--tw-brand-primary);
-  text-decoration: none;
-}
-
-.ag-share__btn:hover {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 6%, var(--tw-background));
 }
 
 /* Menu tones: money actions keep the travel color; promotion tools get their own hue so the grid reads as two groups. */
@@ -619,44 +491,6 @@
 .ag-header--brand ~ .ag-home .ag-band {
   padding-top: 8px;
   background-image: linear-gradient(180deg, var(--tw-brand-primary) 0%, color-mix(in srgb, var(--tw-brand-primary) 78%, var(--tw-neutral-900)) 100%);
-}
-
-/* "Syiarkan!" bottom sheet */
-.ag-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background-color: var(--tw-modal-overlay);
-}
-
-.ag-sheet__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  max-width: 428px;
-  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
-  border-radius: 20px 20px 0 0;
-  background-color: var(--tw-background);
-  animation: ag-sheet-in 0.2s ease-out;
-}
-
-@keyframes ag-sheet-in {
-  from {
-    transform: translateY(24px);
-  }
-}
-
-.ag-sheet__grip {
-  align-self: center;
-  width: 40px;
-  height: 4px;
-  margin-bottom: 10px;
-  border-radius: 2px;
-  background-color: var(--tw-neutral-200);
 }
 
 .ag-sheet__options {
@@ -702,28 +536,15 @@
 }
 
 .ag-sheet__label {
-  font-size: 15px;
-  font-weight: 600;
+  font: var(--tw-type-body-strong);
   color: var(--tw-neutral-900);
-}
-
-.ag-sheet__cancel {
-  min-height: 48px;
-  margin-top: 8px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 10px;
-  background-color: var(--tw-background);
-  font: 600 15px var(--tw-font-body);
-  color: var(--tw-neutral-900);
-  cursor: pointer;
 }
 
 /* Today: Gregorian + Hijri, small, under the name */
 .ag-greet__date {
   margin-top: 2px;
   overflow: hidden;
-  font-size: 13px;
-  line-height: 1.4;
+  font: var(--tw-type-meta);
   opacity: 0.85;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -743,20 +564,18 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: var(--tw-space-4);
   min-width: 0;
 }
 
 .ag-habit__title {
-  font-family: var(--tw-font-heading);
-  font-size: 15px;
-  font-weight: 600;
+  font: var(--tw-type-body-strong);
   color: var(--tw-neutral-900);
 }
 
 .ag-habit__dots {
   display: flex;
   gap: 6px;
-  margin-top: 6px;
 }
 
 .ag-habit__dot {
@@ -777,9 +596,7 @@
   gap: 2px;
   min-width: 40px;
   justify-content: flex-end;
-  font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 700;
+  font: var(--tw-type-amount);
   color: var(--tw-warning-strong);
 }
 
@@ -787,7 +604,7 @@
 .ag-share__link {
   display: flex;
   flex-direction: column;
-  gap: inherit;
+  gap: var(--tw-space-8);
   min-width: 0;
   color: inherit;
   text-decoration: none;
@@ -802,9 +619,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
+  font: var(--tw-type-meta);
   color: var(--tw-danger-text);
 }
 
@@ -822,73 +637,24 @@
   -webkit-user-select: all;
 }
 
-/* Invite a friend or relative to become an agent: tinted with the travel's brand color so it stands apart
-   from the plain white cards; one solid button (copy), WhatsApp is the quiet second action. */
-.ag-recruit {
-  gap: 8px;
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 7%, var(--tw-background));
-}
-
-.ag-recruit__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
-.ag-recruit__title svg {
-  flex-shrink: 0;
-  color: var(--tw-brand-primary);
-}
-
+/* Invite a friend or relative to become an agent: a tint card (variant="tint"). */
 .ag-recruit__text {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
+  font: var(--tw-type-meta);
+  /* a paragraph, so 1.5 rather than the 16px of a single meta line */
+  line-height: 1.5;
   color: var(--tw-text-secondary);
 }
 
-/* One row: the copy button and a WhatsApp icon button (simplified 7 Oct 2026). */
+/* One row: the invite action and the way to the list of recruited agents. */
 .ag-recruit__actions {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--tw-space-8);
 }
 
-.ag-recruit__copy,
-.ag-recruit__wa {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 8px;
-  font: 600 14px var(--tw-font-body);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.ag-recruit__copy {
-  flex: 1 1 auto;
-  border: none;
-  background-color: var(--tw-brand-primary);
-  color: var(--tw-on-brand);
-}
-
-.ag-recruit__wa {
-  flex: 0 0 44px;
-  width: 44px;
-  padding: 0;
-  border: 1px solid var(--tw-border);
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-}
-
-.ag-recruit__copy:focus-visible,
-.ag-recruit__wa:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--tw-focus-ring);
+.ag-recruit__action {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* Icon buttons keep their touch area; the hover shade is a 32px square around the icon (7 Oct 2026). */
@@ -898,9 +664,9 @@
 .ag-icon-btn:hover { background-color: transparent; }
 .ag-icon-btn:hover::before { background-color: var(--tw-neutral-100); }
 
-/* "Lihat jaringan saya" under the recruit buttons: its own row, left aligned, never wraps. */
-.ag-recruit__network {
-  align-self: flex-start;
-  margin-top: 2px;
-  white-space: nowrap;
+/* A small control keeps its visual size and a 44px tap target: the area grows, the layout does not. */
+.ag-balance__label .ag-icon-btn::after {
+  content: '';
+  position: absolute;
+  inset: -12px -8px;
 }

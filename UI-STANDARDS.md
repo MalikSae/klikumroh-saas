@@ -38,8 +38,8 @@ Setiap aturan di bawah punya sumbernya. Jangan menebak: kalau ada aturan baru, b
 ## Portal agen: header dan area halaman (11 Okt 2026)
 
 Satu sumber: `web/components/agent` (`AgentPageHeader`, `AgentPage`, `AgentShell.css`). Angkanya hanya ditulis di
-`AgentShell.css`; jangan disalin ke halaman. Halaman tidak boleh menggambar header, wadah isi, atau spinner sendiri
-(dijaga `scripts/check-agent-shell.js`, `npm run lint:agent-shell` di `/web`).
+`AgentShell.css`; jangan disalin ke halaman. Halaman tidak boleh menggambar header, wadah isi, spinner, blok memuat/gagal/kosong, atau
+tombol sendiri (dijaga `scripts/check-agent-shell.js`, `npm run lint:agent-shell` di `/web`).
 
 | Hal | Nilai |
 |---|---|
@@ -51,13 +51,52 @@ Satu sumber: `web/components/agent` (`AgentPageHeader`, `AgentPage`, `AgentShell
 | Umpan balik panah | kotak 32x32 di tengah area ketuk (hover, tekan, fokus) |
 | Area isi | margin samping 16px, jarak antarblok 12px, 12px di atas blok pertama |
 | Bawah area isi | 32px; dengan bar tab bawah: 96px + safe area perangkat |
-| Aksi halaman | di isi halaman: baris `ag-shell-toolbar` (rata kanan) dengan `ag-shell-action` untuk aksi sekunder |
+| Aksi halaman | di isi halaman: baris `ag-shell-toolbar` (rata kanan) dengan `AgentButton` untuk aksi sekunder |
 | Memuat | satu spinner: `ag-shell-spin` (ikon) atau `ag-shell-spinner` (cincin 32px) |
+| Blok memuat, gagal, kosong | `AgentStateLoading`, `AgentStateError` (tombol Coba lagi), `AgentStateEmpty` (`panel`, `compact`) dari `AgentState.tsx` |
+| Tombol | `AgentButton`: varian `primary` (brand), `outline`, `soft`, `ghost`, `danger`, `wa`; ukuran tinggi minimum `sm` 32px, `md` 40px, `lg` 46px (submit form), tumbuh bila label wrap; **pil penuh** (radius 999px, pengecualian AGENTS 3.10, 11 Okt 2026); padding horizontal 12px (`lg` 16px); `block` selebar wadah; `href` menjadikannya tautan |
+| Tombol ikon | `AgentIconButton`: area sentuh 44x44, ikon 16-20px, `active` memakai warna brand; wajib `label` (nama aksesibel). Tombol tutup sheet memakai ukuran yang sama |
+| Jarak | token `--tw-space-2/4/6/8/12/16/20/24/32/48` (dari `design-tokens.json` > `spacing`); komponen bersama memakai token, bukan angka px |
+| Pencarian, filter, halaman | `AgentSearch` (ikon kiri, hapus kanan 44px), `AgentChips` (`tone="brand"` bila halaman memakai warna brand untuk chip aktif), `AgentPager` ("Hal x dari y") |
+| Kartu | `AgentCard`: padding 16, radius 16 (`--tw-radius-card`), `card-shadow`, jarak isi 12. Varian `tint` (tint brand, satu blok yang menonjol), `list` (padding 0/16, baris membawa padding vertikalnya), `flush` (tanpa padding), `scroll` (daftar geser sampai tepi kanan); `href` menjadikannya tautan. Kelas halaman `*-card` / `*-panel` tidak boleh mengatur radius atau bayangan |
+| Kepala kartu | `AgentCardHead` (judul, `meta`, `aside`, `link`, kontrol di kanan, `onToggle` untuk kartu yang membuka-menutup). Tingginya sebesar teksnya; kontrol kecil (ikon 24px, tautan) punya area sentuh 44px tanpa menambah tinggi, tombol `sm` menimpa padding kartu 5px. Judul selalu 16px dari tepi atas |
+| Jarak isi kartu | hanya `gap` kartu (12). Anak kartu tidak punya `margin-top/bottom` atau margin negatif; pasangan rapat (label + nilai) dibungkus elemen ber-`gap` 4; pemisah = garis tipis, 12 di atas dan 12 di bawah. Pengecualian ditulis `/* card-margin-ok: alasan */` di CSS dan `data-card-spacing="tight"` di kartu |
+| Audit kartu | `scripts/audit-cards.browser.js` dijalankan di halaman yang terbuka (konsol browser) dan mengembalikan `{ cards, violations }`; wajib kosong sebelum UI kartu dilaporkan selesai |
+| Kotak bersarang di kartu | padding 12 (`--tw-space-12`), radius 12 (`--tw-radius-inset`), border tipis, tanpa bayangan |
+| Radius | `--tw-radius-card` 16, `--tw-radius-inset` 12, `--tw-radius-control` 8 (input), `--tw-radius-pill` 999 (tombol, chip) |
+| Pengecualian kartu | `rk-stat` (kartu komisi bergaya kartu bank), `lb-hero` (podium), `pf-idcard` (kartu identitas), dan ubin menu beranda (padding samping 8 agar muat 4 kolom) |
+| Daftar | `AgentList` (panel putih, garis pemisah) + `AgentListRow` (`lead`, `title`, `titleAside`, `meta`, `aside`, `href` / `onClick`), tinggi minimum 64px |
+| Sheet bawah | `AgentSheet` (grip, judul + tombol tutup, `onSubmit` bila berbentuk form, `locked` saat mengirim); dirender hanya saat terbuka |
+| Status jamaah / komisi | `StatusLabel` + `lib/prospectStatus.ts`; warna dari token status, bukan brand |
+| Format uang | `lib/money.ts` (`rupiah`, `rupiahJt`); jangan buat formatter sendiri |
 
 Menambah halaman portal: pakai `<AgentPageHeader title=... onBack=... />` dan `<AgentPage withTabBar?>`. Bila butuh
 kontrol yang dulu ditaruh di header, taruh di toolbar isi halaman.
 
+## Tipografi portal agen (11 Okt 2026)
+
+Sumber: `design-tokens.json` > `typography`. Pola mengikuti skema tiket.com: sedikit ukuran, tinggi baris sepasang
+dengan ukuran, hierarki dari bobot dan warna. Variabel CSS dibuat `scripts/build-type-tokens.js` ke
+`web/app/typography.css` (jangan diedit). Dijaga `npm run lint:typography`.
+
+| Hal | Nilai |
+|---|---|
+| Ukuran | 10, 12, 14, 16, 18, 22, 28, 40 px. Tidak ada 11, 13, 15. Minimum 10px |
+| Tinggi baris | Mengikuti ukuran: 10/14, 12/16, 14/20, 16/22, 18/24, 22/28, 28/34, 40/46 |
+| Bobot | 400 (isi), 600 (penekanan), 700 (judul dan angka). Tidak ada 500, 800, 900 |
+| Font | Plus Jakarta Sans untuk judul dan angka (16px ke atas), Roboto untuk selebihnya |
+| Pakai | `font: var(--tw-type-<peran>)`, bukan `font-size` lepas |
+| Skala pengguna | `--tw-type-scale` (default 1) mengalikan semua peran, jalur bagi pengaturan ukuran teks |
+
+Peran: `page-title`, `modal-title`, `section-title` (judul); `kpi`, `kpi-sm`, `amount` (angka);
+`body`, `body-strong` (isi, judul baris, label, tautan); `label`, `meta`, `micro` (kecil);
+`button-sm`, `button-md`, `button-lg`; `input`.
+
+Aturan penjaga: di `web/components/agent` dan navigasi bawah tidak boleh ada ukuran px literal; di `web/app/agen`
+ukuran literal harus ada di skala; bobot di luar 400/600/700 ditolak.
+
 ## Sumber
+- tiket.com (diukur 11 Okt 2026): 7 ukuran genap mobile, pasangan ukuran/tinggi baris, bobot 400/600/700.
 - WCAG 2.2: https://www.w3.org/TR/WCAG22/ (1.4.3, 1.4.11, 2.5.8, 1.3.5)
 - web.dev, Sign-in form best practices: https://web.dev/articles/sign-in-form-best-practices
 - GOV.UK Design System, Text input dan Validation: https://design-system.service.gov.uk/components/text-input/

@@ -3,10 +3,20 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Search, X, Copy, Check, Share2, Star, MessageSquare, Lightbulb, ChevronDown, ChevronUp, Compass, Loader2 } from 'lucide-react';
+import { Copy, Check, Share2, Star, MessageSquare, Lightbulb, ChevronDown, ChevronUp, Compass, Loader2 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { StatusLabel } from '../../../components/agent/StatusLabel';
+import { prospectStatusLabel, prospectStatusTone } from '../../../lib/prospectStatus';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentCardHead } from '../../../components/agent/AgentCardHead';
+import { AgentIconButton } from '../../../components/agent/AgentIconButton';
+import { AgentSheet } from '../../../components/agent/AgentSheet';
+import { AgentSearch } from '../../../components/agent/AgentSearch';
+import { AgentChips } from '../../../components/agent/AgentChips';
+import { AgentButton } from '../../../components/agent/AgentButton';
+import { AgentStateEmpty } from '../../../components/agent/AgentState';
 import './ScriptWA.css';
 import { logHabit } from '../../../lib/agentHabits';
 import {
@@ -584,9 +594,9 @@ function ScriptWAContent() {
   const renderCopyButton = (text: string, key: string, label = 'Salin') => {
     const isCopied = copiedKey === key;
     return (
-      <button type="button" onClick={() => handleCopyText(text, key)} className={`sw-icon-btn${isCopied ? ' sw-icon-btn--done' : ''}`} aria-label={label}>
+      <AgentIconButton label={label} active={isCopied} onClick={() => handleCopyText(text, key)}>
         {isCopied ? <Check size={16} /> : <Copy size={16} />}
-      </button>
+      </AgentIconButton>
     );
   };
 
@@ -610,7 +620,7 @@ function ScriptWAContent() {
             <span className="sw-target__name">{prospectName.trim() || 'Pilih calon jamaah'}</span>
             {selectedProspect ? (
               <span className="sw-target__meta">
-                <span className={`sw-status sw-status--${selectedProspect.status}`}>{STATUS_LABELS[selectedProspect.status] || selectedProspect.status}</span>
+                <StatusLabel tone={prospectStatusTone(selectedProspect.status)}>{prospectStatusLabel(selectedProspect.status)}</StatusLabel>
                 {' · '}
                 {selectedProspect.package_name || 'Belum pilih paket'}
               </span>
@@ -635,39 +645,16 @@ function ScriptWAContent() {
         )}
 
         {/* Search */}
-        <div className="sw-search">
-          <Search size={18} className="sw-search__icon" aria-hidden="true" />
-          <input
-            type="search"
-            aria-label="Cari script"
-            placeholder="Cari script (mahal, halo, dp, lansia)"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="tw-field sw-search__input"
-          />
-          {searchQuery && (
-            <button type="button" onClick={() => setSearchQuery('')} className="sw-search__clear" aria-label="Hapus pencarian">
-              <X size={18} />
-            </button>
-          )}
-        </div>
+        <AgentSearch value={searchQuery} onChange={setSearchQuery} placeholder="Cari script (mahal, halo, dp, lansia)" label="Cari script" />
 
         {/* Phase tabs */}
-        <div className="sw-chips" role="tablist" aria-label="Fase percakapan">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`sw-chip${activeTab === tab.id ? ' sw-chip--active' : ''}`}
-            >
-              {tab.label}
-              <span className="sw-chip__count">{tab.count}</span>
-            </button>
-          ))}
-        </div>
+        <AgentChips
+          tone="brand"
+          label="Fase percakapan"
+          value={activeTab}
+          items={tabs.map((tab) => ({ key: tab.id, label: tab.label, count: tab.count }))}
+          onChange={setActiveTab}
+        />
 
         {/* Phase goal in one line */}
         {activeStageInfo && activeTab !== 'favorites' && (
@@ -686,22 +673,17 @@ function ScriptWAContent() {
               const isFav = favoriteKeys.includes(item.id);
               const isCopied = copiedKey === item.id;
               return (
-                <article key={item.id} className="sw-card">
-                  <div className="sw-card__head">
-                    <div className="sw-card__titles">
-                      <h2 className="sw-card__title">{item.title}</h2>
-                      {item.use_when && <p className="sw-muted">{item.use_when}</p>}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleFavorite(item.id)}
-                      aria-label={isFav ? 'Hapus dari tersimpan' : 'Simpan script'}
+                <AgentCard as="article" key={item.id}>
+                  <AgentCardHead title={item.title} meta={item.use_when || undefined}>
+                    <AgentIconButton
+                      label={isFav ? 'Hapus dari tersimpan' : 'Simpan script'}
+                      active={isFav}
                       aria-pressed={isFav}
-                      className={`sw-icon-btn${isFav ? ' sw-icon-btn--fav' : ''}`}
+                      onClick={() => toggleFavorite(item.id)}
                     >
                       <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
-                    </button>
-                  </div>
+                    </AgentIconButton>
+                  </AgentCardHead>
 
                   {item.prospect_example && (
                     <p className="sw-example">
@@ -712,16 +694,16 @@ function ScriptWAContent() {
                   <div className="sw-script">{personalizedText}</div>
 
                   <div className="sw-card__actions">
-                    <button type="button" onClick={() => handleCopyText(personalizedText, item.id)} className={`sw-btn${isCopied ? ' sw-btn--done' : ''}`}>
+                    <AgentButton onClick={() => handleCopyText(personalizedText, item.id)} done={isCopied}>
                       {isCopied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
                       <span>{isCopied ? 'Tersalin' : 'Salin pesan'}</span>
-                    </button>
-                    <button type="button" onClick={() => handleOpenWhatsApp(personalizedText)} className="sw-btn sw-btn--primary">
+                    </AgentButton>
+                    <AgentButton variant="primary" onClick={() => handleOpenWhatsApp(personalizedText)}>
                       <Share2 size={16} aria-hidden="true" />
                       <span>Kirim ke WA</span>
-                    </button>
+                    </AgentButton>
                   </div>
-                </article>
+                </AgentCard>
               );
             })}
           </div>
@@ -743,32 +725,29 @@ function ScriptWAContent() {
               const isFav = favoriteKeys.includes(obj.id);
               const isExpanded = Boolean(expandedObjections[obj.id]);
               return (
-                <article key={obj.id} className={`sw-card${isExpanded ? ' sw-card--open' : ''}`}>
-                  <div className="sw-card__head">
-                    <button type="button" className="sw-card__toggle" onClick={() => toggleObjectionExpand(obj.id)} aria-expanded={isExpanded}>
-                      <span className="sw-card__title">{obj.title}</span>
-                      {obj.prospect_examples && obj.prospect_examples.length > 0 && (
-                        <span className="sw-muted">Sering muncul: &quot;{obj.prospect_examples[0]}&quot;</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleFavorite(obj.id)}
-                      aria-label={isFav ? 'Hapus dari tersimpan' : 'Simpan script'}
+                <AgentCard as="article" key={obj.id} className={isExpanded ? 'sw-card--open' : undefined}>
+                  <AgentCardHead
+                    title={obj.title}
+                    meta={
+                      obj.prospect_examples && obj.prospect_examples.length > 0
+                        ? `Sering muncul: "${obj.prospect_examples[0]}"`
+                        : undefined
+                    }
+                    onToggle={() => toggleObjectionExpand(obj.id)}
+                    expanded={isExpanded}
+                  >
+                    <AgentIconButton
+                      label={isFav ? 'Hapus dari tersimpan' : 'Simpan script'}
+                      active={isFav}
                       aria-pressed={isFav}
-                      className={`sw-icon-btn${isFav ? ' sw-icon-btn--fav' : ''}`}
+                      onClick={() => toggleFavorite(obj.id)}
                     >
                       <Star size={18} fill={isFav ? 'currentColor' : 'none'} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleObjectionExpand(obj.id)}
-                      aria-label={isExpanded ? 'Tutup langkah' : 'Buka langkah'}
-                      className="sw-icon-btn"
-                    >
+                    </AgentIconButton>
+                    <AgentIconButton label={isExpanded ? 'Tutup langkah' : 'Buka langkah'} onClick={() => toggleObjectionExpand(obj.id)}>
                       {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                    </button>
-                  </div>
+                    </AgentIconButton>
+                  </AgentCardHead>
 
                   {isExpanded && (
                     <div className="sw-steps">
@@ -805,7 +784,7 @@ function ScriptWAContent() {
                       ))}
                     </div>
                   )}
-                </article>
+                </AgentCard>
               );
             })}
           </div>
@@ -815,12 +794,12 @@ function ScriptWAContent() {
         {totalActiveItemsCount > 0 && (
           <div ref={sentinelRef} className="sw-more">
             {hasMore ? (
-              <button type="button" onClick={loadMore} className="sw-btn">
+              <AgentButton onClick={loadMore}>
                 <Loader2 size={16} className="ag-shell-spin" aria-hidden="true" />
                 <span>
                   Memuat script ({currentlyDisplayedCount} dari {totalActiveItemsCount})
                 </span>
-              </button>
+              </AgentButton>
             ) : totalActiveItemsCount > PAGE_SIZE ? (
               <p className="sw-muted">Semua {totalActiveItemsCount} script sudah tampil</p>
             ) : null}
@@ -829,38 +808,25 @@ function ScriptWAContent() {
 
         {/* Empty */}
         {filteredStandardScripts.length === 0 && filteredObjections.length === 0 && (
-          <div className="sw-empty">
-            <MessageSquare size={32} aria-hidden="true" />
-            <h2 className="sw-card__title">Tidak ada script</h2>
-            <p className="sw-muted">
-              {searchQuery.trim()
+          <AgentStateEmpty
+            panel
+            icon={<MessageSquare size={32} aria-hidden="true" />}
+            title="Tidak ada script"
+            text={
+              searchQuery.trim()
                 ? `Tidak ada script yang cocok dengan "${searchQuery}".`
                 : activeTab === 'favorites' && favoriteKeys.length === 0
                 ? 'Ketuk ikon bintang di kartu script untuk menyimpannya di sini.'
-                : 'Script di sini butuh data calon jamaah dan paketnya. Pilih calon jamaah yang sudah memilih paket.'}
-            </p>
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="sw-btn">
-                Hapus pencarian
-              </button>
-            )}
-          </div>
+                : 'Script di sini butuh data calon jamaah dan paketnya. Pilih calon jamaah yang sudah memilih paket.'
+            }
+            action={searchQuery ? { label: 'Hapus pencarian', onClick: () => setSearchQuery('') } : undefined}
+          />
         )}
       </AgentPage>
 
       {/* Recipient picker sheet */}
       {sheetOpen && (
-        <div className="sw-sheet" role="presentation" onClick={() => setSheetOpen(false)}>
-          <div className="sw-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sw-sheet-title" onClick={(e) => e.stopPropagation()}>
-            <span className="sw-sheet__grip" aria-hidden="true" />
-            <div className="sw-sheet__head">
-              <h2 id="sw-sheet-title" className="sw-card__title">
-                Kirim untuk siapa?
-              </h2>
-              <button type="button" className="sw-icon-btn" onClick={() => setSheetOpen(false)} aria-label="Tutup">
-                <X size={20} />
-              </button>
-            </div>
+        <AgentSheet title="Kirim untuk siapa?" onClose={() => setSheetOpen(false)}>
 
             <div className="sw-seg" role="tablist" aria-label="Sumber nama">
               <button type="button" role="tab" aria-selected={personalizationMode === 'prospect'} className={`sw-seg__btn${personalizationMode === 'prospect' ? ' sw-seg__btn--on' : ''}`} onClick={() => setPersonalizationMode('prospect')}>
@@ -878,24 +844,14 @@ function ScriptWAContent() {
                 <p className="sw-muted">Belum ada jamaah di akun Anda. Pakai &quot;Ketik manual&quot;.</p>
               ) : (
                 <>
-                  <div className="sw-search">
-                    <Search size={18} className="sw-search__icon" aria-hidden="true" />
-                    <input
-                      type="search"
-                      aria-label="Cari jamaah"
-                      placeholder="Cari nama atau nomor WA"
-                      value={sheetQuery}
-                      onChange={(e) => setSheetQuery(e.target.value)}
-                      className="tw-field sw-search__input"
-                    />
-                  </div>
+                  <AgentSearch value={sheetQuery} onChange={setSheetQuery} placeholder="Cari nama atau nomor WA" label="Cari jamaah" />
                   <ul className="sw-picks">
                     {sheetResults.map((p) => (
                       <li key={p.id}>
                         <button type="button" className={`sw-pick${p.id === selectedProspectId ? ' sw-pick--on' : ''}`} onClick={() => pickProspect(p.id)}>
                           <span className="sw-pick__name">{p.name}</span>
                           <span className="sw-pick__meta">
-                            <span className={`sw-status sw-status--${p.status}`}>{STATUS_LABELS[p.status] || p.status}</span>
+                            <StatusLabel tone={prospectStatusTone(p.status)}>{prospectStatusLabel(p.status)}</StatusLabel>
                             {' · '}
                             {p.phone}
                           </span>
@@ -941,25 +897,16 @@ function ScriptWAContent() {
                   Nomor WA (opsional)
                 </label>
                 <input id="input-prospect-phone" type="tel" placeholder="0812xxxx" value={prospectPhone} onChange={(e) => setProspectPhone(e.target.value)} className="tw-field" />
-                <button type="button" className="sw-btn sw-btn--primary" onClick={() => setSheetOpen(false)}>
+                <AgentButton variant="primary" onClick={() => setSheetOpen(false)}>
                   Pakai nama ini
-                </button>
+                </AgentButton>
               </div>
             )}
-          </div>
-        </div>
+        </AgentSheet>
       )}
     </MobileContainer>
   );
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  baru: 'Baru',
-  dihubungi: 'Dihubungi',
-  tertarik: 'Tertarik',
-  closing: 'Closing',
-  tidak_lanjut: 'Tidak Lanjut',
-};
 
 export default function ScriptWAPage() {
   return (
