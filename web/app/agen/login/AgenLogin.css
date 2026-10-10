@@ -129,13 +129,39 @@
   text-align: center;
 }
 
-/* Demo travel: one-click demo agent sign-in above the regular form. */
+/* Demo travel: one-click demo agent sign-in above the regular form, as a small boxed row. */
 .tw-agen-login-demo {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--tw-border);
-  text-align: center;
+  padding: 12px 16px;
+  border: 1px solid var(--tw-border);
+  border-radius: 12px;
+  background: var(--tw-surface-tint);
+}
+
+.tw-agen-login-demo__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tw-agen-login-demo__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--tw-neutral-900);
+}
+
+.tw-agen-login-demo .tw-agen-login-subtitle {
+  font-size: 13px;
+}
+
+.tw-agen-login-demo__btn {
+  flex-shrink: 0;
+  min-width: 88px;
 }

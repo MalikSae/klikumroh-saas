@@ -187,10 +187,13 @@ export default function AgenLoginPage() {
 
           {tenantInfo?.is_demo && (
             <div className="tw-agen-login-demo">
-              <Button type="button" variant="primary" size="lg" disabled={isSubmitting} onClick={handleDemoLogin} className="tw-agen-login-submit">
-                {isSubmitting ? 'Memproses...' : 'Masuk sebagai agen demo'}
+              <div className="tw-agen-login-demo__text">
+                <p className="tw-agen-login-demo__title">Coba sebagai agen demo</p>
+                <p className="tw-agen-login-subtitle">Akun demo, tanpa password.</p>
+              </div>
+              <Button type="button" variant="secondary" size="md" fullWidth={false} disabled={isSubmitting} onClick={handleDemoLogin} className="tw-agen-login-demo__btn">
+                {isSubmitting ? 'Memproses...' : 'Masuk'}
               </Button>
-              <p className="tw-agen-login-subtitle">Akun demo, tanpa password.</p>
             </div>
           )}
 

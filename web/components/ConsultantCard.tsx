@@ -34,11 +34,12 @@ export const ConsultantCard: React.FC<{
         </span>
       )}
       <div className="tw-consultant__text">
-        <span className="tw-consultant__label">Konsultan {travelName}</span>
+        <span className="tw-consultant__greeting">Siap melayani ibadah Anda</span>
         <span className="tw-consultant__name-row">
           <b className="tw-consultant__name">{consultant.name}</b>
           <BadgeCheck size={18} className="tw-consultant__verified" aria-label="Terverifikasi" />
         </span>
+        <span className="tw-consultant__label">Konsultan {travelName}</span>
       </div>
       {onAsk && (
         // WhatsApp icon only (founder, 7 Oct 2026); it still opens the interest form first, never wa.me directly.

@@ -34,12 +34,19 @@
   line-height: 1.4;
 }
 
+.tw-consultant__greeting,
 .tw-consultant__label {
   overflow: hidden;
   color: var(--tw-text-secondary);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Travel name under the consultant's name: 10px by founder decision (10 Oct 2026). */
+.tw-consultant__label {
+  color: var(--tw-text-muted);
+  font-size: 10px;
 }
 
 .tw-consultant__name {
@@ -122,6 +129,7 @@
   height: 44px;
 }
 
+.tw-consultant--inline .tw-consultant__greeting,
 .tw-consultant--inline .tw-consultant__label,
 .tw-consultant--inline .tw-consultant__name {
   white-space: normal;
