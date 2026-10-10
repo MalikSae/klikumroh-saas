@@ -393,8 +393,24 @@ func (h *AgentHandler) GetNetwork(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
-	network, err := h.agentService.GetNetwork(r.Context(), tenantID, agentID)
+	qs := r.URL.Query()
+	page, _ := strconv.Atoi(qs.Get("page"))
+	perPage, _ := strconv.Atoi(qs.Get("per_page"))
+	query := strings.TrimSpace(qs.Get("q"))
+	if len([]rune(query)) > 100 {
+		query = string([]rune(query)[:100])
+	}
+	network, err := h.agentService.GetNetwork(r.Context(), tenantID, agentID, service.AgentNetworkQuery{
+		Status:  qs.Get("status"),
+		Query:   query,
+		Page:    page,
+		PerPage: perPage,
+	})
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidNetworkStatus) {
+			respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
 		if errors.Is(err, service.ErrAgentNotActive) {
 			respondJSON(w, http.StatusForbidden, map[string]string{"error": "Akun belum aktif"})
 			return

@@ -175,3 +175,34 @@ func TestAgentLinks_MaxCommissionIgnoresOtherTravels(t *testing.T) {
 		t.Fatalf("travel A has no packages with commission, got %v", *sum.MaxCommissionPerJamaah)
 	}
 }
+
+// The invite card needs the travel's Komisi Pembinaan rate, and only when the travel has it switched on.
+func TestAgentLinks_PembinaanPercentageOnlyWhenEnabled(t *testing.T) {
+	e := setupAgentLinks(t)
+	tenantRepo := repository.NewTenantRepository(setupTestDB(t))
+
+	sum, err := e.svc.GetDashboardSummary(e.ctx, e.tenant.ID, e.agent.ID, "mabrur.klikumroh.id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum.PembinaanPercentage != nil {
+		t.Fatalf("off by default: expected nil, got %v", *sum.PembinaanPercentage)
+	}
+
+	pct := 7.5
+	if err := tenantRepo.UpdateCommissionSettings(e.ctx, e.tenant.ID, true, &pct); err != nil {
+		t.Fatal(err)
+	}
+	sum, _ = e.svc.GetDashboardSummary(e.ctx, e.tenant.ID, e.agent.ID, "mabrur.klikumroh.id")
+	if sum.PembinaanPercentage == nil || *sum.PembinaanPercentage != 7.5 {
+		t.Fatalf("enabled at 7.5%%: got %v", sum.PembinaanPercentage)
+	}
+
+	if err := tenantRepo.UpdateCommissionSettings(e.ctx, e.tenant.ID, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	sum, _ = e.svc.GetDashboardSummary(e.ctx, e.tenant.ID, e.agent.ID, "mabrur.klikumroh.id")
+	if sum.PembinaanPercentage != nil {
+		t.Fatalf("switched off again: expected nil, got %v", *sum.PembinaanPercentage)
+	}
+}

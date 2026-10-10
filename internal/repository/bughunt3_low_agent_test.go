@@ -80,7 +80,7 @@ func TestBugHunt3_CorrectionsCancelAnonymize(t *testing.T) {
 		}
 		if it.Type == "correction" {
 			corrections++
-			if it.Description != "Koreksi Komisi Pembinaan dari jaringan Anda" || strings.Contains(it.Description, "Jumlah jamaah") {
+			if it.Description != "Koreksi Komisi Pembinaan dari agen binaan Anda" || strings.Contains(it.Description, "Jumlah jamaah") {
 				t.Fatalf("upline sees the admin's reason: %q", it.Description)
 			}
 		}

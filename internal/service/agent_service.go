@@ -226,6 +226,9 @@ type AgentDashboardSummary struct {
 	TargetBulanan       *TargetBulanan    `json:"target_bulanan"`
 	Targets             []AgentTargetView `json:"targets"`
 	MinimumPayoutAmount *float64          `json:"minimum_payout_amount"`
+	// PembinaanPercentage is the travel's Komisi Pembinaan rate (% of the closing commission of an agent the
+	// agent brought in). nil when the travel has not switched it on: the invite card is then not shown.
+	PembinaanPercentage *float64 `json:"pembinaan_percentage"`
 	// MaxCommissionPerJamaah is the highest commission per jamaah among the packages still on sale (nil when
 	// none has a commission). It feeds the invite message ("komisi hingga Rp X per jamaah").
 	MaxCommissionPerJamaah *float64                      `json:"max_commission_per_jamaah"`
@@ -392,8 +395,9 @@ type AgentService interface {
 	// GetLeaderboard ranks active agents by closed jamaah. period: LeaderboardPeriodMonth, LeaderboardPeriodYear
 	// or "" / LeaderboardPeriodAll (since joining).
 	GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64, period string) ([]LeaderboardEntry, error)
-	// GetNetwork lists the agents this agent recruited directly (one level; ErrAgentNotActive unless active).
-	GetNetwork(ctx context.Context, tenantID uint64, agentID uint64) (*AgentNetwork, error)
+	// GetNetwork lists one page of the agents this agent recruited directly (one level; ErrAgentNotActive
+	// unless active), with totals that do not depend on the filter.
+	GetNetwork(ctx context.Context, tenantID uint64, agentID uint64, q AgentNetworkQuery) (*AgentNetwork, error)
 	ListAgents(ctx context.Context, tenantID uint64, statusFilter string) ([]repository.Agent, error)
 	ApproveAgent(ctx context.Context, tenantID uint64, agentID uint64) error
 	RejectAgent(ctx context.Context, tenantID uint64, agentID uint64, reason string) error
@@ -476,6 +480,15 @@ func (s *agentService) sharedLinkHost(ctx context.Context, tenantID uint64, requ
 		return requestHost
 	}
 	return d.Hostname
+}
+
+// pembinaanPercentage returns the override rate only when the travel pays it (enabled and above zero).
+func pembinaanPercentage(t *repository.Tenant) *float64 {
+	if t == nil || !t.CommissionOverrideEnabled || t.CommissionOverridePercentage == nil || *t.CommissionOverridePercentage <= 0 {
+		return nil
+	}
+	v := *t.CommissionOverridePercentage
+	return &v
 }
 
 // maxCommissionPerJamaah is the highest commission_amount among published packages that have not departed.
@@ -864,6 +877,7 @@ func (s *agentService) GetDashboardSummary(ctx context.Context, tenantID uint64,
 		ReferralLink:           refLink,
 		RecruitLink:            recruitLink,
 		MaxCommissionPerJamaah: s.maxCommissionPerJamaah(ctx, tenantID),
+		PembinaanPercentage:    pembinaanPercentage(tenant),
 		FunnelRingkasan:        *funnel,
 		LeaderboardPreview: LeaderboardPreview{
 			RankSaya:  rankSaya,
@@ -1746,7 +1760,7 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 			}
 			desc = fmt.Sprintf("Komisi dari %s (%d jamaah)", l.ProspectName, count)
 		case "override":
-			desc = "Komisi Pembinaan dari jaringan Anda"
+			desc = "Komisi Pembinaan dari agen binaan Anda"
 		case "correction":
 			if l.Notes != nil && *l.Notes != "" {
 				desc = fmt.Sprintf("Koreksi komisi: %s", *l.Notes)
@@ -1849,7 +1863,7 @@ func (s *agentService) GetCommissionHistory(ctx context.Context, tenantID uint64
 		}
 		if items[i].Type == "correction" && items[i].fromNetwork {
 			items[i].ProspectID = 0
-			items[i].Description = "Koreksi Komisi Pembinaan dari jaringan Anda"
+			items[i].Description = "Koreksi Komisi Pembinaan dari agen binaan Anda"
 		}
 	}
 	return items, nil

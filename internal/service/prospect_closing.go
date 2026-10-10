@@ -230,7 +230,7 @@ func (s *prospectService) CancelClosing(ctx context.Context, tenantID uint64, id
 		if math.Round(total*100) <= 0 {
 			continue
 		}
-		body := fmt.Sprintf("Sebuah closing di jaringan Anda dibatalkan. Komisi Pembinaan Rp %s dari closing itu ditarik kembali.", util.FormatRupiah(total))
+		body := fmt.Sprintf("Sebuah closing agen binaan Anda dibatalkan. Komisi Pembinaan Rp %s dari closing itu ditarik kembali.", util.FormatRupiah(total))
 		title := "Komisi Pembinaan dibatalkan"
 		if !r.override {
 			body = fmt.Sprintf("Sebuah closing dibatalkan. Komisi Rp %s dari closing itu ditarik kembali.", util.FormatRupiah(total))

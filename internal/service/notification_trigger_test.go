@@ -219,7 +219,7 @@ func TestNotificationService_OverrideBodyPrivacy(t *testing.T) {
 	}
 
 	// Simulasi notifikasi ke parent agent — HARUS generik, tanpa nama jamaah maupun nama agen langsung
-	overrideBody := "Komisi Pembinaan Rp 50.000 dari jaringan Anda"
+	overrideBody := "Komisi Pembinaan Rp 50.000 dari agen binaan Anda"
 	_, err = svc.CreateNotification(ctx, &tID, "agent", 200, "commission_override_earned",
 		"Komisi Pembinaan baru masuk", overrideBody, "/agen/riwayat-komisi")
 	if err != nil {
