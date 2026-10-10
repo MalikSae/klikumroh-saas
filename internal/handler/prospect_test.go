@@ -1097,6 +1097,9 @@ func TestProspectHandler_PublicSubmission_WhatsAppRedirectAndJumlahJamaah(t *tes
 		if resp["whatsapp_redirect_url"] != nil {
 			t.Errorf("Demo travel must not redirect to WhatsApp, got: %v", resp["whatsapp_redirect_url"])
 		}
+		if msg, _ := resp["message"].(string); !strings.Contains(msg, "situs demo") {
+			t.Errorf("Demo travel must explain that there is no WhatsApp redirect, got message: %q", msg)
+		}
 	})
 }
 

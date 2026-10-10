@@ -510,13 +510,34 @@ func (s *prospectService) flagEarlierClosing(ctx context.Context, tenantID uint6
 		fmt.Sprintf("/prospects/%d", prospect.ID))
 }
 
+// isDemoTenant reports whether the travel is the demo travel (demo.klikumroh.id).
+func (s *prospectService) isDemoTenant(ctx context.Context, tenantID uint64) bool {
+	if s.tenantRepo == nil {
+		return false
+	}
+	t, err := s.tenantRepo.GetByID(ctx, tenantID)
+	return err == nil && t != nil && t.IsDemo
+}
+
+const (
+	prospectThanks     = "Terima kasih, tim kami akan segera menghubungi Anda"
+	prospectThanksDemo = "Ini situs demo, jadi Anda tidak dialihkan ke WhatsApp. Di travel sungguhan, pengunjung otomatis dialihkan ke WhatsApp agen (atau WhatsApp travel bila tanpa agen)."
+)
+
+// thanksMessage is the confirmation shown after the interest form. The demo travel never redirects, so it
+// says so: a visitor trying the demo would otherwise think the redirect is broken.
+func (s *prospectService) thanksMessage(ctx context.Context, tenantID uint64) string {
+	if s.isDemoTenant(ctx, tenantID) {
+		return prospectThanksDemo
+	}
+	return prospectThanks
+}
+
 // whatsAppTarget picks who the visitor chats with: the owning agent, otherwise the travel's number.
 func (s *prospectService) whatsAppTarget(ctx context.Context, tenantID uint64, agent *repository.Agent) string {
 	// The demo travel never opens WhatsApp: its numbers are made up and could belong to a real person.
-	if s.tenantRepo != nil {
-		if t, err := s.tenantRepo.GetByID(ctx, tenantID); err == nil && t != nil && t.IsDemo {
-			return ""
-		}
+	if s.isDemoTenant(ctx, tenantID) {
+		return ""
 	}
 	if agent != nil && agent.Phone != nil && strings.TrimSpace(*agent.Phone) != "" {
 		if p := NormalizePhoneToWhatsApp(*agent.Phone); p != "" {
@@ -720,7 +741,7 @@ func (s *prospectService) CreatePublic(ctx context.Context, tenantID uint64, inp
 	}
 
 	return &PublicProspectResponse{
-		Message:             "Terima kasih, tim kami akan segera menghubungi Anda",
+		Message:             s.thanksMessage(ctx, tenantID),
 		WhatsAppRedirectURL: buildWhatsAppURL(s.whatsAppTarget(ctx, tenantID, referralAgent), name, packageName, input.JumlahJamaah),
 		MetaEventID:         eventID,
 	}, nil
@@ -856,7 +877,7 @@ func (s *prospectService) handleRepeatSubmission(
 	}
 
 	return &PublicProspectResponse{
-		Message:             "Terima kasih, tim kami akan segera menghubungi Anda",
+		Message:             s.thanksMessage(ctx, tenantID),
 		WhatsAppRedirectURL: buildWhatsAppURL(s.whatsAppTarget(ctx, tenantID, owner), name, packageName, jumlahJamaah),
 	}, nil
 }
