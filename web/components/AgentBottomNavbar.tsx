@@ -1,17 +1,40 @@
 'use client';
 
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Users, Trophy, User } from 'lucide-react';
 import './AgentBottomNavbar.css';
 
 // Next keeps the scroll position when the target page is still partly in view, so a tab switch from the
-// middle of a long page would open the next tab in the middle too. A tab tap should always start at the top.
+// middle of a long page would open the next tab in the middle too. A tab tap should always start at the top,
+// but scrolling on the tap itself makes the old page visibly jump up before the new one appears. So the tap
+// only leaves a mark, and the bar of the page that mounts next (each page renders its own) scrolls to the top
+// before the first paint. Back/forward navigation never sets the mark, so the browser keeps restoring it.
+let tabTapPending = false;
+
 const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
 
 export const AgentBottomNavbar: React.FC = () => {
   const pathname = usePathname();
+
+  useLayoutEffect(() => {
+    if (!tabTapPending) return;
+    tabTapPending = false;
+    scrollToTop();
+  }, []);
+
+  // Tapping the tab of the page already open does not remount anything, so scroll right away.
+  const onTabTap = (href: string) => () => {
+    if (pathname === href) scrollToTop();
+    else {
+      tabTapPending = true;
+      // A tap that never leads to a new page must not scroll some later, unrelated page.
+      window.setTimeout(() => {
+        tabTapPending = false;
+      }, 3000);
+    }
+  };
 
   const isBerandaActive = pathname === '/agen/dashboard';
   const isJamaahActive = pathname.startsWith('/agen/jamaah') || pathname.startsWith('/agen/prospek');
@@ -28,7 +51,7 @@ export const AgentBottomNavbar: React.FC = () => {
       <nav className="agent-bottom-nav" aria-label="Navigasi Bawah Agen">
         <Link
           href="/agen/dashboard"
-          onClick={scrollToTop}
+          onClick={onTabTap('/agen/dashboard')}
           className={`agent-bottom-nav__item ${isBerandaActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
@@ -39,7 +62,7 @@ export const AgentBottomNavbar: React.FC = () => {
 
         <Link
           href="/agen/jamaah"
-          onClick={scrollToTop}
+          onClick={onTabTap('/agen/jamaah')}
           className={`agent-bottom-nav__item ${isJamaahActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
@@ -50,7 +73,7 @@ export const AgentBottomNavbar: React.FC = () => {
 
         <Link
           href="/agen/leaderboard"
-          onClick={scrollToTop}
+          onClick={onTabTap('/agen/leaderboard')}
           className={`agent-bottom-nav__item ${isLeaderboardActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
@@ -61,7 +84,7 @@ export const AgentBottomNavbar: React.FC = () => {
 
         <Link
           href="/agen/profil"
-          onClick={scrollToTop}
+          onClick={onTabTap('/agen/profil')}
           className={`agent-bottom-nav__item ${isProfilActive ? 'agent-bottom-nav__item--active' : ''}`}
         >
           <span className="agent-bottom-nav__icon">
