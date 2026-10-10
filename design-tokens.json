@@ -4,29 +4,146 @@
     "fontHeading": "'Plus Jakarta Sans', sans-serif",
     "fontBody": "'Roboto', sans-serif",
     "fontSize": {
-      "2xs": "11px",
+      "_note": "Skala genap (pola tiket.com, 11 Okt 2026): tiap ukuran punya tinggi baris tetap di lineHeight. Tidak ada 11, 13, 15.",
+      "3xs": "10px",
       "xs": "12px",
-      "sm": "13px",
       "base": "14px",
-      "md": "15px",
       "lg": "16px",
       "xl": "18px",
       "2xl": "22px",
-      "3xl": "28px"
+      "3xl": "28px",
+      "4xl": "40px"
     },
     "fontWeight": {
+      "_note": "Hanya tiga bobot: regular (isi), semibold (penekanan), bold (judul dan angka). Bobot 500 tidak dipakai.",
       "regular": "400",
-      "medium": "500",
       "semibold": "600",
       "bold": "700"
     },
     "lineHeight": {
-      "none": "1",
-      "tight": "1.25",
-      "snug": "1.35",
-      "normal": "1.5",
-      "relaxed": "1.6"
+      "_note": "Tinggi baris per ukuran (kunci = kunci fontSize). Ukuran dan tinggi baris selalu sepasang.",
+      "3xs": "14px",
+      "xs": "16px",
+      "base": "20px",
+      "lg": "22px",
+      "xl": "24px",
+      "2xl": "28px",
+      "3xl": "34px",
+      "4xl": "46px"
+    },
+    "roles": {
+      "_note": "Peran tipografi: font, bobot, dan ukuran (tinggi baris ikut ukuran). Dikeluarkan sebagai --tw-type-<peran> (shorthand font) oleh scripts/build-type-tokens.js ke web/app/typography.css. Pakai: font: var(--tw-type-body-strong). Ukuran minimum 10px.",
+      "page-title": {
+        "family": "heading",
+        "weight": "bold",
+        "size": "xl",
+        "use": "Judul halaman di header"
+      },
+      "modal-title": {
+        "family": "heading",
+        "weight": "bold",
+        "size": "xl",
+        "use": "Judul sheet dan modal"
+      },
+      "section-title": {
+        "family": "heading",
+        "weight": "semibold",
+        "size": "lg",
+        "use": "Judul kartu atau blok"
+      },
+      "kpi": {
+        "family": "heading",
+        "weight": "bold",
+        "size": "3xl",
+        "use": "Angka utama"
+      },
+      "kpi-sm": {
+        "family": "heading",
+        "weight": "bold",
+        "size": "2xl",
+        "use": "Angka ringkasan"
+      },
+      "amount": {
+        "family": "heading",
+        "weight": "bold",
+        "size": "lg",
+        "use": "Nominal pada baris daftar"
+      },
+      "body": {
+        "family": "body",
+        "weight": "regular",
+        "size": "base",
+        "use": "Teks isi"
+      },
+      "body-strong": {
+        "family": "body",
+        "weight": "semibold",
+        "size": "base",
+        "use": "Judul baris, label, tautan, nama item"
+      },
+      "label": {
+        "family": "body",
+        "weight": "semibold",
+        "size": "xs",
+        "use": "Status, label kecil, label menu"
+      },
+      "meta": {
+        "family": "body",
+        "weight": "regular",
+        "size": "xs",
+        "use": "Keterangan, tanggal, label navigasi"
+      },
+      "micro": {
+        "family": "body",
+        "weight": "semibold",
+        "size": "3xs",
+        "use": "Penanda sangat kecil (badge)"
+      },
+      "button-sm": {
+        "family": "body",
+        "weight": "semibold",
+        "size": "xs",
+        "use": "Tombol kecil"
+      },
+      "button-md": {
+        "family": "body",
+        "weight": "semibold",
+        "size": "base",
+        "use": "Tombol"
+      },
+      "button-lg": {
+        "family": "body",
+        "weight": "semibold",
+        "size": "lg",
+        "use": "Tombol submit form"
+      },
+      "input": {
+        "family": "body",
+        "weight": "regular",
+        "size": "lg",
+        "use": "Isi kolom input; 16px agar Safari iOS tidak zoom"
+      }
     }
+  },
+  "radius": {
+    "_note": "Radius permukaan (11 Okt 2026), dikeluarkan sebagai --tw-radius-<nama>. card = kartu dan daftar, inset = kotak di dalam kartu, control = kolom input dan tombol kotak, pill = tombol dan chip.",
+    "card": "16px",
+    "inset": "12px",
+    "control": "8px",
+    "pill": "999px"
+  },
+  "spacing": {
+    "_note": "Skala jarak (pola tiket.com, 11 Okt 2026), dikeluarkan sebagai --tw-space-<n> ke web/app/typography.css oleh scripts/build-type-tokens.js. Pakai untuk gap, padding, dan margin di komponen bersama.",
+    "2": "2px",
+    "4": "4px",
+    "6": "6px",
+    "8": "8px",
+    "12": "12px",
+    "16": "16px",
+    "20": "20px",
+    "24": "24px",
+    "32": "32px",
+    "48": "48px"
   },
   "dashboard": {
     "_note": "Token TETAP untuk dashboard admin KlikUmroh — diselaraskan dengan palet modern B2B SaaS monokromatik (Linear/Vercel standard): kanvas off-white (#FAFAFA), deep solid charcoal (#09090B) pada sidebar dan tombol aksi utama, border zinc presisi (#E4E4E7), teks ink pekat (#09090B) & muted (#71717A), serta semantic pipeline badges.",

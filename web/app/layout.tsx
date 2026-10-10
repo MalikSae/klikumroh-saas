@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Roboto } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
+import './typography.css';
 import '../components/FormInput.css';
 import { TravelAgencyJsonLd } from '../components/TravelAgencyJsonLd';
 import { MetaPixel } from '../components/MetaPixel';
