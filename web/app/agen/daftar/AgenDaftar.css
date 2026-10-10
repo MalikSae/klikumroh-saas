@@ -20,7 +20,7 @@
 }
 
 .tw-agen-daftar-tag {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--tw-brand-primary);
   text-transform: uppercase;
@@ -30,16 +30,13 @@
 }
 
 .tw-agen-daftar-title {
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 800;
+  font: var(--tw-type-page-title);
   color: var(--tw-neutral-900);
-  line-height: 1.3;
   margin: 0 0 4px 0;
 }
 
 .tw-agen-daftar-subtitle {
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
   margin: 0;
@@ -81,8 +78,8 @@
 }
 
 .tw-agen-daftar-offer__label {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--tw-text-secondary);
 }
 
@@ -145,7 +142,7 @@
   background-color: var(--tw-danger-bg);
   border: 1px solid var(--tw-danger-line);
   color: var(--tw-danger-strong);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
   display: flex;
   align-items: center;
@@ -207,7 +204,7 @@
 }
 
 .tw-agen-daftar-label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--tw-neutral-700);
 }
@@ -262,12 +259,12 @@
 .tw-agen-daftar-error-text {
   font-size: 12px;
   color: var(--tw-danger-strong);
-  font-weight: 500;
+  font-weight: 600;
   margin-top: 2px;
 }
 
 .tw-agen-daftar-hint-text {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--tw-neutral-400);
   margin-top: 2px;
 }
@@ -313,7 +310,7 @@
   background: none;
   border: none;
   border-bottom: 1px solid var(--tw-neutral-100);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-800);
   cursor: pointer;
   display: flex;
@@ -362,7 +359,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--tw-neutral-400);
 }
 
@@ -394,7 +391,7 @@
 }
 
 /* Fields: same look as the consultation form (components/FormInput.css), 1 Oct 2026. */
-.tw-agen-daftar-label { font-size: 13px; font-weight: 600; color: var(--tw-text-primary); }
+.tw-agen-daftar-label { font-size: 12px; font-weight: 600; color: var(--tw-text-primary); }
 .tw-agen-daftar-input {
   height: 44px;
   padding: 0 12px;
@@ -464,5 +461,5 @@
 .tw-agen-daftar-upline__icon { flex: none; color: var(--tw-neutral-500); }
 .tw-agen-daftar-upline__body { min-width: 0; }
 .tw-agen-daftar-upline__label { margin: 0; font-size: 12px; line-height: 1.4; color: var(--tw-neutral-500); }
-.tw-agen-daftar-upline__name { margin: 1px 0; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--tw-text-primary); overflow-wrap: anywhere; }
+.tw-agen-daftar-upline__name { margin: 1px 0; font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--tw-text-primary); overflow-wrap: anywhere; }
 .tw-agen-daftar-upline__hint { margin: 0; font-size: 12px; line-height: 1.4; color: var(--tw-neutral-500); }

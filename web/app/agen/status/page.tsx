@@ -20,6 +20,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { rupiah } from '../../../lib/money';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
@@ -71,8 +72,6 @@ interface FooterInfo {
 // includes the multipart envelope (boundary, headers): keep 64 KB of room for it so an accepted photo fits.
 const MAX_PROOF_BYTES = 8 * 1024 * 1024 - 64 * 1024;
 const MAX_PROOF_LABEL = '7,9 MB';
-
-const formatRupiah = (val?: number) => 'Rp ' + (val ?? 0).toLocaleString('id-ID');
 
 /* ---------- Step bar ---------- */
 type StepState = 'done' | 'current' | 'todo';
@@ -499,7 +498,7 @@ export default function AgenStatusPage() {
 
             <div className="tw-st-transfer">
               <span className="tw-st-transfer__label">Jumlah transfer</span>
-              <span className="tw-st-transfer__amount">{formatRupiah(data.agent_registration_fee)}</span>
+              <span className="tw-st-transfer__amount">{rupiah(data.agent_registration_fee)}</span>
               <dl className="tw-st-bank">
                 <div className="tw-st-bank__row">
                   <dt>Bank</dt>

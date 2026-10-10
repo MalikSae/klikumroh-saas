@@ -6,6 +6,7 @@ import { AlertCircle, Bell, BellOff, CheckCheck, ChevronRight } from 'lucide-rea
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
+import { AgentButton } from '../../../components/agent/AgentButton';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { jakartaDateLabel } from '../../../lib/jakartaTime';
 
@@ -218,10 +219,10 @@ export default function AgenNotifikasiPage() {
       <AgentPage withTabBar>
         {unreadCount > 0 && (
           <div className="ag-shell-toolbar">
-            <button type="button" className="ag-shell-action" onClick={handleMarkAllRead}>
+            <AgentButton onClick={handleMarkAllRead}>
               <CheckCheck size={16} aria-hidden="true" />
               <span>Tandai semua dibaca</span>
-            </button>
+            </AgentButton>
           </div>
         )}
         {notice && !loading && !error && (

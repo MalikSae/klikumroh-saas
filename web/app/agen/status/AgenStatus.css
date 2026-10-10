@@ -81,7 +81,7 @@
 }
 
 .tw-st-step__label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
@@ -109,7 +109,7 @@
 .tw-st-title {
   margin: 0;
   font-family: var(--tw-font-heading);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.3;
   color: var(--tw-neutral-900);
@@ -156,13 +156,13 @@
 }
 
 .tw-st-transfer__label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--tw-neutral-500);
 }
 
 .tw-st-transfer__amount {
   font-family: var(--tw-font-heading);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.3;
   color: var(--tw-neutral-900);
@@ -192,7 +192,7 @@
 .tw-st-bank__row dd {
   margin: 0;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--tw-neutral-900);
   text-align: right;
 }
@@ -272,13 +272,13 @@
 }
 
 .tw-st-upload__title {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--tw-neutral-900);
 }
 
 .tw-st-upload__hint {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .tw-st-upload__preview {
@@ -324,7 +324,7 @@
   padding: 0;
   border: none;
   background: none;
-  font: 500 14px var(--tw-font-body);
+  font: 600 14px var(--tw-font-body);
   color: var(--tw-neutral-900);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -353,7 +353,7 @@
 }
 
 .tw-st-reason__label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -371,7 +371,7 @@
   border: 1px solid var(--tw-neutral-200);
   border-radius: 12px;
   background-color: var(--tw-background);
-  font: 500 14px var(--tw-font-body);
+  font: 600 14px var(--tw-font-body);
   color: var(--tw-neutral-900);
   text-align: left;
   cursor: pointer;
@@ -484,6 +484,6 @@
 }
 
 .tw-st-signed b {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--tw-neutral-900);
 }

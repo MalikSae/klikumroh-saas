@@ -1,11 +1,7 @@
-// The invite an agent sends to a person they would like to bring in as an agent, and money formats for the
-// "Agen binaan saya" page. One place, so the home card and that page send the same text.
-
-export const rupiahFull = (n: number): string => 'Rp ' + Math.floor(n).toLocaleString('id-ID');
-
-// Millions as "Jt" ("Rp 1,5 Jt", "Rp 10 Jt"); below a million the full number ("Rp 450.000").
-export const rupiahJt = (n: number): string =>
-  n >= 1_000_000 ? `Rp ${(n / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} Jt` : rupiahFull(n);
+// The invite an agent sends to a person they would like to bring in as an agent. One place, so the home card
+// and the "Agen binaan saya" page send the same text.
+import { rupiah } from './money';
+import { copyToClipboard } from './clipboard';
 
 export interface RecruitInviteInput {
   travelName?: string | null;
@@ -19,7 +15,7 @@ export interface RecruitInviteInput {
 export const recruitInviteText = ({ travelName, maxCommission, link }: RecruitInviteInput): string => {
   const commissionLine =
     maxCommission && maxCommission > 0
-      ? `Raih komisi hingga ${rupiahFull(maxCommission)} per jamaah yang Anda ajak.`
+      ? `Raih komisi hingga ${rupiah(maxCommission)} per jamaah yang Anda ajak.`
       : 'Raih komisi untuk setiap jamaah yang Anda ajak.';
   return [
     `Mau dapat penghasilan tambahan? Rekomendasikan relasi Anda untuk berumroh bersama ${travelName || 'travel umroh'}.`,
@@ -28,4 +24,20 @@ export const recruitInviteText = ({ travelName, maxCommission, link }: RecruitIn
     '',
     link,
   ].join('\n');
+};
+
+export type InviteResult = 'shared' | 'copied' | 'cancelled' | 'failed';
+
+// One action for the invite: the phone's share sheet (WhatsApp, copy, ...) when there is one, otherwise copy the
+// whole message. 'cancelled' = the person closed the sheet.
+export const shareInvite = async (text: string): Promise<InviteResult> => {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      await navigator.share({ text });
+      return 'shared';
+    }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled';
+  }
+  return (await copyToClipboard(text)) ? 'copied' : 'failed';
 };

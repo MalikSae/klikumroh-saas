@@ -7,6 +7,7 @@ import { ChevronRight, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { MobileContainer } from '../../../../components/MobileContainer';
 import { AgentPage } from '../../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../../components/agent/AgentPageHeader';
+import { AgentButton } from '../../../../components/agent/AgentButton';
 import './SumberJamaahDetail.css';
 import { fetchSumberDone, saveSumberDone } from '../../../../lib/agentHabits';
 import { copyToClipboard } from '../../../../lib/clipboard';
@@ -106,9 +107,9 @@ export default function SumberJamaahDetailPage() {
         <AgentPage className="sjd-page--center">
           <h2 className="sjd-title">Sumber tidak ditemukan</h2>
           <p className="sjd-muted">Data sumber yang Anda cari tidak tersedia.</p>
-          <Link href="/agen/sumber-jamaah" className="sjd-btn">
+          <AgentButton href="/agen/sumber-jamaah">
             Kembali ke daftar
-          </Link>
+          </AgentButton>
         </AgentPage>
       </MobileContainer>
     );

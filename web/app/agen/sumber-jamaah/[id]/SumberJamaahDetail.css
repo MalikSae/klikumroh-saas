@@ -9,7 +9,7 @@
 
 .sjd-muted {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
 }
@@ -31,25 +31,25 @@
 .sjd-label {
   margin: 0;
   font-family: var(--tw-font-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tw-neutral-900);
 }
 
 .sjd-text {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.65;
   color: var(--tw-neutral-700);
 }
 
 /* Opener: light brand tint, plain text (no italics), like the script cards. */
 .sjd-script {
-  padding: 12px 14px;
+  padding: var(--tw-space-12);
   border: 1px solid color-mix(in srgb, var(--tw-brand-primary) 14%, transparent);
-  border-radius: 12px;
+  border-radius: var(--tw-radius-inset);
   background-color: color-mix(in srgb, var(--tw-brand-primary) 4%, var(--tw-background));
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.65;
   color: var(--tw-neutral-900);
   white-space: pre-wrap;
@@ -101,33 +101,13 @@
 
 .sjd-next__title {
   font-family: var(--tw-font-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--tw-neutral-900);
 }
 
 .sjd-next:hover .sjd-next__title {
   color: var(--tw-brand-primary);
-}
-
-.sjd-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  color: var(--tw-neutral-900);
-  font: 600 14px var(--tw-font-body);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.sjd-btn:hover {
-  background-color: var(--tw-neutral-100);
 }
 
 /* Bottom bar with the main action */
@@ -143,7 +123,7 @@
 /* Why the mark was put back (travel suspended or save failed) */
 .sjd-bar__msg {
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--tw-danger-text);
 }
@@ -159,7 +139,7 @@
   border-radius: 8px;
   background-color: var(--tw-brand-primary);
   color: var(--tw-on-brand);
-  font: 600 15px var(--tw-font-body);
+  font: 600 14px var(--tw-font-body);
   cursor: pointer;
 }
 
@@ -177,8 +157,8 @@
 
 .sjd-mark__undo {
   margin-left: 4px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--tw-neutral-500);
   text-decoration: underline;
   text-underline-offset: 3px;

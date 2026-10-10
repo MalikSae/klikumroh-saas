@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserPlus, UserCheck, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { rupiah } from '../../../lib/money';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
 import { BrandMark } from '../../../components/BrandMark';
@@ -288,10 +289,6 @@ export default function AgenDaftarPage() {
     }
   };
 
-  const formatRupiah = (val: number) => {
-    return 'Rp ' + val.toLocaleString('id-ID');
-  };
-
   const parseBenefits = (text?: string) => {
     if (!text) return { title: 'Benefit & Fasilitas Agen', items: [] as string[] };
     const rawLines = text
@@ -380,7 +377,7 @@ export default function AgenDaftarPage() {
                   <>
                     <span className="tw-agen-daftar-offer__label">Investasi kemitraan</span>
                     <span className="tw-agen-daftar-offer__amount">
-                      {formatRupiah(regInfo.agent_registration_fee)}
+                      {rupiah(regInfo.agent_registration_fee)}
                       <span className="tw-agen-daftar-offer__unit">sekali bayar</span>
                     </span>
                   </>
