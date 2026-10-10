@@ -13,7 +13,8 @@ $env:CGO_ENABLED = '0'
 $targets = @(
     @{ Name = 'klikumroh-api'; Pkg = './cmd/api' },
     @{ Name = 'klikumroh-migrate'; Pkg = './cmd/migrate' },
-    @{ Name = 'klikumroh-seed-demo'; Pkg = './cmd/seed-demo' }
+    @{ Name = 'klikumroh-seed-demo'; Pkg = './cmd/seed-demo' },
+    @{ Name = 'klikumroh-create-staff'; Pkg = './cmd/create-staff' }
 )
 
 try {

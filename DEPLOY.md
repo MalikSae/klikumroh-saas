@@ -62,7 +62,7 @@ Dashboard: jangan isi `VITE_API_BASE` (Bagian 2a).
 ### 0.3 Build
 
 **Backend (Go).** Pure Go, `CGO_ENABLED=0`, tidak butuh library sistem atau binary eksternal. Pilih salah satu:
-- di komputer lokal: `bash scripts/build-linux.sh` (Git Bash/Linux) atau `powershell -ExecutionPolicy Bypass -File scripts\build-linux.ps1` (Windows), lalu upload `dist/klikumroh-api`, `dist/klikumroh-migrate`, `dist/klikumroh-seed-demo` ke `bin/` di root repo server dan `chmod +x`;
+- di komputer lokal: `bash scripts/build-linux.sh` (Git Bash/Linux) atau `powershell -ExecutionPolicy Bypass -File scripts\build-linux.ps1` (Windows), lalu upload `dist/klikumroh-api`, `dist/klikumroh-migrate`, `dist/klikumroh-seed-demo`, `dist/klikumroh-create-staff` ke `bin/` di root repo server dan `chmod +x`;
 - di server (bila Go terpasang): `bash scripts/build-linux.sh`, hasil di `dist/`.
 
 **Web (Next.js), di server.** Build di VPS Linux, jangan upload hasil build Windows (dependensi native di `node_modules` berbeda per OS). `BACKEND_INTERNAL_URL` **wajib ada di env saat build**: rewrite `/api` dan `/uploads` di `next.config.ts` dikompilasi saat build, bukan saat server berjalan.
@@ -632,3 +632,21 @@ Catatan untuk dukungan:
 2. Sertifikat origin wildcard di aaPanel Proxy Project untuk `*.klikumroh.id`.
 3. Pembacaan `CF-Connecting-IP` oleh Nginx di server ini (uji: kunjungi dari HP, lalu cek `referral_clicks.ip_address` bukan IP Cloudflare).
 4. Alur lengkap domain travel dari akun Cloudflare uji.
+
+---
+
+## 8. Membuat staf (super admin) pertama
+
+Login ke `https://app.klikumroh.id/internal/login` butuh akun staf. `cmd/seed` **tidak boleh** dipakai di produksi (ia juga membuat travel uji, paket langganan, dan paket contoh). Gunakan perintah khusus:
+
+```bash
+cd /www/wwwroot/klikumroh
+read -rs CREATE_STAFF_PASSWORD && export CREATE_STAFF_PASSWORD   # ketik kata sandi, tidak tampil di layar
+./bin/klikumroh-create-staff -email pendiri@klikumroh.id -name "Nama Pendiri" -role owner
+unset CREATE_STAFF_PASSWORD
+```
+
+- Kata sandi **hanya** dari env `CREATE_STAFF_PASSWORD` (minimal 12 karakter, maksimal 72 byte), tidak pernah lewat argumen, dan tidak dicetak.
+- Disimpan sebagai hash bcrypt. Email yang sudah ada **ditolak**; perintah ini tidak pernah mengubah atau mereset akun.
+- `-role` hanya label tampilan (`owner` atau `admin`), tidak memberi izin tambahan.
+- Perintah dijalankan dari root repo agar `.env` (`DB_*`) terbaca. Staf berikutnya ditambahkan lewat Super Admin > Manajemen Staf.

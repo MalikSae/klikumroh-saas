@@ -18,6 +18,7 @@ build() {
 build klikumroh-api ./cmd/api
 build klikumroh-migrate ./cmd/migrate
 build klikumroh-seed-demo ./cmd/seed-demo
+build klikumroh-create-staff ./cmd/create-staff
 
 echo "done:"
-ls -l dist/klikumroh-api dist/klikumroh-migrate dist/klikumroh-seed-demo
+ls -l dist/klikumroh-api dist/klikumroh-migrate dist/klikumroh-seed-demo dist/klikumroh-create-staff
