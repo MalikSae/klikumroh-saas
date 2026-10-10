@@ -8,6 +8,8 @@ export interface SharePackageInfo {
   name: string;
   departure_date?: string | null;
   price?: number | null;
+  // The travel that sells the package: named in the message so the receiver knows who is offering it.
+  travel_name?: string | null;
 }
 
 export type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
@@ -26,7 +28,8 @@ export const packageShareText = (pkg: SharePackageInfo, link: string): string =>
   const price = formatPrice(pkg.price);
   // Neutral on purpose (no greeting): the agent pastes it into groups, statuses and chats of all kinds.
   // Only facts from the package go in; nothing claims scarcity or a discount that may not be true.
-  const lines = [`Saatnya wujudkan niat umroh: ${pkg.name}${date ? `, berangkat ${date}` : ''}.`];
+  const travel = pkg.travel_name?.trim();
+  const lines = [`Saatnya wujudkan niat umroh${travel ? ` bersama ${travel}` : ''}: ${pkg.name}${date ? `, berangkat ${date}` : ''}.`];
   if (price) lines.push(`Mulai ${price}.`);
   lines.push('', 'Lihat fasilitas, jadwal, dan cara daftarnya di sini:', link);
   return lines.join('\n');

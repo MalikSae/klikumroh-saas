@@ -375,7 +375,7 @@ export default function AgenDashboardPage() {
   const packageShareUrl = (pkg: PublicPackage): string => {
     const link = packageLink(pkg);
     if (!link) return '#';
-    return `https://wa.me/?text=${encodeURIComponent(packageShareText(pkg, link))}`;
+    return `https://wa.me/?text=${encodeURIComponent(packageShareText({ ...pkg, travel_name: travel?.name }, link))}`;
   };
 
   const getWhatsAppShareUrl = (): string => {

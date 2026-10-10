@@ -122,7 +122,7 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
 
   const handleShare = async () => {
     const link = referralCode ? agentPackageLink(referralCode, pkg.id) : `${window.location.origin}/paket/${pkg.id}`;
-    const result = await sharePackage(pkg, link, photoFile);
+    const result = await sharePackage({ ...pkg, travel_name: tenantInfo?.name }, link, photoFile);
     // Logged only after the share really happened, never for a cancelled or failed share sheet.
     if (referralCode && shareCountsAsHabit(result)) logHabit('share');
     if (result === 'copied' || result === 'failed') {
