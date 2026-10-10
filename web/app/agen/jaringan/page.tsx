@@ -1,8 +1,8 @@
 'use client';
 
 // "Jaringan Saya": the agents this agent recruited directly (one level, no tree), with their status, how many
-// prospects and closings they have, and what the override commission from them amounts to when the travel pays
-// override. Opened from the recruit card on the home page and from the profile page; not a tab of the bottom
+// prospects and closings they have, and what the Komisi Pembinaan (override) from them amounts to when the travel pays
+// it. Opened from the recruit card on the home page and from the profile page; not a tab of the bottom
 // bar. The upline is the signed-in agent: the API takes no agent id.
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -21,7 +21,7 @@ interface NetworkMember {
   joined_at: string;
   phone: string | null;
   prospect_count: number;
-  closing_count: number;
+  closing_jamaah: number;
   override_released: number;
   override_held: number;
 }
@@ -143,8 +143,8 @@ export default function AgenJaringanPage() {
             </section>
 
             {network.override_enabled && (
-              <section className="jr-override" aria-label="Komisi override dari jaringan">
-                <p className="jr-override__title">Komisi override dari jaringan Anda</p>
+              <section className="jr-override" aria-label="Komisi Pembinaan dari jaringan">
+                <p className="jr-override__title">Komisi Pembinaan dari jaringan Anda</p>
                 <div className="jr-override__row">
                   <span>Siap ditarik</span>
                   <strong>{rupiah(network.override_released)}</strong>
@@ -174,11 +174,11 @@ export default function AgenJaringanPage() {
                       Bergabung {jakartaDateLabel(m.joined_at, { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                     <p className="jr-row__figures">
-                      {m.prospect_count} prospek, {m.closing_count} closing
+                      {m.prospect_count} prospek, {m.closing_jamaah} jamaah closing
                     </p>
                     {network.override_enabled && (m.override_released > 0 || m.override_held > 0) && (
                       <p className="jr-muted">
-                        Override: {rupiah(m.override_released)} siap ditarik
+                        Komisi Pembinaan: {rupiah(m.override_released)} siap ditarik
                         {m.override_held > 0 ? `, ${rupiah(m.override_held)} tertahan` : ''}
                       </p>
                     )}

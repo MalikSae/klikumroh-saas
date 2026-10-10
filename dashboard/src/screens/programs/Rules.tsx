@@ -159,8 +159,8 @@ export const Rules: React.FC = () => {
         </p>
       </SettingsSection>
 
-      <SettingsSection title="Komisi override" description="Bonus untuk agen yang merekrut agen lain.">
-        <Checkbox checked={form.overrideOn} onChange={(v) => set('overrideOn', v)} label="Beri komisi override ke perekrut (upline)" />
+      <SettingsSection title="Komisi Pembinaan" description="Bonus untuk agen yang merekrut agen lain.">
+        <Checkbox checked={form.overrideOn} onChange={(v) => set('overrideOn', v)} label="Beri Komisi Pembinaan ke perekrut (upline)" />
         {form.overrideOn && (
           <Field
             label="Persentase dari komisi agen rekrutan"

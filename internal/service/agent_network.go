@@ -19,7 +19,7 @@ type AgentNetworkMember struct {
 	// to anyone else.
 	Phone         *string `json:"phone"`
 	ProspectCount int     `json:"prospect_count"`
-	ClosingCount  int     `json:"closing_count"`
+	ClosingJamaah int     `json:"closing_jamaah"` // jamaah (pax) in closed prospects, like the leaderboard
 	// OverrideReleased / OverrideHeld are only meaningful when the travel pays override (Network.OverrideEnabled).
 	OverrideReleased float64 `json:"override_released"`
 	OverrideHeld     float64 `json:"override_held"`
@@ -80,7 +80,7 @@ func (s *agentService) GetNetwork(ctx context.Context, tenantID uint64, agentID 
 			Status:        m.Status,
 			JoinedAt:      m.CreatedAt,
 			ProspectCount: m.ProspectCount,
-			ClosingCount:  m.ClosingCount,
+			ClosingJamaah: m.ClosingJamaah,
 		}
 		if m.Status == "active" {
 			view.Phone = m.Phone

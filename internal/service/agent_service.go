@@ -1687,7 +1687,7 @@ func assembleCommissionHistory(ledgers []repository.CommissionLedgerWithProspect
 			}
 			desc = fmt.Sprintf("Komisi dari %s (%d jamaah)", l.ProspectName, count)
 		case "override":
-			desc = "Komisi override dari jaringan Anda"
+			desc = "Komisi Pembinaan dari jaringan Anda"
 		case "correction":
 			if l.Notes != nil && *l.Notes != "" {
 				desc = fmt.Sprintf("Koreksi komisi: %s", *l.Notes)
@@ -1790,7 +1790,7 @@ func (s *agentService) GetCommissionHistory(ctx context.Context, tenantID uint64
 		}
 		if items[i].Type == "correction" && items[i].fromNetwork {
 			items[i].ProspectID = 0
-			items[i].Description = "Koreksi komisi override dari jaringan Anda"
+			items[i].Description = "Koreksi Komisi Pembinaan dari jaringan Anda"
 		}
 	}
 	return items, nil
@@ -1809,7 +1809,7 @@ func (s *agentService) GetCommissionHistoryForAdmin(ctx context.Context, tenantI
 	// The travel admin may see which prospect an override came from.
 	for i := range items {
 		if items[i].Type == "override" && items[i].prospectName != "" {
-			items[i].Description = fmt.Sprintf("Komisi override dari %s", items[i].prospectName)
+			items[i].Description = fmt.Sprintf("Komisi Pembinaan dari %s", items[i].prospectName)
 		}
 	}
 	return items, nil

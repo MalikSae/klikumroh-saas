@@ -17,7 +17,7 @@ var (
 	ErrInvalidHexColor             = errors.New("format warna harus berupa hex #RRGGBB (contoh: #2563EB)")
 	ErrInvalidWhatsAppNumber       = errors.New("nomor WhatsApp minimal 10 digit dan harus diawali '62'")
 	ErrWhatsAppAlreadyInUse        = errors.New("nomor WhatsApp sudah digunakan oleh travel lain")
-	ErrInvalidCommissionPercentage = errors.New("persentase komisi override harus antara 0 dan 100")
+	ErrInvalidCommissionPercentage = errors.New("persentase komisi pembinaan harus antara 0 dan 100")
 	hexColorRegex                  = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 )
 

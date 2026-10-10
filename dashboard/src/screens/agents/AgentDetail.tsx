@@ -336,7 +336,7 @@ export const AgentDetail: React.FC<{ onChanged: () => void }> = ({ onChanged }) 
           </header>
 
           {agent.status === 'inactive' && (
-            <Banner tone="warning">Prospek baru dari link referral agen ini tidak lagi tercatat atas namanya, dan agen tidak mendapat komisi override dari rekrutannya.</Banner>
+            <Banner tone="warning">Prospek baru dari link referral agen ini tidak lagi tercatat atas namanya, dan agen tidak mendapat Komisi Pembinaan dari rekrutannya.</Banner>
           )}
 
           <section className="ku-facts ag-page__facts">

@@ -58,14 +58,14 @@ const statusOf = (item: CommissionHistoryItem): { text: string; tone: 'ok' | 'wa
     }
   }
   if (item.held) return { text: 'Tertahan', tone: 'wait' };
-  if (item.type === 'override') return { text: 'Komisi tim · masuk saldo', tone: 'ok' };
+  if (item.type === 'override') return { text: 'Komisi Pembinaan · masuk saldo', tone: 'ok' };
   if (item.type === 'correction') return { text: 'Koreksi admin', tone: 'muted' };
   return { text: 'Masuk saldo', tone: 'ok' };
 };
 
 const typeLabel = (item: CommissionHistoryItem) => {
   if (item.type === 'payout') return 'Penarikan ke rekening';
-  if (item.type === 'override') return 'Komisi tim (dari agen rekrutan)';
+  if (item.type === 'override') return 'Komisi Pembinaan (dari agen yang Anda ajak)';
   if (item.type === 'correction') return 'Koreksi oleh admin';
   return 'Komisi jamaah';
 };
@@ -77,7 +77,7 @@ const fullDateTime = (iso: string) => {
 };
 
 const splitDescription = (text: string): { title: string; extra: string } => {
-  const m = /^Komisi (?:override )?dari (.+?)\s*\((\d+) jamaah\)\s*$/i.exec(text || '');
+  const m = /^Komisi (?:override |pembinaan )?dari (.+?)\s*\((\d+) jamaah\)\s*$/i.exec(text || '');
   return m ? { title: m[1], extra: `${m[2]} jamaah` } : { title: text, extra: '' };
 };
 

@@ -135,9 +135,9 @@ func TestAgentHandler_CommissionHistory_OverrideDoesNotLeakProspectName(t *testi
 
 	bodyStr := w.Body.String()
 
-	// Verify "Komisi override dari jaringan Anda" is present
-	if !strings.Contains(bodyStr, "Komisi override dari jaringan Anda") {
-		t.Errorf("expected description 'Komisi override dari jaringan Anda', body was: %s", bodyStr)
+	// Verify "Komisi Pembinaan dari jaringan Anda" is present
+	if !strings.Contains(bodyStr, "Komisi Pembinaan dari jaringan Anda") {
+		t.Errorf("expected description 'Komisi Pembinaan dari jaringan Anda', body was: %s", bodyStr)
 	}
 
 	// Verify prospect name ("Prospect Mock" from mock repo) is NOT in response body for override

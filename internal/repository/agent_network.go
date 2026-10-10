@@ -18,8 +18,10 @@ type AgentNetworkMember struct {
 	CreatedAt time.Time `json:"created_at"`
 
 	ProspectCount int `json:"prospect_count"`
-	ClosingCount  int `json:"closing_count"`
-	// OverrideReleased / OverrideHeld: what this recruit's closings gave the upline (override ledger rows and
+	// ClosingJamaah is the number of jamaah (pax) in the recruit's closed prospects, the same unit as the
+	// leaderboard: a prospect with 3 jamaah counts 3.
+	ClosingJamaah int `json:"closing_jamaah"`
+	// OverrideReleased / OverrideHeld: the Komisi Pembinaan this recruit's closings gave the upline (override ledger rows and
 	// their corrections), split into withdrawable and still on hold until the jamaah is paid off.
 	OverrideReleased float64 `json:"override_released"`
 	OverrideHeld     float64 `json:"override_held"`
@@ -48,8 +50,8 @@ func (r *mysqlAgentNetworkRepository) ListDirectRecruits(ctx context.Context, te
 		SELECT a.id, a.name, a.phone, a.photo_url, a.status, a.created_at,
 		       (SELECT COUNT(*) FROM prospects p
 		         WHERE p.tenant_id = a.tenant_id AND p.agent_id = a.id) AS prospect_count,
-		       (SELECT COUNT(*) FROM prospects p
-		         WHERE p.tenant_id = a.tenant_id AND p.agent_id = a.id AND p.status = 'closing') AS closing_count,
+		       COALESCE((SELECT SUM(COALESCE(p.jumlah_jamaah, 1)) FROM prospects p
+		         WHERE p.tenant_id = a.tenant_id AND p.agent_id = a.id AND p.status = 'closing'), 0) AS closing_jamaah,
 		       COALESCE((SELECT SUM(cl.amount) FROM commission_ledger cl
 		                  JOIN prospects p ON p.id = cl.prospect_id AND p.tenant_id = cl.tenant_id
 		                 WHERE cl.tenant_id = a.tenant_id AND cl.agent_id = a.parent_agent_id
@@ -73,7 +75,7 @@ func (r *mysqlAgentNetworkRepository) ListDirectRecruits(ctx context.Context, te
 		var m AgentNetworkMember
 		var phone, photo sql.NullString
 		if err := rows.Scan(&m.ID, &m.Name, &phone, &photo, &m.Status, &m.CreatedAt,
-			&m.ProspectCount, &m.ClosingCount, &m.OverrideReleased, &m.OverrideHeld); err != nil {
+			&m.ProspectCount, &m.ClosingJamaah, &m.OverrideReleased, &m.OverrideHeld); err != nil {
 			return nil, err
 		}
 		if phone.Valid {

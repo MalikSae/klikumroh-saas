@@ -41,23 +41,27 @@ func TestAgentNetwork_FiguresFollowTheClosing(t *testing.T) {
 		t.Fatalf("expected the one downline, got %+v", net)
 	}
 	m := net.Members[0]
-	if m.ProspectCount != 1 || m.ClosingCount != 0 || m.OverrideHeld != 0 || m.OverrideReleased != 0 {
+	if m.ProspectCount != 1 || m.ClosingJamaah != 0 || m.OverrideHeld != 0 || m.OverrideReleased != 0 {
 		t.Fatalf("before any closing: %+v", m)
 	}
 	if m.Phone == nil {
 		t.Fatalf("an active recruit's number is shown to the upline")
 	}
 
-	// Closing: the default policy releases on DP, so 10% of Rp1.000.000 is withdrawable straight away.
+	// The recruit's prospect is for 3 jamaah: the closing counts 3 pax (like the leaderboard), not 1 prospect,
+	// and the Komisi Pembinaan is 10% of 3 x Rp1.000.000.
+	if _, err := setupTestDB(t).Exec("UPDATE prospects SET jumlah_jamaah = 3 WHERE tenant_id = ? AND id = ?", e.tenant.ID, e.prospect.ID); err != nil {
+		t.Fatalf("set jamaah: %v", err)
+	}
 	if err := e.svc.UpdateStatus(e.ctx, e.tenant.ID, e.prospect.ID, e.adminID, "closing", nil, nil); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
 	net, _ = svc.GetNetwork(e.ctx, e.tenant.ID, e.upline.ID)
 	m = net.Members[0]
-	if m.ClosingCount != 1 || m.OverrideReleased != 100000 || m.OverrideHeld != 0 {
-		t.Fatalf("after closing expected 1 closing and 100000 released, got %+v", m)
+	if m.ProspectCount != 1 || m.ClosingJamaah != 3 || m.OverrideReleased != 300000 || m.OverrideHeld != 0 {
+		t.Fatalf("after closing expected 1 prospect, 3 jamaah closing and 300000 released, got %+v", m)
 	}
-	if !net.OverrideEnabled || net.OverrideReleased != 100000 {
+	if !net.OverrideEnabled || net.OverrideReleased != 300000 {
 		t.Fatalf("summary must carry the released override, got %+v", net)
 	}
 
@@ -72,8 +76,8 @@ func TestAgentNetwork_FiguresFollowTheClosing(t *testing.T) {
 	}
 	net, _ = svc.GetNetwork(e.ctx, e.tenant.ID, e.upline.ID)
 	m = net.Members[0]
-	if m.OverrideReleased != 100000 || m.OverrideHeld != 40000 || net.OverrideHeld != 40000 {
-		t.Fatalf("expected 100000 released and 40000 held, got %+v / %+v", m, net)
+	if m.OverrideReleased != 300000 || m.OverrideHeld != 40000 || net.OverrideHeld != 40000 {
+		t.Fatalf("expected 300000 released and 40000 held, got %+v / %+v", m, net)
 	}
 
 	// Paid off releases what was held.
@@ -82,8 +86,8 @@ func TestAgentNetwork_FiguresFollowTheClosing(t *testing.T) {
 	}
 	net, _ = svc.GetNetwork(e.ctx, e.tenant.ID, e.upline.ID)
 	m = net.Members[0]
-	if m.OverrideReleased != 140000 || m.OverrideHeld != 0 {
-		t.Fatalf("after paid off expected 140000 released and nothing held, got %+v", m)
+	if m.OverrideReleased != 340000 || m.OverrideHeld != 0 {
+		t.Fatalf("after paid off expected 340000 released and nothing held, got %+v", m)
 	}
 }
 

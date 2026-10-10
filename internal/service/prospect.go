@@ -1160,9 +1160,9 @@ func (s *prospectService) CalculateAndRecordCommission(ctx context.Context, tena
 		s.notifyAgent(ctx, tenantID, *prospect.AgentID, "commission_earned", "Komisi baru tercatat", body, "/agen/riwayat-komisi")
 	}
 	if parentID != nil && overrideAmount > 0 {
-		body := fmt.Sprintf("Komisi override Rp %s dari jaringan Anda sudah bisa dicairkan.", util.FormatRupiah(overrideAmount))
+		body := fmt.Sprintf("Komisi Pembinaan Rp %s dari jaringan Anda sudah bisa dicairkan.", util.FormatRupiah(overrideAmount))
 		if releasedAt == nil {
-			body = fmt.Sprintf("Komisi override Rp %s dari jaringan Anda tercatat dan tertahan sampai jamaah lunas.", util.FormatRupiah(overrideAmount))
+			body = fmt.Sprintf("Komisi Pembinaan Rp %s dari jaringan Anda tercatat dan tertahan sampai jamaah lunas.", util.FormatRupiah(overrideAmount))
 		}
 		s.notifyAgent(ctx, tenantID, *parentID, "commission_override_earned", "Komisi override tercatat", body, "/agen/riwayat-komisi")
 	}
