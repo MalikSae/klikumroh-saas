@@ -24,9 +24,11 @@ const formatPrice = (p?: number | null) => (p ? 'Rp ' + Math.floor(p).toLocaleSt
 export const packageShareText = (pkg: SharePackageInfo, link: string): string => {
   const date = formatDate(pkg.departure_date);
   const price = formatPrice(pkg.price);
-  const lines = [`Assalamu'alaikum, ada jadwal umroh ${pkg.name}${date ? ` berangkat ${date}` : ''}.`];
+  // Neutral on purpose (no greeting): the agent pastes it into groups, statuses and chats of all kinds.
+  // Only facts from the package go in; nothing claims scarcity or a discount that may not be true.
+  const lines = [`Saatnya wujudkan niat umroh: ${pkg.name}${date ? `, berangkat ${date}` : ''}.`];
   if (price) lines.push(`Mulai ${price}.`);
-  lines.push('', 'Info lengkap dan daftar di sini:', link);
+  lines.push('', 'Lihat fasilitas, jadwal, dan cara daftarnya di sini:', link);
   return lines.join('\n');
 };
 

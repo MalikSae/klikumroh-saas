@@ -37,7 +37,7 @@ import { HABITS, fetchHabitSummary, habitHeadline, logHabit, type HabitSummary }
 import { JAKARTA_TZ, jakartaDayKey } from '../../../lib/jakartaTime';
 import { homeRank } from '../../../lib/agentRank';
 import { copyToClipboard } from '../../../lib/clipboard';
-import { canShareFiles, packagePhotoFile, packageShareText, shareCountsAsHabit, sharePackage } from '../../../lib/packageShare';
+import { packageShareText } from '../../../lib/packageShare';
 import './AgenDashboard.css';
 
 interface AgentFunnelSummary {
@@ -122,8 +122,6 @@ export default function AgenDashboardPage() {
   // Package picked for "Syiarkan!" (bottom sheet with copy / WhatsApp).
   const [syiarPkg, setSyiarPkg] = useState<PublicPackage | null>(null);
   const [syiarCopied, setSyiarCopied] = useState(false);
-  const [syiarPhoto, setSyiarPhoto] = useState<{ id: number; file: File | null } | null>(null);
-  const syiarFile = syiarPhoto && syiarPkg && syiarPhoto.id === syiarPkg.id ? syiarPhoto.file : null;
   // Habit tracker card (today's 5 habits and the streak).
   const [habits, setHabits] = useState<HabitSummary | null>(null);
 
@@ -378,31 +376,6 @@ export default function AgenDashboardPage() {
     const link = packageLink(pkg);
     if (!link) return '#';
     return `https://wa.me/?text=${encodeURIComponent(packageShareText(pkg, link))}`;
-  };
-
-  // "Bagikan dengan foto": the system share sheet with the package photo and the message as its caption.
-  // The photo is prepared when the sheet opens, so the share sheet opens right on tap.
-  useEffect(() => {
-    if (!syiarPkg || !canShareFiles()) return;
-    const photo = [...(syiarPkg.photos || [])].sort((x, y) => x.sort_order - y.sort_order)[0];
-    if (!photo) return;
-    let alive = true;
-    const id = syiarPkg.id;
-    packagePhotoFile(photo.file_path, syiarPkg.name).then((file) => {
-      if (alive) setSyiarPhoto({ id, file });
-    });
-    return () => {
-      alive = false;
-    };
-  }, [syiarPkg]);
-
-  const sharePackageWithPhoto = async (pkg: PublicPackage) => {
-    const link = packageLink(pkg);
-    if (!link) return;
-    const result = await sharePackage(pkg, link, syiarFile);
-    // Logged only after the share really happened, never for a cancelled or failed share sheet.
-    if (shareCountsAsHabit(result)) logShare();
-    if (result !== 'cancelled') setSyiarPkg(null);
   };
 
   const getWhatsAppShareUrl = (): string => {
@@ -771,17 +744,6 @@ export default function AgenDashboardPage() {
             </h2>
             <p className="ag-muted">{syiarPkg.name}</p>
             <div className="ag-sheet__options">
-              {syiarFile && (
-                <button type="button" className="ag-sheet__option" onClick={() => sharePackageWithPhoto(syiarPkg)}>
-                  <span className="ag-sheet__icon">
-                    <Share2 size={20} aria-hidden="true" />
-                  </span>
-                  <span className="ag-sheet__text">
-                    <span className="ag-sheet__label">Bagikan dengan foto</span>
-                    <span className="ag-muted">Foto paket, pesan, dan link Anda sekaligus</span>
-                  </span>
-                </button>
-              )}
               <button type="button" className="ag-sheet__option" onClick={() => copyPackageLink(syiarPkg)}>
                 <span className="ag-sheet__icon">{syiarCopied ? <Check size={20} aria-hidden="true" /> : <Copy size={20} aria-hidden="true" />}</span>
                 <span className="ag-sheet__text">
