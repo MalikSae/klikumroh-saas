@@ -602,11 +602,10 @@ export default function AgenDaftarPage() {
             {linkCode ? (
               // Information, not a field: nothing here can be edited, so it must not look like an input.
               <div className="tw-agen-daftar-upline" role="status">
-                <UserCheck size={18} className="tw-agen-daftar-upline__icon" aria-hidden="true" />
-                <div>
-                  <p className="tw-agen-daftar-upline__text">
-                    Anda diajak oleh <strong className="tw-agen-daftar-upline__name">{uplineName ?? 'agen pengajak'}</strong>
-                  </p>
+                <UserCheck size={22} className="tw-agen-daftar-upline__icon" aria-hidden="true" />
+                <div className="tw-agen-daftar-upline__body">
+                  <p className="tw-agen-daftar-upline__label">Anda diajak oleh</p>
+                  <p className="tw-agen-daftar-upline__name">{uplineName ?? 'Agen pengajak'}</p>
                   <p className="tw-agen-daftar-upline__hint">Tercatat otomatis dari tautan yang Anda buka.</p>
                 </div>
               </div>

@@ -450,14 +450,19 @@
 }
 .tw-agen-daftar-ref-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Upline shown from the opened link: plain information (icon + text), deliberately not input-shaped. */
+/* Upline from the opened link: an info panel (grey fill, icon, stacked text), not a field, aligned with the
+   fields above it. */
 .tw-agen-daftar-upline {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 2px 0;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background-color: var(--tw-gray-50);
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: var(--radius-md, 10px);
 }
-.tw-agen-daftar-upline__icon { flex: none; margin-top: 1px; color: var(--tw-neutral-500); }
-.tw-agen-daftar-upline__text { margin: 0; font-size: 14px; line-height: 1.4; color: var(--tw-neutral-700); }
-.tw-agen-daftar-upline__name { font-weight: 600; color: var(--tw-text-primary); }
-.tw-agen-daftar-upline__hint { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--tw-neutral-500); }
+.tw-agen-daftar-upline__icon { flex: none; color: var(--tw-neutral-500); }
+.tw-agen-daftar-upline__body { min-width: 0; }
+.tw-agen-daftar-upline__label { margin: 0; font-size: 12px; line-height: 1.4; color: var(--tw-neutral-500); }
+.tw-agen-daftar-upline__name { margin: 1px 0; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--tw-text-primary); overflow-wrap: anywhere; }
+.tw-agen-daftar-upline__hint { margin: 0; font-size: 12px; line-height: 1.4; color: var(--tw-neutral-500); }
