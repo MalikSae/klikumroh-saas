@@ -396,7 +396,12 @@ export default function AgenDashboardPage() {
 
   const getWhatsAppShareUrl = (): string => {
     if (!summary?.referral_link) return '#';
-    const text = `Assalamu'alaikum, info pendaftaran paket umroh resmi dan terpercaya bisa cek langsung di link berikut:\n${summary.referral_link}`;
+    // Wording approved by the founder (10 Okt 2026, option D): neutral, the same family as the package caption
+    // ("Saatnya wujudkan niat umroh bersama ..."). No greeting and no "resmi dan terpercaya" claim.
+    const text = [
+      `Saatnya wujudkan niat umroh bersama ${travel?.name || 'travel umroh'}. Lihat jadwal, fasilitas, dan cara daftarnya di sini:`,
+      summary.referral_link,
+    ].join('\n');
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
