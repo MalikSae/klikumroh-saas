@@ -494,6 +494,7 @@ Lima agen baca-saja (regresi, backend prospek/komisi, backend langganan/affiliat
   - M12 Sesi berganti di tab lain: tab lama dikunci dengan dialog "Muat ulang", tidak bisa menulis ke travel lain
   - M13 Status langganan di dashboard dimuat ulang (travel pending tidak diarahkan ke invoice yang dibatalkan)
   - M14 Daftar agen dengan kode referral dikosongkan = tanpa upline (cookie hanya dipakai bila field tidak dikirim)
+    - Diganti 10 Okt 2026 (keputusan pendiri): upline ditentukan tautan, bukan isian form. Cookie ref_code (30 hari, tautan terakhir menang) dipakai walau kolom kosong; kolom manual hanya untuk pendaftar tanpa tautan; upline dari tautan ditampilkan read-only; cookie ke agen tidak aktif/tidak dikenal tidak menggagalkan pendaftaran.
   - M15 Notifikasi agen tidak berkedip setiap 5 detik; gagal tandai dibaca dikembalikan
   - Regresi kecil: agen lama dengan nomor tidak valid tetap bisa diedit (nomor hanya dicek bila diubah); validasi nomor WA di form web sama dengan backend; cek panjang password di halaman Akun sama dengan backend; saran lama "hapus domain utama" di halaman Domain dihapus
   - Catatan: approve tanpa bukti transfer tidak bisa lagi; bila staf mengonfirmasi dari mutasi bank saja, bukti harus diunggah dulu

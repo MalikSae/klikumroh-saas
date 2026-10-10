@@ -1044,13 +1044,74 @@ func TestAgentHandler_Register_CrossTenantReferralCookie(t *testing.T) {
 		return created
 	}
 
-	t.Run("Empty referral_code with ref_code cookie registers without an upline", func(t *testing.T) {
+	t.Run("Empty referral_code with ref_code cookie still uses the cookie (clearing the field cannot cancel the upline)", func(t *testing.T) {
 		created := registerWithCookie(t, map[string]interface{}{
 			"name": "Agen Mandiri", "phone": "0844444444", "email": "mandiri@travela.com",
 			"password": "passwordA123", "domisili": "Kota Bandung", "referral_code": "",
 		})
-		if created.ParentAgentID != nil {
-			t.Fatalf("referral_code \"\" must ignore the cookie, got parent_agent_id %d", *created.ParentAgentID)
+		if created.ParentAgentID == nil || *created.ParentAgentID != agentA.ID {
+			t.Fatalf("an empty referral_code must not cancel the cookie upline (parent %d), got %v", agentA.ID, created.ParentAgentID)
+		}
+	})
+
+	// An upline that is not active (pending, rejected, deactivated) cannot recruit. What the applicant sees
+	// depends on where the code came from: a typed code is their mistake and is told; a code from a link is
+	// not, so the sign-up goes on without an upline.
+	t.Run("Inactive upline: link/cookie code registers without an upline, typed code is refused", func(t *testing.T) {
+		emailP, phoneP := "pendingA@travela.com", "0877777771"
+		pending := &repository.Agent{
+			TenantID: tA.ID, Name: "Agen Belum Aktif", Email: &emailP, Phone: &phoneP,
+			ReferralCode: "PENDA123", Status: "pending",
+		}
+		if err := agentRepo.Create(context.Background(), tA.ID, pending); err != nil {
+			t.Fatalf("seed pending agent: %v", err)
+		}
+		post := func(body map[string]interface{}, cookie string) *httptest.ResponseRecorder {
+			raw, _ := json.Marshal(body)
+			req := httptest.NewRequest(http.MethodPost, "/api/public/agents/register", bytes.NewReader(raw))
+			req.Host = "travela.klikumroh.local"
+			if cookie != "" {
+				req.AddCookie(&http.Cookie{Name: "ref_code", Value: cookie})
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			return w
+		}
+
+		if w := post(map[string]interface{}{
+			"name": "Dari Cookie Pending", "phone": "0877777772", "email": "cookiepending@travela.com",
+			"password": "passwordA123", "domisili": "Kota Bandung",
+		}, "PENDA123"); w.Code != http.StatusCreated {
+			t.Fatalf("cookie of an inactive upline must not block the sign-up, got %d: %s", w.Code, w.Body.String())
+		}
+		if w := post(map[string]interface{}{
+			"name": "Dari Form Link", "phone": "0877777773", "email": "formlink@travela.com",
+			"password": "passwordA123", "domisili": "Kota Bandung",
+			"referral_code": "PENDA123", "referral_from_link": true,
+		}, ""); w.Code != http.StatusCreated {
+			t.Fatalf("a link code of an inactive upline must not block the sign-up, got %d: %s", w.Code, w.Body.String())
+		}
+		if w := post(map[string]interface{}{
+			"name": "Ketik Manual", "phone": "0877777774", "email": "manual@travela.com",
+			"password": "passwordA123", "domisili": "Kota Bandung",
+			"referral_code": "PENDA123",
+		}, ""); w.Code != http.StatusBadRequest {
+			t.Fatalf("a typed code of an inactive upline must be refused with 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("Unknown ref_code cookie registers without an upline and without an error", func(t *testing.T) {
+		raw, _ := json.Marshal(map[string]interface{}{
+			"name": "Agen Cookie Basi", "phone": "0866666666", "email": "basi@travela.com",
+			"password": "passwordA123", "domisili": "Kota Bandung",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/api/public/agents/register", bytes.NewReader(raw))
+		req.Host = "travela.klikumroh.local"
+		req.AddCookie(&http.Cookie{Name: "ref_code", Value: "TIDAKADA1"})
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusCreated {
+			t.Fatalf("a stale cookie must not block the sign-up, got %d: %s", w.Code, w.Body.String())
 		}
 	})
 

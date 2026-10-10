@@ -68,23 +68,44 @@ export default function AgenDaftarPage() {
 
   const domisiliRef = useRef<HTMLDivElement>(null);
 
-  // Read referral code from URL query (?ref=) or cookie
+  // The upline comes from the link the applicant opened (?ref=, or the ref_code cookie that /ref/[code] and
+  // proxy.ts keep for 30 days, last link wins). It is shown, not editable: like most affiliate systems the
+  // link decides, so the applicant cannot clear it and the agent who shared the link keeps the credit. The
+  // manual field below only exists for someone who arrived without a link.
+  const [linkCode, setLinkCode] = useState('');
+  const [uplineName, setUplineName] = useState<string | null>(null);
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref');
-      if (ref) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the browser after hydration; not available on the server render
-        setReferralCode(ref.toUpperCase().trim());
-      } else {
-        // ref_code is the cookie /ref/[code] and proxy.ts set; the backend falls back to it too, so the
-        // field must show it: an applicant should see (and can change) the upline they will be linked to.
-        const cookieMatch = document.cookie.match(/(?:^|;\s*)ref_code=([^;]+)/);
-        if (cookieMatch && cookieMatch[1]) {
-          setReferralCode(decodeURIComponent(cookieMatch[1]).toUpperCase().trim());
-        }
-      }
+    if (typeof window === 'undefined') return;
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    let code = ref ? ref.trim() : '';
+    if (!code) {
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)ref_code=([^;]+)/);
+      if (cookieMatch && cookieMatch[1]) code = decodeURIComponent(cookieMatch[1]).trim();
     }
+    if (!code) return;
+    code = code.toUpperCase();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the browser after hydration; not available on the server render
+    setLinkCode(code);
+    let alive = true;
+    // The code must belong to an active agent of this travel. A stale or unknown code (404) is dropped here so
+    // the applicant sees the normal manual field; any other failure keeps it (the server decides anyway).
+    fetch(`/api/public/consultant?ref=${encodeURIComponent(code)}`)
+      .then(async (res) => {
+        if (!alive) return;
+        if (res.status === 404) {
+          setLinkCode('');
+          return;
+        }
+        if (res.ok) {
+          const data = (await res.json().catch(() => null)) as { name?: string } | null;
+          if (alive && data?.name) setUplineName(data.name);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Fetch registration info & tenant info
@@ -230,9 +251,10 @@ export default function AgenDaftarPage() {
           password,
           domisili,
           terms_accepted: true,
-          // Always sent: "" means "no upline" (the backend falls back to the ref_code cookie only when the
-          // key is absent). The field is prefilled from that cookie, so an empty field is the applicant's choice.
-          referral_code: referralCode.trim().toUpperCase(),
+          // The link's code wins; the typed code is only for applicants without a link. The server also reads
+          // the ref_code cookie, so an empty value here can never cancel the upline of a link.
+          referral_code: linkCode || referralCode.trim().toUpperCase(),
+          referral_from_link: Boolean(linkCode),
         }),
       });
 
@@ -577,7 +599,26 @@ export default function AgenDaftarPage() {
             {/* Kode Referral Pengajak (Opsional): folded behind a link, most applicants register on their own.
                 It opens by itself when the code came from an agent's link (?ref= or cookie), so the
                 applicant still sees the upline they will be linked to. */}
-            {referralOpen || referralCode !== '' ? (
+            {linkCode ? (
+              <div className="tw-agen-daftar-field">
+                <label className="tw-agen-daftar-label" htmlFor="agent-upline">
+                  Anda diajak oleh
+                </label>
+                <div className="tw-agen-daftar-input-wrap">
+                  <input
+                    id="agent-upline"
+                    type="text"
+                    value={uplineName ?? 'Memuat...'}
+                    readOnly
+                    aria-readonly="true"
+                    className="tw-agen-daftar-input"
+                  />
+                </div>
+                <span className="tw-agen-daftar-hint-text">
+                  Tercatat otomatis dari tautan yang Anda buka. Kode referral ini tidak bisa diubah.
+                </span>
+              </div>
+            ) : referralOpen || referralCode !== '' ? (
               <div className="tw-agen-daftar-field">
                 <label className="tw-agen-daftar-label" htmlFor="agent-referral-code">
                   Kode Referral Pengajak (Opsional)
@@ -598,7 +639,7 @@ export default function AgenDaftarPage() {
                   />
                 </div>
                 <span className="tw-agen-daftar-hint-text">
-                  Terisi otomatis bila Anda datang dari link agen pengajak. Kosongkan jika mendaftar mandiri: akun Anda tidak akan terhubung ke agen mana pun.
+                  Isi bila Anda diberi kode oleh agen pengajak. Kosongkan jika mendaftar mandiri.
                 </span>
               </div>
             ) : (

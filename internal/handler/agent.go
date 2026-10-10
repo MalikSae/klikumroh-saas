@@ -178,13 +178,18 @@ func (h *AgentHandler) Register(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "domisili wajib dipilih"})
 		return
 	}
-	// Referral contract: referral_code ABSENT (or null) falls back to the ref_code cookie set by the agent
-	// link; referral_code PRESENT but empty means the person cleared the field on purpose and registers
-	// without an upline, so the cookie is NOT used.
-	if req.ReferralCode == nil {
-		if cookie, err := r.Cookie("ref_code"); err == nil && cookie.Value != "" {
+	// Referral contract (like most affiliate systems): the upline is decided by the link, not by what is in
+	// the form. A code typed by the applicant is used as given (manual entry, for someone who got a code by
+	// word of mouth). Otherwise the ref_code cookie that the last agent link set (30 days, last link wins)
+	// is used, whatever the form sent: an empty or cleared field can no longer cancel the upline.
+	typed := req.ReferralCode != nil && strings.TrimSpace(*req.ReferralCode) != ""
+	if !typed {
+		req.ReferralCode = nil
+		req.ReferralFromLink = false
+		if cookie, err := r.Cookie("ref_code"); err == nil && strings.TrimSpace(cookie.Value) != "" {
 			val := strings.TrimSpace(cookie.Value)
 			req.ReferralCode = &val
+			req.ReferralFromLink = true
 		}
 	}
 

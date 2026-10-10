@@ -161,6 +161,10 @@ type RegisterAgentRequest struct {
 	Password      string  `json:"password"`
 	TermsAccepted bool    `json:"terms_accepted"`
 	ReferralCode  *string `json:"referral_code"`
+	// ReferralFromLink is true when the code came from an agent's link (cookie or the link's ?ref=), not from
+	// something the applicant typed. Such a code is not the applicant's mistake when its agent is no longer
+	// active, so the sign-up goes on without an upline instead of failing with an error they cannot fix.
+	ReferralFromLink bool `json:"referral_from_link"`
 }
 
 type AgentPaymentInfo struct {
@@ -527,10 +531,13 @@ func (s *agentService) Register(ctx context.Context, tenantID uint64, req *Regis
 			// A pending, rejected or deactivated agent cannot recruit: it earns no override and its link
 			// produces no leads, so the person is told instead of being silently placed under it.
 			if parentAgent.Status != "active" {
-				return nil, ErrReferralAgentNotActive
+				if !req.ReferralFromLink {
+					return nil, ErrReferralAgentNotActive
+				}
+			} else {
+				pID := parentAgent.ID
+				parentAgentID = &pID
 			}
-			pID := parentAgent.ID
-			parentAgentID = &pID
 		}
 		// If referral code belongs to another tenant or not found, parentAgentID remains nil (cross-tenant safety)
 	}
