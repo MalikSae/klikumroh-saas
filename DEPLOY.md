@@ -650,3 +650,36 @@ unset CREATE_STAFF_PASSWORD
 - Disimpan sebagai hash bcrypt. Email yang sudah ada **ditolak**; perintah ini tidak pernah mengubah atau mereset akun.
 - `-role` hanya label tampilan (`owner` atau `admin`), tidak memberi izin tambahan.
 - Perintah dijalankan dari root repo agar `.env` (`DB_*`) terbaca. Staf berikutnya ditambahkan lewat Super Admin > Manajemen Staf.
+
+---
+
+## 9. Prosedur yang terbukti di server bersama (10 Okt 2026)
+
+Urutan ini dijalankan sampai produksi hidup. Ia **menggantikan** instruksi aaPanel Go Project / Node.js Project di Bagian 0.4 dan 0.5 untuk server ini.
+
+> [!IMPORTANT]
+> **Jangan pakai Go Project aaPanel untuk backend.** Binary yang sama jalan normal bila dipanggil langsung, tetapi launcher aaPanel gagal dengan "Startup failure:" tanpa pesan dan log kosong. Pakai systemd. Nama proyek aaPanel juga tidak boleh memakai tanda hubung.
+
+| Komponen | Cara jalan | Berkas |
+|---|---|---|
+| Backend `127.0.0.1:18080` | systemd `klikumroh-api` | `deploy/klikumroh-api.service` |
+| Web `127.0.0.1:13000` | systemd `klikumroh-web` (`server.js` di `web/.next/standalone/web`, env `HOSTNAME`, `PORT`, `BACKEND_INTERNAL_URL`, `PLATFORM_ORIGIN`) | dibuat di server dengan heredoc, lihat Bagian 9.2 |
+| Dashboard | file statis `dashboard/dist`, disajikan Nginx aaPanel | `deploy/nginx-klikumroh.conf` |
+| HTTPS | sertifikat Cloudflare Origin CA + vhost Nginx | `deploy/origin.pem`, `deploy/install-https.sh` |
+
+### 9.1 Urutan
+1. `git clone` repo ke `/www/wwwroot/klikumroh`, `bash scripts/build-linux.sh`, salin binary ke `bin/`, `chown www` untuk `uploads/ storage/ .env`.
+2. Migrasi: `./bin/klikumroh-migrate up` (versi terakhir 76, 44 tabel). Jangan pernah `down` di produksi.
+3. `cp deploy/klikumroh-api.service /etc/systemd/system/ && systemctl enable --now klikumroh-api`.
+4. Build web: `cd web && npm ci && BACKEND_INTERNAL_URL=http://127.0.0.1:18080 npm run build`, salin `.next/static` dan `public` ke `.next/standalone/web`, `chown -R www:www .next/standalone`, pasang service `klikumroh-web`.
+5. Build dashboard: `cd dashboard && npm ci && npm run build`.
+6. Kunci + CSR: `openssl req -new -newkey rsa:2048 -nodes -keyout origin.key -out origin.csr -subj "/CN=klikumroh.id"` di `/www/server/panel/vhost/cert/klikumroh.id/`. Di Cloudflare: *SSL/TLS > Origin Server > Create Certificate > Use my private key and CSR*, hostname `klikumroh.id` dan `*.klikumroh.id`. Taruh sertifikatnya di `deploy/origin.pem`.
+7. `bash deploy/install-https.sh` (mencocokkan kunci dan sertifikat, `nginx -t`, baru reload).
+8. DNS zona: `@` dan `*` A ke IP server (Proxied), `cname` A (DNS only). SSL mode **Full (strict)**.
+9. Staf pertama: `CREATE_STAFF_PASSWORD` diketik lewat `read -s`, lalu `./bin/klikumroh-create-staff -email ... -name "..." -role owner`.
+
+### 9.2 Jebakan yang ditemui
+- **Nginx ganda.** Server punya Nginx Ubuntu (`/etc/nginx`, mati dan tidak aktif) selain Nginx aaPanel (`/www/server/nginx/sbin/nginx`). Selalu uji dengan binary aaPanel; `nginx -t` polos menguji konfigurasi yang salah.
+- **Paste heredoc panjang ke terminal web bisa rusak.** Pakai berkas di repo lalu `git pull`, atau base64 satu baris.
+- **Cloudflare**: tab dashboard bisa membeku setelah klik *Add record*; buka tab baru.
+- **`nginx` warn `protocol options redefined`** dari `ssl_protocols` di vhost kita bentrok dengan situs lain di socket 443 yang sama. Tidak berbahaya.
