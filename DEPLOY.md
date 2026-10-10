@@ -10,12 +10,20 @@ Dokumen ini memuat panduan langkah manual yang **HARUS dilakukan sendiri oleh pe
 
 ## 0. Build & Urutan Deploy
 
+### 0.0 Port produksi (12 Okt 2026)
+
+Server aaPanel yang dipakai bersama banyak situs lain sudah memakai port `8080` dan `3000` (aplikasi lain, status Listening). Karena itu **produksi memakai `18080` untuk backend dan `13000` untuk web**; seluruh dokumen ini sudah memakai angka itu. Pengembangan lokal tetap `8080` dan `3000`.
+
+- Sebelum memakai port itu, pastikan masih kosong: `ss -lntp | grep -E ':(18080|13000)\b'` tidak boleh menampilkan apa pun. Kalau terpakai, pilih angka lain dan ganti di semua tempat yang disebut di bawah.
+- Tempat yang harus konsisten: `PORT` di `.env` backend, `PORT` dan `BACKEND_INTERNAL_URL` di Node.js Project, **env saat `npm run build` web** (lihat 0.3), field port Go Project dan Node.js Project, `ask` dan `reverse_proxy` di Caddyfile, serta perintah uji.
+- Jangan membuka kedua port di firewall aaPanel. Keduanya hanya didengar di `127.0.0.1`.
+
 Tiga bagian yang dijalankan di VPS, semuanya hanya didengar di loopback dan di belakang Caddy:
 
 | Bagian | Bentuk | Listen | Dijalankan sebagai |
 |---|---|---|---|
-| Backend Go (`cmd/api`) | binary `klikumroh-api` | `127.0.0.1:8080` | service (systemd / Supervisor aaPanel) |
-| Web publik Next.js (`web/`) | output standalone `server.js` | `127.0.0.1:3000` | aaPanel Node.js Project |
+| Backend Go (`cmd/api`) | binary `klikumroh-api` | `127.0.0.1:18080` | service (systemd / Supervisor aaPanel) |
+| Web publik Next.js (`web/`) | output standalone `server.js` | `127.0.0.1:13000` | aaPanel Node.js Project |
 | Dashboard React (`dashboard/`) | file statis `dist/` | — (disajikan Caddy) | Bagian 2a |
 
 ### 0.1 Tata letak di server
@@ -34,7 +42,7 @@ Gunakan satu checkout repo, misal `/www/wwwroot/klikumroh`. Backend **wajib** di
 
 Backend (`.env`):
 - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`: user MySQL khusus aplikasi, bukan `root`.
-- `HOST=127.0.0.1` (atau kosong; backend menolak start di alamat non-loopback), `PORT=8080`.
+- `HOST=127.0.0.1` (atau kosong; backend menolak start di alamat non-loopback), `PORT=18080`.
 - `APP_ENCRYPTION_KEY`: Bagian 3a. Simpan cadangannya; kalau hilang, token Meta yang tersimpan tidak bisa dibaca.
 - `PLATFORM_IPS`: Bagian 4a. `AUTH_COOKIE_DOMAIN` hanya bila domain platform bukan `klikumroh.id`.
 - `DEMO_*`: Bagian 5. `META_GRAPH_VERSION` opsional.
@@ -42,8 +50,8 @@ Backend (`.env`):
 
 Web Next.js (env di aaPanel Node.js Project, bukan di `.env` root):
 - `NODE_ENV=production`
-- `HOSTNAME=127.0.0.1`, `PORT=3000`: wajib loopback (Bagian 4.2a).
-- `BACKEND_INTERNAL_URL=http://127.0.0.1:8080`: **wajib diisi**. Beberapa file memakai default `http://localhost:8080`, dan di Linux `localhost` bisa resolve ke `::1` sementara backend hanya mendengar IPv4.
+- `HOSTNAME=127.0.0.1`, `PORT=13000`: wajib loopback (Bagian 4.2a).
+- `BACKEND_INTERNAL_URL=http://127.0.0.1:18080`: **wajib diisi**. Beberapa file memakai default `http://localhost:18080`, dan di Linux `localhost` bisa resolve ke `::1` sementara backend hanya mendengar IPv4.
 - `PLATFORM_ORIGIN=https://klikumroh.id`.
 
 Dashboard: jangan isi `VITE_API_BASE` (Bagian 2a).
@@ -54,16 +62,16 @@ Dashboard: jangan isi `VITE_API_BASE` (Bagian 2a).
 - di komputer lokal: `bash scripts/build-linux.sh` (Git Bash/Linux) atau `powershell -ExecutionPolicy Bypass -File scripts\build-linux.ps1` (Windows), lalu upload `dist/klikumroh-api`, `dist/klikumroh-migrate`, `dist/klikumroh-seed-demo` ke `bin/` di root repo server dan `chmod +x`;
 - di server (bila Go terpasang): `bash scripts/build-linux.sh`, hasil di `dist/`.
 
-**Web (Next.js), di server.** Build di VPS Linux, jangan upload hasil build Windows (dependensi native di `node_modules` berbeda per OS):
+**Web (Next.js), di server.** Build di VPS Linux, jangan upload hasil build Windows (dependensi native di `node_modules` berbeda per OS). `BACKEND_INTERNAL_URL` **wajib ada di env saat build**: rewrite `/api` dan `/uploads` di `next.config.ts` dikompilasi saat build, bukan saat server berjalan.
 ```bash
 cd /www/wwwroot/klikumroh/web
 npm ci
-npm run build
+BACKEND_INTERNAL_URL=http://127.0.0.1:18080 npm run build
 # server.js ada di .next/standalone/web/ (root tracing = root repo, karena web/ mengimpor ../design-tokens.json)
 cp -r public .next/standalone/web/
 mkdir -p .next/standalone/web/.next && cp -r .next/static .next/standalone/web/.next/
 ```
-Di aaPanel Node.js Project: run directory `/www/wwwroot/klikumroh/web/.next/standalone/web`, entry file `server.js`, port `3000`, env sesuai 0.2. Langkah `cp` wajib diulang setiap build; tanpa itu CSS/JS dan file `public/` 404.
+Di aaPanel Node.js Project: run directory `/www/wwwroot/klikumroh/web/.next/standalone/web`, entry file `server.js`, port `13000`, env sesuai 0.2. Langkah `cp` wajib diulang setiap build; tanpa itu CSS/JS dan file `public/` 404.
 
 **Dashboard (React):** Bagian 2a (`npm ci && npm run build`, salin `dist/`).
 
@@ -77,10 +85,10 @@ aaPanel hanya menjalankan dan mengawasi file yang sudah ada di disk; ia bukan al
 |---|---|
 | Executable File | `/www/wwwroot/klikumroh/bin/klikumroh-api` |
 | Project Name | `klikumroh-api` |
-| Project Port | `8080` |
+| Project Port | `18080` |
 | Execution Command | `/www/wwwroot/klikumroh/bin/klikumroh-api` (working directory **harus** `/www/wwwroot/klikumroh`; kalau form tidak punya field working directory, pakai `cd /www/wwwroot/klikumroh && ./bin/klikumroh-api`) |
 | Run User | user non-root yang memiliki folder repo, misal `www` |
-| Domain name | **kosongkan**. Domain ditangani Caddy; jangan biarkan aaPanel membuat vhost Nginx untuk port 8080 (backend tidak boleh terbuka ke internet). |
+| Domain name | **kosongkan**. Domain ditangani Caddy; jangan biarkan aaPanel membuat vhost Nginx untuk port 18080 (backend tidak boleh terbuka ke internet). |
 
 **Node.js Project (web publik):**
 
@@ -89,12 +97,12 @@ aaPanel hanya menjalankan dan mengawasi file yang sudah ada di disk; ia bukan al
 | Project directory / run directory | `/www/wwwroot/klikumroh/web/.next/standalone/web` |
 | Entry file / startup file | `server.js` |
 | Project Name | `klikumroh-web` |
-| Project Port | `3000` |
+| Project Port | `13000` |
 | Run User | user yang sama, misal `www` |
-| Environment variables | `NODE_ENV=production`, `HOSTNAME=127.0.0.1`, `PORT=3000`, `BACKEND_INTERNAL_URL=http://127.0.0.1:8080`, `PLATFORM_ORIGIN=https://klikumroh.id` |
+| Environment variables | `NODE_ENV=production`, `HOSTNAME=127.0.0.1`, `PORT=13000`, `BACKEND_INTERNAL_URL=http://127.0.0.1:18080`, `PLATFORM_ORIGIN=https://klikumroh.id` |
 | Domain name | **kosongkan**, alasan sama: Caddy yang menerima domain. |
 
-Setelah keduanya jalan, cek dari luar server bahwa `http://IP_VPS:8080` dan `http://IP_VPS:3000` **tidak** bisa dihubungi (Bagian 3, 4.2a). Kalau aaPanel membuka port itu di firewall panel, tutup kembali.
+Setelah keduanya jalan, cek dari luar server bahwa `http://IP_VPS:18080` dan `http://IP_VPS:13000` **tidak** bisa dihubungi (Bagian 3, 4.2a). Kalau aaPanel membuka port itu di firewall panel, tutup kembali.
 
 ### 0.4 Urutan deploy (setiap rilis)
 
@@ -109,7 +117,7 @@ Setelah keduanya jalan, cek dari luar server bahwa `http://IP_VPS:8080` dan `htt
    - Kalau gagal dan versi tercatat `dirty`: perbaiki penyebabnya, lalu `./bin/klikumroh-migrate force <versi_terakhir_yang_berhasil>`, lalu `up` lagi.
    - > [!CAUTION]
      > **Jangan pernah menjalankan `klikumroh-migrate down` di produksi.** Perintah itu membatalkan **semua** migrasi sampai nol (`m.Down()`), bukan satu langkah. Hasilnya sama dengan menghapus seluruh tabel dan data. Rollback produksi = restore backup langkah 2.
-5. Pasang binary baru dan nyalakan backend; cek `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8080/api/public/platform-settings` → `200`.
+5. Pasang binary baru dan nyalakan backend; cek `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:18080/api/public/platform-settings` → `200`.
 6. Build web (0.3), lalu restart Node.js Project di aaPanel.
 7. Build dan salin dashboard (Bagian 2a).
 8. Uji asap dari luar server:
@@ -128,29 +136,64 @@ Uji dua hal ini **paling awal** di sesi deploy pertama, sebelum langkah lain, su
 
 ---
 
-## 1. Setup DNS Zone untuk CNAME Target
+## 1. Setup DNS Zone `klikumroh.id` (Cloudflare)
 
-Agar travel mitra dapat mengarahkan custom domain mereka ke KlikUmroh, domain target CNAME harus diatur di DNS zone `klikumroh.id`:
+Zona `klikumroh.id` ada di Cloudflare (paket Free, DNS Setup: Full). Per 12 Okt 2026 isinya baru 3 record: `store` (CNAME ke `domains.scalev.id`, **bukan** bagian KlikUmroh, biarkan) dan dua TXT (`_acme-challenge`, `_cf-custom-hostname`). Belum ada record yang mengarah ke server KlikUmroh, jadi landing, subdomain travel, dan dashboard belum bisa dibuka.
 
-1. Buka DNS Management domain `klikumroh.id` (misal di Cloudflare atau registrar DNS Anda).
-2. Tambahkan **A Record**:
-   - **Name / Host:** `cname` (sehingga menjadi `cname.klikumroh.id`)
-   - **IPv4 Address:** Masukkan IP Publik VPS KlikUmroh (contoh: `103.xxx.xxx.xxx`)
-   - **Proxy status:** **DNS Only (Grey Cloud)** jika menggunakan Cloudflare. 
-     *Catatan: Harus Grey Cloud agar request HTTP-01 challenge dari Let's Encrypt dapat langsung mencapai Caddy tanpa terhalang proxy Cloudflare.*
-   - **TTL:** Auto atau 300 detik.
+Ganti `IP_VPS` dengan IPv4 publik server tujuan (Caddy mendengar di sana).
 
-Setelah langkah ini selesai, setiap travel mitra yang mendaftarkan custom domain (misal: `umroh.travelamanah.com`) cukup menambahkan:
+### 1.1 Record yang dibuat
+
+| Name | Type | Content | Proxy | Fungsi |
+|---|---|---|---|---|
+| `cname` | A | `IP_VPS` | **DNS only (abu-abu)** | Target CNAME custom domain travel. Wajib abu-abu (HTTP-01 Caddy). Backend juga membaca IP ini sebagai `PLATFORM_IPS` (Bagian 4a). |
+| `@` (`klikumroh.id`) | A | `IP_VPS` | DNS only | Landing, checkout, login. |
+| `*` | A | `IP_VPS` | DNS only | `<slug>.klikumroh.id` website travel, `app.`, `demo.`. |
+| `www` | CNAME | `klikumroh.id` | DNS only | Bagian 4a: www ke apex lewat redirect Caddy. |
+| `store` | CNAME | `domains.scalev.id` | Proxied | Sudah ada, milik pihak lain. Jangan diubah. |
+
+Catatan:
+- `app.klikumroh.id` (dashboard travel dan super admin, Bagian 2a) tercakup record `*`. Boleh dibuat eksplisit supaya jelas.
+- Record eksplisit selalu menang atas `*`, jadi `store` tetap ke Scalev. Slug `store` sudah masuk daftar kata cadangan subdomain (`internal/service/public_signup.go`), jadi travel tidak bisa memilihnya.
+- Tambahkan `AAAA` untuk `cname`, `@`, dan `*` **hanya jika** Caddy benar-benar melayani IPv6 server.
+- TTL `Auto` (Cloudflare) cukup. Turunkan ke 300 detik hanya saat pindah server.
+
+### 1.2 Kenapa semuanya DNS only (abu-abu)
+
+Rancangan ini mengandalkan IP pengunjung asli: penjaga self-referral affiliator, rate limit, dan log klik membaca alamat klien dari PROXY protocol (Bagian 4, 4.2a). Kalau record di-proxy (awan oranye), yang sampai ke server adalah IP Cloudflare dan repo ini belum menangani `CF-Connecting-IP`. Karena itu **saat peluncuran semua record KlikUmroh abu-abu**, dan sertifikat diterbitkan Caddy langsung.
+
+Konsekuensinya: tidak ada perlindungan DDoS Cloudflare di depan situs. Kalau nanti ingin di-proxy, kerjakan dulu sebagai pekerjaan terpisah: percayai `CF-Connecting-IP` hanya dari rentang IP Cloudflare, lalu uji self-referral dan rate limit.
+
+### 1.3 Setelan Cloudflare lain
+
+- **SSL/TLS > Overview**: saat ini `Full`. Karena semua record abu-abu, mode ini tidak berpengaruh ke lalu lintas KlikUmroh. Kalau suatu saat di-proxy, pakai `Full (strict)` setelah Caddy punya sertifikat valid.
+- **Edge Certificates**: Universal SSL aktif untuk `klikumroh.id` dan `*.klikumroh.id`. Hanya relevan bila record di-proxy.
+- **Custom Hostnames (SSL for SaaS)**: tidak dipakai. Custom domain travel diterbitkan Caddy (Skenario A di `Arsitektur-Teknis-KlikUmroh.md`).
+- **Email**: footer landing memuat `support@klikumroh.id` tetapi zona belum punya MX. Aktifkan Email Routing Cloudflare (gratis, meneruskan ke kotak masuk pendiri) atau tambahkan MX penyedia email, dan SPF/DKIM/DMARC bila mengirim email.
+
+### 1.4 Cara travel memakainya
+
+Setelah `cname.klikumroh.id` ada, travel yang memakai domain sendiri cukup menambahkan:
+
 ```
 Type:  CNAME
 Name:  umroh (atau subdomain yang diinginkan)
 Target: cname.klikumroh.id
 ```
 
-Domain utama tanpa subdomain (misal `travelamanah.com`) tidak boleh memakai CNAME, jadi memakai **A record** ke IP server. Detail pasangan www / tanpa www ada di Bagian 4a.
+Domain utama tanpa subdomain (misal `travelamanah.com`) tidak boleh memakai CNAME, jadi memakai **A record** ke `IP_VPS`. Pasangan www / tanpa www ada di Bagian 4a.
+
+### 1.5 Verifikasi
+
+```bash
+dig +short cname.klikumroh.id        # harus IP_VPS
+dig +short klikumroh.id              # harus IP_VPS
+dig +short demo.klikumroh.id         # harus IP_VPS (lewat wildcard)
+dig +short store.klikumroh.id        # tetap milik Scalev
+```
 
 > [!NOTE]
-> A record `cname.klikumroh.id` ini juga dipakai backend untuk mengetahui IP server (lihat `PLATFORM_IPS` di Bagian 4a). Jika server juga punya IPv6 yang melayani web, tambahkan **AAAA record** `cname` ke IPv6 tersebut.
+> Record `cname.klikumroh.id` juga dipakai backend untuk mengetahui IP server (`PLATFORM_IPS`, Bagian 4a). Kalau server berpindah IP, ubah record ini dan nilai `PLATFORM_IPS` bersamaan.
 
 ---
 
@@ -167,7 +210,7 @@ Tambahkan konfigurasi `on_demand_tls` di `Caddyfile` server:
     # Global options
     on_demand_tls {
         # Endpoint validasi internal aplikasi Go
-        ask http://127.0.0.1:8080/internal/domain-ask
+        ask http://127.0.0.1:18080/internal/domain-ask
         
         # Rate limiting pencegah abuse rate limit Let's Encrypt
         interval 2m
@@ -181,8 +224,8 @@ https:// {
         on_demand
     }
 
-    # Teruskan request ke Next.js Web Frontend (Port 3000)
-    reverse_proxy 127.0.0.1:3000 {
+    # Teruskan request ke Next.js Web Frontend (Port 13000)
+    reverse_proxy 127.0.0.1:13000 {
         header_up Host {host}
         header_up X-Forwarded-Host {host}
         header_up X-Forwarded-Proto {scheme}
@@ -193,7 +236,7 @@ https:// {
 Blok global ini juga harus memuat `http_port`, `https_port`, dan `servers :8443 { listener_wrappers { proxy_protocol ... } }` dari Bagian 4.2a. Tanpa itu backend melihat semua pengunjung sebagai `127.0.0.1`.
 
 ### Parameter Kunci:
-- **`ask http://127.0.0.1:8080/internal/domain-ask`**: Caddy akan otomatis memanggil URL ini sebelum meminta sertifikat baru. Backend Go akan merespons `200 OK` **hanya jika** hostname terdaftar dengan `type='custom'` dan `status='active'`. Jika tidak (atau berstatus `pending`/`failed`), backend merespons `404`, dan Caddy langsung menolak penerbitan TLS. Ini mencegah server disalahgunakan untuk menerbitkan sertifikat domain acak.
+- **`ask http://127.0.0.1:18080/internal/domain-ask`**: Caddy akan otomatis memanggil URL ini sebelum meminta sertifikat baru. Backend Go akan merespons `200 OK` **hanya jika** hostname terdaftar dengan `type='custom'` dan `status='active'`. Jika tidak (atau berstatus `pending`/`failed`), backend merespons `404`, dan Caddy langsung menolak penerbitan TLS. Ini mencegah server disalahgunakan untuk menerbitkan sertifikat domain acak.
 - **`burst 5` & `interval 2m`**: Membatasi penerbitan maksimal 5 sertifikat baru per 2 menit untuk mematuhi rate limit Let's Encrypt.
 
 ---
@@ -233,10 +276,10 @@ app.klikumroh.id {
 
     # API dan file upload diteruskan ke backend Go (hanya didengar di 127.0.0.1).
     handle /api/* {
-        reverse_proxy 127.0.0.1:8080
+        reverse_proxy 127.0.0.1:18080
     }
     handle /uploads/* {
-        reverse_proxy 127.0.0.1:8080
+        reverse_proxy 127.0.0.1:18080
     }
 
     # Selain itu file statis SPA. Path yang tidak ada (misal /prospects/12) jatuh ke index.html.
@@ -270,9 +313,9 @@ Blok dengan hostname eksplisit seperti ini mendapat sertifikat TLS biasa dari Ca
 
 ### Pengamanan di Level VPS:
 1. **Backend Go Bind Localhost:**
-   Pastikan backend Go selalu bind ke `127.0.0.1:8080` (sudah ditegakkan di konfigurasi default `.env` dan `AGENTS.md` Bagian 3.5), bukan `0.0.0.0:8080`.
+   Pastikan backend Go selalu bind ke `127.0.0.1:18080` (sudah ditegakkan di konfigurasi default `.env` dan `AGENTS.md` Bagian 3.5), bukan `0.0.0.0:18080`.
 2. **Firewall VPS (UFW / Iptables):**
-   Port `8080` tidak boleh dibuka pada security group VPS / Firewall cloud publik.
+   Port `18080` tidak boleh dibuka pada security group VPS / Firewall cloud publik.
 3. **Nginx Public Reverse Proxy:**
    Pastikan konfigurasi virtual host publik Nginx tidak memiliki blok `proxy_pass` yang memetakan path `/internal/` ke publik.
 
@@ -337,7 +380,7 @@ Catatan: agar Nginx `stream` bisa memegang port 443, virtual host HTTPS aaPanel 
 
 SNI hanya ada di HTTPS; `stream` tidak bisa membedakan hostname di port 80. Port 80 tetap dipegang Nginx biasa, sehingga:
 
-- Pengunjung yang mengetik `http://namatravel.com` hanya sampai ke website travel jika Nginx punya `server` **default** di port 80 yang meneruskan host yang tidak dikenal ke port HTTP internal Caddy (misal Caddy `http_port 8081`, lalu `proxy_pass http://127.0.0.1:8081;` dengan `proxy_set_header Host $host;`). Jangan arahkan ke `8080`: itu port backend Go yang tidak boleh terbuka ke publik (Bagian 3). Caddy lalu mengalihkan ke HTTPS.
+- Pengunjung yang mengetik `http://namatravel.com` hanya sampai ke website travel jika Nginx punya `server` **default** di port 80 yang meneruskan host yang tidak dikenal ke port HTTP internal Caddy (misal Caddy `http_port 8081`, lalu `proxy_pass http://127.0.0.1:8081;` dengan `proxy_set_header Host $host;`). Jangan arahkan ke `18080`: itu port backend Go yang tidak boleh terbuka ke publik (Bagian 3). Caddy lalu mengalihkan ke HTTPS.
 - Penerbitan sertifikat: Caddy mencoba challenge **HTTP-01** (butuh port 80 sampai ke Caddy) dan **TLS-ALPN-01** (lewat port 443, jalan selama SNI mengarah ke Caddy). Jika port 80 tidak diteruskan, pastikan TLS-ALPN-01 aktif (bawaan Caddy) dan uji penerbitan satu domain sebelum membuka fitur ke travel.
 - Server default port 80 yang sudah ada di aaPanel (jika ada) harus dicek agar tidak menelan domain travel.
 
@@ -408,7 +451,7 @@ Catatan:
 - **Jangan** pasang `trusted_proxies` di Caddy untuk listener publik. Tanpa itu Caddy mengabaikan `X-Forwarded-For` kiriman pengunjung dan menulis ulang dengan IP asli, sehingga IP tidak bisa dipalsukan. Backend Go mempercayai entri pertama header ini justru karena Caddy menulisnya ulang.
 - Port 80 (Bagian 4.2) hanya mengalihkan ke HTTPS dan menjawab challenge sertifikat, jadi tidak perlu PROXY protocol.
 - Caddy `8443` dan listener `8442`/`4432` harus hanya didengar di `127.0.0.1`.
-- **Next.js juga wajib hanya didengar di `127.0.0.1:3000`** (mis. `next start -H 127.0.0.1 -p 3000`, atau `HOSTNAME=127.0.0.1` untuk output standalone). Backend Go hanya mempercayai `X-Forwarded-For` dari koneksi loopback dan membacanya dari kanan, melewati hop lokal. Kalau port 3000 terbuka ke internet, siapa pun bisa melewati Caddy dan mengirim `X-Forwarded-For` palsu lewat Next.js. Cek dari luar server: `curl -m 5 http://IP_VPS:3000` harus gagal tersambung.
+- **Next.js juga wajib hanya didengar di `127.0.0.1:13000`** (mis. `next start -H 127.0.0.1 -p 13000`, atau `HOSTNAME=127.0.0.1` untuk output standalone). Backend Go hanya mempercayai `X-Forwarded-For` dari koneksi loopback dan membacanya dari kanan, melewati hop lokal. Kalau port 13000 terbuka ke internet, siapa pun bisa melewati Caddy dan mengirim `X-Forwarded-For` palsu lewat Next.js. Cek dari luar server: `curl -m 5 http://IP_VPS:13000` harus gagal tersambung.
 
 **Cara uji** (wajib, sebelum membuka program affiliator ke publik):
 1. Dari HP dengan data seluler (bukan WiFi server), buka `https://klikumroh.id/?aff=KODE_AFFILIATOR_UJI`.
@@ -433,7 +476,7 @@ Catatan:
    ```
    Keduanya harus `204`. `KODE_LINK_AFFILIATOR_UJI` adalah kode link (bukan kode kupon) affiliator uji yang aktif; kode yang salah tidak dicatat.
 3. Di server: `SELECT ip_address, clicked_at FROM affiliator_clicks ORDER BY id DESC LIMIT 2;` kedua baris harus berisi IP publik komputer tadi. Kalau muncul `203.0.113.66` atau `198.51.100.77` (alamat dokumentasi RFC 5737), Caddy meneruskan header palsu: cari dan hapus `trusted_proxies` di listener publik, reload Caddy, ulangi. Kalau muncul `127.0.0.1`, PROXY protocol di atas belum jalan.
-4. Pastikan Next.js tidak bisa dihubungi langsung: dari komputer luar yang sama, `curl -m 5 http://IP_VPS:3000` harus gagal tersambung (timeout atau connection refused). Kalau tersambung, header palsu bisa masuk lewat Next.js tanpa Caddy.
+4. Pastikan Next.js tidak bisa dihubungi langsung: dari komputer luar yang sama, `curl -m 5 http://IP_VPS:13000` harus gagal tersambung (timeout atau connection refused). Kalau tersambung, header palsu bisa masuk lewat Next.js tanpa Caddy.
 5. Hapus baris klik uji: `DELETE FROM affiliator_clicks WHERE affiliator_id = <ID_AFFILIATOR_UJI> AND clicked_at >= '<waktu mulai uji>';`
 
 ### 4.3 Cara uji setelah konfigurasi

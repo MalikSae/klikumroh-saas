@@ -128,6 +128,9 @@ var reservedSlugs = map[string]bool{
 	"help":      true,
 	// Target custom domains point their CNAME at (cname.klikumroh.id); never a travel's subdomain.
 	"cname": true,
+	// store.klikumroh.id is a record in the klikumroh.id DNS zone that belongs to another service (DEPLOY.md 1.1);
+	// an explicit record beats the wildcard, so a travel taking this subdomain would never be reachable.
+	"store": true,
 	// More technical / platform names (founder decision 6 Oct 2026).
 	"cs": true, "info": true, "blog": true, "email": true, "ftp": true, "smtp": true, "webmail": true,
 	"ns1": true, "ns2": true, "status": true, "test": true, "dev": true, "portal": true, "agen": true,
