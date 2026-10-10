@@ -170,6 +170,11 @@ func main() {
 	// daily, freeing their slug, admin email and WhatsApp number (keputusan pendiri 6 Okt 2026).
 	service.StartUnpaidSignupCleanup(context.Background(), repository.NewUnpaidSignupRepository(db), filepath.Join(".", "uploads"), 24*time.Hour)
 
+	// Data retention (keputusan pendiri 10 Okt 2026): a travel unrenewed 90 days after its suspension is
+	// warned 14 and 3 days ahead, then its operational data is removed. Invoices, commissions and access
+	// logs stay.
+	service.StartTenantRetention(context.Background(), repository.NewTenantPurgeRepository(db), adminUserRepo, notifRepo, filepath.Join(".", "uploads"), 24*time.Hour)
+
 	// Daily DNS recheck of active custom domains: a domain whose CNAME keeps failing stops receiving the
 	// subdomain redirect (the site stays reachable on its subdomain); after MaxDomainCheckFailures failed
 	// daily checks in a row it is set to failed (no longer served, no new certificate) and the travel's
