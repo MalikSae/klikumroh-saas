@@ -102,6 +102,7 @@ Kebijakan Privasi ini menjelaskan bagaimana KlikUmroh.id ("KlikUmroh") mengumpul
 - Data calon jamaah yang diisi lewat formulir minat: nama, nomor WhatsApp, domisili, rencana keberangkatan, paket yang diminati, jumlah jamaah, serta waktu persetujuan.
 - Data agen: nama, kontak, kode referral, data rekening untuk pencairan komisi, dan aktivitas yang terkait komisi.
 - Data teknis: alamat IP, jenis perangkat dan peramban, halaman yang dibuka, dan sumber kunjungan (misalnya tautan referral atau iklan), untuk keamanan dan pencatatan atribusi.
+- Data pengguna demo: nama, nomor WhatsApp, nama travel, dan domisili travel (kota atau kabupaten) yang diisi sebelum membuka dashboard demo, beserta waktu persetujuan, jumlah kunjungan, dan sumber kunjungan.
 
 ## 3. Tujuan penggunaan
 
@@ -109,6 +110,7 @@ Kebijakan Privasi ini menjelaskan bagaimana KlikUmroh.id ("KlikUmroh") mengumpul
 - Memverifikasi pembayaran, menerbitkan tagihan, dan menghitung komisi.
 - Menghubungi Travel atau agen terkait akun, tagihan, dan dukungan.
 - Menjaga keamanan, mencegah penyalahgunaan, dan memenuhi kewajiban hukum.
+- Menghubungi pengguna demo terkait demo dan layanan KlikUmroh, sesuai persetujuan yang diberikan pada formulir demo.
 - Meningkatkan layanan dengan data yang tidak mengidentifikasi individu.
 
 ## 4. Persetujuan calon jamaah
@@ -133,6 +135,7 @@ Kami memakai cookie atau penyimpanan lokal seperlunya untuk menjaga sesi login, 
 - Data akun dan data prospek disimpan selama langganan Travel aktif. Bila langganan tidak diperpanjang, data operasional (prospek, agen, paket, dan berkas) dihapus permanen 90 hari setelah layanan ditangguhkan, dengan pemberitahuan 14 hari dan 3 hari sebelumnya.
 - Data tagihan, bukti pembayaran, dan catatan akses staf disimpan lebih lama sesuai kewajiban pembukuan dan keperluan audit, dengan akses terbatas.
 - Permintaan penghapusan data pribadi dipenuhi, kecuali data yang wajib kami simpan menurut hukum.
+- Data pengguna demo disimpan selama diperlukan untuk menindaklanjuti minat Anda dan dapat dihapus atas permintaan.
 - Koneksi memakai enkripsi (HTTPS), kata sandi disimpan sebagai hash, dan akses data dipisahkan per Travel.
 - Bukti pembayaran dan berkas pribadi disimpan pada penyimpanan privat dan hanya dapat dibuka oleh pihak yang berwenang.
 - Tidak ada sistem yang sepenuhnya aman. Bila terjadi insiden yang berdampak pada data pribadi, kami memberitahukan pihak terdampak sesuai peraturan.
