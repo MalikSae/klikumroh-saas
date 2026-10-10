@@ -8,48 +8,6 @@
   color: var(--tw-neutral-700);
 }
 
-/* 1. Top app bar (opaque: content never shows through) */
-.tw-pkg-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 52px;
-  padding: 0 12px;
-  background-color: var(--tw-background);
-  border-bottom: 1px solid var(--tw-neutral-100);
-}
-
-.tw-pkg-topbar-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  border: none;
-  background-color: transparent;
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-.tw-pkg-topbar-btn:hover {
-  background-color: var(--tw-neutral-100);
-}
-
-.tw-pkg-topbar-title {
-  font-family: var(--tw-font-heading);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 240px;
-}
-
 /* 2. Photo gallery */
 .tw-pkg-gallery {
   position: relative;

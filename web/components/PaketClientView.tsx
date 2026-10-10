@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { MobileContainer } from './MobileContainer';
-import { PublicHeader } from './PublicHeader';
+import { PublicPageHeader } from './PublicPageHeader';
 import { PackageTile } from './PackageTile';
 import { ConsultantCard } from './ConsultantCard';
 import { useConsultant } from '../lib/consultant';
@@ -124,12 +124,7 @@ export const PaketClientView: React.FC<PaketClientViewProps> = ({
   return (
     <div className="tw-home" style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}>
       <MobileContainer>
-        <PublicHeader
-          title="Katalog Paket"
-          showBack={true}
-          onBackClick={handleBack}
-          backHref="/"
-        />
+        <PublicPageHeader title="Katalog Paket" onBack={handleBack} />
 
         {/* 1. Header Section */}
         <div className="tw-pkg-catalog-header">

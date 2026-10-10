@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { trackMetaEvent } from '../lib/metaPixel';
 import { parseRouteLegs } from '../lib/flightRoute';
 import {
-  ArrowLeft,
   Share2,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +19,7 @@ import {
 import type { PublicPackage } from './publicPackage';
 import type { PublicTenantInfo } from '../app/page';
 import { MobileContainer } from './MobileContainer';
+import { PublicPageHeader } from './PublicPageHeader';
 import { ProspectModal } from './ProspectModal';
 import { Button } from './Button';
 import { agentPackageLink, canShareFiles, packagePhotoFile, shareCountsAsHabit, sharePackage } from '../lib/packageShare';
@@ -291,26 +291,17 @@ export const PackageDetailClientView: React.FC<PackageDetailClientViewProps> = (
   return (
     <div className="tw-pkg-detail-page" style={brandingStyle}>
       <MobileContainer>
-        {/* 1. Mobile Top App Bar */}
-        <header className="tw-pkg-topbar">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="tw-pkg-topbar-btn"
-            aria-label="Kembali ke halaman sebelumnya"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="tw-pkg-topbar-title">Detail Paket</div>
-          <button
-            type="button"
-            onClick={handleShare}
-            className="tw-pkg-topbar-btn"
-            aria-label="Bagikan Paket"
-          >
-            <Share2 size={19} />
-          </button>
-        </header>
+        {/* 1. Top bar: back, title and the one action (share) */}
+        <PublicPageHeader
+          title="Detail Paket"
+          onBack={handleBack}
+          backLabel="Kembali ke halaman sebelumnya"
+          action={
+            <button type="button" onClick={handleShare} className="ag-shell-header__icon-btn" aria-label="Bagikan Paket">
+              <Share2 size={19} aria-hidden="true" />
+            </button>
+          }
+        />
         {shareMsg && (
           <p className="tw-pkg-share-toast" role="status">
             {shareMsg}

@@ -62,13 +62,41 @@ export const packagePhotoFile = async (src: string, name: string): Promise<File 
   }
 };
 
+// The classic copy for browsers where the async clipboard does not exist: a page opened over plain http (a phone
+// reaching a dev server by its LAN address), an in-app WebView, an old browser. It must run inside the tap.
+const legacyCopy = (text: string): boolean => {
+  if (typeof document === 'undefined') return false;
+  const area = document.createElement('textarea');
+  try {
+    area.value = text;
+    area.setAttribute('readonly', '');
+    // Off screen, but still selectable (iOS refuses display:none).
+    area.style.position = 'fixed';
+    area.style.top = '0';
+    area.style.left = '-9999px';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, text.length);
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    area.remove();
+  }
+};
+
 const copyText = async (text: string): Promise<ShareResult> => {
   try {
-    await navigator.clipboard.writeText(text);
-    return 'copied';
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return 'copied';
+    }
   } catch {
-    return 'failed';
+    // permission refused or no secure context: try the classic way below
   }
+  return legacyCopy(text) ? 'copied' : 'failed';
 };
 
 // Whether this browser can open the system share sheet with an image attached.

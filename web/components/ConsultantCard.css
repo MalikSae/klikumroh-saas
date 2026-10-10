@@ -108,8 +108,11 @@
   margin-top: 16px;
 }
 
+/* Brand variant: the travel's colour AND the travel's shadow. The base button carries the green WhatsApp
+   shadow (--tw-wa-shadow); left in place under a red button it showed as a green ring. */
 .tw-consultant__ask--brand {
   background: var(--tw-brand-primary);
+  box-shadow: var(--tw-btn-shadow-brand);
 }
 
 /* Inside another card (catalog call to action): a plain row under the text, no box of its own (the card
@@ -118,9 +121,11 @@
 .tw-consultant--inline {
   align-self: stretch;
   gap: 10px;
-  margin-top: 6px;
-  padding: 0;
+  margin-top: 14px;
+  padding: 14px 0 0;
   border: 0;
+  /* A hairline between the call to action text and the consultant's details. */
+  border-top: 1px solid var(--tw-neutral-200);
   background: transparent;
 }
 
