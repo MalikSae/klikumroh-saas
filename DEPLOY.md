@@ -683,3 +683,6 @@ Urutan ini dijalankan sampai produksi hidup. Ia **menggantikan** instruksi aaPan
 - **Paste heredoc panjang ke terminal web bisa rusak.** Pakai berkas di repo lalu `git pull`, atau base64 satu baris.
 - **Cloudflare**: tab dashboard bisa membeku setelah klik *Add record*; buka tab baru.
 - **`nginx` warn `protocol options redefined`** dari `ssl_protocols` di vhost kita bentrok dengan situs lain di socket 443 yang sama. Tidak berbahaya.
+
+### 9.3 Backup harian
+`deploy/backup.sh` membuat `/www/backup/klikumroh/klikumroh-<tanggal>.tar.gz` (dump database, `uploads/`, `storage/`, `.env`; chmod 600; simpan 14 hari). Terjadwal lewat cron root `0 3 * * *`. Berkasnya memuat `.env`, jadi salinan di luar server harus disimpan pribadi. Restore: `gunzip`/`tar -xzf`, lalu `mysql < db.sql` ke database kosong, dengan API dimatikan dulu.
