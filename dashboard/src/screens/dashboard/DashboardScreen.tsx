@@ -20,6 +20,7 @@ import {
   ActionItem,
   ActionList,
   Banner,
+  ArrowLink,
   Button,
   Card,
   ChannelTag,
@@ -368,7 +369,7 @@ export const DashboardScreen: React.FC = () => {
           )}
         </Card>
 
-        <Card title="Prospek terbaru" className="db2-recent" actions={<Button size="sm" to="/prospects">Lihat semua</Button>}>
+        <Card title="Prospek terbaru" className="db2-recent" actions={<ArrowLink to="/prospects" label="Lihat semua prospek" />}>
           {!recent ? (
             <div className="db2-list-skeleton" />
           ) : recent.length === 0 ? (
@@ -395,7 +396,7 @@ export const DashboardScreen: React.FC = () => {
       </div>
 
       <div className="db2-row db2-row--three">
-        <Card title="Keberangkatan terdekat" className="db2-seats" actions={<Button size="sm" to="/packages">Lihat paket</Button>}>
+        <Card title="Keberangkatan terdekat" className="db2-seats" actions={<ArrowLink to="/packages" label="Lihat semua paket" />}>
           {!data ? (
             <div className="db2-list-skeleton" />
           ) : data.upcoming_packages.length === 0 ? (

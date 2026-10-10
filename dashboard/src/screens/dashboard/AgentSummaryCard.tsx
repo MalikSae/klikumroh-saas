@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Award } from 'lucide-react';
 import { fetchAgentInsight, getFullImageUrl, type AgentInsight } from '../../services/api';
-import { Avatar, Button, Card, EmptyState, RowLink, fmtNumber } from '../../ui';
+import { ArrowLink, Avatar, Card, EmptyState, RowLink, fmtNumber } from '../../ui';
 
 const badgeTier = (days: number) => (days >= 100 ? 'gold' : days >= 30 ? 'silver' : 'bronze');
 // One key message when the counts are out of balance (what the owner should act on), else nothing.
@@ -37,7 +37,7 @@ export const AgentSummaryCard: React.FC = () => {
   const message = data ? insight(data) : null;
 
   return (
-    <Card title="Agen" actions={<Button size="sm" to="/agents">Lihat semua</Button>} className="db2-agents">
+    <Card title="Agen" actions={<ArrowLink to="/agents" label="Lihat semua agen" />} className="db2-agents">
       {failed ? (
         <div className="ku-card__body">
           <p className="ku-muted">Ringkasan agen belum bisa dimuat.</p>

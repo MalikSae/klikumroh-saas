@@ -1,7 +1,7 @@
 // Dashboard travel v2 — UI components. Visual source: dashboard/design/prototype.html (approved 30 Sep 2026).
 import React, { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { ArrowDownRight, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Minus, User, X, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Minus, User, X, Search, SlidersHorizontal } from 'lucide-react';
 import { copyText } from '../utils/clipboard';
 import './tokens.css';
 import './ui.css';
@@ -63,6 +63,13 @@ export const IconButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> 
     {children}
     {dot && <span className="ku-ibtn__dot" aria-hidden="true" />}
   </button>
+);
+
+/** Arrow link for card headers ("see all"): an icon without a box, the destination named by `label`. */
+export const ArrowLink: React.FC<{ to: string; label: string }> = ({ to, label }) => (
+  <Link to={to} className="ku-ibtn ku-ibtn--sm ku-ibtn--ghost" aria-label={label} title={label}>
+    <ArrowRight className="ku-icon--sm" aria-hidden="true" />
+  </Link>
 );
 
 /* ---------- Card ---------- */
