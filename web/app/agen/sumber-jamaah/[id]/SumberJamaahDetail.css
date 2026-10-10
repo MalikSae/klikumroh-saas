@@ -1,62 +1,4 @@
-/* Agent "sumber jamaah" detail (app/agen/sumber-jamaah/[id]/page.tsx). Drill-down page: back to the list,
-   no tab bar; the main action (mark as tried) sits in a bar stuck to the bottom. Content on the page itself,
-   only the copyable opener is framed. Text 14px+, labels 13px. */
 
-.sjd-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 56px;
-  padding: 0 16px 0 4px;
-  background-color: var(--tw-background);
-  border-bottom: 1px solid var(--tw-neutral-100);
-}
-
-.sjd-header__title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.sjd-icon-btn {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-.sjd-icon-btn:hover {
-  background-color: var(--tw-neutral-100);
-}
-
-.sjd-page {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: calc(100vh - 56px - 69px);
-  padding: 14px 16px 24px;
-  background-color: var(--tw-background);
-  font-family: var(--tw-font-body);
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--tw-neutral-700);
-}
 
 .sjd-page--center {
   align-items: center;
@@ -188,7 +130,6 @@
   background-color: var(--tw-neutral-100);
 }
 
-
 /* Bottom bar with the main action */
 .sjd-bar {
   position: sticky;
@@ -243,9 +184,5 @@
   text-underline-offset: 3px;
 }
 
-/* Icon buttons keep their touch area; the hover shade is a 32px square around the icon (7 Oct 2026). */
-.sjd-icon-btn { position: relative; }
 .sjd-icon-btn::before { content: ""; position: absolute; inset: calc((100% - 32px) / 2); border-radius: 8px; background-color: transparent; transition: background-color 0.15s ease; }
-.sjd-icon-btn > svg { position: relative; }
 .sjd-icon-btn:hover { background-color: transparent; }
-.sjd-icon-btn:hover::before { background-color: var(--tw-neutral-100); }

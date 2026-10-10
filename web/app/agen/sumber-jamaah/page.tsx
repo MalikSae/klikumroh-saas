@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, X, ChevronRight, ChevronDown, CheckCircle2, Users } from 'lucide-react';
+import { Search, X, ChevronRight, ChevronDown, CheckCircle2, Users } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import './SumberJamaah.css';
 import { fetchSumberDone } from '../../../lib/agentHabits';
 import sumberDataRaw from '../../../data/sumber-jamaah.json';
@@ -113,14 +115,9 @@ export default function SumberJamaahPage() {
   return (
     <MobileContainer>
       {/* Drill-down page (opened from the home menu): back button, no bottom tab bar. */}
-      <header className="sj-header">
-        <button type="button" onClick={() => router.back()} aria-label="Kembali" className="sj-icon-btn">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="sj-header__title">99 sumber jamaah</h1>
-      </header>
+      <AgentPageHeader title="99 sumber jamaah" onBack={() => router.back()} />
 
-      <div className="sj-page">
+      <AgentPage>
         {/* Progress, once */}
         <div className="sj-progress" aria-label={`${completedCount} dari ${totalItems} sumber sudah dicoba`}>
           <p className="sj-progress__text">
@@ -186,7 +183,7 @@ export default function SumberJamaahPage() {
             })}
           </div>
         )}
-      </div>
+      </AgentPage>
     </MobileContainer>
   );
 }

@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, ChevronRight, Copy, Check, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Copy, Check, CheckCircle2 } from 'lucide-react';
 import { MobileContainer } from '../../../../components/MobileContainer';
+import { AgentPage } from '../../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../../components/agent/AgentPageHeader';
 import './SumberJamaahDetail.css';
 import { fetchSumberDone, saveSumberDone } from '../../../../lib/agentHabits';
 import { copyToClipboard } from '../../../../lib/clipboard';
@@ -94,25 +96,20 @@ export default function SumberJamaahDetailPage() {
     else router.push('/agen/sumber-jamaah');
   };
   const header = (title: string) => (
-    <header className="sjd-header">
-      <button type="button" onClick={goBack} aria-label="Kembali ke daftar sumber" className="sjd-icon-btn">
-        <ArrowLeft size={20} />
-      </button>
-      <h1 className="sjd-header__title">{title}</h1>
-    </header>
+    <AgentPageHeader title={title} onBack={goBack} backLabel="Kembali ke daftar sumber" />
   );
 
   if (!item) {
     return (
       <MobileContainer>
         {header('Sumber jamaah')}
-        <div className="sjd-page sjd-page--center">
+        <AgentPage className="sjd-page--center">
           <h2 className="sjd-title">Sumber tidak ditemukan</h2>
           <p className="sjd-muted">Data sumber yang Anda cari tidak tersedia.</p>
           <Link href="/agen/sumber-jamaah" className="sjd-btn">
             Kembali ke daftar
           </Link>
-        </div>
+        </AgentPage>
       </MobileContainer>
     );
   }
@@ -121,7 +118,7 @@ export default function SumberJamaahDetailPage() {
     <MobileContainer>
       {header(item.sumber)}
 
-      <div className="sjd-page">
+      <AgentPage>
         <p className="sjd-muted">
           #{item.id} · {item.kategori}
         </p>
@@ -159,7 +156,7 @@ export default function SumberJamaahDetailPage() {
             <ChevronRight size={20} aria-hidden="true" />
           </Link>
         )}
-      </div>
+      </AgentPage>
 
       {/* Main action, stuck to the bottom: mark this source as tried (fills the progress on the list). */}
       <div className="sjd-bar">

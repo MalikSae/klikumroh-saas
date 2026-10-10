@@ -6,6 +6,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation';
 import { AlertCircle, RefreshCw, Medal, Loader2, Crown, User } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { CustomDropdown } from '../../../components/CustomDropdown';
 import { HabitBadge } from '../../../components/HabitBadge';
@@ -141,22 +143,21 @@ export default function AgenLeaderboardPage() {
 
   return (
     <MobileContainer>
-      <header className="lb-header">
-        <h1 className="lb-header__title">Leaderboard</h1>
-        {/* Period filter as a compact dropdown in the header (keeps the podium at the top of the page). */}
-        <CustomDropdown
-          name="period"
-          className="lb-period"
-          value={period}
-          options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
-          onChange={(e) => setPeriod(String(e.target.value) as PeriodKey)}
-        />
-      </header>
+      <AgentPageHeader title="Leaderboard" />
 
-      <div className="lb-page">
+      <AgentPage withTabBar>
+        <div className="ag-shell-toolbar">
+          <CustomDropdown
+            name="period"
+            className="lb-period"
+            value={period}
+            options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
+            onChange={(e) => setPeriod(String(e.target.value) as PeriodKey)}
+          />
+        </div>
         {loading ? (
           <div className="lb-state">
-            <Loader2 size={24} className="lb-spin" aria-hidden="true" />
+            <Loader2 size={24} className="ag-shell-spin" aria-hidden="true" />
             <p className="lb-muted">Memuat peringkat...</p>
           </div>
         ) : error ? (
@@ -259,7 +260,7 @@ export default function AgenLeaderboardPage() {
 
             {hasMore && (
               <div ref={sentinelRef} className="lb-state lb-state--more">
-                <Loader2 size={18} className="lb-spin" aria-hidden="true" />
+                <Loader2 size={18} className="ag-shell-spin" aria-hidden="true" />
                 <span className="lb-muted">
                   {displayed.length} dari {leaderboard.length} agen
                 </span>
@@ -267,7 +268,7 @@ export default function AgenLeaderboardPage() {
             )}
           </>
         )}
-      </div>
+      </AgentPage>
 
       <AgentBottomNavbar />
     </MobileContainer>

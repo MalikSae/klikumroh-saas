@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Search, X, Copy, Check, Share2, Star, MessageSquare, Lightbulb, ChevronDown, ChevronUp, Compass, Loader2 } from 'lucide-react';
+import { Search, X, Copy, Check, Share2, Star, MessageSquare, Lightbulb, ChevronDown, ChevronUp, Compass, Loader2 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import './ScriptWA.css';
 import { logHabit } from '../../../lib/agentHabits';
 import {
@@ -598,14 +600,9 @@ function ScriptWAContent() {
   return (
     <MobileContainer>
       {/* Drill-down page (opened from the home menu): back button, no bottom tab bar. */}
-      <header className="sw-header">
-        <button type="button" onClick={() => router.back()} aria-label="Kembali" className="sw-icon-btn sw-icon-btn--lg">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="sw-header__title">Script chat</h1>
-      </header>
+      <AgentPageHeader title="Script chat" onBack={() => router.back()} />
 
-      <div className="sw-page">
+      <AgentPage>
         {/* Recipient: one compact row; opens the picker sheet. */}
         <button type="button" className="sw-target" onClick={() => setSheetOpen(true)} aria-haspopup="dialog">
           <span className="sw-target__text">
@@ -819,7 +816,7 @@ function ScriptWAContent() {
           <div ref={sentinelRef} className="sw-more">
             {hasMore ? (
               <button type="button" onClick={loadMore} className="sw-btn">
-                <Loader2 size={16} className="sw-spin" aria-hidden="true" />
+                <Loader2 size={16} className="ag-shell-spin" aria-hidden="true" />
                 <span>
                   Memuat script ({currentlyDisplayedCount} dari {totalActiveItemsCount})
                 </span>
@@ -849,7 +846,7 @@ function ScriptWAContent() {
             )}
           </div>
         )}
-      </div>
+      </AgentPage>
 
       {/* Recipient picker sheet */}
       {sheetOpen && (

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserPlus, UserCheck, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { PublicHeader } from '../../../components/PublicHeader';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
 import { BrandMark } from '../../../components/BrandMark';
 import { Button } from '../../../components/Button';
@@ -335,13 +335,7 @@ export default function AgenDaftarPage() {
     >
       <MobileContainer>
         {/* 1. Header Sub-page (Logo strictly Home only) */}
-        <PublicHeader
-          title="Daftar Mitra Agen"
-          showBack={true}
-          onBackClick={handleBack}
-          backHref="/"
-          hideNotification={true}
-        />
+        <AgentPageHeader title="Daftar Mitra Agen" onBack={handleBack} />
 
         <div className="tw-agen-daftar-body">
           {/* 2. Page Header Banner */}

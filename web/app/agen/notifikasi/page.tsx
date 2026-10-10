@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowLeft, Bell, BellOff, CheckCheck, ChevronRight } from 'lucide-react';
+import { AlertCircle, Bell, BellOff, CheckCheck, ChevronRight } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { jakartaDateLabel } from '../../../lib/jakartaTime';
 
@@ -210,87 +212,18 @@ export default function AgenNotifikasiPage() {
 
   return (
     <MobileContainer>
-      {/* Sticky Header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 30,
-          backgroundColor: 'var(--tw-background)',
-          borderBottom: '1px solid var(--tw-hairline)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Kembali"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '6px',
-              cursor: 'pointer',
-              color: 'var(--tw-text-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '8px',
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h1
-            style={{
-              fontSize: '17px',
-              fontWeight: 700,
-              color: 'var(--tw-text-primary)',
-              margin: 0,
-              fontFamily: 'var(--tw-font-heading)',
-            }}
-          >
-            Notifikasi
-          </h1>
-        </div>
-
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '6px 8px',
-              cursor: 'pointer',
-              color: 'var(--tw-brand-primary)',
-              fontSize: '12px',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              borderRadius: '6px',
-            }}
-          >
-            <CheckCheck size={15} />
-            <span>Tandai Semua Dibaca</span>
-          </button>
-        )}
-      </header>
+      <AgentPageHeader title="Notifikasi" onBack={() => router.back()} />
 
       {/* Main Content */}
-      <div
-        style={{
-          backgroundColor: 'var(--tw-page-bg)',
-          minHeight: 'calc(100vh - 62px)',
-          padding: '16px 16px calc(80px + env(safe-area-inset-bottom)) 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
+      <AgentPage withTabBar>
+        {unreadCount > 0 && (
+          <div className="ag-shell-toolbar">
+            <button type="button" className="ag-shell-action" onClick={handleMarkAllRead}>
+              <CheckCheck size={16} aria-hidden="true" />
+              <span>Tandai semua dibaca</span>
+            </button>
+          </div>
+        )}
         {notice && !loading && !error && (
           <div
             role="status"
@@ -504,7 +437,7 @@ export default function AgenNotifikasiPage() {
             );
           })
         )}
-      </div>
+      </AgentPage>
 
       <AgentBottomNavbar />
     </MobileContainer>

@@ -38,6 +38,7 @@ import { JAKARTA_TZ, jakartaDayKey } from '../../../lib/jakartaTime';
 import { homeRank } from '../../../lib/agentRank';
 import { copyToClipboard } from '../../../lib/clipboard';
 import { packageShareText } from '../../../lib/packageShare';
+import { recruitInviteText } from '../../../lib/recruitInvite';
 import './AgenDashboard.css';
 
 interface AgentFunnelSummary {
@@ -82,6 +83,8 @@ interface AgentDashboardSummary {
   recruit_link?: string;
   // Highest commission per jamaah among the packages on sale (null when none has one): the invite message.
   max_commission_per_jamaah?: number | null;
+  // Komisi Pembinaan rate of the travel; null/absent when the travel has it off (the invite card is hidden).
+  pembinaan_percentage?: number | null;
   funnel_ringkasan: AgentFunnelSummary;
   leaderboard_preview?: LeaderboardPreview | null;
   photo_url?: string | null;
@@ -348,23 +351,19 @@ export default function AgenDashboardPage() {
     setTimeout(() => setRecruitCopied(false), 2000);
   };
 
+  // The travel's Komisi Pembinaan rate as shown on the card ("10", "7,5").
+  const pembinaanLabel = summary?.pembinaan_percentage
+    ? summary.pembinaan_percentage.toLocaleString('id-ID', { maximumFractionDigits: 2 })
+    : '';
+
   const getRecruitWhatsAppUrl = (): string => {
     if (!summary?.recruit_link) return '#';
-    // Wording approved by the founder (10 Okt 2026): neutral (no greeting), about what the reader gets. The
-    // figure is the highest commission per jamaah among the packages on sale; with none, the sentence goes
-    // without a number. The registration may have a fee, so nothing says free or no capital.
-    const max = summary.max_commission_per_jamaah;
-    const commissionLine =
-      max && max > 0
-        ? `Raih komisi hingga ${formatRupiah(max)} per jamaah yang Anda ajak.`
-        : 'Raih komisi untuk setiap jamaah yang Anda ajak.';
-    const text = [
-      `Mau dapat penghasilan tambahan? Rekomendasikan relasi Anda untuk berumroh bersama ${travel?.name || 'travel umroh'}.`,
-      '',
-      commissionLine,
-      '',
-      summary.recruit_link,
-    ].join('\n');
+    // The wording lives in lib/recruitInvite.ts (shared with the "Agen binaan saya" page).
+    const text = recruitInviteText({
+      travelName: travel?.name,
+      maxCommission: summary.max_commission_per_jamaah,
+      link: summary.recruit_link,
+    });
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
@@ -607,19 +606,19 @@ export default function AgenDashboardPage() {
         </section>
 
         {/* Invite a friend or relative to become an agent */}
-        {summary.recruit_link && !summary.travel_suspended && (
+        {summary.recruit_link && !summary.travel_suspended && !!summary.pembinaan_percentage && (
           <section className="ag-card ag-recruit" aria-labelledby="ag-recruit">
             <h2 id="ag-recruit" className="ag-title ag-recruit__title">
               <UserPlus size={18} aria-hidden="true" />
-              Ajak jadi agen
+              Bina agen, tambah penghasilan
             </h2>
             <p className="ag-recruit__text">
-              Siapa pun yang mendaftar lewat tautan ini tercatat sebagai jaringan Anda.
+              Dapat {pembinaanLabel}% Komisi Pembinaan dari setiap closing agen binaan Anda.
             </p>
             <div className="ag-recruit__actions">
               <button type="button" className="ag-recruit__copy" onClick={handleCopyRecruit}>
                 {recruitCopied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
-                {recruitCopied ? 'Tersalin' : 'Salin tautan'}
+                {recruitCopied ? 'Tersalin' : 'Ajak agen'}
               </button>
               <a
                 className="ag-recruit__wa"
@@ -635,7 +634,7 @@ export default function AgenDashboardPage() {
             {copyFailedLink === summary.recruit_link && <CopyFailedNote link={copyFailedLink} />}
             {/* Own row under the buttons: beside the title it wrapped on narrow phones. */}
             <Link href="/agen/jaringan" className="ag-textlink ag-recruit__network">
-              Lihat jaringan saya
+              Lihat agen binaan
               <ChevronRight size={16} aria-hidden="true" />
             </Link>
           </section>

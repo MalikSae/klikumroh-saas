@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, MessageCircle, AlertCircle, X, MessageSquare, Lock } from 'lucide-react';
+import { ArrowLeft, ChevronRight, MessageCircle, AlertCircle, X, MessageSquare, Lock } from 'lucide-react';
 import { CustomDropdown } from '../../../../components/CustomDropdown';
 import { MobileContainer } from '../../../../components/MobileContainer';
+import { AgentPage } from '../../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../../components/agent/AgentPageHeader';
 import styles from './page.module.css';
 import './JamaahDetail.css';
 import { logHabit } from '../../../../lib/agentHabits';
@@ -46,6 +48,16 @@ interface PackageData {
   status?: string;
   departure_date?: string | null;
 }
+
+// A package has a public page only while it is published and has not departed (Jakarta date).
+const packageOnSale = (p: { status?: string; departure_date?: string | null }): boolean => {
+  if (p.status && p.status !== 'published') return false;
+  if (p.departure_date) {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    if (p.departure_date.slice(0, 10) < today) return false;
+  }
+  return true;
+};
 
 interface CommissionInfo {
   type: string; // "potensi" | "final" | "dibatalkan"
@@ -360,21 +372,16 @@ export default function AgenJamaahDetailPage() {
   };
 
   const header = (title: string) => (
-    <header className="jd-header">
-      <button type="button" onClick={() => router.back()} aria-label="Kembali" className="jd-icon-btn">
-        <ArrowLeft size={20} />
-      </button>
-      <h1 className="jd-header__title">{title}</h1>
-    </header>
+    <AgentPageHeader title={title} onBack={() => router.back()} />
   );
 
   if (loading) {
     return (
       <MobileContainer>
         {header('Detail jamaah')}
-        <div className="jd-page jd-page--center">
+        <AgentPage className="jd-page--center">
           <p className="jd-muted">Memuat data jamaah...</p>
-        </div>
+        </AgentPage>
       </MobileContainer>
     );
   }
@@ -383,7 +390,7 @@ export default function AgenJamaahDetailPage() {
     return (
       <MobileContainer>
         {header('Detail jamaah')}
-        <div className="jd-page jd-page--center">
+        <AgentPage className="jd-page--center">
           <AlertCircle size={32} className="jd-muted" aria-hidden="true" />
           <h2 className="jd-title">Data tidak ditemukan</h2>
           <p className="jd-muted">{error || 'Informasi jamaah tidak dapat ditampilkan.'}</p>
@@ -391,7 +398,7 @@ export default function AgenJamaahDetailPage() {
             <ArrowLeft size={16} aria-hidden="true" />
             <span>Kembali ke daftar jamaah</span>
           </Link>
-        </div>
+        </AgentPage>
       </MobileContainer>
     );
   }
@@ -443,7 +450,7 @@ export default function AgenJamaahDetailPage() {
       {/* Drill-down page: back button, no bottom tab bar (same as Riwayat komisi and Tarik saldo). */}
       {header(prospect.name)}
 
-      <div className="jd-page">
+      <AgentPage>
         {/* Registration details as label / value rows. */}
         <section className="jd-panel" aria-labelledby="jd-daftar">
           <div className="jd-panel__head">
@@ -454,9 +461,23 @@ export default function AgenJamaahDetailPage() {
               <dt>Nomor WA</dt>
               <dd className="jd-num">{prospect.phone || '-'}</dd>
             </div>
-            <div className="jd-rows__item jd-rows__item--full">
+            <div className="jd-rows__item">
               <dt>Paket</dt>
-              <dd>{pkg ? pkg.name : 'Belum pilih paket'}</dd>
+              <dd className="jd-rows__pkg">
+                {pkg ? (
+                  packageOnSale(pkg) ? (
+                    // The public page of the package; only while it is on sale (otherwise that page is a 404).
+                    <Link href={`/paket/${pkg.id}`} className="jd-rows__pkg-link" title={pkg.name}>
+                      <span>{pkg.name}</span>
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </Link>
+                  ) : (
+                    <span title={pkg.name}>{pkg.name}</span>
+                  )
+                ) : (
+                  'Belum pilih paket'
+                )}
+              </dd>
             </div>
             <div className="jd-rows__item">
               <dt>Jumlah jamaah</dt>
@@ -588,7 +609,7 @@ export default function AgenJamaahDetailPage() {
             </ul>
           )}
         </section>
-      </div>
+      </AgentPage>
 
       {/* Contact actions stay at the bottom of the screen while scrolling. */}
       {!isAnonymized && (

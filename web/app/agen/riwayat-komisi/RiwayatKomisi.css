@@ -1,56 +1,4 @@
-/* Agent commission history (app/agen/riwayat-komisi/page.tsx), bank-statement style. Same header as the
-   withdraw page, no bottom tab bar. Green only for money coming in; content text 14px+, labels 13px. */
 
-.rk-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 56px;
-  padding: 0 8px;
-  background-color: var(--tw-background);
-  border-bottom: 1px solid var(--tw-neutral-100);
-}
-
-.rk-header__title {
-  flex: 1;
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-}
-
-.rk-icon-btn {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-.rk-icon-btn:hover {
-  background-color: var(--tw-neutral-100);
-}
-
-.rk-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: calc(100vh - 56px);
-  padding: 12px 16px 32px;
-  background-color: var(--tw-page-bg);
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--tw-neutral-700);
-}
 
 .rk-muted {
   margin: 0;
@@ -163,7 +111,6 @@
   display: flex;
 }
 
-
 .rk-stat__issuer {
   max-width: 100%;
   margin-bottom: auto;
@@ -174,7 +121,6 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-
 
 .rk-stat__label {
   font-size: 14px;
@@ -195,7 +141,6 @@
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
-
 
 /* "Sudah ditarik" card: approved requests still waiting for the transfer. */
 .rk-stat__note {
@@ -437,21 +382,6 @@
   cursor: pointer;
 }
 
-.rk-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--tw-neutral-200);
-  border-top-color: var(--tw-neutral-900);
-  border-radius: 50%;
-  animation: rk-spin 0.8s linear infinite;
-}
-
-@keyframes rk-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* Transaction detail sheet */
 .rk-sheet {
   position: fixed;
@@ -539,16 +469,8 @@
   margin-top: 12px;
 }
 
-
-
 /* Billions (Rp 1.250.000.000) get a smaller size so the full amount still fits a small phone. */
 .rk-stat__value--long {
   font-size: 19px;
 }
 
-/* Icon buttons keep their touch area; the hover shade is a 32px square around the icon (7 Oct 2026). */
-.rk-icon-btn { position: relative; }
-.rk-icon-btn::before { content: ""; position: absolute; inset: calc((100% - 32px) / 2); border-radius: 8px; background-color: transparent; transition: background-color 0.15s ease; }
-.rk-icon-btn > svg { position: relative; }
-.rk-icon-btn:hover { background-color: transparent; }
-.rk-icon-btn:hover::before { background-color: var(--tw-neutral-100); }

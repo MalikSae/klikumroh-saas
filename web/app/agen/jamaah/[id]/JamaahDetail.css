@@ -1,74 +1,3 @@
-/* Agent prospect detail (app/agen/jamaah/[id]/page.tsx). Drill-down page: back button, no bottom tab bar.
-   Contact actions on the page background; the rest in plain white panels with a 13px title. Content text
-   14px+, labels 13px. One strong color: the WhatsApp button. The status modal keeps page.module.css. */
-
-.jd-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 56px;
-  padding: 0 16px 0 4px;
-  background-color: var(--tw-background);
-  border-bottom: 1px solid var(--tw-neutral-100);
-}
-
-.jd-header__title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.jd-icon-btn {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-/* 44px touch area, but the hover shade is a smaller 32px square around the icon (7 Oct 2026). */
-.jd-icon-btn { position: relative; }
-.jd-icon-btn::before {
-  content: "";
-  position: absolute;
-  inset: calc((100% - 32px) / 2);
-  border-radius: 8px;
-  background-color: transparent;
-  transition: background-color 0.15s ease;
-}
-.jd-icon-btn > svg { position: relative; }
-.jd-icon-btn:hover::before {
-  background-color: var(--tw-neutral-100);
-}
-
-.jd-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: calc(100vh - 56px);
-  padding: 16px 16px 32px;
-  background-color: var(--tw-page-bg);
-  font-family: var(--tw-font-body);
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--tw-neutral-700);
-}
-
 .jd-page--center {
   align-items: center;
   justify-content: center;
@@ -272,6 +201,37 @@
   font-weight: 500;
   color: var(--tw-neutral-900);
   text-align: right;
+}
+
+/* The package name stays on the label's line: one line, cut with an ellipsis when it is long (the full
+   name is in the title attribute and on the package page it links to). */
+.jd-rows__item dd.jd-rows__pkg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jd-rows__pkg-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  color: var(--tw-neutral-900);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.jd-rows__pkg-link span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jd-rows__pkg-link svg {
+  flex: none;
 }
 
 /* Package names can be long: label above, value on its own line. */

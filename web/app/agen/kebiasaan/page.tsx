@@ -5,8 +5,10 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Award, CheckCircle2, Circle, Flame, ChevronRight } from 'lucide-react';
+import { Award, CheckCircle2, Circle, Flame, ChevronRight } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { HABIT_BADGE_MILESTONES, HabitBadge } from '../../../components/HabitBadge';
 import { HABITS, fetchHabitSummary, habitHeadline, type HabitSummary } from '../../../lib/agentHabits';
 import './Kebiasaan.css';
@@ -42,14 +44,9 @@ export default function KebiasaanPage() {
 
   return (
     <MobileContainer>
-      <header className="kb-header">
-        <button type="button" onClick={goBack} aria-label="Kembali" className="kb-icon-btn">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="kb-header__title">Syiar harian</h1>
-      </header>
+      <AgentPageHeader title="Syiar harian" onBack={goBack} />
 
-      <div className="kb-page">
+      <AgentPage>
         {!summary ? (
           <p className="kb-muted kb-state">{failed ? 'Gagal memuat kebiasaan. Coba buka lagi sebentar.' : 'Memuat kebiasaan...'}</p>
         ) : (
@@ -218,7 +215,7 @@ export default function KebiasaanPage() {
             </section>
           </>
         )}
-      </div>
+      </AgentPage>
     </MobileContainer>
   );
 }

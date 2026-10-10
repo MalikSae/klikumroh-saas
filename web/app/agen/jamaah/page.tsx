@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { Users, Plus, RefreshCw, AlertCircle, X, Search, MessageCircle } from 'lucide-react';
 import { CustomDropdown } from '../../../components/CustomDropdown';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspendedNotice';
 import { CityField } from '../../../components/CityField';
@@ -357,19 +359,19 @@ export default function AgenJamaahListPage() {
   return (
     <MobileContainer>
       {/* Tab page (bottom navbar): no back button */}
-      <header className="jm-header">
-        <h1 className="jm-header__title">Jamaah</h1>
-        {!travelSuspended && (
-          <button type="button" onClick={handleOpenModal} className="jm-add">
-            <Plus size={16} aria-hidden="true" />
-            <span>Tambah</span>
-          </button>
-        )}
-      </header>
+      <AgentPageHeader title="Jamaah" />
 
       {travelSuspended && <AgentTravelSuspendedNotice />}
 
-      <div className="jm-page">
+      <AgentPage withTabBar>
+        {!travelSuspended && (
+          <div className="ag-shell-toolbar">
+            <button type="button" onClick={handleOpenModal} className="jm-add">
+              <Plus size={16} aria-hidden="true" />
+              <span>Tambah</span>
+            </button>
+          </div>
+        )}
         <div className="jm-search">
           <Search size={18} className="jm-search__icon" aria-hidden="true" />
           <input
@@ -540,7 +542,7 @@ export default function AgenJamaahListPage() {
             )}
           </>
         )}
-      </div>
+      </AgentPage>
 
       {/* Modal Tambah Jamaah Manual */}
       {isModalOpen && (

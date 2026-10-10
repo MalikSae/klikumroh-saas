@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ImagePlus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Loader2, ChevronRight, Copy, Check, User, Users, Landmark, KeyRound, X } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { BankField } from '../../../components/BankField';
 import { CityField } from '../../../components/CityField';
@@ -490,11 +492,9 @@ export default function AgenProfilPage() {
   return (
     <MobileContainer>
       {/* Tab page (bottom navbar): title only. */}
-      <header className="pf-header">
-        <h1 className="pf-header__title">Profil</h1>
-      </header>
+      <AgentPageHeader title="Profil" />
 
-      <div className="pf-page">
+      <AgentPage withTabBar>
         {/* Lanyard ID card: brand band with an Islamic eight-point star pattern and a lanyard slot, round photo,
             name, travel, and a QR code of the agent's referral link (prospects scan it from the agent's phone). */}
         <section className="pf-idcard" aria-label="Kartu mitra agen">
@@ -565,8 +565,8 @@ export default function AgenProfilPage() {
           <button type="button" className="pf-row" onClick={() => router.push('/agen/jaringan')}>
             <Users size={20} className="pf-row__icon" aria-hidden="true" />
             <span className="pf-row__text">
-              <span className="pf-row__label">Jaringan saya</span>
-              <span className="pf-muted">Agen yang Anda ajak</span>
+              <span className="pf-row__label">Agen binaan saya</span>
+              <span className="pf-muted">Agen yang Anda bina</span>
             </span>
             <ChevronRight size={18} className="pf-row__go" aria-hidden="true" />
           </button>
@@ -593,7 +593,7 @@ export default function AgenProfilPage() {
             </span>
           </button>
         </nav>
-      </div>
+      </AgentPage>
 
       {sheet && (
         <div className="pf-sheet" role="presentation" onClick={() => setSheet(null)}>

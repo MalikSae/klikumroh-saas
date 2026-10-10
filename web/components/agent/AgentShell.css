@@ -1,0 +1,171 @@
+/* The shell of an agent portal page: header and content area. The numbers here are THE standard (the most
+   common values already used by the portal pages, now in one place). Do not copy them into a page.
+
+   Header
+   - 56px tall, sticky, hairline below.
+   - Sub-page: back button with a 44x44 tap target at the left edge (arrow centred 26px from the screen edge,
+     visible feedback only 32x32), title 52px from the edge. Tab page: title at the 16px page margin.
+   - Agent portal: only the back arrow and the title. No buttons in the header (founder rule, 11 Okt 2026): an
+     action belongs in the page content.
+   - Public travel site (PublicPageHeader): the same, plus ONE icon action on the right (share).
+   Content
+   - 16px side margin, 12px between blocks, 12px above the first block.
+   - 32px below the last block; with the fixed tab bar 96px + the device safe area. */
+
+.ag-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 16px 0 4px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.ag-shell-header--tab {
+  padding-left: 16px;
+}
+
+/* Public site only: one icon action on the right, centred 26px from the edge like the back arrow on the left. */
+.ag-shell-header--action {
+  padding-right: 4px;
+}
+
+/* Public site: above the photo gallery and its overlays on the package page. */
+.ag-shell-header--raised {
+  z-index: 40;
+}
+
+/* 44px is the tap target; what the eye sees (hover, press, focus) is a 32px square in its middle. */
+.ag-shell-header__back,
+.ag-shell-header__icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ag-shell-header__back::before,
+.ag-shell-header__icon-btn::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 8px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.ag-shell-header__back > svg,
+.ag-shell-header__icon-btn > svg {
+  position: relative;
+}
+
+.ag-shell-header__back:hover::before,
+.ag-shell-header__back:active::before,
+.ag-shell-header__icon-btn:hover::before,
+.ag-shell-header__icon-btn:active::before {
+  background-color: var(--tw-neutral-100);
+}
+
+.ag-shell-header__back:focus-visible,
+.ag-shell-header__icon-btn:focus-visible {
+  outline: none;
+}
+
+.ag-shell-header__back:focus-visible::before,
+.ag-shell-header__icon-btn:focus-visible::before {
+  background-color: var(--tw-neutral-100);
+  box-shadow: 0 0 0 2px var(--tw-neutral-900);
+}
+
+.ag-shell-header__title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--tw-neutral-900);
+}
+
+.ag-shell-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: calc(100vh - 56px);
+  padding: 12px 16px 32px;
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.ag-shell-page--tabbar {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* Toolbar: the controls that used to live in headers (add, period filter, withdraw...). First row of the
+   page content, aligned right. */
+.ag-shell-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Secondary action in a toolbar or a block: outlined, 40px. The primary action of a page is the brand button
+   of that page. */
+.ag-shell-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 600 14px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.ag-shell-action:hover {
+  background-color: var(--tw-neutral-50);
+}
+
+/* Loading: one spinner for the whole portal. .ag-shell-spin rotates an icon (lucide Loader2); .ag-shell-spinner
+   is the 32px ring used as a block-level loader. */
+.ag-shell-spin {
+  animation: ag-shell-rotate 0.9s linear infinite;
+}
+
+.ag-shell-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--tw-neutral-200);
+  border-top-color: var(--tw-neutral-900);
+  border-radius: 50%;
+  animation: ag-shell-rotate 0.8s linear infinite;
+}
+
+@keyframes ag-shell-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

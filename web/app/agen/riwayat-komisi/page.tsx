@@ -5,8 +5,10 @@
 // A one-task page reached from Beranda or Tarik saldo: back button, no bottom tab bar.
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ArrowDownToLine, ReceiptText, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { summarizeCommissionHistory } from '../../../lib/commissionSummary';
 import { jakartaDayKey, jakartaDayLabel, jakartaTimeLabel, jakartaDateLabel } from '../../../lib/jakartaTime';
 import './RiwayatKomisi.css';
@@ -174,20 +176,18 @@ export default function RiwayatKomisiPage() {
 
   return (
     <MobileContainer>
-      <header className="rk-header">
-        <button type="button" className="rk-icon-btn" onClick={() => router.push('/agen/dashboard')} aria-label="Kembali ke beranda">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="rk-header__title">Riwayat komisi</h1>
-        <button type="button" className="rk-icon-btn" onClick={() => router.push('/agen/tarik-saldo')} aria-label="Tarik saldo">
-          <ArrowDownToLine size={20} />
-        </button>
-      </header>
+      <AgentPageHeader title="Riwayat komisi" onBack={() => router.push('/agen/dashboard')} backLabel="Kembali ke beranda" />
 
-      <div className="rk-page">
+      <AgentPage>
+        <div className="ag-shell-toolbar">
+          <button type="button" className="ag-shell-action" onClick={() => router.push('/agen/tarik-saldo')}>
+            <ArrowDownToLine size={16} aria-hidden="true" />
+            <span>Tarik saldo</span>
+          </button>
+        </div>
         {loading ? (
           <div className="rk-center" role="status">
-            <span className="rk-spinner" aria-hidden="true" />
+            <span className="ag-shell-spinner" aria-hidden="true" />
             <span>Memuat riwayat...</span>
           </div>
         ) : error ? (
@@ -326,7 +326,7 @@ export default function RiwayatKomisiPage() {
             )}
           </>
         )}
-      </div>
+      </AgentPage>
 
       {detail && (
         <div className="rk-sheet" role="presentation" onClick={() => setDetail(null)}>

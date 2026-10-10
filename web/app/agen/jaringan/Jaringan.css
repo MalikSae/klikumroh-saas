@@ -1,63 +1,18 @@
-/* "Jaringan saya" (app/agen/jaringan/page.tsx). Sub-page of the agent portal: back button + title, like
-   riwayat komisi. One level only: a list, not a tree. Status colors use the status tokens, never the brand
-   color (a red brand would read as an error). */
-
-.jr-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 56px;
-  padding: 0 8px;
-  background-color: var(--tw-background);
-  border-bottom: 1px solid var(--tw-neutral-100);
-}
-
-.jr-header__title {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-}
-
-.jr-icon-btn {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  color: var(--tw-neutral-900);
-  cursor: pointer;
-}
-
-.jr-icon-btn:hover {
-  background-color: var(--tw-neutral-100);
-}
-
-.jr-page {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: calc(100vh - 56px);
-  padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
-  background-color: var(--tw-page-bg);
-  font-family: var(--tw-font-body);
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--tw-neutral-700);
-}
+/* "Agen binaan saya" (app/agen/jaringan/page.tsx). The header and the page area come from
+   components/agent (AgentPageHeader, AgentPage): only what is specific to this page is here. One level only:
+   a list, not a tree. The money figure is the hero and sits on the page (no box); the list is one framed
+   panel with dividers. Status colors use the status tokens, never the brand color. */
 
 .jr-muted {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
   color: var(--tw-neutral-500);
+}
+
+.jr-muted-inline {
+  color: var(--tw-neutral-500);
+  font-weight: 400;
 }
 
 .jr-title {
@@ -78,6 +33,10 @@
   color: var(--tw-neutral-500);
 }
 
+.jr-state--small {
+  padding: 24px 16px;
+}
+
 .jr-btn {
   display: inline-flex;
   align-items: center;
@@ -92,74 +51,134 @@
   cursor: pointer;
 }
 
-.jr-spin {
-  animation: jr-spin 0.9s linear infinite;
+.jr-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
-@keyframes jr-spin {
-  to {
-    transform: rotate(360deg);
-  }
+.jr-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tw-danger-text);
 }
 
-/* Three numbers in one strip, divided by hairlines. */
-.jr-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background-color: var(--tw-background);
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 10px;
+/* Hero: the one number that matters, on the page itself. */
+.jr-hero {
+  padding: 4px 0 0;
 }
 
-.jr-summary__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 14px 8px;
-}
-
-.jr-summary__item + .jr-summary__item {
-  border-left: 1px solid var(--tw-neutral-200);
-}
-
-.jr-summary__value {
-  font-family: var(--tw-font-heading);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--tw-neutral-900);
-}
-
-.jr-summary__label {
+.jr-hero__label {
+  margin: 0;
   font-size: 13px;
   color: var(--tw-neutral-500);
 }
 
-/* Override from the network: plain rows in one framed block. */
-.jr-override {
-  padding: 12px 14px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 10px;
-  background-color: var(--tw-background);
-}
-
-.jr-override__title {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
+.jr-hero__amount {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
   color: var(--tw-neutral-900);
 }
 
-.jr-override__row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+.jr-hero__split {
+  margin: 2px 0 0;
   font-size: 14px;
+  color: var(--tw-neutral-700);
 }
 
-.jr-override__row strong {
+/* Registered / in process: plain text on one line. */
+.jr-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--tw-neutral-700);
+}
+
+.jr-counts strong {
   color: var(--tw-neutral-900);
-  white-space: nowrap;
+}
+
+.jr-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.jr-search__icon {
+  position: absolute;
+  left: 12px;
+  color: var(--tw-neutral-400);
+  pointer-events: none;
+}
+
+/* 16px: below that Safari on iOS zooms into the field when it is focused. */
+.jr-search__input {
+  width: 100%;
+  height: 44px;
+  padding: 0 40px 0 38px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 400 16px var(--tw-font-body);
+}
+
+.jr-search__input::placeholder {
+  color: var(--tw-neutral-400);
+}
+
+.jr-search__input:focus-visible {
+  outline: none;
+  border-color: var(--tw-neutral-900);
+}
+
+.jr-search__clear {
+  position: absolute;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--tw-neutral-500);
+  cursor: pointer;
+}
+
+/* Status chips: one row that scrolls sideways when the phone is narrow. */
+.jr-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px;
+  scrollbar-width: none;
+}
+
+.jr-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.jr-chip {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-700);
+  font: 500 14px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.jr-chip--on {
+  border-color: var(--tw-neutral-900);
+  background-color: var(--tw-neutral-900);
+  color: var(--tw-background);
 }
 
 .jr-list {
@@ -171,6 +190,11 @@
   background-color: var(--tw-background);
   border: 1px solid var(--tw-neutral-200);
   border-radius: 10px;
+  transition: opacity 0.15s ease;
+}
+
+.jr-list--busy {
+  opacity: 0.55;
 }
 
 .jr-row {
@@ -217,8 +241,13 @@
   overflow-wrap: anywhere;
 }
 
-.jr-row__status {
+.jr-row__meta {
   font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.jr-row__status {
   font-weight: 600;
 }
 
@@ -234,25 +263,55 @@
   color: var(--tw-neutral-500);
 }
 
+/* The number is the chat link: tapping it opens WhatsApp. */
+.jr-row__phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  color: var(--tw-neutral-900);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .jr-row__figures {
+  margin-top: 2px;
   font-size: 14px;
   color: var(--tw-neutral-700);
 }
 
-.jr-row__chat {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+.jr-row__figures strong {
   color: var(--tw-neutral-900);
 }
 
-.jr-row__chat:hover {
-  background-color: var(--tw-neutral-100);
+.jr-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
-.jr-note {
+.jr-pager__btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.jr-pager__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.jr-pager__info {
+  min-width: 110px;
   text-align: center;
+  font-size: 14px;
+  color: var(--tw-neutral-700);
 }

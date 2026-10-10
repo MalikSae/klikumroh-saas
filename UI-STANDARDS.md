@@ -35,6 +35,28 @@ Setiap aturan di bawah punya sumbernya. Jangan menebak: kalau ada aturan baru, b
 4. Lebar 320px tanpa scroll horizontal; tinggi kontrol sama di desktop dan HP.
 5. Teks error dan semua label dalam bahasa Indonesia; fokus tidak hilang setelah gagal.
 
+## Portal agen: header dan area halaman (11 Okt 2026)
+
+Satu sumber: `web/components/agent` (`AgentPageHeader`, `AgentPage`, `AgentShell.css`). Angkanya hanya ditulis di
+`AgentShell.css`; jangan disalin ke halaman. Halaman tidak boleh menggambar header, wadah isi, atau spinner sendiri
+(dijaga `scripts/check-agent-shell.js`, `npm run lint:agent-shell` di `/web`).
+
+| Hal | Nilai |
+|---|---|
+| Tinggi header | 56px, sticky, garis tipis di bawah |
+| Isi header | **hanya** panah kembali dan judul. Tidak ada tombol aksi (aturan pendiri) |
+| Sub-halaman | area ketuk panah 44x44, panah 20px berpusat 26px dari tepi, judul 52px dari tepi |
+| Halaman tab | tanpa panah, judul 16px dari tepi |
+| Judul | font heading, 18px, 700, satu baris dengan elipsis |
+| Umpan balik panah | kotak 32x32 di tengah area ketuk (hover, tekan, fokus) |
+| Area isi | margin samping 16px, jarak antarblok 12px, 12px di atas blok pertama |
+| Bawah area isi | 32px; dengan bar tab bawah: 96px + safe area perangkat |
+| Aksi halaman | di isi halaman: baris `ag-shell-toolbar` (rata kanan) dengan `ag-shell-action` untuk aksi sekunder |
+| Memuat | satu spinner: `ag-shell-spin` (ikon) atau `ag-shell-spinner` (cincin 32px) |
+
+Menambah halaman portal: pakai `<AgentPageHeader title=... onBack=... />` dan `<AgentPage withTabBar?>`. Bila butuh
+kontrol yang dulu ditaruh di header, taruh di toolbar isi halaman.
+
 ## Sumber
 - WCAG 2.2: https://www.w3.org/TR/WCAG22/ (1.4.3, 1.4.11, 2.5.8, 1.3.5)
 - web.dev, Sign-in form best practices: https://web.dev/articles/sign-in-form-best-practices

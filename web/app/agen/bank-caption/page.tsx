@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, X, Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Search, X, Copy, Check, Share2, Star, ChevronDown, Loader2, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import './BankCaption.css';
 import { logHabit } from '../../../lib/agentHabits';
 import { copyToClipboard } from '../../../lib/clipboard';
@@ -305,14 +307,9 @@ export default function BankCaptionPage() {
   return (
     <MobileContainer>
       {/* Drill-down page (opened from the home menu): back button, no bottom tab bar. */}
-      <header className="bc-header">
-        <button type="button" onClick={() => router.back()} aria-label="Kembali" className="bc-icon-btn bc-icon-btn--lg">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="bc-header__title">Bank caption</h1>
-      </header>
+      <AgentPageHeader title="Bank caption" onBack={() => router.back()} />
 
-      <div className="bc-page">
+      <AgentPage>
         {/* Package and link used in the captions: one row, opens a sheet. */}
         <button type="button" className="bc-target" onClick={() => setSheetOpen(true)} aria-haspopup="dialog">
           <span className="bc-target__text">
@@ -445,7 +442,7 @@ export default function BankCaptionPage() {
           <div ref={sentinelRef} className="bc-more">
             {hasMore ? (
               <button type="button" onClick={loadMore} className="bc-btn">
-                <Loader2 size={16} className="bc-spin" aria-hidden="true" />
+                <Loader2 size={16} className="ag-shell-spin" aria-hidden="true" />
                 <span>
                   Memuat caption ({currentlyDisplayedCount} dari {totalActiveItemsCount})
                 </span>
@@ -475,7 +472,7 @@ export default function BankCaptionPage() {
             )}
           </div>
         )}
-      </div>
+      </AgentPage>
 
       {/* Package and link sheet */}
       {sheetOpen && (

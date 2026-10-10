@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Building2, Clock, CheckCircle2, AlertCircle, RefreshCw, ReceiptText } from 'lucide-react';
+import { Building2, Clock, CheckCircle2, AlertCircle, RefreshCw, ReceiptText } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
+import { AgentPage } from '../../../components/agent/AgentPage';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { BankField } from '../../../components/BankField';
 import { jakartaDateLabel, jakartaTimeLabel } from '../../../lib/jakartaTime';
 import { readJsonSafe, apiErrorMessage } from '../../../lib/safeJson';
@@ -217,20 +219,18 @@ export default function TarikSaldoPage() {
 
   return (
     <MobileContainer>
-      <header className="ts-header">
-        <button type="button" className="ts-icon-btn" onClick={() => router.push('/agen/dashboard')} aria-label="Kembali ke beranda">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="ts-header__title">Tarik saldo</h1>
-        <button type="button" className="ts-icon-btn" onClick={() => router.push('/agen/riwayat-komisi')} aria-label="Riwayat komisi">
-          <ReceiptText size={20} />
-        </button>
-      </header>
+      <AgentPageHeader title="Tarik saldo" onBack={() => router.push('/agen/dashboard')} backLabel="Kembali ke beranda" />
 
-      <div className="ts-page">
+      <AgentPage>
+        <div className="ag-shell-toolbar">
+          <button type="button" className="ag-shell-action" onClick={() => router.push('/agen/riwayat-komisi')}>
+            <ReceiptText size={16} aria-hidden="true" />
+            <span>Riwayat komisi</span>
+          </button>
+        </div>
         {loading ? (
           <div className="ts-center" role="status">
-            <span className="ts-spinner" aria-hidden="true" />
+            <span className="ag-shell-spinner" aria-hidden="true" />
             <span>Memuat saldo...</span>
           </div>
         ) : fetchError ? (
@@ -395,7 +395,7 @@ export default function TarikSaldoPage() {
             </div>
           </form>
         )}
-      </div>
+      </AgentPage>
     </MobileContainer>
   );
 }

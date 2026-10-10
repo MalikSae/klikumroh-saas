@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { PublicHeader } from '../../../components/PublicHeader';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
 import { BrandMark } from '../../../components/BrandMark';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
@@ -169,7 +169,7 @@ export default function AgenLoginPage() {
   return (
     <div className="tw-agen-login-wrap" style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}>
       <MobileContainer>
-        <PublicHeader title="Masuk Agen" showBack={true} onBackClick={handleBack} backHref="/" hideNotification={true} />
+        <AgentPageHeader title="Masuk Agen" onBack={handleBack} />
 
         <div className="tw-agen-login-body">
           <div className="tw-agen-login-header">

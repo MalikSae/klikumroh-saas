@@ -20,7 +20,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
-import { PublicHeader } from '../../../components/PublicHeader';
+import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
 import { whatsappLink } from '../../../lib/usePlatformSettings';
 import { Button } from '../../../components/Button';
@@ -421,7 +421,7 @@ export default function AgenStatusPage() {
   const shell = (children: React.ReactNode) => (
     <div className="tw-agen-status-wrap tw-st" style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}>
       <MobileContainer>
-        <PublicHeader title="Status Kemitraan" showBack={true} onBackClick={handleBack} backHref="/" hideNotification={true} />
+        <AgentPageHeader title="Status Kemitraan" onBack={handleBack} />
         {children}
         {footerEl}
       </MobileContainer>

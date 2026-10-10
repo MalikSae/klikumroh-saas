@@ -9,6 +9,7 @@
     "lint": "eslint",
     "lint:tokens": "node ../scripts/check-hardcoded-colors.js components app/agen",
     "lint:no-emoji": "node ../scripts/check-no-emoji.js",
+    "lint:agent-shell": "node ../scripts/check-agent-shell.js",
     "test:redirect": "node --experimental-strip-types test/proxy-redirect.test.mjs",
     "test:legal-text": "node --experimental-strip-types test/legal-text.test.mjs",
     "test:affiliator": "node --experimental-strip-types test/proxy-affiliator.test.mjs",
