@@ -1,0 +1,258 @@
+/* "Jaringan saya" (app/agen/jaringan/page.tsx). Sub-page of the agent portal: back button + title, like
+   riwayat komisi. One level only: a list, not a tree. Status colors use the status tokens, never the brand
+   color (a red brand would read as an error). */
+
+.jr-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 8px;
+  background-color: var(--tw-background);
+  border-bottom: 1px solid var(--tw-neutral-100);
+}
+
+.jr-header__title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.jr-icon-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--tw-neutral-900);
+  cursor: pointer;
+}
+
+.jr-icon-btn:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.jr-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 56px);
+  padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+  background-color: var(--tw-page-bg);
+  font-family: var(--tw-font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--tw-neutral-700);
+}
+
+.jr-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tw-neutral-500);
+}
+
+.jr-title {
+  margin: 0;
+  font-family: var(--tw-font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.jr-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--tw-neutral-500);
+}
+
+.jr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 8px;
+  background-color: var(--tw-background);
+  color: var(--tw-neutral-900);
+  font: 600 14px var(--tw-font-body);
+  cursor: pointer;
+}
+
+.jr-spin {
+  animation: jr-spin 0.9s linear infinite;
+}
+
+@keyframes jr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Three numbers in one strip, divided by hairlines. */
+.jr-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background-color: var(--tw-background);
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 10px;
+}
+
+.jr-summary__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 8px;
+}
+
+.jr-summary__item + .jr-summary__item {
+  border-left: 1px solid var(--tw-neutral-200);
+}
+
+.jr-summary__value {
+  font-family: var(--tw-font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tw-neutral-900);
+}
+
+.jr-summary__label {
+  font-size: 13px;
+  color: var(--tw-neutral-500);
+}
+
+/* Override from the network: plain rows in one framed block. */
+.jr-override {
+  padding: 12px 14px;
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 10px;
+  background-color: var(--tw-background);
+}
+
+.jr-override__title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+}
+
+.jr-override__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.jr-override__row strong {
+  color: var(--tw-neutral-900);
+  white-space: nowrap;
+}
+
+.jr-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background-color: var(--tw-background);
+  border: 1px solid var(--tw-neutral-200);
+  border-radius: 10px;
+}
+
+.jr-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+}
+
+.jr-row + .jr-row {
+  border-top: 1px solid var(--tw-neutral-100);
+}
+
+.jr-row__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 50%;
+  background-color: var(--tw-neutral-100);
+  color: var(--tw-neutral-500);
+}
+
+.jr-row__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jr-row__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.jr-row__body p {
+  margin: 0;
+}
+
+.jr-row__name {
+  font-weight: 600;
+  color: var(--tw-neutral-900);
+  overflow-wrap: anywhere;
+}
+
+.jr-row__status {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jr-row__status--active {
+  color: var(--tw-status-closing-text);
+}
+
+.jr-row__status--pending {
+  color: var(--tw-status-contacted-text);
+}
+
+.jr-row__status--inactive {
+  color: var(--tw-neutral-500);
+}
+
+.jr-row__figures {
+  font-size: 14px;
+  color: var(--tw-neutral-700);
+}
+
+.jr-row__chat {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--tw-neutral-900);
+}
+
+.jr-row__chat:hover {
+  background-color: var(--tw-neutral-100);
+}
+
+.jr-note {
+  text-align: center;
+}

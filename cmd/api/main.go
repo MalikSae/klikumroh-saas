@@ -111,6 +111,7 @@ func main() {
 		notifService,
 		agentTargetService,
 		service.WithHabitBadges(agentHabitRepo),
+		service.WithAgentNetwork(repository.NewAgentNetworkRepository(db)),
 	)
 	prospectService := service.NewProspectService(
 		prospectRepo,

@@ -389,6 +389,8 @@ type AgentService interface {
 	// GetLeaderboard ranks active agents by closed jamaah. period: LeaderboardPeriodMonth, LeaderboardPeriodYear
 	// or "" / LeaderboardPeriodAll (since joining).
 	GetLeaderboard(ctx context.Context, tenantID uint64, currentAgentID uint64, period string) ([]LeaderboardEntry, error)
+	// GetNetwork lists the agents this agent recruited directly (one level; ErrAgentNotActive unless active).
+	GetNetwork(ctx context.Context, tenantID uint64, agentID uint64) (*AgentNetwork, error)
 	ListAgents(ctx context.Context, tenantID uint64, statusFilter string) ([]repository.Agent, error)
 	ApproveAgent(ctx context.Context, tenantID uint64, agentID uint64) error
 	RejectAgent(ctx context.Context, tenantID uint64, agentID uint64, reason string) error
@@ -411,6 +413,7 @@ type agentService struct {
 	notifService         NotificationService
 	targetService        AgentTargetService
 	habitRepo            repository.AgentHabitRepository // optional (WithHabitBadges)
+	networkRepo          repository.AgentNetworkRepository // optional (WithAgentNetwork)
 }
 
 func NewAgentService(

@@ -52,6 +52,7 @@ func (h *AgentHandler) RegisterAgentProtectedRoutes(r chi.Router) {
 	r.Get("/api/agent/me", h.GetMe)
 	r.Get("/api/agent/dashboard-summary", h.GetDashboardSummary)
 	r.Get("/api/agent/leaderboard", h.GetLeaderboard)
+	r.Get("/api/agent/network", h.GetNetwork)
 	r.Post("/api/agent/payment-proof", h.UploadPaymentProof)
 	r.Get("/api/agent/payout-info", h.GetPayoutInfo)
 	r.Post("/api/agent/payout-requests", h.CreatePayoutRequest)
@@ -377,6 +378,31 @@ func (h *AgentHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, entries)
+}
+
+// GET /api/agent/network
+// The agents the signed-in agent recruited directly (one level). The upline is always the authenticated agent.
+func (h *AgentHandler) GetNetwork(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := middleware.GetTenantID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	agentID, ok := middleware.GetAgentID(r.Context())
+	if !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	network, err := h.agentService.GetNetwork(r.Context(), tenantID, agentID)
+	if err != nil {
+		if errors.Is(err, service.ErrAgentNotActive) {
+			respondJSON(w, http.StatusForbidden, map[string]string{"error": "Akun belum aktif"})
+			return
+		}
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
+		return
+	}
+	respondJSON(w, http.StatusOK, network)
 }
 
 // POST /api/agent/payment-proof

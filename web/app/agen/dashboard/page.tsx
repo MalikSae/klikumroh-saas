@@ -588,10 +588,16 @@ export default function AgenDashboardPage() {
         {/* Invite a friend or relative to become an agent */}
         {summary.recruit_link && !summary.travel_suspended && (
           <section className="ag-card ag-recruit" aria-labelledby="ag-recruit">
-            <h2 id="ag-recruit" className="ag-title ag-recruit__title">
-              <UserPlus size={18} aria-hidden="true" />
-              Ajak teman jadi agen
-            </h2>
+            <div className="ag-card__head">
+              <h2 id="ag-recruit" className="ag-title ag-recruit__title">
+                <UserPlus size={18} aria-hidden="true" />
+                Ajak teman jadi agen
+              </h2>
+              <Link href="/agen/jaringan" className="ag-textlink">
+                Jaringan saya
+                <ChevronRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
             <p className="ag-recruit__text">
               Bagikan tautan ini. Anda tercatat sebagai pengajak saat mereka mendaftar.
             </p>

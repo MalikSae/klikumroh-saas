@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ImagePlus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Loader2, ChevronRight, Copy, Check, User, Landmark, KeyRound, X } from 'lucide-react';
+import { ImagePlus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, LogOut, Loader2, ChevronRight, Copy, Check, User, Users, Landmark, KeyRound, X } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { BankField } from '../../../components/BankField';
@@ -559,6 +559,14 @@ export default function AgenProfilPage() {
             <span className="pf-row__text">
               <span className="pf-row__label">Data diri</span>
               <span className="pf-muted">{[agent?.name, agent?.phone].filter(Boolean).join(' · ') || 'Lengkapi data diri'}</span>
+            </span>
+            <ChevronRight size={18} className="pf-row__go" aria-hidden="true" />
+          </button>
+          <button type="button" className="pf-row" onClick={() => router.push('/agen/jaringan')}>
+            <Users size={20} className="pf-row__icon" aria-hidden="true" />
+            <span className="pf-row__text">
+              <span className="pf-row__label">Jaringan saya</span>
+              <span className="pf-muted">Agen yang Anda ajak</span>
             </span>
             <ChevronRight size={18} className="pf-row__go" aria-hidden="true" />
           </button>
