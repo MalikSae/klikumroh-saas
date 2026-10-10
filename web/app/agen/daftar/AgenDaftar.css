@@ -449,3 +449,15 @@
   cursor: pointer;
 }
 .tw-agen-daftar-ref-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Upline shown from the opened link: plain information (icon + text), deliberately not input-shaped. */
+.tw-agen-daftar-upline {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 2px 0;
+}
+.tw-agen-daftar-upline__icon { flex: none; margin-top: 1px; color: var(--tw-neutral-500); }
+.tw-agen-daftar-upline__text { margin: 0; font-size: 14px; line-height: 1.4; color: var(--tw-neutral-700); }
+.tw-agen-daftar-upline__name { font-weight: 600; color: var(--tw-text-primary); }
+.tw-agen-daftar-upline__hint { margin: 2px 0 0; font-size: 12px; line-height: 1.4; color: var(--tw-neutral-500); }

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { capitalizeName } from '@/lib/personName';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
+import { UserPlus, UserCheck, Check, CheckCircle2, AlertCircle, FileText, X, Eye, EyeOff, ShieldCheck, RefreshCw } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { PublicHeader } from '../../../components/PublicHeader';
 import { PublicFooter } from '../../../components/PublicFooter';
@@ -600,23 +600,15 @@ export default function AgenDaftarPage() {
                 It opens by itself when the code came from an agent's link (?ref= or cookie), so the
                 applicant still sees the upline they will be linked to. */}
             {linkCode ? (
-              <div className="tw-agen-daftar-field">
-                <label className="tw-agen-daftar-label" htmlFor="agent-upline">
-                  Anda diajak oleh
-                </label>
-                <div className="tw-agen-daftar-input-wrap">
-                  <input
-                    id="agent-upline"
-                    type="text"
-                    value={uplineName ?? 'Memuat...'}
-                    readOnly
-                    aria-readonly="true"
-                    className="tw-agen-daftar-input"
-                  />
+              // Information, not a field: nothing here can be edited, so it must not look like an input.
+              <div className="tw-agen-daftar-upline" role="status">
+                <UserCheck size={18} className="tw-agen-daftar-upline__icon" aria-hidden="true" />
+                <div>
+                  <p className="tw-agen-daftar-upline__text">
+                    Anda diajak oleh <strong className="tw-agen-daftar-upline__name">{uplineName ?? 'agen pengajak'}</strong>
+                  </p>
+                  <p className="tw-agen-daftar-upline__hint">Tercatat otomatis dari tautan yang Anda buka.</p>
                 </div>
-                <span className="tw-agen-daftar-hint-text">
-                  Tercatat otomatis dari tautan yang Anda buka. Kode referral ini tidak bisa diubah.
-                </span>
               </div>
             ) : referralOpen || referralCode !== '' ? (
               <div className="tw-agen-daftar-field">
