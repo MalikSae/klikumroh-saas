@@ -139,7 +139,7 @@ Disarikan dari riset publik soal ciri-ciri desain yang gampang ketauan "asal dib
 - Hindari ikon dibungkus lingkaran/kotak warna di mana-mana ("badge chrome") — itu template yang gampang ketauan generik, biarkan ikon berdiri sendiri kecuali memang perlu ditonjolkan.
 
 **Tipografi:**
-- Body text minimal 14px (standar aplikasi HP), line-height 1.5-1.8. Diturunkan dari 16px atas keputusan pendiri (1 Okt 2026). Pengecualian: kolom input form tetap minimal 16px agar Safari iOS tidak otomatis zoom saat diketik. Teks sekunder (label, tanggal/waktu, baris kedua item daftar, keterangan kecil) boleh 13px — disetujui pendiri (2 Okt 2026); di bawah 13px tetap dilarang.
+- Ukuran teks mengikuti kebutuhan desain per elemen; batas minimum 14px/13px dihapus atas keputusan pendiri (10 Okt 2026), termasuk pengecualian-pengecualiannya. Tetap jaga keterbacaan di HP, line-height 1.5-1.8 untuk teks paragraf, dan kolom input form minimal 16px karena Safari iOS otomatis zoom pada input yang lebih kecil (alasan teknis, bukan gaya).
 - Teks panjang (deskripsi, FAQ) rata kiri, bukan center-align.
 
 **Warna:**
