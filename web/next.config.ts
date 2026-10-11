@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   // Production runs the minimal standalone server (aaPanel Node.js project: one entry file + port).
   // See DEPLOY.md: copy `public` and `.next/static` next to server.js, run it with HOSTNAME=127.0.0.1.
   output: "standalone",
+  // The framework name and version in X-Powered-By help nobody but an attacker.
+  poweredByHeader: false,
   turbopack: {
     root: path.resolve(__dirname, ".."),
   },
@@ -19,6 +21,21 @@ const nextConfig: NextConfig = {
     "travelb.klikumroh.local",
     "klikumroh.local"
   ],
+  async headers() {
+    // Nothing in the product is framed by another origin (no iframe in web or dashboard), so SAMEORIGIN is safe.
+    // HSTS has no includeSubDomains: travel custom domains live on other zones and subdomains stay independent.
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
