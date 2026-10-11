@@ -683,7 +683,7 @@ Tiga skrip di `deploy/`, dijalankan sebagai root; masing-masing `git pull --ff-o
 
 | Skrip | Untuk | Efek |
 |---|---|---|
-| `update-api.sh` | perubahan Go (`cmd/`, `internal/`) | build binary, ganti, restart `klikumroh-api`, rollback bila gagal |
+| `update-api.sh` | perubahan Go (`cmd/`, `internal/`) | build binary API + `klikumroh-migrate` + `klikumroh-seed-demo`, ganti, restart `klikumroh-api`, rollback bila gagal |
 | `update-web.sh` | perubahan `web/` | build Next.js, salin aset, restart `klikumroh-web` |
 | `update-dashboard.sh` | perubahan `dashboard/` | build ke `dist.new`, tukar ke `dist` dalam satu langkah; tanpa restart (Nginx menyajikan berkas statis) |
 
