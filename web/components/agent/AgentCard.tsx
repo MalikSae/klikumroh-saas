@@ -9,10 +9,13 @@ import './AgentShell.css';
 //   flush      no padding; the children fill the card (accordions)
 //   scroll     content runs to the right edge so a horizontal scroller can bleed
 // With `href` it is a link (next/link). Layout tweaks go in `className`; the look comes from here.
-type CardTag = 'section' | 'article' | 'nav' | 'div' | 'ul' | 'ol';
+type CardTag = 'section' | 'article' | 'nav' | 'div' | 'ul' | 'ol' | 'form';
 export type AgentCardVariant = 'default' | 'tint' | 'list' | 'flush' | 'scroll';
 
 type CardProps = Omit<React.HTMLAttributes<HTMLElement>, 'className'> & {
+  // form: the card is the form (onSubmit, noValidate)
+  onSubmit?: React.FormEventHandler<HTMLFormElement>;
+  noValidate?: boolean;
   as?: CardTag;
   variant?: AgentCardVariant;
   className?: string;

@@ -190,6 +190,34 @@ function cardMarginCheck(dir) {
 }
 if (args.length === 0) cardMarginCheck(path.join(rootDir, 'web', 'app', 'agen'));
 
+// Shared component styles must not out-rank a page's own class. With client navigation the stylesheet order
+// differs from a direct load, so two single-class rules of equal weight flip. The shared families are therefore
+// written as :where(.ag-card) etc. (zero specificity) and a page class always wins.
+if (args.length === 0) {
+  const shellCss = path.join(rootDir, 'web', 'components', 'agent', 'AgentShell.css');
+  if (fs.existsSync(shellCss)) {
+    const text = fs.readFileSync(shellCss, 'utf8').replace(/\r\n/g, '\n').replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '));
+    const family = /\.ag-(?:card(?:-head)?|shell-btn|shell-icon-btn|row|list|state|chips?|search|pager|sheet|status)(?:__[a-z-]+|--[a-z-]+)*/g;
+    const rules = /(^|\n)([^{}\n;@][^{}]*)\{/g;
+    let r;
+    while ((r = rules.exec(text))) {
+      const sel = r[2];
+      if (/^\s*(from|to|\d+%)\b/.test(sel)) continue;
+      // a rule that has to out-rank a global field style (.tw-field) is written as .tw-field.ag-...: deliberate
+      if (/\.tw-field\b/.test(sel)) continue;
+      let f;
+      family.lastIndex = 0;
+      while ((f = family.exec(sel))) {
+        if (sel.slice(Math.max(0, f.index - 7), f.index) !== ':where(') {
+          const line = text.slice(0, r.index + r[1].length).split('\n').length;
+          violations.push(`web/components/agent/AgentShell.css:${line}  ${f[0]} is not wrapped in :where(): page classes must win over shared styles in any stylesheet order`);
+          break;
+        }
+      }
+    }
+  }
+}
+
 // Public travel site: the root-level components of web/components are its pages (catalogue, package detail, ...).
 // Their sub-page header is PublicPageHeader. Allowed own <header>: the brand header of the home page
 // (components/home), the shell components themselves, and the platform's marketing/checkout views (not travel pages).

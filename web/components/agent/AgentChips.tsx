@@ -29,7 +29,7 @@ export function AgentChips<K extends string>({ items, value, onChange, label, to
             type="button"
             role="tab"
             aria-selected={on}
-            className={`ag-chip${on ? ' ag-chip--on' : ''}`}
+            className={`ag-chip${on ? ' ag-chip--on' : ''}${!on && item.count === 0 ? ' ag-chip--empty' : ''}`}
             onClick={() => onChange(item.key)}
           >
             {item.label}

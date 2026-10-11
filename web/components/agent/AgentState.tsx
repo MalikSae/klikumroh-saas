@@ -9,6 +9,9 @@ interface Action {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  // The main action of the page when the list is empty (add the first item); the default is a quiet outline.
+  variant?: 'primary' | 'outline';
+  icon?: React.ReactNode;
 }
 
 interface BaseProps {
@@ -55,7 +58,8 @@ export const AgentStateEmpty: React.FC<
     {title && <h2 className="ag-state__title">{title}</h2>}
     {text && <p className="ag-state__text">{text}</p>}
     {action && (
-      <AgentButton onClick={action.onClick} disabled={action.disabled}>
+      <AgentButton variant={action.variant} onClick={action.onClick} disabled={action.disabled}>
+        {action.icon}
         {action.label}
       </AgentButton>
     )}
