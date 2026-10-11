@@ -1,0 +1,47 @@
+/* "Tambah jamaah" page: the form sits in one AgentCard; only the field layout lives here. */
+.jb-intro {
+  margin: 0;
+  font: var(--tw-type-body);
+  color: var(--tw-neutral-500);
+}
+
+/* a label and its field are a pair: 4px apart */
+.jb-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tw-space-4);
+}
+
+.jb-required {
+  color: var(--tw-danger);
+}
+
+.jb-hint {
+  font: var(--tw-type-meta);
+  color: var(--tw-neutral-500);
+}
+
+.jb-error {
+  margin: 0;
+  padding: var(--tw-space-12);
+  border: 1px solid var(--tw-danger-border);
+  border-radius: var(--tw-radius-inset);
+  background-color: var(--tw-danger-bg);
+  font: var(--tw-type-body);
+  color: var(--tw-danger-text);
+}
+
+.jb-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tw-space-8);
+  font: var(--tw-type-body);
+  color: var(--tw-neutral-700);
+  cursor: pointer;
+}
+
+.jb-consent input {
+  flex-shrink: 0;
+  margin-top: var(--tw-space-2);
+  accent-color: var(--tw-brand-primary);
+}

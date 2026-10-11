@@ -1,38 +1,42 @@
-
-
-.jm-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 8px;
-  background-color: var(--tw-brand-primary);
-  color: var(--tw-on-brand);
-  font-family: var(--tw-font-heading);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+/* Date and time of the entry, stacked at the right of the row (the time is in WIB). */
+.jm-when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
-.jm-add:hover {
-  background-color: color-mix(in srgb, var(--tw-brand-primary) 88%, var(--tw-neutral-900));
-}
-
-.jm-more {
-  height: 44px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
+.jm-when__date {
+  font: var(--tw-type-meta);
   color: var(--tw-neutral-700);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
-.jm-more:disabled {
-  cursor: default;
-  opacity: 0.6;
+.jm-when__time {
+  font: var(--tw-type-meta);
+  color: var(--tw-neutral-500);
 }
+
+/* Search and the add action on one row (layout only: the look is AgentSearch and AgentButton). */
+.jm-searchbar {
+  display: flex;
+  align-items: center;
+  gap: var(--tw-space-8);
+}
+
+.jm-searchbar > :first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* while the search field has focus it takes the whole row: the add action steps aside */
+.jm-searchbar:focus-within .jm-searchbar__add {
+  display: none;
+}
+
+.jm-searchbar__add {
+  flex-shrink: 0;
+  /* the same height as the search field next to it */
+  min-height: 44px;
+}
+
+
+
