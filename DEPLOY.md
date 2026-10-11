@@ -678,6 +678,17 @@ Urutan ini dijalankan sampai produksi hidup. Ia **menggantikan** instruksi aaPan
 8. DNS zona: `@` dan `*` A ke IP server (Proxied), `cname` A (DNS only). SSL mode **Full (strict)**.
 9. Staf pertama: `CREATE_STAFF_PASSWORD` diketik lewat `read -s`, lalu `./bin/klikumroh-create-staff -email ... -name "..." -role owner`.
 
+### 9.1a Memperbarui rilis (setelah pemasangan pertama)
+Tiga skrip di `deploy/`, dijalankan sebagai root; masing-masing `git pull --ff-only` lebih dulu:
+
+| Skrip | Untuk | Efek |
+|---|---|---|
+| `update-api.sh` | perubahan Go (`cmd/`, `internal/`) | build binary, ganti, restart `klikumroh-api`, rollback bila gagal |
+| `update-web.sh` | perubahan `web/` | build Next.js, salin aset, restart `klikumroh-web` |
+| `update-dashboard.sh` | perubahan `dashboard/` | build ke `dist.new`, tukar ke `dist` dalam satu langkah; tanpa restart (Nginx menyajikan berkas statis) |
+
+Migrasi basis data tetap lewat Bagian 9.1 langkah 2, dengan backend dimatikan lebih dulu.
+
 ### 9.2 Jebakan yang ditemui
 - **Nginx ganda.** Server punya Nginx Ubuntu (`/etc/nginx`, mati dan tidak aktif) selain Nginx aaPanel (`/www/server/nginx/sbin/nginx`). Selalu uji dengan binary aaPanel; `nginx -t` polos menguji konfigurasi yang salah.
 - **Paste heredoc panjang ke terminal web bisa rusak.** Pakai berkas di repo lalu `git pull`, atau base64 satu baris.

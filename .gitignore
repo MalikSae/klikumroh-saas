@@ -8,6 +8,8 @@ node_modules/
 
 # Build outputs
 dist/
+dashboard/dist.new/
+dashboard/dist.old/
 build/
 .next/
 out/
