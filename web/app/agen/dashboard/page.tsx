@@ -32,6 +32,7 @@ import { AgentTravelSuspendedNotice } from '../../../components/AgentTravelSuspe
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentCard } from '../../../components/agent/AgentCard';
 import { AgentCardHead } from '../../../components/agent/AgentCardHead';
+import { AgentSummary } from '../../../components/agent/AgentSummary';
 import { AgentSheet } from '../../../components/agent/AgentSheet';
 import { AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { initAudioUnlock, playNotificationSound } from '../../../lib/notificationSound';
@@ -481,9 +482,12 @@ export default function AgenDashboardPage() {
         </div>
 
         {/* Balance card overlapping the band */}
-        <AgentCard as="section" className="ag-balance" data-card-spacing="tight" aria-labelledby="ag-komisi">
-          <div className="ag-balance__label">
-            <h2 id="ag-komisi">Total komisi diraih</h2>
+        <AgentSummary
+          id="ag-komisi"
+          className="ag-balance"
+          label="Total komisi diraih"
+          amount={money(summary.total_komisi ?? 0)}
+          action={
             <button
               type="button"
               className="ag-icon-btn"
@@ -492,15 +496,12 @@ export default function AgenDashboardPage() {
             >
               {showBalance ? <Eye size={18} /> : <EyeOff size={18} />}
             </button>
-          </div>
-          <p className="ag-balance__amount">{money(summary.total_komisi ?? 0)}</p>
-          <div className="ag-balance__foot">
-            <span>
-              Potensi <b>{money(summary.saldo_tertunda)}</b> · {summary.jamaah_tertunda_count} jamaah
-              {(summary.saldo_tertahan || 0) > 0 && <> · tertahan {money(summary.saldo_tertahan)}</>}
-            </span>
-          </div>
-        </AgentCard>
+          }
+          stats={[
+            { label: `Potensi · ${summary.jamaah_tertunda_count} jamaah`, value: money(summary.saldo_tertunda) },
+            ...((summary.saldo_tertahan || 0) > 0 ? [{ label: 'Tertahan', value: money(summary.saldo_tertahan) }] : []),
+          ]}
+        />
 
         {/* Menu grid */}
         <AgentCard as="nav" className="ag-menu" aria-label="Menu agen">

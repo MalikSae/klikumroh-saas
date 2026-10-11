@@ -134,6 +134,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* One line under the amount: what the card means. */
+.rk-stat__hint {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.9;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* "Sudah ditarik" card: approved requests still waiting for the transfer. */
 .rk-stat__note {
   max-width: 100%;

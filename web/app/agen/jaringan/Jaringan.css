@@ -10,101 +10,78 @@
   color: var(--tw-neutral-500);
 }
 
-.jr-muted-inline {
-  color: var(--tw-neutral-500);
-  font-weight: 400;
-}
-
 .jr-error {
   margin: 0;
   font-size: 12px;
   color: var(--tw-danger-text);
 }
 
-/* Hero: the one number that matters, on the page itself. */
-.jr-hero {
-  padding: 4px 0 0;
-}
-
-.jr-hero__label {
-  margin: 0;
-  font-size: 12px;
-  color: var(--tw-neutral-500);
-}
-
-.jr-hero__amount {
-  margin: 0;
-  font-family: var(--tw-font-heading);
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--tw-neutral-900);
-}
-
-.jr-hero__split {
-  margin: 2px 0 0;
-  font-size: 14px;
-  color: var(--tw-neutral-700);
-}
-
 /* Registered / in process: plain text on one line. */
-.jr-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 0;
-  font-size: 14px;
-  color: var(--tw-neutral-700);
-}
-
-.jr-counts strong {
-  color: var(--tw-neutral-900);
-}
-
-.jr-row__avatar {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  overflow: hidden;
-  border-radius: 50%;
-  background-color: var(--tw-neutral-100);
-  color: var(--tw-neutral-500);
-}
-
-.jr-row__avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 /* The number is the chat link: tapping it opens WhatsApp. */
 .jr-row__line {
   display: block;
-  font-size: 12px;
-  line-height: 1.5;
+  font: var(--tw-type-meta);
   color: var(--tw-neutral-500);
 }
 
 .jr-row__phone {
+  position: relative;
   display: inline-flex;
+  vertical-align: top;
   align-items: center;
-  gap: 4px;
-  min-height: 24px;
-  color: var(--tw-neutral-900);
+  gap: var(--tw-space-4);
+  color: var(--tw-brand-primary);
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
 }
 
+/* the 16px line keeps a 44px tap area for the phone number */
+.jr-row__phone::after {
+  content: '';
+  position: absolute;
+  inset: -14px -6px;
+}
+
+/* Counts at the left, the commission at the right of the same line. */
 .jr-row__figures {
-  margin-top: 2px;
-  font-size: 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tw-space-8);
   color: var(--tw-neutral-700);
 }
 
-.jr-row__figures strong {
+/* City, then the number: the city gives way (ellipsis), the number keeps its width. */
+.jr-row__contact {
+  display: flex;
+  align-items: center;
+  gap: var(--tw-space-4);
+  min-width: 0;
+}
+
+.jr-row__city {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.jr-row__phone {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* "komisi Rp 120.000": a small word, then the amount. */
+.jr-komisi {
+  flex-shrink: 0;
+  font: var(--tw-type-meta);
+  color: var(--tw-neutral-500);
+  white-space: nowrap;
+}
+
+.jr-komisi__amount {
+  font: var(--tw-type-body-strong);
   color: var(--tw-neutral-900);
+  font-variant-numeric: tabular-nums;
 }
 

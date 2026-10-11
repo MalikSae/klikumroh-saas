@@ -15,6 +15,7 @@ import { AgentSheet } from '../../../components/agent/AgentSheet';
 import { AgentList, AgentListRow } from '../../../components/agent/AgentList';
 import { AgentSearch } from '../../../components/agent/AgentSearch';
 import { AgentButton } from '../../../components/agent/AgentButton';
+import { AgentActionBar } from '../../../components/agent/AgentActionBar';
 import { AgentStateEmpty, AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { summarizeCommissionHistory } from '../../../lib/commissionSummary';
 import { jakartaDayKey, jakartaDayLabel, jakartaTimeLabel, jakartaDateLabel } from '../../../lib/jakartaTime';
@@ -185,13 +186,7 @@ export default function RiwayatKomisiPage() {
     <MobileContainer>
       <AgentPageHeader title="Riwayat komisi" onBack={() => router.push('/agen/dashboard')} backLabel="Kembali ke beranda" />
 
-      <AgentPage>
-        <div className="ag-shell-toolbar">
-          <AgentButton onClick={() => router.push('/agen/tarik-saldo')}>
-            <ArrowDownToLine size={16} aria-hidden="true" />
-            <span>Tarik saldo</span>
-          </AgentButton>
-        </div>
+      <AgentPage withActionBar>
         {loading ? (
           <AgentStateLoading text="Memuat riwayat..." />
         ) : error ? (
@@ -200,9 +195,9 @@ export default function RiwayatKomisiPage() {
           <>
             <section className="rk-summary" role="tablist" aria-label="Ringkasan komisi">
               {[
-                { key: 'main' as const, label: 'Siap ditarik', value: summary.bisaDicairkan },
-                { key: 'wait' as const, label: 'Tertahan', value: summary.tertahan },
-                { key: 'done' as const, label: 'Sudah ditarik', value: summary.sudahCair },
+                { key: 'main' as const, label: 'Siap ditarik', hint: 'Bisa diajukan penarikan sekarang', value: summary.bisaDicairkan },
+                { key: 'wait' as const, label: 'Tertahan', hint: 'Menunggu jamaah melunasi pembayaran', value: summary.tertahan },
+                { key: 'done' as const, label: 'Sudah ditarik', hint: 'Komisi yang sudah ditransfer ke rekening', value: summary.sudahCair },
               ].map((card) => {
                 const pos = deck.indexOf(card.key);
                 const front = pos === 0;
@@ -226,6 +221,7 @@ export default function RiwayatKomisiPage() {
                     <strong className={`rk-stat__value${formatRupiah(card.value).length > 14 ? ' rk-stat__value--long' : ''}`}>
                       {formatRupiah(card.value)}
                     </strong>
+                    <span className="rk-stat__hint">{card.hint}</span>
                     {/* Approved by the travel but not transferred yet: not counted as withdrawn. */}
                     {card.key === 'done' && summary.menungguTransfer > 0 && (
                       <span className="rk-stat__note">Menunggu transfer {formatRupiah(summary.menungguTransfer)}</span>
@@ -311,6 +307,13 @@ export default function RiwayatKomisiPage() {
           </>
         )}
       </AgentPage>
+
+      <AgentActionBar>
+        <AgentButton variant="primary" size="lg" block onClick={() => router.push('/agen/tarik-saldo')}>
+          <ArrowDownToLine size={18} aria-hidden="true" />
+          <span>Tarik saldo</span>
+        </AgentButton>
+      </AgentActionBar>
 
       {detail && (
         <AgentSheet onClose={() => setDetail(null)}>

@@ -7,12 +7,13 @@
 // The upline is the signed-in agent: the API takes no agent id.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, User, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentList, AgentListRow } from '../../../components/agent/AgentList';
+import { AgentSummary } from '../../../components/agent/AgentSummary';
 import { AgentSearch } from '../../../components/agent/AgentSearch';
 import { AgentChips } from '../../../components/agent/AgentChips';
 import { AgentPager } from '../../../components/agent/AgentPager';
@@ -231,27 +232,15 @@ export default function AgenJaringanPage() {
         ) : network && s ? (
           <>
             {network.override_enabled && (
-              <section className="jr-hero" aria-label="Komisi Pembinaan">
-                <p className="jr-hero__label">Komisi Pembinaan</p>
-                <p className="jr-hero__amount">{rupiah(s.override_released + s.override_held)}</p>
-                <p className="jr-hero__split">
-                  Masuk saldo {rupiahJt(s.override_released)} · Tertahan {rupiahJt(s.override_held)}
-                </p>
-              </section>
+              <AgentSummary
+                label="Komisi Pembinaan"
+                amount={rupiah(s.override_released + s.override_held)}
+                stats={[
+                  { label: 'Masuk saldo', value: rupiah(s.override_released) },
+                  { label: 'Tertahan', value: rupiah(s.override_held) },
+                ]}
+              />
             )}
-
-            <p className="jr-counts">
-              <span>
-                Terdaftar <strong>{s.registered}</strong>
-                <span className="jr-muted-inline">
-                  {' '}
-                  ({s.active} aktif · {s.inactive} nonaktif)
-                </span>
-              </span>
-              <span>
-                Diproses <strong>{s.pending}</strong>
-              </span>
-            </p>
 
             <AgentSearch value={search} onChange={changeSearch} placeholder="Cari nama, nomor, atau kota" label="Cari agen binaan" maxLength={100} />
 
@@ -284,43 +273,33 @@ export default function AgenJaringanPage() {
                 {network.members.map((m) => (
                   <AgentListRow
                     key={m.id}
-                    lead={
-                      <span className="jr-row__avatar" aria-hidden="true">
-                        {m.photo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- agent photo uploaded by the agent
-                          <img src={m.photo_url} alt="" />
-                        ) : (
-                          <User size={20} />
-                        )}
-                      </span>
-                    }
                     title={m.name}
+                    titleAside={<StatusLabel tone={MEMBER_TONE[m.status]}>{STATUS_LABEL[m.status]}</StatusLabel>}
+                    meta={<span>bergabung {jakartaDateLabel(m.joined_at, { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                   >
-                      <span className="jr-row__line">
-                        <StatusLabel tone={MEMBER_TONE[m.status]}>{STATUS_LABEL[m.status]}</StatusLabel>
-                        {' · '}bergabung {jakartaDateLabel(m.joined_at, { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                      <span className="jr-row__line">
-                        {m.domisili ? `${m.domisili} · ` : ''}
-                        {m.phone ? (
-                          <a className="jr-row__phone" href={waLink(m.phone)} target="_blank" rel="noopener noreferrer">
-                            <MessageCircle size={14} aria-hidden="true" />
-                            {formatPhone(m.phone)}
-                          </a>
-                        ) : (
-                          'Nomor belum ada'
+                    {/* The city may be cut with an ellipsis; the number never is. */}
+                    <span className="jr-row__line jr-row__contact">
+                      {m.domisili && <span className="jr-row__city">{m.domisili} ·</span>}
+                      {m.phone ? (
+                        <a className="jr-row__phone" href={waLink(m.phone)} target="_blank" rel="noopener noreferrer">
+                          {formatPhone(m.phone)}
+                        </a>
+                      ) : (
+                        <span>Nomor belum ada</span>
+                      )}
+                    </span>
+                    {m.status !== 'pending' && (
+                      <span className="jr-row__line jr-row__figures">
+                        <span>
+                          {m.prospect_count} prospek · {m.closing_jamaah} pax closing
+                        </span>
+                        {network.override_enabled && (
+                          <span className="jr-komisi">
+                            komisi <span className="jr-komisi__amount">{rupiahJt(m.override_released + m.override_held)}</span>
+                          </span>
                         )}
                       </span>
-                      {m.status !== 'pending' && (
-                        <span className="jr-row__line jr-row__figures">
-                          {m.closing_jamaah} pax closing · {m.prospect_count} prospek
-                          {network.override_enabled && (
-                            <>
-                              {' · '}komisi Anda <strong>{rupiahJt(m.override_released + m.override_held)}</strong>
-                            </>
-                          )}
-                        </span>
-                      )}
+                    )}
                   </AgentListRow>
                 ))}
               </AgentList>

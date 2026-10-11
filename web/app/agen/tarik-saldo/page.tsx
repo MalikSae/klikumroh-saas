@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Clock, CheckCircle2, AlertCircle, ReceiptText } from 'lucide-react';
+import { Clock, CheckCircle2, AlertCircle, ReceiptText } from 'lucide-react';
 import { MobileContainer } from '../../../components/MobileContainer';
 import { StatusLabel } from '../../../components/agent/StatusLabel';
 import { rupiah } from '../../../lib/money';
@@ -10,6 +10,8 @@ import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentCard } from '../../../components/agent/AgentCard';
 import { AgentButton } from '../../../components/agent/AgentButton';
+import { AgentIconButton } from '../../../components/agent/AgentIconButton';
+import { AgentActionBar } from '../../../components/agent/AgentActionBar';
 import { AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { BankField } from '../../../components/BankField';
 import { jakartaDateLabel, jakartaTimeLabel } from '../../../lib/jakartaTime';
@@ -218,13 +220,7 @@ export default function TarikSaldoPage() {
     <MobileContainer>
       <AgentPageHeader title="Tarik saldo" onBack={() => router.push('/agen/dashboard')} backLabel="Kembali ke beranda" />
 
-      <AgentPage>
-        <div className="ag-shell-toolbar">
-          <AgentButton onClick={() => router.push('/agen/riwayat-komisi')}>
-            <ReceiptText size={16} aria-hidden="true" />
-            <span>Riwayat komisi</span>
-          </AgentButton>
-        </div>
+      <AgentPage withActionBar>
         {loading ? (
           <AgentStateLoading text="Memuat saldo..." />
         ) : fetchError ? (
@@ -233,16 +229,17 @@ export default function TarikSaldoPage() {
           /* A request is in progress: show it instead of the form. */
           <>
             <AgentCard as="section">
-              <div className="ts-row">
-                <span className="ts-label">Pengajuan sedang diproses</span>
-                <StatusLabel pill tone={info.pending_request.status === 'approved' ? 'success' : 'wait'}>
-                  {info.pending_request.status === 'approved' ? 'Disetujui' : 'Menunggu verifikasi'}
-                </StatusLabel>
+              <div className="ts-group">
+                <div className="ts-row">
+                  <span className="ts-label">Pengajuan sedang diproses</span>
+                  <StatusLabel pill tone={info.pending_request.status === 'approved' ? 'success' : 'wait'}>
+                    {info.pending_request.status === 'approved' ? 'Disetujui' : 'Menunggu verifikasi'}
+                  </StatusLabel>
+                </div>
+                <p className="ts-amount">{rupiah(info.pending_request.amount_requested)}</p>
+                <p className="ts-muted">Diajukan {formatDate(info.pending_request.created_at)}</p>
               </div>
-              <p className="ts-amount">{rupiah(info.pending_request.amount_requested)}</p>
-              <p className="ts-muted">Diajukan {formatDate(info.pending_request.created_at)}</p>
               <div className="ts-bank">
-                <Building2 size={18} aria-hidden="true" />
                 <span>
                   {info.pending_request.bank_name_snapshot} · {info.pending_request.bank_account_number_snapshot}
                   <small>a.n. {info.pending_request.bank_account_holder_snapshot}</small>
@@ -262,16 +259,21 @@ export default function TarikSaldoPage() {
             </div>
           </>
         ) : (
-          <form onSubmit={handleSubmit} className="ts-form" noValidate>
+          <AgentCard as="form" onSubmit={handleSubmit} noValidate>
             {/* Balance */}
-            <AgentCard as="section">
-              <span className="ts-label">Saldo bisa ditarik</span>
+            <div className="ts-group">
+              <div className="ts-row">
+                <span className="ts-label">Saldo bisa ditarik</span>
+                <AgentIconButton href="/agen/riwayat-komisi" label="Riwayat komisi">
+                  <ReceiptText size={18} aria-hidden="true" />
+                </AgentIconButton>
+              </div>
               <p className="ts-amount">{rupiah(saldo)}</p>
               {minPayout > 0 && <p className="ts-muted">Minimal penarikan {rupiah(minPayout)}</p>}
-            </AgentCard>
+            </div>
 
             {/* Amount */}
-            <AgentCard as="section">
+            <div className="ts-group">
               <div className="ts-row">
                 <label className="tw-field-label ts-flush" htmlFor="ts-amount">
                   Jumlah penarikan
@@ -299,10 +301,10 @@ export default function TarikSaldoPage() {
               <p id="ts-amount-hint" className="ts-muted">
                 Maks. {rupiah(saldo)}
               </p>
-            </AgentCard>
+            </div>
 
             {/* Bank account: one line when saved, the form when missing or editing */}
-            <AgentCard as="section">
+            <div className="ts-group">
               <div className="ts-row">
                 <span className="tw-field-label ts-flush">Rekening tujuan</span>
                 {hasSavedBank && (
@@ -351,14 +353,13 @@ export default function TarikSaldoPage() {
                 </div>
               ) : (
                 <div className="ts-bank">
-                  <Building2 size={18} aria-hidden="true" />
                   <span>
                     {bankName} · {accountNumber}
                     <small>a.n. {accountHolder}</small>
                   </span>
                 </div>
               )}
-            </AgentCard>
+            </div>
 
             {formError && (
               <p className="ts-alert ts-alert--error" role="alert">
@@ -374,12 +375,12 @@ export default function TarikSaldoPage() {
             )}
 
             {/* Primary action, always reachable at the bottom of the screen */}
-            <div className="ts-submit">
+            <AgentActionBar>
               <AgentButton type="submit" variant="primary" size="lg" block disabled={submitting}>
                 {submitting ? 'Mengirim...' : 'Ajukan penarikan'}
               </AgentButton>
-            </div>
-          </form>
+            </AgentActionBar>
+          </AgentCard>
         )}
       </AgentPage>
     </MobileContainer>
