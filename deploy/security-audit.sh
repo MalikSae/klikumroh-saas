@@ -9,13 +9,32 @@ warn() { echo "WARN  $*"; }
 fail() { echo "FAIL  $*"; }
 sec()  { echo; echo "== $* =="; }
 perm() { stat -c '%a %U:%G' "$1" 2>/dev/null; }
+# Is TCP port $1 allowed from anywhere in ufw? (a service can listen on 0.0.0.0 and still be blocked by the firewall)
+UFW_STATUS=$(ufw status 2>/dev/null)
+ufw_allows() {
+  echo "$UFW_STATUS" | grep -q '^Status: active' || return 0   # no active ufw: treat as open
+  local r lo hi
+  for r in $(echo "$UFW_STATUS" | awk '/ALLOW/ {print $1}'); do
+    case "$r" in */udp) continue ;; esac
+    r=${r%/tcp}
+    case "$r" in
+      *:*) lo=${r%%:*}; hi=${r#*:}; [ "$1" -ge "$lo" ] && [ "$1" -le "$hi" ] && return 0 ;;
+      "$1") return 0 ;;
+    esac
+  done
+  return 1
+}
 
 sec "1. Port yang mendengar (hanya 22/80/443 yang boleh publik)"
 ss -tlnH 2>/dev/null | awk '{print $4}' | sed 's/.*://' | sort -un | while read -r p; do
   addrs=$(ss -tlnH | awk -v p=":$p" '$4 ~ p"$" {print $4}' | sed "s/:$p\$//" | sort -u | tr '\n' ' ')
   case "$addrs" in *"0.0.0.0"*|*"*"*|*"[::]"*) pub=1 ;; *) pub=0 ;; esac
   if [ "$pub" = 1 ]; then
-    case "$p" in 22|80|443) ok "port $p publik (wajar)";; *) warn "port $p terbuka ke semua interface ($addrs)";; esac
+    case "$p" in
+      22|80|443) ok "port $p publik (wajar)" ;;
+      *) if ufw_allows "$p"; then warn "port $p mendengar di semua interface dan DIIZINKAN ufw ($addrs)"
+         else ok "port $p mendengar di semua interface tapi diblokir ufw"; fi ;;
+    esac
   fi
 done
 for p in 18080 13000 3306; do
@@ -23,7 +42,8 @@ for p in 18080 13000 3306; do
   case "$a" in
     "") echo "INFO  port $p tidak mendengar" ;;
     127.0.0.1:*|"[::1]:"*) ok "port $p hanya localhost ($a)" ;;
-    *) fail "port $p mendengar di $a (harus 127.0.0.1)" ;;
+    *) if ufw_allows "$p"; then fail "port $p mendengar di $a dan diizinkan ufw (harus 127.0.0.1)"
+       else warn "port $p mendengar di $a tapi diblokir ufw (aman dari internet; bind ke 127.0.0.1 lebih baik)"; fi ;;
   esac
 done
 
