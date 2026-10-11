@@ -64,8 +64,10 @@ echo "$h" | grep -qi '^server: .*[0-9]' && warn "header Server membuka versi" ||
 echo "$h" | grep -qi '^x-powered-by' && warn "header X-Powered-By aktif" || ok "tanpa X-Powered-By"
 
 sec "5. Penanganan host asing dan isolasi tenant"
-c=$(curl -sk --max-time 8 -H "Host: host-tidak-terdaftar.example" -o /dev/null -w '%{http_code}' https://127.0.0.1/)
-[ "$c" = 404 ] && ok "host asing di 443 -> 404 (KlikUmroh)" || warn "host asing di 443 -> $c (harus 404; install-default-host.sh sudah dijalankan?)"
+# An unknown host must reach KlikUmroh (Next.js assets under /_next/), never another site of the shared server.
+body=$(curl -sk --max-time 8 -H "Host: host-tidak-terdaftar.example" https://127.0.0.1/ | head -c 20000)
+if echo "$body" | grep -q '/_next/'; then ok "host asing di 443 dilayani KlikUmroh"
+else warn "host asing di 443 bukan KlikUmroh (install-default-host.sh sudah dijalankan?)"; fi
 c=$(curl -s --max-time 8 -H "X-Forwarded-Host: host-tidak-terdaftar.example" -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/public/packages)
 [ "$c" = 404 ] || [ "$c" = 400 ] && ok "API menolak host tidak terdaftar ($c)" || warn "API host tidak terdaftar -> $c"
 for p in /api/admin/prospects /api/agent/me /api/staff/tenants; do
