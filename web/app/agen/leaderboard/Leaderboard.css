@@ -7,46 +7,6 @@
   color: var(--tw-neutral-500);
 }
 
-/* Period dropdown in the page toolbar: compact and neutral; the menu lines up with the trigger's right edge. */
-.lb-period {
-  width: auto;
-}
-
-.lb-period .tw-dropdown__trigger {
-  gap: 6px;
-  width: auto;
-  height: 36px;
-  padding: 0 10px 0 12px;
-  border: 1px solid var(--tw-neutral-200);
-  border-radius: 8px;
-  background-color: var(--tw-background);
-  box-shadow: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--tw-neutral-900);
-}
-
-.lb-period .tw-dropdown__trigger:hover:not(:disabled) {
-  border-color: var(--tw-neutral-300);
-}
-
-.lb-period .tw-dropdown__trigger:focus-visible,
-.lb-period .tw-dropdown__trigger--open {
-  border-color: var(--tw-neutral-900);
-  box-shadow: none;
-}
-
-.lb-period .tw-dropdown__chevron {
-  color: var(--tw-neutral-500);
-  opacity: 1;
-}
-
-.lb-period .tw-dropdown__menu {
-  right: 0;
-  left: auto;
-  min-width: 150px;
-}
-
 /* Gamified hero: podium for the top 3 on a lit brand background, your position underneath.
    Medal colors: gold (rating star), silver (neutral), bronze (warning, darkened). All from tokens. */
 .lb-hero {

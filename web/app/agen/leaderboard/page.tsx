@@ -9,9 +9,9 @@ import { MobileContainer } from '../../../components/MobileContainer';
 import { AgentPage } from '../../../components/agent/AgentPage';
 import { AgentPageHeader } from '../../../components/agent/AgentPageHeader';
 import { AgentCard } from '../../../components/agent/AgentCard';
+import { AgentChips } from '../../../components/agent/AgentChips';
 import { AgentStateEmpty, AgentStateError, AgentStateLoading } from '../../../components/agent/AgentState';
 import { AgentBottomNavbar } from '../../../components/AgentBottomNavbar';
-import { CustomDropdown } from '../../../components/CustomDropdown';
 import { HabitBadge } from '../../../components/HabitBadge';
 import { hasRank, medalTier, myRankText, podiumEntries, podiumScreenOrder, rankCellText } from '../../../lib/leaderboardRank';
 import './Leaderboard.css';
@@ -148,15 +148,12 @@ export default function AgenLeaderboardPage() {
       <AgentPageHeader title="Leaderboard" />
 
       <AgentPage withTabBar>
-        <div className="ag-shell-toolbar">
-          <CustomDropdown
-            name="period"
-            className="lb-period"
-            value={period}
-            options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
-            onChange={(e) => setPeriod(String(e.target.value) as PeriodKey)}
-          />
-        </div>
+        <AgentChips
+          label="Periode"
+          value={period}
+          items={PERIODS.map((p) => ({ key: p.key, label: p.label }))}
+          onChange={setPeriod}
+        />
         {loading ? (
           <AgentStateLoading text="Memuat peringkat..." />
         ) : error ? (
