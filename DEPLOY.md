@@ -607,6 +607,10 @@ SSL/TLS zona: mode **Full (strict)** setelah sertifikat origin di 7.3 terpasang.
 
 ### 7.4 Domain milik travel (Nginx menerima host yang tidak dikenal)
 
+**Cara yang dipakai di server ini (11 Okt 2026):** `bash deploy/install-default-host.sh`. Skrip menambah satu berkas baru, `0.klikumroh-default.conf` (`deploy/nginx-klikumroh-default.conf`), berisi blok `listen 443 ssl default_server` yang meneruskan host asing ke Next.js. Tidak ada vhost lain yang diubah; `nginx -t` gagal berarti berkas dihapus lagi dan Nginx tidak di-reload. Port 80 tidak disentuh (Cloudflare mode Full memakai 443). Penyebab masalahnya: tanpa `default_server` eksplisit, Nginx memakai vhost port 443 pertama menurut urutan abjad (`aabm.or.id.conf`), sehingga domain travel menampilkan situs lain. Batal: hapus berkas itu lalu `nginx -s reload`.
+
+Langkah manual lama (mengubah `0.default.conf`) di bawah ini tidak dipakai karena berkas itu hanya melayani port 80.
+
 Request dari Cloudflare travel datang ke `IP_VPS` dengan header `Host: www.namatravel.com`. Nginx harus meneruskannya ke Next.js apa adanya:
 
 1. Cari berkas situs bawaan aaPanel yang memegang `default_server` (umumnya `/www/server/panel/vhost/nginx/0.default.conf`). **Backup dulu**, lalu ubah `location /` di blok default itu menjadi `proxy_pass http://127.0.0.1:13000;` dengan `proxy_set_header Host $host;` serta pengaturan real IP di 7.3 butir 4.
