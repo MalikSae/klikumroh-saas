@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -38,6 +39,10 @@ var (
 // demoPhoneNormalized is a number in the non-mobile 0800 range, in wa.me form (62...).
 func demoPhoneNormalized(n int) string { return fmt.Sprintf("628001%06d", n) }
 func demoPhone(n int) string           { return fmt.Sprintf("08001%06d", n) }
+
+// demoRecruits are the agent indexes that report to the demo login (index 0): five active agents (three mid,
+// two low), one inactive and two waiting for approval.
+var demoRecruits = map[int]bool{12: true, 13: true, 14: true, 20: true, 21: true, 32: true, 36: true, 37: true}
 
 type demoAgent struct {
 	id     uint64
@@ -125,7 +130,11 @@ func (s *seeder) people() error {
 			email = slug(a.name) + "@demo.klikumroh.id"
 		}
 		var parent interface{}
-		if i >= 12 && i < 20 {
+		switch {
+		case demoRecruits[i]:
+			// The demo login's own recruits, so "Agen binaan saya" has a real list to show.
+			parent = agents[0].id
+		case i >= 12 && i < 20:
 			parent = agents[between(0, 7)].id
 		}
 		code := fmt.Sprintf("DM%04d%c", 1000+i, 'A'+rune(i%26))
@@ -162,7 +171,8 @@ func (s *seeder) people() error {
 	// ---- Prospects with history, notes, commissions and the click that brought them ----
 	flow := []string{"baru", "dihubungi", "tertarik", "closing"}
 	released := map[*demoAgent]float64{}
-	addProspect := func(daysAgo int) error {
+	// forced: the agent this prospect belongs to (nil = random); forceStatus: the status it must end in ("" = random).
+	addProspect := func(daysAgo int, forced *demoAgent, forceStatus string) error {
 		s.prospectCount++
 		r := rng.Float64()
 		channel := "agen"
@@ -172,11 +182,13 @@ func (s *seeder) people() error {
 			channel = "paid"
 		}
 		var agent *demoAgent
-		if channel == "agen" {
+		if forced != nil {
+			channel, agent = "agen", forced
+		} else if channel == "agen" {
 			agent = weighted[rng.Intn(len(weighted))]
 		}
 		var pkg *seededPackage
-		if chance(0.9) && len(s.packages) > 0 {
+		if (chance(0.9) || forceStatus == "closing") && len(s.packages) > 0 {
 			pkg = &s.packages[rng.Intn(len(s.packages))]
 		}
 		jamaah := []int{1, 1, 1, 2, 2, 2, 2, 3, 3, 4, 5}[rng.Intn(11)]
@@ -197,6 +209,9 @@ func (s *seeder) people() error {
 			status = "tertarik"
 		case x < 0.8:
 			status = "closing"
+		}
+		if forceStatus != "" {
+			status = forceStatus
 		}
 		if status == "closing" && pkg == nil {
 			status = "tertarik"
@@ -309,13 +324,47 @@ func (s *seeder) people() error {
 			n = between(4, 8)
 		}
 		for k := 0; k < n; k++ {
-			if err := addProspect(d); err != nil {
+			if err := addProspect(d, nil, ""); err != nil {
 				return err
 			}
 		}
 	}
 	for k := 0; k < 40; k++ {
-		if err := addProspect(between(61, 150)); err != nil {
+		if err := addProspect(between(61, 150), nil, ""); err != nil {
+			return err
+		}
+	}
+
+	// ---- The demo login's recruits: a few prospects each, closings for the first three (with paid-off ones) ----
+	recruitPlan := map[int][]string{
+		12: {"closing", "closing", "closing", "tertarik", "dihubungi"},
+		13: {"closing", "closing", "tertarik", "baru"},
+		14: {"closing", "dihubungi", "tidak_lanjut"},
+		20: {"tertarik", "dihubungi"},
+		21: {"baru"},
+	}
+	for idx, statuses := range recruitPlan {
+		for k, st := range statuses {
+			if err := addProspect(between(4+k*6, 12+k*8), agents[idx], st); err != nil {
+				return err
+			}
+		}
+	}
+	// Komisi Pembinaan: the upline earns the tenant's override percentage of every direct commission of an
+	// active recruit, released and held exactly like the direct row it comes from.
+	var overrideOn bool
+	var overridePct sql.NullFloat64
+	if err := s.tx.QueryRowContext(s.ctx, "SELECT commission_override_enabled, commission_override_percentage FROM tenants WHERE id = ?", s.tenantID).
+		Scan(&overrideOn, &overridePct); err != nil {
+		return err
+	}
+	if overrideOn && overridePct.Valid && overridePct.Float64 > 0 {
+		if _, err := s.exec(`INSERT INTO commission_ledger (tenant_id, agent_id, prospect_id, package_id, type, amount, notes, released_at, created_at)
+			SELECT cl.tenant_id, a.parent_agent_id, cl.prospect_id, cl.package_id, 'override', ROUND(cl.amount * ? / 100), 'Komisi pembinaan', cl.released_at, cl.created_at
+			FROM commission_ledger cl
+			JOIN agents a ON a.id = cl.agent_id AND a.tenant_id = cl.tenant_id
+			JOIN agents parent ON parent.id = a.parent_agent_id AND parent.tenant_id = a.tenant_id AND parent.status = 'active'
+			WHERE cl.tenant_id = ? AND cl.type = 'direct' AND a.status = 'active'`, overridePct.Float64, s.tenantID); err != nil {
 			return err
 		}
 	}
