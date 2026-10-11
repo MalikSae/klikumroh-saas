@@ -56,13 +56,9 @@ export default function AgenLoginPage() {
       .catch(() => {});
   }, []);
 
-  const handleBack = () => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/');
-    }
-  };
+  // Always to the travel's website. "Back in history" is wrong here: after a logout the previous entry is a portal
+  // page that sends the agent straight back to this login, so the arrow seemed to do nothing.
+  const handleBack = () => router.push('/');
 
   // Store the agent session returned by a login and open the portal.
   const startSession = (json: AgentAuthJson): boolean => {
@@ -169,7 +165,7 @@ export default function AgenLoginPage() {
   return (
     <div className="tw-agen-login-wrap" style={{ ...layoutStyle, ...brandingStyle } as React.CSSProperties}>
       <MobileContainer>
-        <AgentPageHeader title="Masuk Agen" onBack={handleBack} />
+        <AgentPageHeader title="Masuk Agen" onBack={handleBack} backLabel="Kembali ke website travel" />
 
         <div className="tw-agen-login-body">
           <div className="tw-agen-login-header">
