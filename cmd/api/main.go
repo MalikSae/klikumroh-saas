@@ -247,6 +247,7 @@ func main() {
 	// KlikUmroh's own Meta Pixel + Conversions API (platform level), configured in the internal dashboard.
 	platformMetaService := service.NewPlatformMetaService(platformSettingsRepo, secretBox)
 	platformMetaHandler := handler.NewPlatformMetaHandler(platformMetaService)
+	adAttributionRepo := repository.NewTenantAdAttributionRepository(db)
 	// Legal documents (Syarat & Ketentuan, Kebijakan Privasi): written in the internal dashboard, shown on the
 	// public site. PLATFORM_ORIGIN is where the public pages live (default https://klikumroh.id).
 	legalDocumentService := service.NewLegalDocumentService(repository.NewLegalDocumentRepository(db), platformSettingsRepo, os.Getenv("PLATFORM_ORIGIN"))
@@ -268,7 +269,7 @@ func main() {
 	if a, ok := publicSignupService.(interface {
 		SetAdTracking(repository.TenantAdAttributionRepository, service.PlatformLeadTracker)
 	}); ok {
-		a.SetAdTracking(repository.NewTenantAdAttributionRepository(db), platformMetaService)
+		a.SetAdTracking(adAttributionRepo, platformMetaService)
 	}
 	if rec, ok := subscriptionService.(interface {
 		SetAffiliatorRecorder(service.AffiliatorCommissionRecorder)
@@ -279,7 +280,10 @@ func main() {
 	if a, ok := subscriptionService.(interface {
 		SetAdTracking(repository.TenantAdAttributionRepository, service.PlatformPurchaseTracker)
 	}); ok {
-		a.SetAdTracking(repository.NewTenantAdAttributionRepository(db), platformMetaService)
+		a.SetAdTracking(adAttributionRepo, platformMetaService)
+	}
+	if r, ok := subscriptionService.(handler.PlatformPurchaseResender); ok {
+		platformMetaHandler.SetPurchaseResender(r)
 	}
 	publicSignupHandler := handler.NewPublicSignupHandler(publicSignupService, pricingPlanService, couponService)
 
@@ -372,6 +376,7 @@ func main() {
 		staffProtected.Get("/api/staff/platform-meta", platformMetaHandler.GetStaff)
 		staffProtected.Put("/api/staff/platform-meta", platformMetaHandler.SaveStaff)
 		staffProtected.Post("/api/staff/platform-meta/test", platformMetaHandler.TestStaff)
+		staffProtected.Post("/api/staff/platform-meta/resend-purchases", platformMetaHandler.ResendPurchasesStaff)
 		staffProtected.Get("/api/staff/legal-documents", legalDocumentHandler.List)
 		staffProtected.Get("/api/staff/demo-leads", demoLeadHandler.List)
 		staffProtected.Put("/api/staff/legal-documents/{slug}", legalDocumentHandler.SaveDraft)

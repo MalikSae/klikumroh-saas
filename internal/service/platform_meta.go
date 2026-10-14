@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -84,6 +85,8 @@ type PlatformPurchaseTracker interface {
 	// Enabled reports whether Conversions API is configured (Pixel ID + token + encryption key).
 	Enabled(ctx context.Context) bool
 	TrackPurchase(ev PlatformPurchaseEvent)
+	// SendPurchase delivers synchronously and returns Meta's answer (used by the staff resend).
+	SendPurchase(ctx context.Context, ev PlatformPurchaseEvent) error
 }
 
 // PlatformLeadEvent is a new travel signup, reported to Meta as Lead.
@@ -137,71 +140,114 @@ func (s *platformMetaService) Enabled(ctx context.Context) bool {
 	return ok
 }
 
-func (s *platformMetaService) TrackPurchase(ev PlatformPurchaseEvent) {
+// Content categories of the events (the browser pixel uses the same values).
+const (
+	metaCategorySignup       = "klikumroh_signup"
+	metaCategorySubscription = "klikumroh_subscription"
+)
+
+func buildPlatformLeadEvent(ev PlatformLeadEvent) map[string]interface{} {
+	custom := map[string]interface{}{"content_category": metaCategorySignup}
+	if ev.ContentName != "" {
+		custom["content_name"] = ev.ContentName
+	}
+	event := map[string]interface{}{
+		"event_name":    "Lead",
+		"event_time":    ev.EventTime.Unix(),
+		"event_id":      ev.EventID,
+		"action_source": websiteActionSource(ev.User.UserAgent),
+		"user_data":     metaUserData(ev.User),
+		"custom_data":   custom,
+	}
+	if ev.SourceURL != "" {
+		event["event_source_url"] = ev.SourceURL
+	}
+	return event
+}
+
+func buildPlatformPurchaseEvent(ev PlatformPurchaseEvent) map[string]interface{} {
+	custom := map[string]interface{}{"currency": "IDR", "value": ev.Value, "content_category": metaCategorySubscription}
+	if ev.ContentName != "" {
+		custom["content_name"] = ev.ContentName
+	}
+	if ev.ContentID != "" {
+		custom["content_ids"] = []string{ev.ContentID}
+		custom["content_type"] = "product"
+	}
+	return map[string]interface{}{
+		"event_name": "Purchase",
+		"event_time": ev.EventTime.Unix(),
+		"event_id":   ev.EventID,
+		// Payment is confirmed by staff in the internal dashboard, not on the website.
+		"action_source": "system_generated",
+		"user_data":     metaUserData(ev.User),
+		"custom_data":   custom,
+	}
+}
+
+// sendEvent delivers one event with the stored credentials. ErrMetaNotConfigured when Conversions API is
+// not usable (no Pixel ID, token or encryption key).
+func (s *platformMetaService) sendEvent(ctx context.Context, event map[string]interface{}) error {
+	pixelID, token, testCode, ok := s.credentials(ctx)
+	if !ok {
+		return ErrMetaNotConfigured
+	}
+	_, err := s.deliver(ctx, pixelID, token, testCode, event)
+	return err
+}
+
+// background runs fn off the request, with the send timeout.
+func (s *platformMetaService) background(fn func(ctx context.Context)) {
 	s.dispatch(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), metaSendTimeout)
 		defer cancel()
-		failed := func() {
+		fn(ctx)
+	})
+}
+
+func (s *platformMetaService) SendPurchase(ctx context.Context, ev PlatformPurchaseEvent) error {
+	return s.sendEvent(ctx, buildPlatformPurchaseEvent(ev))
+}
+
+func (s *platformMetaService) TrackPurchase(ev PlatformPurchaseEvent) {
+	s.background(func(ctx context.Context) {
+		if err := s.SendPurchase(ctx, ev); err != nil {
+			if !errors.Is(err, ErrMetaNotConfigured) {
+				log.Printf("[PlatformMeta] Purchase event failed: %v", err)
+			}
 			if ev.OnFailed != nil {
 				ev.OnFailed()
 			}
-		}
-		pixelID, token, testCode, ok := s.credentials(ctx)
-		if !ok {
-			failed()
-			return
-		}
-		custom := map[string]interface{}{"currency": "IDR", "value": ev.Value, "content_category": "klikumroh_subscription"}
-		if ev.ContentName != "" {
-			custom["content_name"] = ev.ContentName
-		}
-		if ev.ContentID != "" {
-			custom["content_ids"] = []string{ev.ContentID}
-			custom["content_type"] = "product"
-		}
-		event := map[string]interface{}{
-			"event_name": "Purchase",
-			"event_time": ev.EventTime.Unix(),
-			"event_id":   ev.EventID,
-			// Payment is confirmed by staff in the internal dashboard, not on the website.
-			"action_source": "system_generated",
-			"user_data":     metaUserData(ev.User),
-			"custom_data":   custom,
-		}
-		if _, err := s.deliver(ctx, pixelID, token, testCode, event); err != nil {
-			log.Printf("[PlatformMeta] Purchase event failed: %v", err)
-			failed()
 		}
 	})
 }
 
 func (s *platformMetaService) TrackLead(ev PlatformLeadEvent) {
-	s.dispatch(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), metaSendTimeout)
-		defer cancel()
-		pixelID, token, testCode, ok := s.credentials(ctx)
-		if !ok {
-			return
-		}
-		custom := map[string]interface{}{"content_category": "klikumroh_signup"}
-		if ev.ContentName != "" {
-			custom["content_name"] = ev.ContentName
-		}
-		event := map[string]interface{}{
-			"event_name":    "Lead",
-			"event_time":    ev.EventTime.Unix(),
-			"event_id":      ev.EventID,
-			"action_source": websiteActionSource(ev.User.UserAgent),
-			"user_data":     metaUserData(ev.User),
-			"custom_data":   custom,
-		}
-		if ev.SourceURL != "" {
-			event["event_source_url"] = ev.SourceURL
-		}
-		if _, err := s.deliver(ctx, pixelID, token, testCode, event); err != nil {
+	s.background(func(ctx context.Context) {
+		if err := s.sendEvent(ctx, buildPlatformLeadEvent(ev)); err != nil && !errors.Is(err, ErrMetaNotConfigured) {
 			log.Printf("[PlatformMeta] Lead event failed: %v", err)
 		}
 	})
+}
+
+// applyAttributionToUser copies the signup browser context (IP, user agent, Meta cookies) into the
+// matching data of an event.
+func applyAttributionToUser(u *MetaUserData, a *repository.TenantAdAttribution) {
+	if a == nil {
+		return
+	}
+	if a.ClientIP != nil {
+		u.ClientIP = *a.ClientIP
+	}
+	if a.UserAgent != nil {
+		u.UserAgent = *a.UserAgent
+	}
+	if a.Fbp != nil {
+		u.Fbp = *a.Fbp
+	}
+	if a.Fbc != nil {
+		u.Fbc = *a.Fbc
+	}
 }
 
 func parseStoredTime(v string) *time.Time {

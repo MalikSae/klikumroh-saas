@@ -38,6 +38,17 @@ type TenantAdAttributionRepository interface {
 	ClaimPurchaseSend(ctx context.Context, tenantID uint64) (bool, error)
 	// ReleasePurchaseSend undoes the claim after a failed delivery so the event can be retried.
 	ReleasePurchaseSend(ctx context.Context, tenantID uint64) error
+	// ListUnsentPurchases returns, for every travel whose Purchase was never delivered, its FIRST approved
+	// paid invoice. Platform-level staff operation: it spans tenants on purpose (like the staff payment list).
+	ListUnsentPurchases(ctx context.Context, limit int) ([]UnsentPurchase, error)
+}
+
+// UnsentPurchase is a confirmed first payment whose Purchase event was not delivered to Meta.
+type UnsentPurchase struct {
+	TenantID              uint64
+	PaymentVerificationID uint64
+	// ConfirmedAt is when staff approved the invoice (nil when not recorded).
+	ConfirmedAt *time.Time
 }
 
 type mysqlTenantAdAttributionRepository struct {
@@ -113,4 +124,39 @@ func (r *mysqlTenantAdAttributionRepository) ReleasePurchaseSend(ctx context.Con
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE tenant_ad_attribution SET purchase_event_sent_at = NULL WHERE tenant_id = ?`, tenantID)
 	return err
+}
+
+func (r *mysqlTenantAdAttributionRepository) ListUnsentPurchases(ctx context.Context, limit int) ([]UnsentPurchase, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 500
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT a.tenant_id, pv.id, pv.reviewed_at
+		FROM tenant_ad_attribution a
+		JOIN payment_verifications pv ON pv.id = (
+			SELECT p2.id FROM payment_verifications p2
+			WHERE p2.tenant_id = a.tenant_id AND p2.status = 'approved'
+			ORDER BY p2.reviewed_at ASC, p2.id ASC LIMIT 1)
+		WHERE a.purchase_event_sent_at IS NULL
+		  AND pv.final_amount - pv.unique_code > 0
+		ORDER BY pv.id ASC
+		LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []UnsentPurchase
+	for rows.Next() {
+		var u UnsentPurchase
+		var confirmed sql.NullTime
+		if err := rows.Scan(&u.TenantID, &u.PaymentVerificationID, &confirmed); err != nil {
+			return nil, err
+		}
+		if confirmed.Valid {
+			t := confirmed.Time
+			u.ConfirmedAt = &t
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
 }

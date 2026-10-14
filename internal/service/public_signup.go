@@ -677,18 +677,7 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		if whatsappPtr != nil {
 			user.Phone = *whatsappPtr
 		}
-		if attribution.ClientIP != nil {
-			user.ClientIP = *attribution.ClientIP
-		}
-		if attribution.UserAgent != nil {
-			user.UserAgent = *attribution.UserAgent
-		}
-		if attribution.Fbp != nil {
-			user.Fbp = *attribution.Fbp
-		}
-		if attribution.Fbc != nil {
-			user.Fbc = *attribution.Fbc
-		}
+		applyAttributionToUser(&user, attribution)
 		ev := PlatformLeadEvent{EventID: metaEventID, EventTime: signedUpAt, User: user, ContentName: plan.Name}
 		if attribution.EventSourceURL != nil {
 			ev.SourceURL = *attribution.EventSourceURL

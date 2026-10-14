@@ -382,7 +382,7 @@ Bersihkan travel uji setelahnya. Event uji tidak masuk laporan iklan selama Test
 
 ### Catatan operasional
 
-- Status pengiriman server (sukses terakhir / error terakhir, tanpa token) tampil di panel. Token kedaluwarsa atau dicabut terlihat di sana; event yang gagal **tidak dikirim ulang otomatis**. Ganti token, lalu event berikutnya mengikuti.
+- Status pengiriman server (sukses terakhir / error terakhir, tanpa token) tampil di panel. Token kedaluwarsa atau dicabut terlihat di sana; event `Purchase` yang gagal **tidak dikirim ulang otomatis**. Setelah token diganti, tekan **Kirim ulang Purchase tertunda** di panel: semua pembayaran pertama yang sudah dikonfirmasi tetapi belum terkirim (termasuk yang dikonfirmasi saat token belum diisi) dikirim ulang dengan `event_id` yang sama, jadi Meta tidak menghitungnya dua kali. Event yang lebih tua dari 6 hari dikirim dengan waktu saat ini (batas Meta 7 hari). `Lead` yang gagal tidak dikirim ulang.
 - Aplikasi tidak memasang Content-Security-Policy. Bila Nginx atau Cloudflare menambahkannya, izinkan `connect.facebook.net` (script) dan `www.facebook.com` (pixel) di sisi browser.
 - `Purchase` memakai `action_source: system_generated` (pembayaran dikonfirmasi staf, bukan di situs). Bila Events Manager tidak menampilkannya sebagai kandidat optimasi kampanye, ubah ke `website` di `internal/service/platform_meta.go` (`TrackPurchase`); User Agent dan `fbp` pendaftaran sudah tersimpan.
 - Awalnya volume `Purchase` kecil: optimasi kampanye ke `Lead` dulu, pindah ke `Purchase` setelah Meta punya cukup data.

@@ -758,6 +758,16 @@ export const updatePlatformMetaStaff = async (input: PlatformMetaInput): Promise
 export const testPlatformMetaStaff = async (): Promise<PlatformMetaTestResult> =>
   legalRequest('/api/staff/platform-meta/test', { method: 'POST' }, 'Gagal mengirim event uji ke Meta');
 
+export interface PlatformPurchaseResendResult {
+  /** Confirmed first payments that had no delivered Purchase event. */
+  pending: number;
+  sent: number;
+  failed: number;
+}
+
+export const resendPlatformPurchasesStaff = async (): Promise<PlatformPurchaseResendResult> =>
+  legalRequest('/api/staff/platform-meta/resend-purchases', { method: 'POST' }, 'Gagal mengirim ulang event Purchase');
+
 export interface PlatformOverviewMetrics {
   total_tenants: number;
   active_tenants: number;

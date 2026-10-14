@@ -44,6 +44,9 @@ func (f *fakeAdAttributionRepo) ClaimPurchaseSend(context.Context, uint64) (bool
 	return false, nil
 }
 func (f *fakeAdAttributionRepo) ReleasePurchaseSend(context.Context, uint64) error { return nil }
+func (f *fakeAdAttributionRepo) ListUnsentPurchases(context.Context, int) ([]repository.UnsentPurchase, error) {
+	return nil, nil
+}
 
 type recordingLeadTracker struct {
 	mu     sync.Mutex

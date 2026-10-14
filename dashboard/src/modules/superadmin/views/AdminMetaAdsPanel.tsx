@@ -4,6 +4,7 @@ import {
   fetchPlatformMetaStaff,
   updatePlatformMetaStaff,
   testPlatformMetaStaff,
+  resendPlatformPurchasesStaff,
   type PlatformMetaSettings,
 } from '../../../services/staffApi';
 import { FormInput } from '../shared/FormInput';
@@ -30,6 +31,7 @@ export const AdminMetaAdsPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -98,7 +100,26 @@ export const AdminMetaAdsPanel: React.FC = () => {
     }
   };
 
-  const busy = loading || saving || testing;
+  const resend = async () => {
+    try {
+      setResending(true);
+      setError(null);
+      setNotice(null);
+      const r = await resendPlatformPurchasesStaff();
+      setNotice(
+        r.pending === 0
+          ? 'Tidak ada pembayaran pertama yang belum terkirim ke Meta'
+          : `Purchase tertunda ${r.pending}: ${r.sent} terkirim, ${r.failed} gagal`,
+      );
+      apply(await fetchPlatformMetaStaff());
+    } catch (err: any) {
+      setError(err.message || 'Gagal mengirim ulang event Purchase');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const busy = loading || saving || testing || resending;
   const canTest = Boolean(settings?.token_configured && settings.pixel_id && settings.test_event_code);
 
   return (
@@ -238,6 +259,12 @@ export const AdminMetaAdsPanel: React.FC = () => {
                 <span>Hapus token</span>
               </button>
             )}
+            <Tooltip content="Kirim ulang event Purchase untuk pembayaran pertama travel yang sudah dikonfirmasi tetapi belum sampai ke Meta (misalnya saat token belum diisi atau Meta menolak). Event yang sama tidak dihitung dua kali oleh Meta." position="top">
+              <button type="button" className="sa-btn sa-btn--secondary" onClick={() => void resend()} disabled={busy || !settings.token_configured || !settings.pixel_id}>
+                <Send size={14} />
+                <span>{resending ? 'Mengirim...' : 'Kirim ulang Purchase tertunda'}</span>
+              </button>
+            </Tooltip>
             <button type="button" className="sa-btn sa-btn--secondary" onClick={() => void sendTest()} disabled={busy || !canTest}>
               <Send size={14} />
               <span>{testing ? 'Mengirim...' : 'Kirim event uji'}</span>

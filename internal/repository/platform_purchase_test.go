@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -91,6 +92,9 @@ func TestPlatformPurchase_FirstPaymentOnly(t *testing.T) {
 		t.Fatalf("save meta: %v", err)
 	}
 
+	var failTenant, offTenant *repository.Tenant
+	var failPV, offPV *repository.PaymentVerification
+
 	t.Run("first confirmed payment sends one hashed Purchase with the plan value", func(t *testing.T) {
 		tenant, pv := newTravel("pp-first", true, 1200250, 250)
 		approve(pv.ID)
@@ -166,6 +170,7 @@ func TestPlatformPurchase_FirstPaymentOnly(t *testing.T) {
 			graph.mu.Unlock()
 		}()
 		tenant, pv := newTravel("pp-fail", true, 1200250, 250)
+		failTenant, failPV = tenant, pv
 		approve(pv.ID)
 		if sentAt(tenant.ID) != nil {
 			t.Fatalf("failed delivery must release the claim")
@@ -182,12 +187,64 @@ func TestPlatformPurchase_FirstPaymentOnly(t *testing.T) {
 		}
 		before := len(purchases())
 		tenant, pv := newTravel("pp-off", true, 1200250, 250)
+		offTenant, offPV = tenant, pv
 		approve(pv.ID)
 		if after := len(purchases()); after != before {
 			t.Fatalf("nothing may be sent while not configured")
 		}
 		if sentAt(tenant.ID) != nil {
 			t.Fatalf("claim must not be consumed while not configured")
+		}
+		// Resend refuses while Conversions API is off.
+		resender := sub.(interface {
+			ResendPlatformPurchases(context.Context) (*service.PlatformPurchaseResendResult, error)
+		})
+		if _, err := resender.ResendPlatformPurchases(ctx); !errors.Is(err, service.ErrMetaNotConfigured) {
+			t.Fatalf("resend while off: expected ErrMetaNotConfigured, got %v", err)
+		}
+	})
+
+	t.Run("resend delivers the unsent first payments once", func(t *testing.T) {
+		if _, err := meta.SaveSettings(ctx, service.PlatformMetaInput{PixelID: "1234567890123456", AccessToken: &token}); err != nil {
+			t.Fatalf("set token: %v", err)
+		}
+		resender := sub.(interface {
+			ResendPlatformPurchases(context.Context) (*service.PlatformPurchaseResendResult, error)
+		})
+		res, err := resender.ResendPlatformPurchases(ctx)
+		if err != nil {
+			t.Fatalf("resend: %v", err)
+		}
+		if res.Sent < 2 || res.Failed != 0 {
+			t.Fatalf("expected at least the failed and the unconfigured travel to be sent, got %+v", res)
+		}
+		want := map[string]bool{
+			fmt.Sprintf("purchase-pv-%d", failPV.ID): false,
+			fmt.Sprintf("purchase-pv-%d", offPV.ID):  false,
+		}
+		for _, ev := range purchases() {
+			if id, _ := ev["event_id"].(string); id != "" {
+				if _, tracked := want[id]; tracked {
+					want[id] = true
+				}
+			}
+		}
+		for id, seen := range want {
+			if !seen {
+				t.Fatalf("resend must deliver %s", id)
+			}
+		}
+		if sentAt(failTenant.ID) == nil || sentAt(offTenant.ID) == nil {
+			t.Fatalf("resent travels must be claimed")
+		}
+
+		// A second resend finds nothing for these travels: no duplicate Purchase.
+		before := len(purchases())
+		if _, err := resender.ResendPlatformPurchases(ctx); err != nil {
+			t.Fatalf("second resend: %v", err)
+		}
+		if after := len(purchases()); after != before {
+			t.Fatalf("second resend must not send again: %d -> %d", before, after)
 		}
 	})
 }

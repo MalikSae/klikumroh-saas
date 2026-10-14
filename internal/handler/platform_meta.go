@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -14,11 +15,40 @@ import (
 // and the public Pixel ID for the klikumroh.id pages.
 type PlatformMetaHandler struct {
 	metaService service.PlatformMetaService
+	resender    PlatformPurchaseResender
+}
+
+// PlatformPurchaseResender redelivers Purchase events that never reached Meta.
+type PlatformPurchaseResender interface {
+	ResendPlatformPurchases(ctx context.Context) (*service.PlatformPurchaseResendResult, error)
 }
 
 // NewPlatformMetaHandler creates the handler.
 func NewPlatformMetaHandler(metaService service.PlatformMetaService) *PlatformMetaHandler {
 	return &PlatformMetaHandler{metaService: metaService}
+}
+
+// SetPurchaseResender enables POST /api/staff/platform-meta/resend-purchases.
+func (h *PlatformMetaHandler) SetPurchaseResender(r PlatformPurchaseResender) {
+	h.resender = r
+}
+
+// ResendPurchasesStaff handles POST /api/staff/platform-meta/resend-purchases.
+func (h *PlatformMetaHandler) ResendPurchasesStaff(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.GetStaffUserID(r.Context()); !ok {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+		return
+	}
+	if h.resender == nil {
+		respondJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "pengiriman ulang belum tersedia"})
+		return
+	}
+	res, err := h.resender.ResendPlatformPurchases(r.Context())
+	if err != nil {
+		h.respondError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, res)
 }
 
 func (h *PlatformMetaHandler) respondError(w http.ResponseWriter, err error) {
