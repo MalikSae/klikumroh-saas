@@ -158,6 +158,7 @@ async function getPublishedFaqs(host: string): Promise<PublicFAQItem[]> {
 }
 
 import { MarketingV3View } from '../components/marketing-v3/MarketingV3View';
+import { MarketingViewContent } from '../components/marketing-v3/MarketingViewContent';
 import { SuspendedView } from '../components/SuspendedView';
 import { fetchPricingPlans, toPlanTiers } from '../lib/pricingPlans';
 
@@ -176,7 +177,12 @@ export default async function HomePage() {
   // If visiting the apex marketing domain directly, render marketing landing page
   if (isApexMarketingHost) {
     const plans = toPlanTiers(await fetchPricingPlans());
-    return <MarketingV3View plans={plans} />;
+    return (
+      <>
+        <MarketingV3View plans={plans} />
+        <MarketingViewContent />
+      </>
+    );
   }
 
   // Otherwise, fetch tenant-specific data for whitelabel website

@@ -5,6 +5,11 @@
 // (WhatsApp contact clicks), Lead (interest form, deduplicated with the server-side CAPI Lead through
 // the event ID returned by the backend).
 
+// KlikUmroh's own pages (klikumroh.id): the sign-in page and the affiliator portal are not part of the
+// acquisition funnel, so they stay out of the ad audiences. Lives here (not in the 'use client'
+// MetaPixel component) so the server layout can read the value.
+export const PLATFORM_EXCLUDED_PREFIXES = ['/agen', '/login', '/affiliator'];
+
 type FbqFunction = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
   queue: unknown[];

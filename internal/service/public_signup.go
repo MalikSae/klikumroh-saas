@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -218,8 +220,72 @@ type TenantSignupRequest struct {
 	CouponCode    string `json:"coupon_code,omitempty"`
 	// AffiliateCode is the Affiliator KlikUmroh link code (cookie ku_aff), used when no affiliator coupon is applied.
 	AffiliateCode string `json:"affiliate_code,omitempty"`
-	// ClientIP is set by the handler (never from the body), for the affiliator self-referral guard.
-	ClientIP string `json:"-"`
+	// AdContext is what the browser brought from an ad click (Meta cookies, UTM). Optional and untrusted:
+	// it is validated before it is stored or sent to Meta.
+	AdContext *SignupAdContext `json:"ad_context,omitempty"`
+	// ClientIP and UserAgent are set by the handler (never from the body): the affiliator self-referral
+	// guard and Meta event matching.
+	ClientIP  string `json:"-"`
+	UserAgent string `json:"-"`
+}
+
+// SignupAdContext is the ad click context sent by the checkout page.
+type SignupAdContext struct {
+	Fbp            string `json:"fbp,omitempty"`
+	Fbc            string `json:"fbc,omitempty"`
+	Fbclid         string `json:"fbclid,omitempty"`
+	UTMSource      string `json:"utm_source,omitempty"`
+	UTMMedium      string `json:"utm_medium,omitempty"`
+	UTMCampaign    string `json:"utm_campaign,omitempty"`
+	UTMContent     string `json:"utm_content,omitempty"`
+	UTMTerm        string `json:"utm_term,omitempty"`
+	EventSourceURL string `json:"event_source_url,omitempty"`
+}
+
+var fbclidPattern = regexp.MustCompile(`^[A-Za-z0-9_\-]{1,255}$`)
+
+// optString returns nil for an empty value, else a pointer to it.
+func optString(v string) *string {
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
+// buildAdAttribution validates the browser-supplied ad context and adds the server-side facts (IP, user
+// agent, event ID). It never fails: invalid fields are dropped, so a bad value cannot block a signup.
+func buildAdAttribution(tenantID uint64, ctx *SignupAdContext, clientIP, userAgent, eventID string, now time.Time) *repository.TenantAdAttribution {
+	a := &repository.TenantAdAttribution{
+		TenantID:    tenantID,
+		ClientIP:    optString(truncate(strings.TrimSpace(clientIP), 64)),
+		UserAgent:   optString(truncate(strings.TrimSpace(userAgent), 500)),
+		LeadEventID: optString(eventID),
+	}
+	if ctx == nil {
+		return a
+	}
+	a.Fbp = cleanMetaCookie(ctx.Fbp)
+	a.Fbc = cleanMetaCookie(ctx.Fbc)
+	if id := strings.TrimSpace(ctx.Fbclid); fbclidPattern.MatchString(id) {
+		a.Fbclid = &id
+		if a.Fbc == nil {
+			// Meta's documented format when only the fbclid URL parameter is available.
+			fbc := fmt.Sprintf("fb.1.%d.%s", now.UnixMilli(), id)
+			a.Fbc = &fbc
+		}
+	}
+	a.UTMSource = optString(truncate(strings.TrimSpace(ctx.UTMSource), 120))
+	a.UTMMedium = optString(truncate(strings.TrimSpace(ctx.UTMMedium), 120))
+	a.UTMCampaign = optString(truncate(strings.TrimSpace(ctx.UTMCampaign), 200))
+	a.UTMContent = optString(truncate(strings.TrimSpace(ctx.UTMContent), 200))
+	a.UTMTerm = optString(truncate(strings.TrimSpace(ctx.UTMTerm), 200))
+	if raw := strings.TrimSpace(ctx.EventSourceURL); raw != "" {
+		if u, err := url.Parse(raw); err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != "" {
+			u.Fragment = ""
+			a.EventSourceURL = optString(truncate(u.String(), 500))
+		}
+	}
+	return a
 }
 
 // TenantSignupResult represents the output of a successful self-registration.
@@ -231,6 +297,9 @@ type TenantSignupResult struct {
 	TravelName            string  `json:"travel_name"`
 	TenantSlug            string  `json:"tenant_slug"`
 	IsInstantActive       bool    `json:"is_instant_active"`
+	// MetaEventID is the Lead event ID: the browser pixel sends the same ID so Meta deduplicates it
+	// against the server-side Lead.
+	MetaEventID string `json:"meta_event_id,omitempty"`
 }
 
 // PublicSignupService handles public registration and slug check. After signup the travel logs in
@@ -250,6 +319,15 @@ type publicSignupService struct {
 	domainRepo    repository.DomainRepository
 	settingsRepo  repository.PlatformSettingsRepository
 	affiliators   AffiliatorAttributor
+	adAttribution repository.TenantAdAttributionRepository
+	leadTracker   PlatformLeadTracker
+}
+
+// SetAdTracking enables ad attribution at signup and the Lead event to KlikUmroh's own Meta Pixel. Wired in
+// main via a type assertion; either value may be nil.
+func (s *publicSignupService) SetAdTracking(repo repository.TenantAdAttributionRepository, tracker PlatformLeadTracker) {
+	s.adAttribution = repo
+	s.leadTracker = tracker
 }
 
 // SetAffiliatorAttributor enables linking new travels to the affiliator that brought them. Wired in main
@@ -581,6 +659,43 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		s.affiliators.AttributeSignup(ctx, tenant.ID, coupon, req.AffiliateCode, adminEmail, wa, req.ClientIP)
 	}
 
+	// Ad attribution + Lead for KlikUmroh's own Meta Pixel. Never blocks or fails the signup.
+	metaEventID := newMetaEventID()
+	signedUpAt := time.Now()
+	attribution := buildAdAttribution(tenant.ID, req.AdContext, req.ClientIP, req.UserAgent, metaEventID, signedUpAt)
+	if s.adAttribution != nil {
+		if err := s.adAttribution.Save(ctx, attribution); err != nil {
+			log.Printf("[Signup] cannot save ad attribution for tenant %d: %v", tenant.ID, err)
+		}
+	}
+	if s.leadTracker != nil {
+		user := MetaUserData{
+			Email:      adminEmail,
+			Name:       adminName,
+			ExternalID: platformMetaExternalID(tenant.ID),
+		}
+		if whatsappPtr != nil {
+			user.Phone = *whatsappPtr
+		}
+		if attribution.ClientIP != nil {
+			user.ClientIP = *attribution.ClientIP
+		}
+		if attribution.UserAgent != nil {
+			user.UserAgent = *attribution.UserAgent
+		}
+		if attribution.Fbp != nil {
+			user.Fbp = *attribution.Fbp
+		}
+		if attribution.Fbc != nil {
+			user.Fbc = *attribution.Fbc
+		}
+		ev := PlatformLeadEvent{EventID: metaEventID, EventTime: signedUpAt, User: user, ContentName: plan.Name}
+		if attribution.EventSourceURL != nil {
+			ev.SourceURL = *attribution.EventSourceURL
+		}
+		s.leadTracker.TrackLead(ev)
+	}
+
 	return &TenantSignupResult{
 		PaymentVerificationID: pv.ID,
 		FinalAmount:           pv.FinalAmount,
@@ -589,5 +704,6 @@ func (s *publicSignupService) TenantSignup(ctx context.Context, req TenantSignup
 		TravelName:            tenant.Name,
 		TenantSlug:            tenant.Slug,
 		IsInstantActive:       false,
+		MetaEventID:           metaEventID,
 	}, nil
 }

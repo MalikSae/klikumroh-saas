@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle, Building2, Phone, FileText } from 'lucide-react';
 import { AdminLayout } from '../layout/AdminLayout';
 import { LegalDocumentsEditor } from './AdminLegalView';
+import { AdminMetaAdsPanel } from './AdminMetaAdsPanel';
 import {
   fetchPlatformSettingsStaff,
   updatePlatformSettingsStaff,
@@ -373,6 +374,9 @@ export const AdminSettingsView: React.FC = () => {
         </div>
       </form>
       )}
+
+      {/* Own save: independent of the platform settings form above. */}
+      <AdminMetaAdsPanel />
     </AdminLayout>
   );
 };

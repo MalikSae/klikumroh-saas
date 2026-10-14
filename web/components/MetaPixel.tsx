@@ -12,10 +12,19 @@ const EXCLUDED_PREFIXES = ['/agen', '/login'];
 // A pixel is initialised once per page load; later client-side navigations only send PageView.
 const initialisedPixels = new Set<string>();
 
-/** Loads the travel's Meta Pixel and sends PageView on every public page view. */
-export function MetaPixel({ pixelId }: { pixelId: string }) {
+/**
+ * Loads a Meta Pixel and sends PageView on every public page view: the travel's own pixel on its site, or
+ * KlikUmroh's pixel on klikumroh.id (then with PLATFORM_EXCLUDED_PREFIXES).
+ */
+export function MetaPixel({
+  pixelId,
+  excludedPrefixes = EXCLUDED_PREFIXES,
+}: {
+  pixelId: string;
+  excludedPrefixes?: string[];
+}) {
   const pathname = usePathname() || '/';
-  const excluded = EXCLUDED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const excluded = excludedPrefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   useEffect(() => {
     if (excluded) return;

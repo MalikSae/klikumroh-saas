@@ -155,6 +155,7 @@ func (h *PublicSignupHandler) TenantSignup(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	req.ClientIP = middleware.ClientIP(r)
+	req.UserAgent = r.UserAgent()
 
 	res, err := h.publicSignupService.TenantSignup(r.Context(), req)
 	if err != nil {

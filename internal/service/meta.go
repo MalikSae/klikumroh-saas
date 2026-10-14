@@ -405,6 +405,11 @@ func (s *metaService) TrackPurchase(tenantID uint64, ev MetaPurchaseEvent) {
 
 // post sends one event. The token goes in the JSON body (not the URL) so it never lands in access logs.
 func (s *metaService) post(ctx context.Context, pixelID, token, testCode string, event map[string]interface{}) (*MetaTestResult, error) {
+	return postMetaEvent(ctx, s.httpClient, s.baseURL, s.version, pixelID, token, testCode, event)
+}
+
+// postMetaEvent is shared by the per-travel and the platform Conversions API senders.
+func postMetaEvent(ctx context.Context, client *http.Client, baseURL, version, pixelID, token, testCode string, event map[string]interface{}) (*MetaTestResult, error) {
 	body := map[string]interface{}{
 		"data":         []interface{}{event},
 		"access_token": token,
@@ -416,13 +421,13 @@ func (s *metaService) post(ctx context.Context, pixelID, token, testCode string,
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("%s/%s/%s/events", s.baseURL, s.version, pixelID)
+	url := fmt.Sprintf("%s/%s/%s/events", baseURL, version, pixelID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := s.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("tidak dapat menghubungi Meta: %w", err)
 	}

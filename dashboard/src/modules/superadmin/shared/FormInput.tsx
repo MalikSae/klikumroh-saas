@@ -24,6 +24,8 @@ export interface FormInputProps {
   step?: number;
   /** Mobile keyboard hint for text inputs (e.g. 'decimal' for percentages typed with a comma). */
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  /** Autofill hint; "off" for secrets that are not the user's own password (e.g. API tokens). */
+  autoComplete?: string;
   error?: string;
   hint?: string;
   tooltip?: string;
@@ -48,6 +50,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   max,
   step,
   inputMode,
+  autoComplete,
   error,
   hint,
   tooltip,
@@ -109,6 +112,7 @@ export const FormInput: React.FC<FormInputProps> = ({
           max={max}
           step={step}
           inputMode={inputMode}
+          autoComplete={autoComplete}
           className={`db-form-input ${error ? 'db-form-input--error' : ''}`}
         />
       )}

@@ -722,6 +722,42 @@ export const updatePlatformSettingsStaff = async (input: PlatformSettingsInput):
   return json.settings || json;
 };
 
+/** KlikUmroh's own Meta Pixel + Conversions API settings. The access token is never returned. */
+export interface PlatformMetaSettings {
+  pixel_id: string;
+  token_configured: boolean;
+  /** Last 4 characters of the stored token. */
+  token_hint: string;
+  test_event_code: string;
+  /** False when the server has no APP_ENCRYPTION_KEY: a token cannot be saved then. */
+  encryption_ready: boolean;
+  last_success_at: string | null;
+  last_error: string;
+  last_error_at: string | null;
+}
+
+export interface PlatformMetaInput {
+  pixel_id: string;
+  /** Omit (or empty) to keep the stored token. */
+  access_token?: string;
+  clear_token?: boolean;
+  test_event_code: string;
+}
+
+export interface PlatformMetaTestResult {
+  events_received: number;
+  fbtrace_id: string;
+}
+
+export const fetchPlatformMetaStaff = async (): Promise<PlatformMetaSettings> =>
+  legalRequest('/api/staff/platform-meta', {}, 'Gagal memuat pengaturan Meta Ads');
+
+export const updatePlatformMetaStaff = async (input: PlatformMetaInput): Promise<PlatformMetaSettings> =>
+  legalRequest('/api/staff/platform-meta', { method: 'PUT', body: JSON.stringify(input) }, 'Gagal menyimpan pengaturan Meta Ads');
+
+export const testPlatformMetaStaff = async (): Promise<PlatformMetaTestResult> =>
+  legalRequest('/api/staff/platform-meta/test', { method: 'POST' }, 'Gagal mengirim event uji ke Meta');
+
 export interface PlatformOverviewMetrics {
   total_tenants: number;
   active_tenants: number;

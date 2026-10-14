@@ -1,4 +1,4 @@
-# Panduan Deployment & Konfigurasi Produksi — KlikUmroh.id
+﻿# Panduan Deployment & Konfigurasi Produksi — KlikUmroh.id
 
 Dokumen ini memuat panduan langkah manual yang **HARUS dilakukan sendiri oleh pendiri/pemilik produk** saat melakukan deployment ke server produksi (VPS aaPanel).
 
@@ -127,7 +127,8 @@ Setelah keduanya jalan, cek dari luar server bahwa `http://IP_VPS:18080` dan `ht
    - `https://klikumroh.id` (landing) dan satu `https://<slug>.klikumroh.id` (website travel) tampil dengan CSS lengkap;
    - `https://app.klikumroh.id/api/public/pricing-plans` → `200`;
    - login dashboard travel dan super admin;
-   - uji di Bagian 2a, 4.2a, dan 4.3 bila konfigurasi Caddy/Nginx berubah.
+   - uji di Bagian 2a, 4.2a, dan 4.3 bila konfigurasi Caddy/Nginx berubah;
+   - bila Pixel KlikUmroh sudah dikonfigurasi: `curl -s https://app.klikumroh.id/api/public/platform-meta-pixel` → `{"pixel_id":"..."}` (Bagian 3b).
 
 **Rollback:** checkout commit/tag sebelumnya, pasang binary lama, build ulang web/dashboard. Kalau rilis yang gagal sudah menjalankan migrasi, restore database dari backup langkah 2 (jangan `migrate down`).
 
@@ -329,13 +330,63 @@ Blok dengan hostname eksplisit seperti ini mendapat sertifikat TLS biasa dari Ca
 
 ## 3a. Kunci Enkripsi Token (APP_ENCRYPTION_KEY)
 
-Token Conversions API Meta milik tiap travel disimpan terenkripsi (AES-256-GCM) memakai `APP_ENCRYPTION_KEY` di `.env` backend.
+Token Conversions API Meta milik tiap travel, dan token Conversions API milik KlikUmroh sendiri (Bagian 3b), disimpan terenkripsi (AES-256-GCM) memakai `APP_ENCRYPTION_KEY` di `.env` backend.
 
 - **Diisi manual oleh pemilik produk di VPS**, tidak pernah oleh AI agent (AGENTS.md 3.2). Buat dengan: `openssl rand -base64 32`.
 - Simpan cadangannya di tempat aman. **Jika kunci diganti atau hilang, semua token yang tersimpan tidak bisa dibaca** dan setiap travel harus memasukkan ulang tokennya di Pengaturan > Integrasi Meta.
 - Tanpa kunci ini backend tetap jalan: Pixel di situs travel tetap aktif, tetapi token tidak bisa disimpan dan event server (Conversions API) tidak dikirim. Log startup menulis `[Meta] Conversions API disabled`.
 - Backend mengirim event ke `graph.facebook.com` (HTTPS keluar). Pastikan firewall VPS mengizinkan koneksi keluar ke port 443.
 - Versi Marketing API diatur lewat `META_GRAPH_VERSION` (default `v25.0`). Versi Meta punya tanggal kedaluwarsa: cek [daftar versi](https://developers.facebook.com/docs/graph-api/changelog/versions) setiap Meta merilis versi baru (sekitar tiap 4-6 bulan), naikkan nilainya, lalu restart backend dan kirim event uji dari salah satu travel.
+
+---
+
+## 3b. Meta Pixel + Conversions API KlikUmroh (iklan akuisisi travel)
+
+Pixel ini milik KlikUmroh sendiri dan terpisah dari Pixel per-travel (Bagian 3a). Satu Pixel dipakai untuk seluruh funnel di `klikumroh.id`. Rencana dan keputusan: `PLAN-Meta-Pixel-Platform.md`.
+
+### Yang dikirim
+
+| Event | Dari | Kapan |
+|---|---|---|
+| `PageView` | browser | tiap halaman `klikumroh.id` (kecuali `/login`, `/affiliator`, `/agen`) |
+| `ViewContent` | browser | landing dibuka |
+| `InitiateCheckout` | browser | `/checkout` dibuka |
+| `Lead` | browser + server | signup travel berhasil; `event_id` sama, Meta menghitung sekali |
+| `Purchase` | server saja | staf mengonfirmasi lunas **pembayaran pertama** travel, bernilai harga paket (tanpa kode unik transfer) |
+
+Tidak dikirim: perpanjangan, aktivasi manual staf tanpa bukti transfer, invoice bernilai 0 (kupon 100%), dan travel yang mendaftar sebelum fitur ini ada. Situs travel dan dashboard tidak memuat Pixel ini.
+
+### Urutan aktivasi (jangan dibalik)
+
+1. **Kebijakan Privasi** (super admin > Pengaturan > Dokumen Legal): tambahkan bahwa data kontak pendaftar (nomor WhatsApp, email, nama) dikirim ke Meta dalam bentuk hash untuk mengukur iklan, lalu terbitkan ulang. Event server membawa data kontak; checkout hanya meminta persetujuan Syarat dan Kebijakan Privasi.
+2. Pastikan `APP_ENCRYPTION_KEY` terisi di `.env` backend (Bagian 3a). Tanpa itu token tidak bisa disimpan; dashboard menampilkan peringatan.
+3. Rilis kode ini (Bagian 0.4). Migrasi `000077_tenant_ad_attribution` ikut berjalan. Backend wajib mati selama migrasi.
+4. Di Events Manager: buat/ambil **Pixel ID**, buat **access token** Conversions API, dan ambil **Test Event Code** (tab Test Events).
+5. Super admin > Pengaturan > **Meta Ads KlikUmroh**: isi Pixel ID, token, dan Test Event Code, simpan. Pixel browser aktif paling lambat 60 detik kemudian (cache layout web).
+6. Uji (di bawah). Setelah lolos, **kosongkan Test Event Code** dan simpan. Selama kode terisi, event uji tidak dihitung sebagai data asli.
+7. Baru jalankan iklan.
+
+Mengisi token = saklar Conversions API aktif. Menghapus token mematikan event server saja; Pixel browser mati dengan mengosongkan Pixel ID.
+
+### Uji setelah dikonfigurasi (Test Events)
+
+1. Tombol **Kirim event uji** di panel: harus muncul `PageView` di Test Events dan panel menulis "Pengiriman terakhir berhasil".
+2. Buka `https://klikumroh.id/?fbclid=uji` di browser biasa: `PageView` dan `ViewContent` (sumber Browser).
+3. Buka `/checkout`: `InitiateCheckout`.
+4. Daftarkan travel uji lewat checkout: `Lead` muncul dari **Browser dan Server** dengan status *Deduplicated*.
+5. Di super admin, konfirmasi lunas invoice travel uji itu: `Purchase` (Server) dengan nilai paket. Konfirmasi kedua untuk travel yang sama tidak mengirim lagi.
+6. Periksa Event Match Quality `Lead` dan `Purchase`. Nilai rendah biasanya berarti nomor WhatsApp atau email tidak terkirim.
+7. Buka `/login`, `/affiliator`, dan situs satu travel: tidak boleh ada event dari Pixel KlikUmroh.
+
+Bersihkan travel uji setelahnya. Event uji tidak masuk laporan iklan selama Test Event Code terisi.
+
+### Catatan operasional
+
+- Status pengiriman server (sukses terakhir / error terakhir, tanpa token) tampil di panel. Token kedaluwarsa atau dicabut terlihat di sana; event yang gagal **tidak dikirim ulang otomatis**. Ganti token, lalu event berikutnya mengikuti.
+- Aplikasi tidak memasang Content-Security-Policy. Bila Nginx atau Cloudflare menambahkannya, izinkan `connect.facebook.net` (script) dan `www.facebook.com` (pixel) di sisi browser.
+- `Purchase` memakai `action_source: system_generated` (pembayaran dikonfirmasi staf, bukan di situs). Bila Events Manager tidak menampilkannya sebagai kandidat optimasi kampanye, ubah ke `website` di `internal/service/platform_meta.go` (`TrackPurchase`); User Agent dan `fbp` pendaftaran sudah tersimpan.
+- Awalnya volume `Purchase` kecil: optimasi kampanye ke `Lead` dulu, pindah ke `Purchase` setelah Meta punya cukup data.
+- Data atribusi pendaftaran (fbp, fbc, fbclid, UTM, IP, User Agent) tersimpan di tabel `tenant_ad_attribution` selama travel itu ada.
 
 ---
 

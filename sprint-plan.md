@@ -1,4 +1,4 @@
-# Sprint Plan — KlikUmroh.id
+﻿# Sprint Plan — KlikUmroh.id
 
 **Tujuan dokumen:** checklist kerja per-sprint yang diupdate langsung oleh Antigravity selama development.
 
@@ -628,3 +628,12 @@ Enam agen baca-saja per area. Tidak ada HIGH. Dua regresi berisiko data loss dar
 - [ ] Belum tervalidasi di server: ubah `default_server` Nginx aaPanel agar host asing diteruskan ke 127.0.0.1:13000, sertifikat origin wildcard, pembacaan CF-Connecting-IP, dan alur domain travel dari akun Cloudflare uji (DEPLOY.md 7.6)
 - [x] Daftar periksa deploy pertama untuk server aaPanel bersama: `DEPLOY-CHECKLIST.md` (15 langkah berurutan + rollback). Port 18080 dan 13000 diperiksa kosong di server (12 Okt 2026)
 - [ ] Penghalang deploy: (1) [selesai: `cmd/create-staff`, DEPLOY.md Bagian 8, test `TestValidate` dan `TestCreate_StoresHashAndRefusesDuplicate`] jalur produksi membuat staf/super admin pertama; (2) dashboard di app.klikumroh.id untuk mode server bersama belum tertulis di DEPLOY.md; (3) backup server belum dibuat
+
+## Meta Pixel + CAPI platform KlikUmroh (rencana: PLAN-Meta-Pixel-Platform.md)
+- [x] Langkah 1: migrasi 000077 `tenant_ad_attribution` + repository `TenantAdAttributionRepository` + test isolasi tenant (14 Okt 2026)
+- [x] Langkah 2: `PlatformMetaService` + endpoint staf + endpoint publik pixel
+- [x] Langkah 3: atribusi di `TenantSignup` + CAPI `Lead`
+- [x] Langkah 4: CAPI `Purchase` di `ApproveVerificationExpecting` (pembayaran pertama)
+- [x] Langkah 5: pixel platform di web + `InitiateCheckout` + `Lead`
+- [x] Langkah 6: form konfigurasi di dashboard super admin
+- [x] Langkah 7: dokumentasi `DEPLOY.md`

@@ -244,6 +244,9 @@ func main() {
 	pvHandler := handler.NewPaymentVerificationHandler(subscriptionService)
 	platformSettingsService := service.NewPlatformSettingsService(platformSettingsRepo)
 	platformSettingsHandler := handler.NewPlatformSettingsHandler(platformSettingsService)
+	// KlikUmroh's own Meta Pixel + Conversions API (platform level), configured in the internal dashboard.
+	platformMetaService := service.NewPlatformMetaService(platformSettingsRepo, secretBox)
+	platformMetaHandler := handler.NewPlatformMetaHandler(platformMetaService)
 	// Legal documents (Syarat & Ketentuan, Kebijakan Privasi): written in the internal dashboard, shown on the
 	// public site. PLATFORM_ORIGIN is where the public pages live (default https://klikumroh.id).
 	legalDocumentService := service.NewLegalDocumentService(repository.NewLegalDocumentRepository(db), platformSettingsRepo, os.Getenv("PLATFORM_ORIGIN"))
@@ -261,10 +264,22 @@ func main() {
 	}); ok {
 		a.SetAffiliatorAttributor(affiliatorService)
 	}
+	// Ad attribution at signup + Lead event to KlikUmroh's own Meta Pixel.
+	if a, ok := publicSignupService.(interface {
+		SetAdTracking(repository.TenantAdAttributionRepository, service.PlatformLeadTracker)
+	}); ok {
+		a.SetAdTracking(repository.NewTenantAdAttributionRepository(db), platformMetaService)
+	}
 	if rec, ok := subscriptionService.(interface {
 		SetAffiliatorRecorder(service.AffiliatorCommissionRecorder)
 	}); ok {
 		rec.SetAffiliatorRecorder(affiliatorService)
+	}
+	// Purchase event to KlikUmroh's own Meta Pixel on a travel's first confirmed payment.
+	if a, ok := subscriptionService.(interface {
+		SetAdTracking(repository.TenantAdAttributionRepository, service.PlatformPurchaseTracker)
+	}); ok {
+		a.SetAdTracking(repository.NewTenantAdAttributionRepository(db), platformMetaService)
 	}
 	publicSignupHandler := handler.NewPublicSignupHandler(publicSignupService, pricingPlanService, couponService)
 
@@ -304,6 +319,7 @@ func main() {
 	// Public Marketing & Signup Routes
 	publicSignupHandler.RegisterPublicRoutes(r)
 	r.Get("/api/public/platform-settings", platformSettingsHandler.GetPublic)
+	r.Get("/api/public/platform-meta-pixel", platformMetaHandler.GetPublic)
 	r.Get("/api/public/legal/{slug}", legalDocumentHandler.GetPublic)
 
 	// Affiliator KlikUmroh portal (own login and sessions, never a travel or staff token)
@@ -353,6 +369,9 @@ func main() {
 		// Staff Platform Settings
 		staffProtected.Get("/api/staff/platform-settings", platformSettingsHandler.GetStaff)
 		staffProtected.Put("/api/staff/platform-settings", platformSettingsHandler.UpdateStaff)
+		staffProtected.Get("/api/staff/platform-meta", platformMetaHandler.GetStaff)
+		staffProtected.Put("/api/staff/platform-meta", platformMetaHandler.SaveStaff)
+		staffProtected.Post("/api/staff/platform-meta/test", platformMetaHandler.TestStaff)
 		staffProtected.Get("/api/staff/legal-documents", legalDocumentHandler.List)
 		staffProtected.Get("/api/staff/demo-leads", demoLeadHandler.List)
 		staffProtected.Put("/api/staff/legal-documents/{slug}", legalDocumentHandler.SaveDraft)

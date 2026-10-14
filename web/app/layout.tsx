@@ -6,6 +6,7 @@ import './typography.css';
 import '../components/FormInput.css';
 import { TravelAgencyJsonLd } from '../components/TravelAgencyJsonLd';
 import { MetaPixel } from '../components/MetaPixel';
+import { PLATFORM_EXCLUDED_PREFIXES } from '../lib/metaPixel';
 import { DemoRibbon } from '../components/DemoRibbon';
 import { isPlatformHost } from '../lib/platformHost';
 import { travelSiteFlags } from '../lib/travelSiteState';
@@ -57,6 +58,21 @@ async function getMetaPixelId(host: string): Promise<string> {
       headers: { Host: host, 'X-Forwarded-Host': host },
       // Same host-dependent URL for every travel: never cache it across requests.
       cache: 'no-store',
+    });
+    if (!res.ok) return '';
+    const data = await res.json();
+    return typeof data?.pixel_id === 'string' && /^[0-9]{10,20}$/.test(data.pixel_id) ? data.pixel_id : '';
+  } catch {
+    return '';
+  }
+}
+
+// KlikUmroh's own Meta Pixel ID (set by staff in the internal dashboard), or '' when none. Only asked on
+// klikumroh.id. Never fails the page.
+async function getPlatformMetaPixelId(): Promise<string> {
+  try {
+    const res = await backendFetch(`${getBackendBaseUrl()}/api/public/platform-meta-pixel`, {
+      next: { revalidate: 60 },
     });
     if (!res.ok) return '';
     const data = await res.json();
@@ -198,6 +214,8 @@ export default async function RootLayout({
   const siteFlags = travelSiteFlags(tenantInfo);
   // No Meta Pixel while the travel is suspended: the site only shows the suspended notice.
   const metaPixelId = siteFlags.metaPixel ? await getMetaPixelId(host) : '';
+  // klikumroh.id (no travel behind the host) uses KlikUmroh's own pixel; a travel's site never does.
+  const platformMetaPixelId = !tenantInfo && isPlatformHost(host) ? await getPlatformMetaPixelId() : '';
   const brandPrimaryColor = tenantInfo?.brand_primary_color;
 
   const styleObj = brandPrimaryColor
@@ -234,6 +252,7 @@ export default async function RootLayout({
         {tenantInfo?.is_demo && <DemoRibbon host={host} />}
         {children}
         {metaPixelId && <MetaPixel pixelId={metaPixelId} />}
+        {platformMetaPixelId && <MetaPixel pixelId={platformMetaPixelId} excludedPrefixes={PLATFORM_EXCLUDED_PREFIXES} />}
       </body>
     </html>
   );

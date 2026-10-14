@@ -27,6 +27,9 @@ import { KlikUmrohBrand } from '@/components/marketing/KlikUmrohBrand';
 import { usePlatformSettings, hasLegalDocuments } from '@/lib/usePlatformSettings';
 import { formatPromoDay, payablePrice, toPlanTiers, type PlanTier } from '@/lib/pricingPlans';
 import { validateWhatsApp } from '@/lib/signupWhatsApp';
+import { getMetaBrowserContext, trackMetaEvent } from '@/lib/metaPixel';
+import { buildSignupAdContext } from '@/lib/signupAdContext';
+import { readAttribution } from '@/lib/adAttribution';
 import { discountedPrice } from '@/lib/checkoutPricing';
 import { slugCheckOutcome, couponErrorMessage } from '@/lib/checkoutChecks';
 import {
@@ -545,6 +548,20 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
     selectedPlanIdRef.current = selectedPlan?.id;
   }, [selectedPlan?.id]);
 
+  // KlikUmroh's own Meta Pixel: the visitor reached the checkout. Once per page view, with the plan that is
+  // shown first (a no-op while no pixel is configured).
+  const initiateCheckoutSent = useRef(false);
+  useEffect(() => {
+    if (initiateCheckoutSent.current || !selectedPlan) return;
+    initiateCheckoutSent.current = true;
+    trackMetaEvent('InitiateCheckout', {
+      currency: 'IDR',
+      value: payablePrice(selectedPlan),
+      content_name: selectedPlan.name,
+      content_category: 'klikumroh_signup',
+    });
+  }, [selectedPlan]);
+
   const handlePlanChange = (plan: PricingPlan) => {
     // Set at once (not on the next render) so a coupon answer still in flight is recognised as stale.
     selectedPlanIdRef.current = plan.id;
@@ -835,6 +852,9 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         coupon_code: coupon ? coupon.code : undefined,
         // Affiliator link code remembered by proxy.ts (cookie ku_aff); an affiliator coupon wins over it.
         affiliate_code: document.cookie.match(/(?:^|;\s*)ku_aff=([A-Za-z0-9]+)/)?.[1],
+        // Ad click context (Meta cookies, UTM): lets the server report this signup to Meta, matched to the
+        // same visitor. Absent for organic visits.
+        ad_context: buildSignupAdContext(readAttribution(window.location.search, document.cookie), getMetaBrowserContext()),
       };
 
       const res = await fetch('/api/public/tenant-signup', {
@@ -843,9 +863,21 @@ export const CheckoutView: React.FC<{ initialPlans?: PlanTier[] }> = ({ initialP
         body: JSON.stringify(payload),
       });
 
-      const data = await readJsonSafe<{ payment_verification_id?: number; error?: string; message?: string }>(res);
+      const data = await readJsonSafe<{
+        payment_verification_id?: number;
+        meta_event_id?: string;
+        error?: string;
+        message?: string;
+      }>(res);
 
       if (res.ok && data) {
+        // Browser side of the Lead event; the server sent the same event_id, so Meta counts it once. Sent
+        // before the sign-in calls below so the request is out before the page navigates away.
+        trackMetaEvent(
+          'Lead',
+          { content_name: selectedPlan.name, content_category: 'klikumroh_signup' },
+          data.meta_event_id || undefined,
+        );
         // Standard SaaS flow: sign the new account in and open its billing page in the dashboard.
         const loginRes = await fetch('/api/auth/login', {
           method: 'POST',

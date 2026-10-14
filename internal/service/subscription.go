@@ -114,6 +114,89 @@ type subscriptionService struct {
 	reminders repository.SubscriptionReminderRepository
 	// Affiliator KlikUmroh commission on approval (optional, see SetAffiliatorRecorder).
 	affiliators AffiliatorCommissionRecorder
+	// Purchase event to KlikUmroh's own Meta Pixel on a travel's first confirmed payment (optional).
+	adAttribution   repository.TenantAdAttributionRepository
+	purchaseTracker PlatformPurchaseTracker
+}
+
+// SetAdTracking enables the Meta Purchase event on a travel's first confirmed payment. Wired in main via a
+// type assertion; either value may be nil.
+func (s *subscriptionService) SetAdTracking(repo repository.TenantAdAttributionRepository, tracker PlatformPurchaseTracker) {
+	s.adAttribution = repo
+	s.purchaseTracker = tracker
+}
+
+// trackPlatformPurchase reports the first confirmed payment of a travel to KlikUmroh's Meta Pixel. It never
+// fails the approval. The claim on purchase_event_sent_at makes the event go out at most once. It is only
+// taken while Conversions API is configured, and released again when delivery fails, so the row always
+// says whether Meta received the event (the failure itself is visible in the settings status).
+func (s *subscriptionService) trackPlatformPurchase(ctx context.Context, tenant *repository.Tenant, pv *repository.PaymentVerification, plan *repository.PricingPlan, confirmedAt time.Time) {
+	if s.adAttribution == nil || s.purchaseTracker == nil {
+		return
+	}
+	// The value is the plan price paid: promo and coupon applied, without the transfer code.
+	value := pv.FinalAmount - float64(pv.UniqueCode)
+	if value <= 0 {
+		return
+	}
+	if !s.purchaseTracker.Enabled(ctx) {
+		return
+	}
+	attr, err := s.adAttribution.Get(ctx, tenant.ID)
+	if err != nil {
+		// No signup row: a travel from before ad tracking existed. Not an ad conversion.
+		if !errors.Is(err, repository.ErrNotFound) {
+			log.Printf("[Subscription] tenant %d: cannot read ad attribution: %v", tenant.ID, err)
+		}
+		return
+	}
+	claimed, err := s.adAttribution.ClaimPurchaseSend(ctx, tenant.ID)
+	if err != nil || !claimed {
+		return
+	}
+
+	user := MetaUserData{ExternalID: platformMetaExternalID(tenant.ID)}
+	if pv.TenantEmail != nil {
+		user.Email = *pv.TenantEmail
+	}
+	if tenant.WhatsAppNumber != nil {
+		user.Phone = *tenant.WhatsAppNumber
+	}
+	if s.admins != nil {
+		if list, err := s.admins.ListByTenant(ctx, tenant.ID); err == nil && len(list) > 0 {
+			user.Name = list[0].Name
+			if user.Email == "" {
+				user.Email = list[0].Email
+			}
+		}
+	}
+	if attr.ClientIP != nil {
+		user.ClientIP = *attr.ClientIP
+	}
+	if attr.UserAgent != nil {
+		user.UserAgent = *attr.UserAgent
+	}
+	if attr.Fbp != nil {
+		user.Fbp = *attr.Fbp
+	}
+	if attr.Fbc != nil {
+		user.Fbc = *attr.Fbc
+	}
+
+	tenantID := tenant.ID
+	s.purchaseTracker.TrackPurchase(PlatformPurchaseEvent{
+		EventID:     fmt.Sprintf("purchase-pv-%d", pv.ID),
+		EventTime:   confirmedAt,
+		User:        user,
+		Value:       value,
+		ContentName: plan.Name,
+		ContentID:   fmt.Sprintf("plan-%d", plan.ID),
+		OnFailed: func() {
+			if err := s.adAttribution.ReleasePurchaseSend(context.Background(), tenantID); err != nil {
+				log.Printf("[Subscription] tenant %d: cannot release purchase claim: %v", tenantID, err)
+			}
+		},
+	})
 }
 
 // SetAffiliatorRecorder enables affiliator commissions on payment approval. Wired in main via a type assertion.
@@ -857,6 +940,8 @@ func (s *subscriptionService) ApproveVerificationExpecting(ctx context.Context, 
 	// A newly activated travel starts with a sample draft package and standard FAQs.
 	if wasPending {
 		s.seedStarterContent(ctx, tenant.ID)
+		// Only the first payment is an ad conversion; renewals are not reported.
+		s.trackPlatformPurchase(ctx, tenant, pv, plan, now)
 	}
 	return nil
 }
