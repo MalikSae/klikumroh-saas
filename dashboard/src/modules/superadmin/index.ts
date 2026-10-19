@@ -13,6 +13,7 @@ export * from './views/AdminPaymentsView';
 export * from './views/AdminPlansView';
 export * from './views/AdminLegalView';
 export * from './views/AdminDemoLeadsView';
+export * from './views/AdminMetaAdsView';
 export * from './views/AdminCouponsView';
 export * from './views/AdminSettingsView';
 export * from './views/AdminStaffView';
