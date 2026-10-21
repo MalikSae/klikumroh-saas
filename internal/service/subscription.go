@@ -20,7 +20,6 @@ import (
 var (
 	ErrSubscriptionNotFound    = errors.New("data langganan tidak ditemukan")
 	ErrPlanNotFound            = errors.New("paket langganan tidak ditemukan")
-	ErrProofRequired           = errors.New("bukti transfer wajib diunggah untuk pembayaran lebih dari Rp 0")
 	ErrVerificationAlreadyDone = errors.New("permohonan verifikasi ini sudah diproses sebelumnya")
 	ErrRejectionReasonRequired = errors.New("alasan penolakan wajib diisi")
 	ErrAnotherInvoiceOpen      = errors.New("masih ada tagihan lain yang menunggu pembayaran; unggah bukti transfer pada tagihan tersebut")
@@ -700,9 +699,9 @@ type ApprovalExpectation struct {
 	FinalAmount *float64
 }
 
-// checkApprovable refuses an invoice that cannot be approved as it stands: no transfer proof while money
-// is owed, or a plan/amount that no longer matches what the staff member reviewed (the travel can change
-// an open invoice with CreateRenewalRequest at any time).
+// checkApprovable refuses an invoice whose plan/amount no longer matches what the staff member reviewed (the
+// travel can change an open invoice with CreateRenewalRequest at any time). A transfer proof is not required:
+// staff may have received it elsewhere, e.g. via WhatsApp (keputusan pendiri 21 Okt 2026).
 func checkApprovable(pv *repository.PaymentVerification, expect ApprovalExpectation) error {
 	if expect.PlanID != nil && *expect.PlanID != pv.PlanID {
 		return ErrVerificationChanged
@@ -711,9 +710,6 @@ func checkApprovable(pv *repository.PaymentVerification, expect ApprovalExpectat
 	if expect.FinalAmount != nil && math.Round(*expect.FinalAmount*100) != math.Round(pv.FinalAmount*100) {
 		return ErrVerificationChanged
 	}
-	if pv.FinalAmount > 0 && (pv.ProofURL == nil || strings.TrimSpace(*pv.ProofURL) == "") {
-		return ErrProofRequired
-	}
 	return nil
 }
 
@@ -721,8 +717,8 @@ func (s *subscriptionService) ApproveVerification(ctx context.Context, id uint64
 	return s.ApproveVerificationExpecting(ctx, id, staffUserID, ApprovalExpectation{})
 }
 
-// ApproveVerificationExpecting approves a pending invoice, refusing it when it has no proof while money is
-// owed (ErrProofRequired) or when its plan/amount differ from expect (ErrVerificationChanged).
+// ApproveVerificationExpecting approves a pending invoice, refusing it when its plan/amount differ from
+// expect (ErrVerificationChanged).
 func (s *subscriptionService) ApproveVerificationExpecting(ctx context.Context, id uint64, staffUserID uint64, expect ApprovalExpectation) error {
 	pv, err := s.pvRepo.GetByID(ctx, id)
 	if err != nil {

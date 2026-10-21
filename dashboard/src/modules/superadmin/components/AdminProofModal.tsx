@@ -733,8 +733,8 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
           )}
 
           {/* Approve confirmation (inline, above footer) */}
-          {/* A paid invoice without a transfer proof cannot be approved (the backend refuses it too). */}
-          {showApproveConfirm && isPending && !missingProof && (
+          {/* A paid invoice may be approved without a proof in the system (e.g. received via WhatsApp). */}
+          {showApproveConfirm && isPending && (
             <div
               style={{
                 marginTop: '14px',
@@ -749,6 +749,11 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
             >
               Setujui pembayaran <strong>{formatIDR(payableAmount)}</strong> dari <strong>{currentItem.tenant_name}</strong> untuk paket{' '}
               <strong>{currentItem.plan_name}</strong>? Travel langsung aktif dan masa langganan diperpanjang. Tindakan ini tidak bisa dibatalkan.
+              {missingProof && (
+                <>
+                  {' '}<strong>Setujui tanpa bukti transfer di sistem?</strong> Pastikan Anda sudah mengecek bukti dari WhatsApp atau mutasi bank.
+                </>
+              )}
             </div>
           )}
 
@@ -805,7 +810,7 @@ export const AdminProofModal: React.FC<AdminProofModalProps> = ({
                 </button>
               )}
 
-              {missingProof ? null : !showApproveConfirm ? (
+              {!showApproveConfirm ? (
                 <button
                   type="button" className="sa-btn sa-btn--primary"
                   onClick={() => { setShowApproveConfirm(true); setShowRejectForm(false); setError(null); }}
