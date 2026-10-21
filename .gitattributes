@@ -1,0 +1,4 @@
+# Files that run on the Linux server must keep LF line endings (CRLF breaks bash with "bad interpreter").
+*.sh text eol=lf
+deploy/*.service text eol=lf
+deploy/*.conf text eol=lf
