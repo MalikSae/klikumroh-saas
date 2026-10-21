@@ -3,7 +3,7 @@
 // sections inside a page live on that page.
 import type React from 'react';
 import { KaabaIcon } from '../ui/icons/KaabaIcon';
-import { BarChart3, BookOpen, Globe, Handshake, Home, Megaphone, Settings, Trophy, Users, Wallet } from 'lucide-react';
+import { BarChart3, Globe, Handshake, Home, Megaphone, Settings, Trophy, Users, Wallet } from 'lucide-react';
 
 export type BadgeKey = 'prospects' | 'agents' | 'payouts';
 
@@ -35,7 +35,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'agents', label: 'Agen', to: '/agents', icon: Handshake, badge: 'agents' },
       { id: 'payouts', label: 'Pencairan komisi', to: '/payouts', icon: Wallet, badge: 'payouts' },
       { id: 'programs', label: 'Target & reward', to: '/programs', icon: Trophy },
-      { id: 'playbook', label: 'Panduan', to: '/playbook', icon: BookOpen },
+      // "Panduan" (/playbook) is hidden from the menu on 21 Oct 2026; the route and screen stay in App.tsx.
     ],
   },
   {
