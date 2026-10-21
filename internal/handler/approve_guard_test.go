@@ -40,25 +40,22 @@ func errorOf(rr *httptest.ResponseRecorder) string {
 	return m["error"]
 }
 
-// M1: an invoice above Rp 0 without a transfer proof cannot be approved (409); a free invoice can.
-func TestApprove_RequiresProofWhenAmountDue(t *testing.T) {
+// An invoice above Rp 0 can be approved without a transfer proof (staff may have received it via WhatsApp).
+func TestApprove_AllowedWithoutProof(t *testing.T) {
 	_, pvRepo, _, tenantRepo, _, _, r := setupSubTestEnv()
 	ctx := context.Background()
 
 	noProof := &repository.PaymentVerification{TenantID: 78, PlanID: 1, Amount: 1500000, FinalAmount: 1500123, UniqueCode: 123, Status: "pending"}
 	_ = pvRepo.Create(ctx, noProof)
 	rr := staffPatch(r, fmt.Sprintf("/api/staff/payment-verifications/%d/approve", noProof.ID), "")
-	if rr.Code != http.StatusConflict {
-		t.Fatalf("no proof: expected 409, got %d (%s)", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusOK {
+		t.Fatalf("no proof: expected 200, got %d (%s)", rr.Code, rr.Body.String())
 	}
-	if got := errorOf(rr); got != "Bukti transfer belum diunggah. Tagihan di atas Rp 0 hanya bisa disetujui setelah ada bukti transfer." {
-		t.Fatalf("unexpected message %q", got)
+	if got, _ := pvRepo.GetByID(ctx, noProof.ID); got.Status != "approved" {
+		t.Fatalf("invoice must be approved, got %q", got.Status)
 	}
-	if got, _ := pvRepo.GetByID(ctx, noProof.ID); got.Status != "pending" {
-		t.Fatalf("refused invoice must stay pending, got %q", got.Status)
-	}
-	if tenantRepo.tenants[78].SubscriptionExpiresAt != nil {
-		t.Fatal("subscription must not be extended")
+	if tenantRepo.tenants[78].SubscriptionExpiresAt == nil {
+		t.Fatal("subscription must be extended")
 	}
 
 	free := &repository.PaymentVerification{TenantID: 53, PlanID: 1, Amount: 1500000, FinalAmount: 0, Status: "pending"}

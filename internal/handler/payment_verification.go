@@ -28,8 +28,6 @@ type approveVerificationRequest struct {
 // approveCouponUsedMessage: the travel already paid an invoice with this coupon (one coupon per travel).
 const approveCouponUsedMessage = "Travel ini sudah pernah memakai kupon pada invoice ini. Hapus atau ganti kupon (harga akan dihitung ulang), atau tolak pembayaran."
 
-const approveProofRequiredMessage = "Bukti transfer belum diunggah. Tagihan di atas Rp 0 hanya bisa disetujui setelah ada bukti transfer."
-
 // staffPaymentVerification is the staff-facing JSON of an invoice: the shared fields plus proof_final_amount
 // (the total the current transfer proof was uploaded for), which the travel-facing JSON never carries.
 type staffPaymentVerification struct {
@@ -121,10 +119,6 @@ func (h *PaymentVerificationHandler) Approve(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		if errors.Is(err, service.ErrVerificationChanged) {
 			respondJSON(w, http.StatusConflict, map[string]string{"error": service.ErrVerificationChanged.Error()})
-			return
-		}
-		if errors.Is(err, service.ErrProofRequired) {
-			respondJSON(w, http.StatusConflict, map[string]string{"error": approveProofRequiredMessage})
 			return
 		}
 		if errors.Is(err, repository.ErrNotFound) {
