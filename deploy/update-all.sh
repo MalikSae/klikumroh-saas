@@ -2,7 +2,7 @@
 # One-command release on the shared server: pulls once, then runs the update script of each part that changed.
 # Run as root: bash /www/wwwroot/klikumroh/deploy/update-all.sh [api] [web] [dashboard]
 # With no arguments the parts are picked by comparing HEAD with the commit each part was LAST DEPLOYED at
-# (cmd/ internal/ go.mod go.sum -> api, web/ -> web, dashboard/ -> dashboard). The commit is remembered in
+# (cmd/ internal/ go.mod go.sum -> api, web/ panduan/ -> web, dashboard/ -> dashboard). The commit is remembered in
 # .git/klikumroh-deployed-<part>, so it does not matter whether the pull happened here or by hand earlier.
 # Before a part has a remembered commit (first run) the comparison falls back to what this pull brought in;
 # when that is empty, name the parts explicitly once: update-all.sh api web dashboard.
@@ -40,7 +40,7 @@ if [ "$#" -gt 0 ]; then
 else
   PARTS=""
   changed api '^(cmd/|internal/|go\.(mod|sum))' && PARTS="$PARTS api"
-  changed web '^web/' && PARTS="$PARTS web"
+  changed web '^(web/|panduan/|scripts/build-panduan\.js)' && PARTS="$PARTS web"
   changed dashboard '^dashboard/' && PARTS="$PARTS dashboard"
 fi
 

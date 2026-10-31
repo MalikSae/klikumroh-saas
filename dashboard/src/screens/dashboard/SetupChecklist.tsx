@@ -3,8 +3,9 @@
 // others fold to one line; the order is a suggestion, not a gate. Each step has one button that does the
 // step right there or opens the exact page for it.
 import React, { useState } from 'react';
-import { ChevronDown, CircleCheck } from 'lucide-react';
+import { BookOpen, ChevronDown, CircleCheck } from 'lucide-react';
 import { Button, Card, Meter } from '../../ui';
+import { guideUrl } from '../../app/guideUrl';
 
 export interface SetupStep {
   key: string;
@@ -12,6 +13,8 @@ export interface SetupStep {
   hint: string;
   done: boolean;
   action: React.ReactNode;
+  /** Slug of the matching chapter in the admin guide (/panduan/<slug>), when there is one. */
+  guide?: string;
 }
 
 export interface SetupStage {
@@ -36,9 +39,14 @@ export const SetupChecklist: React.FC<{ stages: SetupStage[]; onHide: () => void
       title="Panduan memulai"
       className="db2-setup"
       actions={
-        <Button size="sm" variant="ghost" onClick={onHide}>
-          Sembunyikan
-        </Button>
+        <>
+          <Button size="sm" variant="ghost" to={guideUrl()} external icon={<BookOpen className="ku-icon--sm" />}>
+            Panduan lengkap
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onHide}>
+            Sembunyikan
+          </Button>
+        </>
       }
     >
       <div className="db2-setup__progress">
@@ -76,6 +84,11 @@ export const SetupChecklist: React.FC<{ stages: SetupStage[]; onHide: () => void
                     <div className="db2-setup__text">
                       <strong>{s.title}</strong>
                       <span>{s.done ? 'Selesai' : s.hint}</span>
+                      {!s.done && s.guide && (
+                        <a className="db2-setup__guide" href={guideUrl(s.guide)} target="_blank" rel="noopener noreferrer">
+                          Lihat caranya
+                        </a>
+                      )}
                     </div>
                     {!s.done && s.action && <div className="db2-setup__action">{s.action}</div>}
                   </li>
