@@ -637,3 +637,14 @@ Enam agen baca-saja per area. Tidak ada HIGH. Dua regresi berisiko data loss dar
 - [x] Langkah 5: pixel platform di web + `InitiateCheckout` + `Lead`
 - [x] Langkah 6: form konfigurasi di dashboard super admin
 - [x] Langkah 7: dokumentasi `DEPLOY.md`
+
+## Panduan Admin Travel (31 Oktober 2026)
+- [x] Isi Bagian A, 20 file Markdown di `panduan/` (bab 00-19 + README): peta jalan "Mulai dari sini", 3 tahap setup, Lanjutan (langganan, tim, domain), Bantuan ("Kalau begini, cek ini" dan Istilah). Label Wajib / Disarankan / Opsional (bab Langganan "Wajib dibaca"). Isi diturunkan dari kode, bukan tebakan; klaim yang tidak terbukti tidak ditulis
+- [x] Rute `/panduan` dan `/panduan/[slug]` di `/web` (hanya klikumroh.id; `proxy.ts` mengalihkan dari domain travel dengan path + query terjaga). Isi dibakar saat build lewat `scripts/build-panduan.js` (`predev`/`prebuild`) ke `web/data/panduan.generated.json` karena server standalone tidak punya folder `panduan/`. Sidebar per tahap + lencana label, "Di halaman ini", sebelumnya/berikutnya, drawer di HP. Pengecualian layout desktop 3.7 khusus `/panduan` disetujui pendiri 31 Okt 2026
+- [x] Pencarian kata kunci di browser tanpa layanan luar: alias bahasa awam per bab, abaikan huruf besar dan aksen, awalan kata, tautan langsung ke bagian bab. Test `npm run test:panduan` (parser, 17 skenario pencarian, redirect proxy, dan cek berkas hasil build tidak usang)
+- [x] Checklist "Panduan memulai" di Beranda dashboard: tautan "Lihat caranya" per langkah (14 dari 15 langkah) dan tombol "Panduan lengkap"; `deploy/update-all.sh` ikut menganggap perubahan `panduan/` sebagai perubahan bagian web
+- [x] Gambar layar: 22 dari 23 penanda terisi (akun demo Mabrur Tours lokal, data fiktif; nomor 9 digit lebih disamarkan, host lokal diganti). Berkas di `web/public/panduan/`, sintaks `{{gambar: berkas.png | keterangan}}`, ukuran dibaca saat build, klik gambar membuka ukuran penuh. Belum ada: halaman invoice langganan (bab Langganan), karena akun demo tidak punya tagihan
+- [ ] Pendiri: cek visual `/panduan` di browser (desktop dan HP) dan baca isi bab
+- [ ] Keputusan pendiri atas temuan UI vs perilaku nyata (dicatat di laporan): teks "Ringkasan tampil di Tentang Kami", teks "Instagram/Facebook/YouTube tampil di bagian bawah website", checklist "Atur program agen" tidak mengecek aturan pencairan, "Kota" diisi di Website > SEO bukan Profil
+- [ ] Bagian B (optimasi: kualitas paket, kecepatan follow-up, program agen, promosi, Meta Pixel, membaca funnel, SEO dasar) belum ditulis; menunggu keputusan pendiri soal memakai isi Playbook lama sebagai bahan
+- [ ] Langkah checklist "Pasang pelacakan iklan" belum punya bab (Meta Pixel masuk Bagian B)

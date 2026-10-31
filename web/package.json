@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node ../scripts/build-panduan.js",
     "dev": "next dev",
+    "prebuild": "node ../scripts/build-panduan.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -26,7 +28,8 @@
     "test:bh4-web": "node --experimental-strip-types test/bh4-web-fixes.test.mjs",
     "test:bh5-web": "node --experimental-strip-types test/bh5-web-fixes.test.mjs",
     "test:person-name": "node --experimental-strip-types test/person-name.test.mjs",
-    "test:plan-promo": "node --experimental-strip-types test/plan-promo.test.mjs"
+    "test:plan-promo": "node --experimental-strip-types test/plan-promo.test.mjs",
+    "test:panduan": "node ../scripts/build-panduan.js --check && node --experimental-strip-types test/panduan.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

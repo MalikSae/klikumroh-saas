@@ -1,0 +1,561 @@
+[
+ {
+  "slug": "mulai-dari-sini",
+  "title": "Mulai dari sini",
+  "stage": "mulai",
+  "label": "",
+  "labelText": "",
+  "order": 0,
+  "summary": "Peta jalan dari akun baru sampai prospek pertama masuk, dengan penanda mana yang wajib, disarankan, dan opsional.",
+  "menu": "Beranda (Panduan memulai)",
+  "alias": [
+   "mulai",
+   "pertama kali",
+   "baru daftar",
+   "bingung mulai dari mana",
+   "langkah awal",
+   "urutan",
+   "checklist",
+   "panduan memulai"
+  ],
+  "body": "Panduan ini mengantar Anda dari akun baru sampai calon jamaah pertama masuk. Kerjakan berurutan. Setiap bab diberi penanda:\n\n- **Wajib**: tanpa ini website atau program agen belum bisa dipakai.\n- **Disarankan**: bisa jalan tanpa ini, tetapi hasilnya jauh lebih lemah.\n- **Opsional**: lanjutan, kerjakan saat Anda butuh.\n\nDaftar yang sama muncul di **Beranda** pada kartu **Panduan memulai**. Setiap langkah di sana punya tombol yang langsung membawa Anda ke layar yang tepat.\n\nBingung di tengah jalan? Pakai kotak pencarian di atas, atau buka [Kalau begini, cek ini](slug:kalau-begini-cek-ini).\n\n## Tahap 1: Website siap dilihat jamaah\n\n1. [Lengkapi profil travel](slug:profil-travel) (Wajib)\n2. [Pasang logo dan warna](slug:logo-dan-warna) (Wajib)\n3. [Tayangkan paket pertama](slug:paket-pertama) (Wajib)\n4. [Lengkapi detail paket](slug:detail-paket) (Disarankan)\n5. [Testimoni, banner, dan FAQ](slug:testimoni-banner-faq) (Disarankan)\n6. [Atur SEO](slug:seo) (Disarankan)\n7. [Lihat website Anda seperti jamaah](slug:lihat-website) (Wajib)\n\n## Tahap 2: Siap rekrut agen\n\n8. [Aturan agen](slug:aturan-agen) (Wajib)\n9. [Komisi per paket](slug:komisi-per-paket) (Wajib)\n10. [Target dan reward](slug:target-dan-reward) (Opsional)\n11. [Terima agen](slug:terima-agen) (Wajib)\n12. [Pencairan komisi](slug:pencairan-komisi) (Wajib)\n\nKomisi diisi di dalam paket, jadi selesaikan bab 3 dulu sebelum bab 9.\n\n## Tahap 3: Jamaah mulai masuk\n\n13. [Prospek masuk](slug:prospek-masuk) (Wajib begitu prospek pertama datang)\n14. [Tindak lanjut cepat](slug:tindak-lanjut-cepat) (Disarankan)\n\n## Lanjutan\n\n15. [Langganan dan pembayaran](slug:langganan-dan-pembayaran) (Wajib dibaca)\n16. [Undang tim](slug:undang-tim) (Opsional)\n17. [Domain sendiri](slug:domain-sendiri) (Opsional)\n\nAlamat bawaan `namatravel.klikumroh.id` sudah cukup untuk mulai. Domain sendiri tidak menghalangi website tayang.\n\n## Bantuan\n\n18. [Kalau begini, cek ini](slug:kalau-begini-cek-ini)\n19. [Istilah](slug:istilah)\n\n## Lanjut ke\n\nMulai dari [Lengkapi profil travel](slug:profil-travel).",
+  "images": {}
+ },
+ {
+  "slug": "profil-travel",
+  "title": "Lengkapi profil travel",
+  "stage": "tahap-1",
+  "label": "wajib",
+  "labelText": "",
+  "order": 1,
+  "summary": "Isi nama, izin, kontak, dan alamat travel agar calon jamaah yakin dan mudah menemukan kantor Anda.",
+  "menu": "Pengaturan > Profil travel",
+  "alias": [
+   "isi data travel",
+   "alamat kantor",
+   "nomor izin",
+   "ppiu",
+   "whatsapp",
+   "kontak",
+   "telepon",
+   "email",
+   "instagram"
+  ],
+  "body": "Profil adalah identitas travel Anda: nama, izin, kontak, dan alamat. Datanya tampil di website, portal agen, dan tagihan, jadi isi sebelum website dibagikan ke calon jamaah.\n\n## Langkah\n\n1. Buka **Pengaturan**. Tab pertama, **Profil travel**, langsung terbuka.\n2. Di bagian **Identitas travel**, isi **Nama travel** (wajib). Isi **Nomor izin PPIU** bila ada; kolom ini opsional, tetapi nomornya tampil di website agar calon jamaah yakin travel Anda berizin.\n3. Di bagian **Kontak**, isi yang Anda punya. Semuanya opsional:\n   - **Nomor WhatsApp**, format 08xx atau 62xx. Dipakai di portal agen agar agen bisa menghubungi travel, dan tampil di footer website bila **Telepon kantor** kosong.\n   - **Telepon kantor**\n   - **Email**\n   - **Alamat kantor**\n4. Di bagian **Media sosial**, isi tautan lengkap akun resmi di **Instagram**, **Facebook**, dan **YouTube** (opsional).\n5. Klik **Simpan perubahan**.\n\n{{gambar: profil-travel-1.png | Halaman Pengaturan, tab Profil travel, empat bagian terlihat: Identitas travel, Kontak, Media sosial, dan tombol Simpan perubahan}}\n\nTombol **Simpan perubahan** baru aktif setelah ada kolom yang diubah. **Batalkan** mengembalikan semua kolom ke isi yang tersimpan.\n\n## Kapan profil dianggap lengkap\n\nDi checklist **Panduan memulai** di Beranda, langkah **Lengkapi profil travel** selesai bila nama travel terisi dan salah satu dari alamat kantor atau kota terisi. Kota diisi di **Website > SEO** (bagian **Lokasi**), bukan di halaman profil ini. Jadi bila alamat kantor dikosongkan, langkah ini tetap selesai setelah **Kota** diisi di SEO.\n\nNomor PPIU, WhatsApp, telepon, email, dan media sosial tidak memengaruhi checklist.\n\n## Cek hasilnya\n\n- Muncul tulisan **Perubahan tersimpan** di bawah halaman.\n- Buka website Anda dan turun ke bagian paling bawah: alamat, telepon (atau WhatsApp bila telepon kosong), email, dan nomor izin PPIU muncul di footer. Nomor izin juga tampil sebagai lencana **Izin PPIU** di bagian atas beranda.\n- Kembali ke **Beranda**: langkah **Lengkapi profil travel** berubah menjadi **Selesai**.\n\n## Kalau bermasalah\n\n- **Muncul \"Nama travel wajib diisi.\"** Kolom nama tidak boleh kosong.\n- **Muncul \"Gagal memuat data\" dengan tombol Coba lagi.** Formulir sengaja tidak ditampilkan kosong supaya data yang ada tidak tertimpa. Klik **Coba lagi**.\n- **Langkah di Beranda belum selesai padahal nama sudah terisi.** Pastikan alamat kantor atau **Kota** (di Website > SEO) juga terisi.\n- **Tautan media sosial tidak terlihat di footer website.** Saat ini tautan itu hanya dikirim sebagai data untuk mesin pencari; footer website tidak menampilkannya.\n\n## Lanjut ke\n\n[Pasang logo dan warna website](slug:logo-dan-warna)",
+  "images": {
+   "profil-travel-1.png": {
+    "width": 1280,
+    "height": 1100
+   }
+  }
+ },
+ {
+  "slug": "logo-dan-warna",
+  "title": "Pasang logo dan atur warna website",
+  "stage": "tahap-1",
+  "label": "wajib",
+  "labelText": "",
+  "order": 2,
+  "summary": "Unggah logo dan ikon, pilih warna utama, lalu isi tagline dan lencana kepercayaan agar website terlihat seperti travel Anda.",
+  "menu": "Website > Identitas",
+  "alias": [
+   "logo",
+   "warna website",
+   "ganti warna",
+   "tagline",
+   "brand",
+   "tampilan",
+   "ikon",
+   "rating",
+   "alumni",
+   "jaminan"
+  ],
+  "body": "Logo dan warna utama membuat website terlihat seperti milik travel Anda, bukan template. Logo juga tampil di portal agen.\n\n## Langkah\n\n1. Buka menu **Website**. Tab pertama, **Identitas**, langsung terbuka.\n2. Di bagian **Logo & ikon**, klik kotak **Unggah logo** lalu pilih file. Logo tampil di bagian atas website; gunakan PNG transparan, maksimal 5 MB. Logo tersimpan langsung setelah diunggah.\n3. Di kotak **Ikon**, unggah gambar persegi minimal 256 px (maksimal 5 MB). Ini ikon di tab browser. Tersimpan langsung juga.\n4. Untuk mengganti atau menghapus, pakai tombol kecil di sudut gambar.\n5. Di bagian **Warna utama**, isi **Kode warna** dengan format heksadesimal 6 digit diawali tanda pagar, misalnya #RRGGBB. Anda juga boleh memilih warna lewat kotak pemilih di sebelahnya. Warna ini dipakai untuk tombol dan aksen di website.\n6. Di bagian **Tentang travel**, isi **Tagline** (satu kalimat singkat, maksimal 160 karakter) dan **Ringkasan** bila ada. Keduanya opsional.\n7. Di bagian **Lencana kepercayaan**, isi bila ada (semua opsional): **Rating** (contoh 4.8), **Jumlah alumni jamaah** (contoh 12.000+), dan **Jaminan** (contoh Pasti berangkat). Isi hanya dengan angka yang benar dan bisa dibuktikan.\n8. Klik **Simpan perubahan** untuk warna, tagline, ringkasan, dan lencana.\n\n{{gambar: logo-dan-warna-1.png | Halaman Website > Identitas: kotak Logo dan Ikon, kolom Kode warna dengan kotak pemilih warna, dan bagian Lencana kepercayaan}}\n\n## Cek hasilnya\n\n- Logo dan ikon langsung tampil di kotaknya setelah diunggah.\n- Setelah **Simpan perubahan**, muncul **Perubahan tersimpan**.\n- Buka website: logo ada di bagian atas, tombol memakai warna yang Anda pilih. Lencana kepercayaan tampil sebagai deretan kecil di bawah banner: \"jamaah berangkat\" dari jumlah alumni, \"Rating\" dari kolom rating, dan jaminan sesuai tulisan Anda. Lencana yang kolomnya kosong tidak ditampilkan.\n- Di **Beranda**, langkah **Pasang logo travel** menjadi **Selesai** begitu logo terunggah.\n\n## Kalau bermasalah\n\n- **\"Tulis kode warna 6 digit diawali tanda pagar, format #RRGGBB.\"** Kode warna harus tepat 6 digit setelah tanda pagar.\n- **\"Warna brand wajib diisi, format #RRGGBB.\"** Setelah warna pernah disimpan, kolomnya tidak bisa dikosongkan. Ganti dengan warna lain.\n- **\"Pilih file gambar.\" atau \"Ukuran maksimal 5 MB.\"** Gunakan file JPG, PNG, atau WebP di bawah 5 MB.\n- **\"Gagal mengunggah gambar.\"** Coba lagi; bila berulang, kecilkan ukuran file.\n- **Tagline atau ringkasan sudah diisi tetapi tidak terlihat di beranda.** Tagline hanya menjadi judul pembuka beranda bila Anda belum punya banner aktif. Ringkasan tidak punya bagian sendiri di beranda; ia dipakai sebagai deskripsi di Google bila **Deskripsi** di tab SEO kosong.\n- Nama travel, nomor izin, dan kontak tidak diatur di sini, tetapi di [Pengaturan > Profil travel](slug:profil-travel).\n\n## Lanjut ke\n\n[Tayangkan paket pertama](slug:paket-pertama)",
+  "images": {
+   "logo-dan-warna-1.png": {
+    "width": 1280,
+    "height": 1250
+   }
+  }
+ },
+ {
+  "slug": "paket-pertama",
+  "title": "Tayangkan paket pertama",
+  "stage": "tahap-1",
+  "label": "wajib",
+  "labelText": "",
+  "order": 3,
+  "summary": "Buat atau sesuaikan paket umroh dengan harga dan tanggal berangkat, lalu tayangkan agar calon jamaah bisa memilihnya.",
+  "menu": "Paket",
+  "alias": [
+   "tambah paket",
+   "harga umroh",
+   "tanggal berangkat",
+   "kuota",
+   "kursi",
+   "draf",
+   "tayangkan",
+   "paket tidak muncul",
+   "komisi agen",
+   "arsipkan",
+   "hapus paket"
+  ],
+  "body": "Paket adalah yang dicari calon jamaah di website Anda. Selama paket masih berstatus draf, ia tidak tampil di website.\n\n## Sebelum mulai\n\nSaat akun travel diaktifkan dan Anda belum punya paket, sistem membuat satu paket contoh berstatus **Draf** bernama \"Paket Umroh Reguler 9 Hari (Contoh)\", lengkap dengan harga, tanggal berangkat, hotel, dan fasilitas contoh. Anda bisa menyesuaikannya, bukan membuat dari nol. Di Beranda, langkah **Tayangkan paket pertama** punya tombol **Edit paket contoh** yang membukanya langsung. Bila paket contoh tidak ada, tombolnya menjadi **Tambah paket**.\n\n## Langkah\n\n1. Buka menu **Paket**. Klik **Tambah paket**, atau klik paket contoh yang sudah ada di daftar.\n2. Di bagian **Informasi paket**, isi **Nama paket** (wajib), misalnya \"Umroh Reguler 9 Hari Januari\". **Deskripsi** opsional; pisahkan paragraf dengan baris kosong.\n3. Di bagian **Harga & keberangkatan**:\n   - **Harga per jamaah**: wajib diisi sebelum paket bisa tayang.\n   - **Komisi agen per jamaah**: formulir tidak memaksa mengisinya, tetapi isi sebelum merekrut agen supaya mereka tahu penghasilannya (lihat [komisi per paket](slug:komisi-per-paket)). Dibayar ke agen saat prospeknya closing. Tidak boleh lebih besar dari harga. Di bawah kolom ini tampil persentasenya terhadap harga.\n   - **Tanggal berangkat**: opsional di formulir, tetapi dibutuhkan agar paket dihitung siap di checklist (lihat di bawah).\n   - **Kuota kursi**: opsional, angka bulat. Kosongkan bila tidak dibatasi.\n4. Klik **Simpan draf** untuk menyimpan tanpa menayangkan, atau **Tayangkan di website** untuk langsung tayang. Pada paket yang sudah ada dan masih draf, tombolnya **Simpan** dan **Tayangkan di website**.\n\n{{gambar: paket-pertama-1.png | Editor paket, bagian Harga & keberangkatan: Harga per jamaah, Komisi agen per jamaah, Tanggal berangkat, dan Kuota kursi}}\n\nFoto, hotel, penerbangan, dan fasilitas dijelaskan di [bab berikutnya](slug:detail-paket).\n\n## Status paket\n\n| Status | Artinya |\n|---|---|\n| **Draf** | Belum tampil di website. |\n| **Tayang** | Tampil di website. |\n| **Sudah berangkat** | Paket tayang yang tanggal berangkatnya sudah lewat (hitungan WIB). Tidak lagi tampil di website. |\n| **Diarsipkan** | Disimpan, tidak tampil. |\n\nPaket dianggap siap di checklist Beranda bila berstatus tayang, harganya lebih dari 0, dan tanggal berangkat terisi.\n\n## Mengubah status atau menghapus\n\nDi editor paket, klik tombol titik tiga (**Aksi paket**) di bar bawah:\n\n- **Kembalikan ke draf**: tersedia untuk paket tayang; paket hilang dari website.\n- **Arsipkan**: untuk paket yang sudah tidak dijual. Pada paket yang sudah diarsipkan, pilihannya menjadi **Kembalikan ke draf**.\n- **Hapus paket**: menghapus paket dan fotonya secara permanen. Paket yang sudah dipakai prospek tidak bisa dihapus; arsipkan saja.\n\nBila ada perubahan yang belum disimpan, mengarsipkan atau mengembalikan ke draf akan menanyakan dulu, karena perubahan itu ikut tersimpan.\n\nDi daftar **Paket**, filter menyediakan **Tayang dan draf**, **Tayang**, **Sudah berangkat**, **Draf**, **Diarsipkan**, dan **Semua**.\n\n## Cek hasilnya\n\n- Muncul pesan **Paket dibuat dan tayang di website.** atau **Paket tayang di website.**\n- Pill di atas editor berubah menjadi **Tayang**, dan muncul tautan **Lihat di website**. Klik untuk membuka halaman paket seperti yang dilihat jamaah.\n- Di Beranda, langkah **Tayangkan paket pertama** menjadi **Selesai**.\n\n## Kalau bermasalah\n\n- **\"Isi harga sebelum paket tayang di website.\"** Harga wajib diisi untuk menayangkan.\n- **\"Komisi tidak boleh melebihi harga paket.\"** Kecilkan komisi.\n- **\"Isi angka bulat, atau kosongkan jika tidak dibatasi.\"** Kuota harus angka bulat minimal 1.\n- **Paket sudah tayang tetapi tidak muncul di beranda website.** Cek tanggal berangkatnya: paket yang tanggalnya sudah lewat tidak ditampilkan. Beranda juga hanya menampilkan jadwal terdekat; daftar lengkap ada di tombol **Lihat semua**.\n- **Langkah di Beranda belum selesai padahal paket tayang.** Pastikan harga lebih dari 0 dan tanggal berangkat terisi.\n- **Paket tidak bisa dihapus.** Paket itu sudah dipakai prospek. Pilih **Arsipkan**.\n\n## Lanjut ke\n\n[Lengkapi detail paket](slug:detail-paket)",
+  "images": {
+   "paket-pertama-1.png": {
+    "width": 970,
+    "height": 262
+   }
+  }
+ },
+ {
+  "slug": "detail-paket",
+  "title": "Lengkapi foto dan detail paket",
+  "stage": "tahap-1",
+  "label": "disarankan",
+  "labelText": "",
+  "order": 4,
+  "summary": "Tambahkan foto, hotel, penerbangan, rencana perjalanan, fasilitas, dan syarat supaya calon jamaah tidak perlu banyak bertanya.",
+  "menu": "Paket",
+  "alias": [
+   "foto paket",
+   "hotel",
+   "maskapai",
+   "itinerary",
+   "fasilitas",
+   "syarat",
+   "rencana perjalanan",
+   "penerbangan",
+   "sampul"
+  ],
+  "body": "Paket yang lengkap menjawab pertanyaan calon jamaah sebelum mereka bertanya. Semua bagian di bab ini opsional, dan semuanya ada di halaman editor paket yang sama.\n\n## Langkah\n\n1. Buka menu **Paket**, lalu klik paket yang ingin dilengkapi.\n2. **Foto**: klik untuk memilih gambar. Maksimal 10 foto per paket, format JPG, PNG, atau WebP, maksimal 8 MB per foto. Foto pertama jadi sampul di website. Geser foto ke kiri atau kanan dengan tombol panah kecil untuk mengubah urutan, atau hapus dengan tombol hapus.\n   - Pada paket baru, foto yang Anda pilih diunggah saat paket disimpan.\n3. **Hotel**: klik **Tambah hotel**. Isi kota (baris pertama terisi Makkah, kedua Madinah), nama hotel, dan pilih bintang (**Bintang 5** sampai **Bintang 1**). Hapus baris dengan tombol silang.\n4. **Penerbangan**: isi **Maskapai** dan **Rute**, misalnya \"CGK - JED, MED - CGK\".\n5. **Rencana perjalanan**: klik **Tambah hari**, lalu tulis kegiatan tiap hari. Nomor hari (\"Hari 1\", \"Hari 2\", dst) otomatis mengikuti urutan.\n6. **Fasilitas**: isi **Termasuk** dan **Tidak termasuk**, satu fasilitas per baris.\n7. **Syarat & ketentuan**: tulis satu poin per baris.\n8. Klik **Simpan** (paket draf) atau **Simpan perubahan** (paket tayang).\n\n{{gambar: detail-paket-1.png | Editor paket di bagian Foto, Hotel, dan Penerbangan, dengan foto pertama sebagai sampul}}\n\nFoto tersimpan langsung pada paket yang sudah ada. Bagian lainnya baru tersimpan setelah Anda menyimpan paket.\n\n## Cek hasilnya\n\nKlik **Lihat di website** di atas editor (muncul untuk paket tayang). Halaman paket memiliki empat tab: **Fasilitas**, **Akomodasi**, **Jadwal Perjalanan**, dan **Syarat & Ketentuan**. Hotel dan penerbangan tampil di tab **Akomodasi**; fasilitas tampil dalam dua daftar, **Termasuk** dan **Tidak termasuk**. Bila syarat belum diisi, halaman menampilkan tulisan bahwa syarat dan ketentuan belum diunggah untuk paket itu.\n\n## Kalau bermasalah\n\n- **\"Maksimal 10 foto per paket.\"** Hapus satu foto sebelum menambah.\n- **\"(nama file) lebih dari 8 MB.\"** Kecilkan ukuran foto.\n- **\"N foto gagal diunggah.\"** Paket tetap tersimpan; tambahkan lagi fotonya di bagian **Foto**.\n- **Perubahan tidak terlihat di website.** Pastikan Anda sudah klik tombol simpan; hanya foto yang tersimpan otomatis.\n\n## Lanjut ke\n\n[Tambahkan testimoni, banner, dan FAQ](slug:testimoni-banner-faq)",
+  "images": {
+   "detail-paket-1.png": {
+    "width": 970,
+    "height": 490
+   }
+  }
+ },
+ {
+  "slug": "testimoni-banner-faq",
+  "title": "Tambahkan testimoni, banner, dan FAQ",
+  "stage": "tahap-1",
+  "label": "disarankan",
+  "labelText": "",
+  "order": 5,
+  "summary": "Bangun kepercayaan calon jamaah lewat cerita jamaah, banner promo, dan jawaban atas pertanyaan yang sering muncul.",
+  "menu": "Website > Banner, Testimoni, FAQ",
+  "alias": [
+   "testimoni",
+   "ulasan jamaah",
+   "banner promo",
+   "faq",
+   "pertanyaan umum",
+   "kepercayaan",
+   "slider",
+   "tampilkan",
+   "sembunyikan"
+  ],
+  "body": "Calon jamaah memutuskan lebih cepat bila melihat bukti dari jamaah sebelumnya. Tiga tab di menu **Website** mengatur bagian-bagian ini di beranda.\n\n## Sebelum mulai\n\nDi checklist Beranda, langkah **Bangun kepercayaan** selesai bila Anda punya minimal satu testimoni aktif atau satu banner aktif. FAQ tidak dihitung: tiga pertanyaan standar sudah otomatis terisi saat akun travel diaktifkan, jadi keberadaannya tidak membuktikan Anda sudah menambahkan sesuatu sendiri. Meski begitu, FAQ tetap berguna dan layak Anda sesuaikan.\n\n## Langkah: Testimoni\n\n1. Buka **Website**, lalu tab **Testimoni**. Klik **Tambah testimoni**.\n2. Isi **Nama jamaah** (wajib; minta izin jamaah sebelum menampilkan nama dan fotonya) dan **Isi testimoni** (wajib, maksimal 600 karakter).\n3. Pilih **Rating** (**5 dari 5** sampai **1 dari 5**). **Paket yang diikuti** opsional; pilihannya diambil dari nama paket Anda, atau biarkan **Tidak disebutkan**.\n4. **Foto jamaah** opsional: persegi, maksimal 5 MB. Foto baru terpasang setelah Anda klik **Simpan**.\n5. Biarkan **Tampilkan di website** tercentang, lalu klik **Simpan**.\n\n{{gambar: testimoni-banner-faq-1.png | Jendela Tambah testimoni dengan kolom Nama jamaah, Rating, Isi testimoni, dan kotak centang Tampilkan di website}}\n\n## Langkah: Banner\n\n1. Tab **Banner**, klik **Tambah banner**.\n2. Klik **Unggah gambar banner**. Gambar tampil dengan rasio 1600 x 700 px, maksimal 8 MB, format JPG, PNG, atau WebP. Karena yang tampil di website hanya gambarnya, tulisan promo (misalnya harga atau tanggal) sebaiknya sudah ada di dalam gambar.\n3. Isi **Judul** (wajib). Judul tidak tampil di website; ia untuk mengenali banner di daftar dan menjadi teks alternatif gambar.\n4. **Tautan saat banner diklik** opsional. Awali dengan https:// untuk alamat luar, atau tanda / untuk halaman di website ini, misalnya /paket/12 untuk membuka satu paket.\n5. Klik **Simpan**. Bila ada lebih dari satu banner aktif, banner bergantian sendiri di bagian atas beranda.\n\n## Langkah: FAQ\n\n1. Tab **FAQ**, klik **Tambah pertanyaan**.\n2. Isi **Pertanyaan** dan **Jawaban** (keduanya wajib), lalu **Simpan**.\n3. Pertanyaan standar yang sudah ada bisa diubah atau dihapus lewat menu titik tiga di barisnya.\n\n## Mengatur urutan dan tampilan\n\nDi ketiga tab, tabel menentukan urutan di website. Gunakan tombol **Naikkan urutan** dan **Turunkan urutan**. Menu titik tiga di setiap baris berisi **Ubah**, **Sembunyikan dari website** (atau **Tampilkan di website**), dan **Hapus**. Item yang disembunyikan tetap ada di daftar dengan label **Disembunyikan**; hapus bersifat permanen.\n\n## Cek hasilnya\n\n- Item muncul di tabel dengan label **Tampil**.\n- Buka website: banner ada di bagian paling atas, testimoni di bagian \"Cerita jamaah yang sudah berangkat\", dan FAQ di bagian \"Masih ragu? Ini jawabannya\".\n- Di Beranda dashboard, **Bangun kepercayaan** menjadi **Selesai**.\n\n## Kalau bermasalah\n\n- **\"Unggah gambar banner.\"** Banner tidak bisa disimpan tanpa gambar.\n- **\"Awali dengan https:// atau / untuk halaman di website ini.\"** Perbaiki tautan banner.\n- **\"Ukuran maksimal 8 MB.\"** Kecilkan gambar banner.\n- **Langkah Bangun kepercayaan belum selesai.** Pastikan testimoni atau banner Anda berstatus **Tampil**; yang disembunyikan tidak dihitung.\n\n## Lanjut ke\n\n[Atur tampilan di Google (SEO)](slug:seo)",
+  "images": {
+   "testimoni-banner-faq-1.png": {
+    "width": 1280,
+    "height": 900
+   }
+  }
+ },
+ {
+  "slug": "seo",
+  "title": "Atur tampilan di Google dan saat link dibagikan",
+  "stage": "tahap-1",
+  "label": "disarankan",
+  "labelText": "",
+  "order": 6,
+  "summary": "Tentukan judul, deskripsi, kota, dan gambar yang tampil di hasil pencarian Google dan saat link website dikirim lewat WhatsApp atau media sosial.",
+  "menu": "Website > SEO",
+  "alias": [
+   "google",
+   "seo",
+   "muncul di pencarian",
+   "judul website",
+   "preview link",
+   "gambar share",
+   "kota",
+   "provinsi",
+   "kata kunci"
+  ],
+  "body": "Tab ini mengatur apa yang orang lihat tentang travel Anda sebelum membuka website: di hasil pencarian Google, dan sebagai kartu pratinjau saat link dibagikan. Semua kolom opsional; bila kosong, sistem memakai nama travel dan data profil.\n\n## Langkah\n\n1. Buka **Website**, lalu tab **SEO**.\n2. Di bagian **Hasil pencarian Google**, lihat pratinjau di atas formulir. Isi:\n   - **Judul halaman**: batas yang disarankan 60 karakter (ada penghitung). Contoh yang muncul sebagai petunjuk: \"Nama Travel - Paket Umroh Resmi\".\n   - **Deskripsi**: batas yang disarankan 160 karakter.\n   - **Kata kunci**: pisahkan dengan koma, misalnya \"umroh bandung, umroh murah\".\n3. Di bagian **Lokasi**, isi **Kota** dan **Provinsi**. Ini membantu travel muncul di pencarian umroh di kota Anda. Kota juga ikut dihitung sebagai alamat di checklist **Panduan memulai** (lihat bab [profil travel](slug:profil-travel)).\n4. Di bagian **Gambar saat dibagikan**, unggah **Gambar share**: disarankan 1200 x 630 px, maksimal 5 MB. Gambar ini tampil saat link website dikirim di WhatsApp atau media sosial. Gambar tersimpan langsung setelah diunggah.\n5. Klik **Simpan perubahan**.\n\n{{gambar: seo-1.png | Halaman Website > SEO: pratinjau hasil pencarian Google dengan penghitung karakter, bagian Lokasi, dan kotak Gambar share}}\n\n## Yang terjadi di balik layar\n\nWebsite Anda juga menyertakan data terstruktur bertipe TravelAgency, yaitu keterangan tentang travel (nama, alamat, kontak, nomor izin, tautan media sosial) yang dibaca mesin pencari. Datanya diambil dari Profil travel, Identitas, dan halaman SEO ini; tidak ada yang perlu diisi terpisah. Bila **Gambar share** kosong, sistem memakai logo, lalu ikon.\n\n## Cek hasilnya\n\n- Muncul **Perubahan tersimpan**.\n- Pratinjau di atas formulir langsung menampilkan judul dan deskripsi yang Anda tulis.\n- Kirim link website Anda ke diri sendiri lewat WhatsApp untuk melihat kartu pratinjau.\n- Google memerlukan waktu untuk memperbarui hasil pencariannya; perubahan tidak langsung terlihat di sana.\n\n## Kalau bermasalah\n\n- **Penghitung karakter berwarna merah.** Melewati batas 60 (judul) atau 160 (deskripsi); Google biasanya memotong teks yang terlalu panjang.\n- **Deskripsi dikosongkan, tetapi tampil teks lain di Google.** Itu normal: sistem memakai **Ringkasan** dari Website > Identitas, lalu keterangan bawaan.\n- **Website tidak muncul di Google sama sekali.** Travel yang langganannya sudah lewat masa tenggang (disuspend) sengaja tidak ditampilkan di Google, dan pada saat itu data terstruktur serta kontak travel juga dimatikan. Periksa status di **Pengaturan > Langganan**.\n- **\"Gagal mengunggah gambar.\"** Coba lagi dengan file JPG, PNG, atau WebP di bawah 5 MB.\n\n## Lanjut ke\n\n[Lihat website Anda](slug:lihat-website)",
+  "images": {
+   "seo-1.png": {
+    "width": 1280,
+    "height": 1120
+   }
+  }
+ },
+ {
+  "slug": "lihat-website",
+  "title": "Lihat website Anda seperti jamaah",
+  "stage": "tahap-1",
+  "label": "wajib",
+  "labelText": "",
+  "order": 7,
+  "summary": "Buka website travel Anda, periksa tampilannya di HP, dan salin link untuk dibagikan.",
+  "menu": "Beranda (Panduan memulai)",
+  "alias": [
+   "lihat website",
+   "buka website",
+   "link website",
+   "alamat website",
+   "cek tampilan",
+   "salin link",
+   "hp"
+  ],
+  "body": "Langkah terakhir Tahap 1: melihat sendiri apa yang dilihat calon jamaah. Lakukan setelah profil, logo, dan paket pertama siap.\n\n## Langkah\n\n1. Buka **Beranda**. Di kartu **Panduan memulai**, pada tahap **Website siap dilihat jamaah**, cari langkah **Lihat website Anda**.\n2. Klik **Buka website**. Website terbuka di tab baru. Alamatnya berbentuk namatravel.klikumroh.id; bila travel Anda sudah memakai domain sendiri yang aktif, tombol ini membuka domain itu.\n3. Periksa dari atas ke bawah. Beranda website berisi, berurutan:\n   - bagian atas dengan logo dan lencana **Izin PPIU** (bila nomor izin diisi);\n   - banner (atau judul pembuka berwarna bila belum ada banner);\n   - lencana kepercayaan (alumni, rating, jaminan) bila diisi;\n   - **Pilih jadwal umroh Anda**: paling banyak 4 paket terdekat, dengan tautan **Lihat semua**;\n   - **Cerita jamaah yang sudah berangkat** (testimoni);\n   - **Masih ragu? Ini jawabannya** (FAQ);\n   - ajakan **Konsultasi gratis**, ajakan mendaftar sebagai konsultan, lalu footer berisi alamat dan kontak.\n4. Klik salah satu paket untuk melihat halaman detailnya, dengan tab **Fasilitas**, **Akomodasi**, **Jadwal Perjalanan**, dan **Syarat & Ketentuan**.\n5. Bagian bawah layar punya menu **Beranda**, **Paket**, **Chat**, dan **Mitra**.\n\n{{gambar: lihat-website-1.jpg | Beranda website travel di tampilan HP: logo, banner, lencana kepercayaan, dan daftar jadwal paket}}\n\n## Memeriksa tampilan di HP\n\nWebsite dirancang untuk layar HP. Cara termudah: kirim link website ke HP Anda sendiri, lalu buka di sana dan periksa tulisan, logo, warna tombol, dan foto paket. Sebelum itu, salin link:\n\n- Di **Panduan memulai**, tahap **Tambah jamaah**, langkah **Dapatkan prospek pertama** punya tombol **Salin link website**.\n- Di editor paket, tautan **Lihat di website** membuka halaman paket tertentu.\n\n## Bagaimana calon jamaah menghubungi Anda\n\nSemua tombol kontak di website, seperti **Konsultasi gratis**, **Tanya jadwal**, dan **Chat** di menu bawah, membuka formulir minat lebih dulu, bukan langsung ke WhatsApp. Calon jamaah mengisi formulir, datanya masuk ke menu **Prospek** di dashboard Anda, baru kemudian percakapan dilanjutkan. Karena itu nomor WhatsApp di profil tidak dipasang sebagai tombol chat di website.\n\n## Cek hasilnya\n\nLangkah **Lihat website Anda** menjadi **Selesai** setelah Anda menekan **Buka website** (tercatat di browser yang Anda pakai), atau otomatis setelah travel mendapat prospek pertama. Seluruh tahap **Website siap dilihat jamaah** selesai bila kelima langkahnya selesai.\n\n## Kalau bermasalah\n\n- **Tombol Buka website tidak ada.** Alamat website belum diketahui; muat ulang dashboard.\n- **Bagian paket kosong: \"Jadwal paket berikutnya segera diumumkan.\"** Belum ada paket tayang yang tanggal berangkatnya belum lewat. Lihat bab [paket pertama](slug:paket-pertama).\n- **Banner, testimoni, atau FAQ tidak tampil.** Pastikan statusnya **Tampil**, bukan **Disembunyikan**.\n- **Website menampilkan pemberitahuan tidak aktif sementara.** Langganan travel sedang disuspend; periksa **Pengaturan > Langganan**.\n- **Panduan memulai hilang dari Beranda.** Bila Anda klik **Sembunyikan**, kartunya berubah menjadi tombol **Panduan memulai** dengan jumlah langkah selesai, misalnya (3/15). Klik tombol itu untuk menampilkannya lagi.\n\n## Lanjut ke\n\nTahap 1 selesai. Berikutnya Tahap 2, **Siap rekrut agen**: mulai dari [aturan agen](slug:aturan-agen), lalu [komisi per paket](slug:komisi-per-paket).",
+  "images": {
+   "lihat-website-1.jpg": {
+    "height": 1688,
+    "width": 780
+   }
+  }
+ },
+ {
+  "slug": "aturan-agen",
+  "title": "Atur program dan aturan agen",
+  "stage": "tahap-2",
+  "label": "wajib",
+  "labelText": "",
+  "order": 8,
+  "summary": "Tentukan keuntungan, syarat, biaya pendaftaran, Komisi Pembinaan, dan kapan komisi boleh dicairkan sebelum Anda merekrut agen.",
+  "menu": "Pengaturan > Aturan agen",
+  "alias": [
+   "aturan agen",
+   "syarat agen",
+   "biaya pendaftaran agen",
+   "komisi pembinaan",
+   "minimum tarik",
+   "poster rekrutmen",
+   "program agen",
+   "keuntungan agen"
+  ],
+  "body": "Halaman ini menentukan apa yang dilihat calon agen di halaman daftar, berapa yang mereka bayar (boleh nol), dan kapan komisi mereka boleh ditarik. Isi dulu sebelum membagikan link pendaftaran, supaya calon agen langsung paham keuntungan dan syaratnya.\n\n## Langkah\n\n1. Buka **Pengaturan**, lalu pilih bagian **Aturan agen**.\n2. Di bagian **Komisi per jamaah**, tidak ada yang diisi di sini. Besar komisi diatur di setiap paket lewat tautan **Paket** di halaman ini (lihat bab [komisi per paket](slug:komisi-per-paket)).\n3. Di bagian **Komisi Pembinaan** (bonus untuk agen yang merekrut agen lain), centang **Beri Komisi Pembinaan ke perekrut (upline)** bila Anda ingin memakainya. Lalu isi **Persentase dari komisi agen rekrutan**, angka lebih dari 0 sampai 100.\n   - Contoh dari layar: dengan 10%, agen rekrutan yang mendapat komisi Rp 1.000.000 membuat perekrutnya mendapat tambahan Rp 100.000 dari travel. Komisi agen rekrutan tidak dipotong.\n   - Komisi Pembinaan hanya dibukukan bila perekrut berstatus aktif saat closing terjadi.\n4. Di bagian **Pencairan komisi**, pilih salah satu pada **Komisi bisa dicairkan saat**:\n   - **Setelah jamaah lunas**: komisi tertahan sejak DP sampai Anda menandai jamaah lunas. Lebih aman jika jamaah batal.\n   - **Langsung saat DP**: komisi bisa dicairkan begitu prospek closing. Jika closing dibatalkan, komisi dipotong dari komisi berikutnya.\n5. Masih di **Pencairan komisi**, isi **Minimal pencairan** (opsional). Pengajuan pencairan dari agen di bawah angka ini ditolak. Kosongkan bila tidak ada batas.\n6. Di bagian **Pendaftaran agen** (yang dilihat calon agen di halaman daftar):\n   - **Biaya pendaftaran** (opsional). Kosongkan atau isi 0 bila gratis. Bila diisi lebih dari 0, calon agen mentransfer biaya ini lalu mengunggah bukti, dan Anda menyetujuinya di **Agen**, tab **Pendaftaran**.\n   - Bila biaya lebih dari 0, kolom **Bank tujuan**, **Nomor rekening**, dan **Atas nama** muncul dan wajib diisi.\n   - **Keuntungan menjadi agen** (opsional di formulir, tetapi dibutuhkan agar langkah ini dianggap selesai). Tulis satu poin per baris.\n   - **Syarat & ketentuan** (opsional di formulir, juga dibutuhkan agar langkah dianggap selesai). Calon agen wajib menyetujui teks ini saat mendaftar.\n   - **Poster rekrutmen** (opsional): unggah gambar persegi, maksimal 8 MB. Poster tampil di halaman daftar agen dan tersimpan langsung saat diunggah, tanpa menunggu tombol simpan.\n7. Klik **Simpan perubahan**. Tombol **Batalkan** mengembalikan isian ke versi tersimpan terakhir.\n\n{{gambar: aturan-agen-1.png | Halaman Pengaturan > Aturan agen dengan bagian Komisi per jamaah, Komisi Pembinaan, Pencairan komisi, dan Pendaftaran agen}}\n\n## Cek hasilnya\n\n- Setelah menyimpan, muncul tulisan **Perubahan tersimpan**.\n- Di **Beranda**, kartu **Panduan memulai**, tahap **Siap rekrut agen**, langkah **Atur program agen** menjadi **Selesai** bila **Keuntungan menjadi agen** dan **Syarat & ketentuan** sudah terisi. Biaya pendaftaran boleh 0 dan tidak memengaruhi langkah ini.\n- Buka `alamat-website-Anda/agen/daftar` di browser. Di sana tampil biaya (atau tulisan **Pendaftaran mitra gratis**), daftar keuntungan, poster bila ada, dan tautan **Syarat & Ketentuan Kemitraan Agen** bila syarat diisi.\n\n{{gambar: aturan-agen-2.jpg | Halaman daftar agen di website travel (tampilan HP): biaya pendaftaran, daftar keuntungan, dan formulir pendaftaran}}\n\n## Kalau bermasalah\n\n- **Tidak bisa menyimpan, muncul \"Isi persentase antara 0 dan 100.\"** Komisi Pembinaan dicentang tetapi persentasenya kosong atau di luar 0 sampai 100.\n- **Tidak bisa menyimpan, muncul \"Wajib diisi jika ada biaya pendaftaran.\"** Biaya lebih dari 0 tetapi bank, nomor rekening, atau nama pemilik rekening belum diisi.\n- **Tidak bisa menyimpan, muncul \"Isi angka saja, contoh 150000 atau 150.000.\"** Kolom biaya atau minimal pencairan berisi huruf atau tanda lain. Kosongkan bila tidak ada.\n- **Langkah Atur program agen belum selesai padahal biaya sudah diisi.** Yang dihitung hanya **Keuntungan menjadi agen** dan **Syarat & ketentuan**.\n- **Tautan Syarat & Ketentuan tidak tampil di halaman daftar.** Kolom **Syarat & ketentuan** masih kosong.\n- **Perubahan aturan pencairan tidak mengubah komisi yang sudah tercatat.** Komisi yang sudah dibukukan mengikuti aturan saat closing terjadi (lihat bab [pencairan komisi](slug:pencairan-komisi)).\n\n## Lanjut ke\n\n[Isi komisi di setiap paket](slug:komisi-per-paket)",
+  "images": {
+   "aturan-agen-1.png": {
+    "width": 1280,
+    "height": 1790
+   },
+   "aturan-agen-2.jpg": {
+    "height": 1320,
+    "width": 780
+   }
+  }
+ },
+ {
+  "slug": "komisi-per-paket",
+  "title": "Isi komisi di setiap paket",
+  "stage": "tahap-2",
+  "label": "wajib",
+  "labelText": "",
+  "order": 9,
+  "summary": "Isi komisi per jamaah di setiap paket yang tayang, supaya komisi agen benar-benar dibukukan saat prospek closing.",
+  "menu": "Paket",
+  "alias": [
+   "komisi agen",
+   "komisi per jamaah",
+   "upah agen",
+   "komisi kosong",
+   "komisi paket",
+   "atur komisi"
+  ],
+  "body": "Komisi agen ditentukan per paket, bukan satu angka untuk semua paket. Bila komisi sebuah paket kosong, agen yang membawa jamaah paket itu tidak mendapat komisi saat closing. Karena itu setiap paket yang tayang perlu punya komisi lebih dari 0.\n\n## Langkah\n\n1. Buka **Paket**. Kolom **Komisi agen** di daftar menampilkan nominal tiap paket, atau tanda \"—\" bila belum diisi.\n2. Klik paket yang komisinya masih kosong. Anda juga bisa langsung ke sana dari **Beranda**: di **Panduan memulai**, tahap **Siap rekrut agen**, langkah **Atur komisi agen**, klik **Atur komisi** (tombol ini membuka paket tayang pertama yang komisinya kosong).\n3. Di bagian **Harga & keberangkatan**, isi **Komisi agen per jamaah**. Di bawah kolom akan tampil persentasenya terhadap harga per jamaah, misalnya \"x% dari harga\". Komisi tidak boleh melebihi harga paket.\n4. Klik **Simpan perubahan** (untuk paket yang sudah tayang) atau **Simpan** (untuk draf).\n5. Ulangi untuk setiap paket yang tayang.\n\n{{gambar: komisi-per-paket-1.png | Editor paket, bagian Harga & keberangkatan, kolom Komisi agen per jamaah terisi dengan persentase dari harga di bawahnya}}\n\nCara hitungnya: saat prospek yang dibawa agen menjadi Closing, komisi yang dibukukan adalah komisi paket dikalikan jumlah jamaah pada prospek itu. Kapan komisi itu boleh ditarik tergantung aturan di bab [aturan agen](slug:aturan-agen).\n\n## Cek hasilnya\n\n- Di daftar **Paket**, kolom **Komisi agen** semua paket tayang berisi nominal.\n- Di **Beranda**, langkah **Atur komisi agen** menjadi **Selesai** hanya bila ada paket tayang dan semua paket tayang punya komisi lebih dari 0. Paket draf dan paket yang diarsipkan tidak dihitung. Bila Anda menayangkan paket baru tanpa komisi, langkah ini kembali belum selesai.\n- Saat Anda mengubah status prospek berpaket menjadi Closing dan prospek itu dibawa agen, kotak konfirmasi memberi tahu bila komisi paketnya belum diatur.\n\n## Kalau bermasalah\n\n- **Muncul \"Komisi tidak boleh melebihi harga paket.\"** Nominal komisi lebih besar dari harga per jamaah. Turunkan komisinya.\n- **Closing dicatat tetapi agen tidak mendapat komisi.** Muncul peringatan \"Komisi paket ... belum diatur, jadi komisi agen tidak dibukukan.\" Komisi paket kosong atau 0 saat closing. Prospek tanpa paket juga tidak menghasilkan komisi.\n- **Langkah Atur komisi agen tidak selesai.** Masih ada paket tayang yang komisinya kosong atau 0. Cek kolom **Komisi agen** di daftar **Paket**.\n- **Mengubah paket atau jumlah jamaah pada prospek yang sudah Closing.** Ini membukukan koreksi komisi agen dan meminta alasan koreksi (lihat bab [prospek masuk](slug:prospek-masuk)).\n\n## Lanjut ke\n\n[Buat target dan reward untuk agen](slug:target-dan-reward) (opsional), lalu [terima agen pertama](slug:terima-agen)",
+  "images": {
+   "komisi-per-paket-1.png": {
+    "width": 610,
+    "height": 236
+   }
+  }
+ },
+ {
+  "slug": "target-dan-reward",
+  "title": "Buat target dan reward untuk agen",
+  "stage": "tahap-2",
+  "label": "opsional",
+  "labelText": "",
+  "order": 10,
+  "summary": "Pasang target jamaah closing atau agen baru dalam satu periode beserta hadiahnya, lalu akhiri target dan catat siapa yang berhak.",
+  "menu": "Kemitraan > Target & reward",
+  "alias": [
+   "target",
+   "reward",
+   "hadiah agen",
+   "bonus agen",
+   "target agen",
+   "akhiri target",
+   "tandai diberikan"
+  ],
+  "body": "Target mendorong agen aktif sejak bulan pertama. Anda menentukan yang dihitung, jumlah minimal, periode, dan hadiahnya. Agen melihat target yang masih berjalan, progresnya, dan hadiahnya di dashboard agen. Bab ini opsional: agen tetap bisa bekerja tanpa target.\n\n## Langkah\n\n1. Buka **Target & reward** (grup **KEMITRAAN**). Daftar menampilkan kolom **Target**, **Periode**, **Hadiah**, **Agen tercapai**, dan **Status**.\n2. Klik **Buat target**. Isi:\n   - **Nama target** (opsional). Bila kosong, nama dibuat otomatis, misalnya \"10 jamaah closing\".\n   - **Yang dihitung**: **Jamaah closing** atau **Agen baru direkrut**. Pilihan ini tidak bisa diubah setelah target dibuat.\n   - **Jumlah jamaah** (atau **Jumlah agen**): angka bulat lebih dari 0.\n   - **Mulai** dan **Selesai**. Isian awalnya adalah tanggal awal dan akhir bulan ini.\n   - **Hadiah**: wajib diisi, misalnya \"Bonus Rp 2.000.000 atau voucher umroh\".\n3. Klik **Buat target**. Drawer target terbuka.\n4. Selama periode berjalan, drawer menampilkan **Progres agen** (jumlah tercapai per agen). Gunakan **Ubah target** di menu **Aksi target** untuk mengoreksi isiannya, selama target belum diakhiri.\n5. Setelah periode lewat, status target menjadi **Perlu ditutup** dan muncul peringatan di atas daftar. Buka target itu lalu klik **Akhiri target**. Sistem mencatat agen yang mencapai target sebagai penerima hadiah.\n6. Di target yang sudah **Ditutup**, daftar **Agen yang berhak mendapat hadiah** muncul. Setelah Anda memberikan hadiahnya di luar aplikasi, klik **Tandai diberikan** pada agen itu (catatan opsional, misalnya ditransfer ke rekening mana). Statusnya menjadi **Hadiah diberikan**.\n7. Menu **Aksi target** juga punya **Unduh CSV pencapaian** (untuk target yang sudah ditutup) dan **Hapus target**.\n\n{{gambar: target-dan-reward-1.png | Daftar Target & reward dengan kolom Target, Periode, Hadiah, Agen tercapai, dan Status}}\n\n{{gambar: target-dan-reward-2.png | Drawer target yang berjalan, berisi Yang dihitung, Minimal, Hadiah, dan bar Progres agen}}\n\nStatus target yang tampil: **Belum mulai**, **Berjalan**, **Perlu ditutup**, dan **Ditutup**.\n\n## Cek hasilnya\n\n- Target baru muncul di daftar dengan status **Berjalan** (atau **Belum mulai** bila periodenya di depan).\n- Di **Beranda**, langkah **Buat target & reward** pada tahap **Siap rekrut agen** menjadi **Selesai** bila travel punya minimal satu target.\n- Agen melihat bagian **Target dan reward** di dashboard agennya selama periode target belum lewat.\n\n## Kalau bermasalah\n\n- **Tidak bisa menyimpan, \"Isi angka bulat lebih dari 0.\"** Jumlah target kosong, desimal, atau 0.\n- **\"Tulis hadiah agar agen tahu apa yang dikejar.\"** Kolom **Hadiah** masih kosong.\n- **\"Tanggal selesai harus sama atau setelah tanggal mulai.\"** Perbaiki periode.\n- **Mengakhiri sebelum periode selesai.** Sistem meminta konfirmasi **Tetap akhiri sekarang**. Hanya agen yang sudah mencapai target saat itu yang dicatat berhak hadiah, progres sesudahnya tidak dihitung, dan target tidak bisa diubah lagi.\n- **Tidak bisa menghapus target.** Target yang sudah punya catatan pencapaian disimpan sebagai riwayat, jadi menu **Hapus target** tidak tersedia untuknya.\n- **Hadiah target jamaah closing belum bisa ditandai diberikan.** Di daftar penerima tertulis \"n jamaah belum lunas\". Sistem menahan hadiah target berbasis closing selama masih ada jamaah yang dihitung namun baru DP, kecuali travel memilih komisi cair saat DP. Tandai jamaah lunas (atau batalkan closing-nya) dulu. Untuk target **Agen baru direkrut**, aturan ini tidak berlaku.\n- **Hadiah ditolak karena capaian turun.** Bila ada closing yang dibatalkan setelah target ditutup dan capaian agen kini di bawah target, sistem menolak penandaan hadiah.\n\n## Lanjut ke\n\n[Terima agen pertama](slug:terima-agen)",
+  "images": {
+   "target-dan-reward-1.png": {
+    "width": 1280,
+    "height": 480
+   },
+   "target-dan-reward-2.png": {
+    "width": 1280,
+    "height": 800
+   }
+  }
+ },
+ {
+  "slug": "terima-agen",
+  "title": "Bagikan link pendaftaran dan setujui agen",
+  "stage": "tahap-2",
+  "label": "wajib",
+  "labelText": "",
+  "order": 11,
+  "summary": "Bagikan link pendaftaran ke calon agen, lalu setujui atau tolak pendaftaran yang masuk dan kelola agen yang sudah aktif.",
+  "menu": "Kemitraan > Agen",
+  "alias": [
+   "rekrut agen",
+   "daftar agen",
+   "setujui agen",
+   "link pendaftaran",
+   "agen baru",
+   "mitra agen",
+   "tolak agen",
+   "nonaktifkan agen",
+   "reset password agen"
+  ],
+  "body": "Agen adalah orang yang membagikan link referral dan membawa calon jamaah ke travel Anda. Setiap pendaftaran agen menunggu persetujuan Anda dulu. Setelah disetujui, agen bisa langsung membagikan link referralnya.\n\n## Sebelum mulai\n\nAtur dulu program agen (bab [aturan agen](slug:aturan-agen)) dan komisi paket (bab [komisi per paket](slug:komisi-per-paket)), supaya calon agen melihat keuntungan dan syarat yang benar.\n\n## Langkah\n\n1. Buka **Agen** (grup **KEMITRAAN**). Klik **Salin link pendaftaran agen**. Linknya berbentuk `alamat-website-Anda/agen/daftar`. Tombol yang sama ada di **Beranda** pada langkah **Bagikan link pendaftaran agen** (**Salin link pendaftaran**), dan di tab **Pendaftaran**.\n2. Kirim link itu ke calon agen, misalnya alumni jamaah, ustadz, atau komunitas.\n3. Saat ada yang mendaftar, Anda mendapat notifikasi \"Agen baru mendaftar\", dan **Beranda** menampilkan \"agen mendaftar\" pada **Perlu tindakan**. Buka tab **Pendaftaran** (angkanya menunjukkan jumlah yang menunggu).\n4. Klik nama pendaftar. Drawer menampilkan WhatsApp, Email, Domisili, **Direkrut oleh** (nama agen pengajak, atau \"Langsung ke travel\"), dan rekening untuk komisi bila sudah ada.\n5. Bila travel Anda memakai biaya pendaftaran, bagian **Biaya pendaftaran** menampilkan statusnya: **Belum bayar**, **Bukti perlu dicek**, atau **Terverifikasi**, beserta foto bukti transfer. Cek dulu bahwa uangnya benar-benar masuk ke rekening travel. Bila travel tidak memakai biaya, kolom **Biaya pendaftaran** di daftar tertulis **Gratis** dan bagian ini tidak tampil di drawer.\n6. Klik **Setujui agen**, lalu konfirmasi. Atau klik **Tolak**, isi **Alasan penolakan** (opsional, tetapi dikirim ke agen agar ia bisa memperbaiki), lalu **Tolak pendaftaran**.\n7. Tombol **Chat WhatsApp** di drawer membuka percakapan dengan pendaftar bila nomornya ada.\n\n{{gambar: terima-agen-1.png | Tab Pendaftaran dengan daftar calon agen, dan drawer calon agen berisi WhatsApp, Direkrut oleh, rekening, serta tombol Tolak dan Setujui agen}}\n\nMenyetujui tanpa bukti transfer diperingatkan oleh sistem: \"Setujui hanya jika pembayaran sudah Anda terima di luar aplikasi.\"\n\n### Pendaftaran yang ditolak\n\nDi tab **Pendaftaran**, buka **Filter**, pilih **Status**: **Menunggu persetujuan** atau **Ditolak**. Pendaftaran yang ditolak masih bisa disetujui kemudian dengan **Setujui agen**.\n\n### Mengelola agen yang sudah aktif\n\nTab **Agen** menampilkan setiap agen yang berstatus **Aktif** atau **Nonaktif** beserta kolom **Prospek**, **Jamaah closing**, **Konversi**, **Rekrutan**, **Komisi**, **Syiar 7 hari**, **Lencana**, dan **Prospek terakhir**. Di atasnya ada ringkasan jaringan: **Terdaftar**, **Aktif**, **Produktif**, dan **Jamaah closing**. Klik satu agen untuk membuka halamannya:\n\n- **Performa**, **Agen yang diajak**, **Syiar harian**, **Saldo komisi** (**Siap dicairkan**, **Diproses**, **Tertahan**, **Potensi**), dan **Riwayat komisi**.\n- Menu **Aksi agen**: **Ubah profil**, **Reset password** (agen keluar dari semua perangkat dan masuk dengan password baru yang Anda kirim lewat WhatsApp, minimal 8 karakter), dan **Nonaktifkan agen** atau **Aktifkan kembali**.\n- Agen **Nonaktif**: prospek baru dari link referralnya tidak lagi tercatat atas namanya, ia tidak mendapat Komisi Pembinaan dari rekrutannya, dan ia keluar dari semua perangkat. Saldo komisinya tetap tersimpan.\n\n## Seperti apa alur dari sisi agen\n\n1. Agen membuka link pendaftaran. Di halaman **Pendaftaran Mitra Agen** ia melihat poster (bila ada), biaya atau **Pendaftaran mitra gratis**, dan daftar keuntungan.\n2. Ia mengisi **Nama Lengkap**, **Nomor WhatsApp**, **Alamat Email**, **Domisili (Kabupaten / Kota)**, dan **Password Akun** (minimal 8 karakter). Bila ada syarat dan ketentuan, ia menyetujuinya dengan menekan **Daftar Mitra Agen**. Bila ia datang lewat link agen lain, tertulis **Anda diajak oleh** nama pengajaknya.\n3. Setelah mendaftar, ia masuk ke halaman **Status Kemitraan**. Bila ada biaya, ia melihat jumlah transfer dan rekening travel lalu mengirim foto bukti transfer lewat **Kirim bukti transfer**. Sesudah itu statusnya **Pembayaran sedang diverifikasi**; bila gratis, **Pendaftaran sedang ditinjau**.\n4. Bila ditolak, ia melihat **Alasan dari admin**. Agen yang membayar bisa **Kirim ulang bukti transfer**.\n5. Bila disetujui, halaman berubah menjadi **Kemitraan aktif** dengan kode referral dan link referral berbentuk `alamat-website-Anda/ref/KODE`. Tombol **Salin link referral** dan **Bagikan ke WhatsApp** tersedia, begitu juga tautan **Buka dasbor agen**. Setiap calon jamaah yang masuk lewat link itu tercatat atas nama agen. Kode agen diingat browser pengunjung selama 30 hari.\n\n{{gambar: terima-agen-2.jpg | Halaman Status Kemitraan di HP agen dengan kode referral, tombol Salin link referral, dan Bagikan ke WhatsApp}}\n\n## Cek hasilnya\n\n- Setelah **Setujui agen**, muncul tulisan \"[nama] sekarang agen aktif.\" dan agen pindah dari tab **Pendaftaran** ke tab **Agen** dengan status **Aktif**.\n- Di **Beranda**, langkah **Bagikan link pendaftaran agen** menjadi **Selesai** begitu ada pendaftar (status apa pun), dan **Setujui agen pertama** menjadi **Selesai** begitu ada agen aktif.\n- Agen mendapat notifikasi di portalnya (\"Pendaftaran agen disetujui\").\n\n## Kalau bermasalah\n\n- **Tombol Salin link pendaftaran agen tidak ada.** Alamat website belum diketahui; muat ulang dashboard.\n- **Calon agen tidak bisa mendaftar, halaman menulis \"Pendaftaran agen sedang ditutup\".** Layanan travel sedang ditangguhkan (lihat bab [langganan dan pembayaran](slug:langganan-dan-pembayaran)).\n- **Pendaftar gagal dengan \"Email atau nomor telepon sudah terdaftar\".** Email atau nomor itu sudah dipakai akun agen lain.\n- **Setujui atau Tolak gagal.** Admin lain sudah memutuskan pendaftaran yang sama. Daftar dimuat ulang dan menampilkan status sebenarnya.\n- **Pendaftar yang sudah aktif tidak bisa ditolak.** Hanya pendaftaran yang menunggu persetujuan yang bisa ditolak; agen aktif dinonaktifkan lewat **Nonaktifkan agen**.\n- **Prospek dari link agen tidak muncul atas nama agen.** Cek status agen: yang **Nonaktif** tidak lagi dicatat.\n\n## Lanjut ke\n\n[Pencairan komisi agen](slug:pencairan-komisi), lalu [prospek yang masuk](slug:prospek-masuk)",
+  "images": {
+   "terima-agen-1.png": {
+    "width": 1280,
+    "height": 900
+   },
+   "terima-agen-2.jpg": {
+    "height": 1200,
+    "width": 780
+   }
+  }
+ },
+ {
+  "slug": "pencairan-komisi",
+  "title": "Proses pencairan komisi agen",
+  "stage": "tahap-2",
+  "label": "wajib",
+  "labelText": "",
+  "order": 12,
+  "summary": "Setujui permintaan tarik saldo agen, transfer ke rekeningnya di luar aplikasi, lalu tandai sudah ditransfer; pahami kenapa komisi bisa tertahan sampai jamaah lunas.",
+  "menu": "Kemitraan > Pencairan komisi",
+  "alias": [
+   "pencairan",
+   "tarik saldo",
+   "bayar komisi",
+   "komisi agen belum cair",
+   "lunas",
+   "komisi tertahan",
+   "tandai sudah ditransfer",
+   "cairkan saldo agen"
+  ],
+  "body": "Agen menarik komisinya dengan mengajukan pencairan di portalnya. Di sini Anda menyetujui atau menolak pengajuan itu, lalu mentransfer uangnya sendiri ke rekening agen dan menandainya di dashboard. KlikUmroh tidak memindahkan uang: transfer dilakukan Anda di luar aplikasi.\n\n## Kapan komisi bisa ditarik\n\nKomisi dibukukan saat prospek menjadi Closing (jamaah sudah membayar DP). Bisa tidaknya ditarik ditentukan aturan di **Pengaturan > Aturan agen**, bagian **Pencairan komisi** (lihat bab [aturan agen](slug:aturan-agen)):\n\n- **Setelah jamaah lunas**: komisi **tertahan** sejak DP. Komisi baru bisa ditarik setelah Anda menandai jamaah itu lunas.\n- **Langsung saat DP**: komisi langsung bisa ditarik begitu prospek Closing.\n\nLunas bukan status di alur prospek. Lunas adalah penanda terpisah pada prospek yang berstatus Closing, yang Anda atur lewat tombol **Tandai lunas** di drawer prospek (lihat bab [prospek masuk](slug:prospek-masuk)). Begitu jamaah ditandai lunas, komisi agen yang tertahan menjadi **Siap dicairkan** dan agen mendapat notifikasi \"Komisi Anda sekarang bisa dicairkan\".\n\nSaldo agen terlihat di halaman agen (**Kemitraan > Agen**, klik nama agen), bagian **Saldo komisi**: **Siap dicairkan**, **Diproses** (pengajuan yang belum selesai), **Tertahan** (komisi dari jamaah yang belum lunas), dan **Potensi** (perkiraan dari prospek yang belum closing, belum pasti).\n\n## Langkah\n\n1. Buka **Pencairan komisi** (grup **KEMITRAAN**). Di atas ada ringkasan **Perlu disetujui**, **Siap ditransfer**, **Ditransfer bulan ini**, dan **Total ditransfer**. Saat ada pengajuan baru, Anda mendapat notifikasi \"Pengajuan pencairan baru\" dan **Beranda** menampilkan \"pencairan komisi\" pada **Perlu tindakan**.\n2. Secara bawaan daftar menampilkan filter **Perlu tindakan**. Opsi lain di **Filter > Status**: **Menunggu persetujuan**, **Siap ditransfer**, **Sudah ditransfer**, **Ditolak**, dan **Semua**. Kolom daftar: **Agen**, **Jumlah**, **Rekening tujuan**, **Diajukan**, **Status**.\n3. Untuk pengajuan berstatus **Menunggu persetujuan**, klik **Setujui**, lalu konfirmasi. Atau klik **Tolak**, isi **Alasan penolakan** (wajib, dikirim ke agen), lalu **Tolak pencairan**. Saldo kembali ke **Siap dicairkan** milik agen.\n4. Pengajuan yang disetujui berubah menjadi **Siap ditransfer**. Transfer sejumlah yang tertera ke **Rekening tujuan** di luar aplikasi. Ikon salin di samping nomor rekening memudahkan Anda menyalinnya.\n5. Setelah uang terkirim, klik **Tandai sudah ditransfer** dan konfirmasi **Sudah ditransfer**. Status menjadi **Sudah ditransfer** dan agen mendapat notifikasi berisi bank dan nama pemilik rekening.\n6. Bila transfer gagal (misalnya rekening salah) pada pengajuan **Siap ditransfer**, klik **Batalkan**, isi **Alasan pembatalan** (wajib, dikirim ke agen), lalu **Batalkan pencairan**. Jumlahnya kembali ke saldo siap cair agen dan agen bisa mengajukan ulang.\n\n{{gambar: pencairan-komisi-1.png | Halaman Pencairan komisi dengan ringkasan di atas dan daftar pengajuan berstatus Menunggu persetujuan dan Siap ditransfer, lengkap dengan tombol Setujui, Tolak, Tandai sudah ditransfer}}\n\n### Mencairkan atas nama agen\n\nDari halaman agen, tombol **Cairkan saldo agen** (di bagian **Saldo komisi**) mengajukan pencairan untuk seluruh saldo **Siap dicairkan** agen itu ke rekening yang tersimpan di profilnya. Pengajuan ini kemudian diproses seperti biasa di **Pencairan komisi**: setujui, transfer, tandai sudah ditransfer. Tombol hanya muncul bila ada saldo siap cair dan tidak ada pengajuan lain yang sedang diproses.\n\n### Aturan yang berlaku untuk pengajuan agen\n\n- Agen hanya bisa punya satu pengajuan yang sedang diproses (**Menunggu persetujuan** atau **Siap ditransfer**) pada satu waktu.\n- Jumlah yang diajukan tidak boleh melebihi saldo siap cair, dan tidak boleh di bawah **Minimal pencairan** bila Anda mengisinya. Minimal ini tidak berlaku untuk **Cairkan saldo agen** yang Anda ajukan dari halaman agen.\n- Saat Anda menyetujui atau menandai sudah ditransfer, sistem mengecek ulang bahwa saldo agen masih mencukupi. Bila tidak (misalnya ada closing dibatalkan), proses ditolak dengan penjelasan.\n- Bila closing dibatalkan, komisinya dikoreksi. Bagian yang sudah sempat cair dipotong dari komisi agen berikutnya.\n\n## Cek hasilnya\n\n- Pengajuan yang selesai berstatus **Sudah ditransfer** dan masuk hitungan **Ditransfer bulan ini** dan **Total ditransfer**.\n- Di halaman agen, **Riwayat komisi** menampilkan pencairannya beserta statusnya, dan alasan bila ditolak.\n- Setiap perubahan status (disetujui, ditolak, dibatalkan, ditransfer) dikirim ke agen sebagai notifikasi di portalnya.\n\n## Kalau bermasalah\n\n- **Komisi agen belum bisa dicairkan padahal prospeknya sudah Closing.** Aturan travel adalah **Setelah jamaah lunas** dan jamaahnya belum ditandai lunas. Komisi ada di **Tertahan**. Tandai lunas di drawer prospek.\n- **\"Pengajuan ini tidak bisa disetujui karena statusnya ...\"** atau pesan serupa. Admin lain sudah memproses pengajuan yang sama; daftar dimuat ulang dan menampilkan status sebenarnya.\n- **Tombol Cairkan saldo agen tidak muncul.** Tidak ada saldo siap cair, atau agen masih punya pengajuan yang sedang diproses.\n- **\"Data rekening agen belum lengkap.\"** Saat Anda mencairkan atas nama agen, bank, nomor rekening, atau nama pemilik di profil agen belum lengkap. Minta agen mengajukan sendiri dari portalnya; rekening yang ia isi saat mengajukan tersimpan untuk pengajuan berikutnya.\n- **Agen berstatus Nonaktif tidak bisa mengajukan sendiri.** Anda tetap bisa mencairkan atas namanya lewat **Cairkan saldo agen**.\n\n## Lanjut ke\n\n[Prospek yang masuk dan status pipeline](slug:prospek-masuk)",
+  "images": {
+   "pencairan-komisi-1.png": {
+    "width": 1440,
+    "height": 820
+   }
+  }
+ },
+ {
+  "slug": "prospek-masuk",
+  "title": "Kelola prospek yang masuk",
+  "stage": "tahap-3",
+  "label": "wajib",
+  "labelText": "",
+  "order": 13,
+  "summary": "Lihat dari mana calon jamaah datang, ubah statusnya dari Baru sampai Closing, tandai lunas, dan unduh daftar prospek ke CSV.",
+  "menu": "Penjualan > Prospek",
+  "alias": [
+   "prospek",
+   "calon jamaah",
+   "status prospek",
+   "closing",
+   "form minat",
+   "bukti transfer",
+   "lunas",
+   "tandai lunas",
+   "unduh csv",
+   "tidak lanjut"
+  ],
+  "body": "Prospek adalah calon jamaah yang meninggalkan datanya. Menu **Prospek** adalah tempat kerja utama Anda: semua calon jamaah dari website, iklan, dan agen masuk ke satu daftar, dan di sinilah statusnya Anda geser sampai Closing.\n\n## Dari mana prospek datang\n\n- **Website**: pengunjung mengisi formulir minat. Semua tombol kontak di website membuka formulir ini lebih dulu, tidak langsung ke WhatsApp.\n- **Iklan**: formulir yang diisi pengunjung yang datang dari iklan. Kampanyenya tercatat di drawer prospek.\n- **Agen**: pengunjung yang masuk lewat link referral agen, atau calon jamaah yang dicatat manual oleh agen. Prospek tercatat atas nama agen hanya bila agen itu berstatus aktif.\n\nDi daftar, kolom **Kanal** menampilkan **Website**, **Iklan**, atau **Agen**. Semua prospek baru berstatus **Baru**, dan Anda mendapat notifikasi \"Prospek baru\".\n\nBila orang yang sama (nomor WhatsApp yang sama) mengisi lagi saat prospeknya masih berjalan, sistem tidak membuat prospek kedua. Prospek lama tetap dipakai, kolom yang kosong dilengkapi dari isian baru, catatan sistem ditambahkan, dan Anda mendapat notifikasi \"Prospek mendaftar lagi\". Bila nomor itu ternyata sudah Closing, prospek baru diberi catatan peringatan dan notifikasi \"Nomor sudah pernah closing\", agar komisi tidak dibayar dua kali.\n\n## Status prospek\n\nStatus berurutan: **Baru**, **Dihubungi**, **Tertarik**, **Closing**, dan **Tidak lanjut**.\n\n- **Closing** berarti jamaah sudah membayar DP. Setelah Closing, status tidak bisa diubah ke status lain; gunakan **Batalkan closing** bila jamaah batal.\n- **Lunas** bukan status. Lunas adalah penanda terpisah pada prospek **Closing**: tertulis **Sudah DP, menunggu lunas** atau **Lunas**. Penanda ini yang melepas komisi agen yang tertahan (lihat bab [pencairan komisi](slug:pencairan-komisi)).\n\n## Langkah\n\n1. Buka **Prospek**. Di atas daftar ada tab **Semua**, **Baru**, **Dihubungi**, **Tertarik**, **Closing**, dan **Tidak lanjut**, masing-masing dengan jumlahnya. Di paling atas ada ringkasan 30 hari terakhir: **Prospek masuk**, **Jamaah closing**, **Konversi**, dan **Potensi pipeline**.\n2. Untuk mempersempit daftar, pakai kotak cari (nama, nomor WhatsApp, domisili) dan **Filter**: **Kanal**, **Agen**, **Paket**, **Rencana berangkat**, dan **Pelunasan** (**DP, menunggu lunas** atau **Lunas**, berlaku untuk prospek Closing). Tombol **Reset** mengembalikan semua filter.\n3. Klik satu baris. Drawer prospek terbuka. Bagian **Status** punya tombol untuk setiap status.\n4. Pindahkan statusnya sesuai perkembangan:\n   - **Dihubungi**: setelah Anda menghubungi calon jamaah (tombol **Hubungi via WhatsApp** di bagian bawah drawer membuka chat di WhatsApp; statusnya tetap Anda ubah sendiri).\n   - **Tertarik**: bila prospek belum punya paket atau jumlah jamaah, sistem meminta yang belum ada dulu.\n   - **Closing**: sistem meminta paket dan jumlah jamaah bila belum ada, lalu meminta konfirmasi. Bila prospek dibawa agen dan komisi paketnya sudah diatur, komisi langsung dibukukan.\n   - **Tidak lanjut**: pilih **Alasan** (**Harga tidak cocok**, **Jadwal tidak cocok**, **Dana belum siap**, **Memilih travel lain**, **Tidak merespons**, atau **Lainnya**) dan tambahkan **Keterangan**; untuk **Lainnya** keterangan wajib.\n5. Untuk prospek Closing yang jamaahnya sudah melunasi pembayaran, klik **Tandai lunas** lalu konfirmasi. Komisi agen yang tertahan menjadi siap dicairkan. **Batalkan closing** mengubah status menjadi Tidak lanjut (batal setelah DP), butuh alasan, dan membatalkan komisi agen untuk prospek itu.\n6. Untuk mengoreksi data, klik **Edit data** (nama, nomor WhatsApp, paket, jumlah jamaah, rencana berangkat, domisili). Pada prospek Closing, mengubah paket atau jumlah jamaah membukukan koreksi komisi agen dan meminta **Alasan koreksi**.\n7. Tulis **Catatan** (tombol **Simpan catatan**) untuk menyimpan hasil percakapan. Catatan tampil bagi tim dan agen. **Riwayat status** di bawahnya mencatat siapa mengubah apa dan kapan.\n\n{{gambar: prospek-masuk-1.png | Halaman Prospek dengan tab status, filter, dan daftar prospek berkolom Nama, Paket, Kanal, Masuk, Status}}\n\n{{gambar: prospek-masuk-2.png | Drawer prospek: tombol status Baru sampai Tidak lanjut, kartu Sudah DP menunggu lunas dengan tombol Tandai lunas, lalu data paket dan agen}}\n\n### Bukti pembayaran dari agen\n\nAgen bisa mengirim bukti transfer DP atau pelunasan dari portalnya. Bukti itu muncul di drawer prospek sebagai **Bukti DP dari agen** atau **Bukti pelunasan dari agen**, lengkap dengan fotonya (klik untuk memperbesar), nama agen, waktu, dan jumlah bila diisi. Cek dulu uangnya benar-benar masuk, lalu klik **Setujui closing** atau **Setujui lunas**; hasilnya sama persis dengan Anda mengubah status Closing atau menekan **Tandai lunas** sendiri. Bila bukti tidak sesuai, klik **Tolak** dan isi **Alasan**; agen menerima alasan itu dan bisa mengirim bukti yang benar. Di **Beranda**, bukti yang menunggu muncul sebagai \"bukti pembayaran\" pada **Perlu tindakan**.\n\n### Unduh ke CSV\n\nKlik **Unduh CSV** di kanan atas daftar. File berisi prospek sesuai tab dan filter yang sedang aktif, dengan kolom antara lain Nama, No. WhatsApp, Paket, Jumlah Jamaah, Sumber, Agen, Status, Tanggal Closing, dan Tanggal Lunas.\n\n## Cek hasilnya\n\n- Prospek pindah ke tab status yang baru dan angka di tab ikut berubah.\n- Riwayat status di drawer menambah satu baris untuk setiap perubahan.\n- Prospek Closing menampilkan **Sudah DP, menunggu lunas** atau **Lunas**; setelah **Tandai lunas**, tertulis tanggal ditandai lunas.\n- Di **Beranda**, langkah **Dapatkan prospek pertama** menjadi **Selesai** begitu ada prospek.\n\n## Kalau bermasalah\n\n- **Status Closing tidak bisa diubah lagi.** Memang dikunci. Pakai **Batalkan closing** bila jamaah batal.\n- **\"Paket belum dipilih.\"** atau **\"Jumlah jamaah harus angka bulat 1 sampai 50.\"** Lengkapi paket dan jumlah jamaah di dialog sebelum Tertarik atau Closing.\n- **Muncul \"Komisi paket ... belum diatur, jadi komisi agen tidak dibukukan.\"** Isi komisi di paket (bab [komisi per paket](slug:komisi-per-paket)). Untuk menghindari ini, isi komisi sebelum closing.\n- **Perubahan gagal karena admin lain sudah mengubah prospek yang sama.** Drawer dimuat ulang dan menampilkan keadaan terbaru; ulangi bila perlu.\n- **Prospek tidak bisa dihapus.** Prospek Closing, prospek yang pernah Closing lalu dibatalkan, dan prospek yang punya riwayat komisi hanya bisa dihapus data pribadinya lewat menu **Aksi lain > Hapus data pribadi** (untuk permintaan penghapusan data jamaah). Prospek lain, misalnya data spam atau uji, bisa dihapus lewat **Hapus prospek**.\n- **Tampil \"Data pribadi dihapus\".** Nama, nomor, dan catatan prospek itu sudah dihapus atas permintaan jamaah; status, paket, dan riwayat komisi tetap tersimpan.\n\n## Lanjut ke\n\n[Tindak lanjut cepat](slug:tindak-lanjut-cepat)",
+  "images": {
+   "prospek-masuk-1.png": {
+    "width": 1280,
+    "height": 800
+   },
+   "prospek-masuk-2.png": {
+    "width": 1280,
+    "height": 900
+   }
+  }
+ },
+ {
+  "slug": "tindak-lanjut-cepat",
+  "title": "Hubungi prospek baru dengan cepat",
+  "stage": "tahap-3",
+  "label": "disarankan",
+  "labelText": "",
+  "order": 14,
+  "summary": "Pantau prospek yang belum dihubungi dan prospek yang sudah tertarik lewat Beranda dan menu Prospek, lalu ubah statusnya ke Dihubungi setelah Anda menghubungi.",
+  "menu": "Prospek",
+  "alias": [
+   "follow up",
+   "tindak lanjut",
+   "hubungi prospek",
+   "prospek panas",
+   "prospek lama tidak dihubungi",
+   "belum dihubungi",
+   "prospek tertarik"
+  ],
+  "body": "Calon jamaah baru mengisi formulir saat minatnya sedang tinggi. Semakin lama prospek dibiarkan berstatus **Baru**, semakin besar kemungkinan ia memilih travel lain. Dashboard menandai prospek yang belum disentuh supaya tidak terlewat, dan statusnya Anda ubah sendiri begitu sudah dihubungi.\n\n## Cara dashboard mengingatkan\n\n- **Beranda, bagian Perlu tindakan.** Item \"belum dihubungi\" (keterangan **Status Baru**) menghitung semua prospek yang masih berstatus **Baru**. Klik item itu untuk langsung ke daftar prospek **Baru**.\n- **Prospek tertarik.** Item \"prospek tertarik\" pada bagian yang sama menghitung prospek berstatus **Tertarik** yang belum Closing, lengkap dengan jumlah jamaah dan potensi nilainya. Ini calon yang paling dekat dengan pembayaran, jadi layak Anda dahulukan setelah prospek baru. Klik untuk membuka daftarnya.\n- **Spanduk di menu Prospek.** Di menu **Prospek** muncul peringatan \"n prospek baru belum dihubungi lebih dari 24 jam\" bila ada prospek yang berstatus **Baru** lebih dari 24 jam sejak masuk. Tombol **Lihat prospek** membuka tab **Baru**.\n- **Notifikasi.** Setiap prospek baru mengirim notifikasi \"Prospek baru\" ke admin travel, dan ke agen pemilik link bila prospeknya dibawa agen. Bila orang yang sama mengisi formulir lagi, admin dan agen pemilik mendapat notifikasi bahwa ia menghubungi lagi dan perlu di-follow up.\n- **Panduan memulai.** Di tahap **Tambah jamaah**, langkah **Tindak lanjuti prospek** (petunjuk: hubungi prospek baru lalu ubah statusnya ke Dihubungi) menjadi **Selesai** begitu ada prospek yang statusnya sudah lewat **Baru**.\n\n{{gambar: tindak-lanjut-cepat-1.png | Beranda bagian Perlu tindakan dengan item belum dihubungi, prospek tertarik, dan pencairan komisi}}\n\n{{gambar: tindak-lanjut-cepat-2.png | Menu Prospek dengan spanduk kuning prospek baru belum dihubungi lebih dari 24 jam dan tombol Lihat prospek}}\n\n## Langkah\n\n1. Buka **Beranda** dan lihat **Perlu tindakan**. Klik item \"belum dihubungi\" untuk membuka tab **Baru** di **Prospek**.\n2. Klik satu prospek. Di bagian bawah drawer, klik **Hubungi via WhatsApp** untuk membuka percakapan dengan calon jamaah.\n3. Sesudah Anda menghubunginya, kembali ke drawer dan klik **Dihubungi** di bagian **Status**. Perubahan ini tidak otomatis: membuka WhatsApp saja tidak mengubah status.\n4. Tulis hasil percakapan di **Catatan** (misalnya paket yang diminati atau kapan ia bisa dihubungi lagi), lalu klik **Simpan catatan**.\n5. Bila ia menunjukkan minat pada paket tertentu, ubah status ke **Tertarik** dan pilih paketnya. Bila tidak berlanjut, pilih **Tidak lanjut** dan **Alasan**-nya (lihat bab [prospek masuk](slug:prospek-masuk)).\n\n## Cek hasilnya\n\n- Prospek pindah dari tab **Baru** ke **Dihubungi**, dan angka pada tab berubah.\n- Angka \"belum dihubungi\" di **Beranda** dan spanduk di **Prospek** berkurang.\n- Prospek yang dibawa agen: agen mendapat notifikasi perubahan status calon jamaahnya.\n\n## Kalau bermasalah\n\n- **Spanduk 24 jam tidak muncul.** Spanduk hanya tampil bila ada prospek berstatus **Baru** lebih dari 24 jam, dan disembunyikan saat Anda sedang melihat tab **Baru**.\n- **Item \"belum dihubungi\" masih ada setelah Anda menghubungi.** Statusnya belum diubah ke **Dihubungi**. Item ini menghitung status, bukan percakapan yang pernah terjadi.\n- **Tidak ada tombol Hubungi via WhatsApp.** Data pribadi prospek itu sudah dihapus atas permintaan jamaah, sehingga tombolnya tidak tersedia.\n\n## Lanjut ke\n\n[Pasang domain sendiri](slug:domain-sendiri) atau [undang tim](slug:undang-tim) agar prospek bisa ditangani bersama",
+  "images": {
+   "tindak-lanjut-cepat-1.png": {
+    "width": 974,
+    "height": 128
+   },
+   "tindak-lanjut-cepat-2.png": {
+    "width": 1280,
+    "height": 470
+   }
+  }
+ },
+ {
+  "slug": "langganan-dan-pembayaran",
+  "title": "Bayar dan perpanjang langganan",
+  "stage": "lanjutan",
+  "label": "wajib",
+  "labelText": "Wajib dibaca",
+  "order": 15,
+  "summary": "Cara membayar aktivasi, memperpanjang langganan, memakai kupon, dan apa yang terjadi pada website kalau langganan lewat masa aktif.",
+  "menu": "Pengaturan > Langganan",
+  "alias": [
+   "langganan",
+   "bayar",
+   "invoice",
+   "tagihan",
+   "kupon",
+   "suspend",
+   "ditangguhkan",
+   "website mati",
+   "masa tenggang",
+   "perpanjang",
+   "trial",
+   "bukti transfer"
+  ],
+  "body": "Langganan menentukan apakah website travel Anda tampil untuk calon jamaah. Kalau masa aktif habis dan tidak diperpanjang, website berhenti tampil, jadi bab ini wajib dibaca sebelum Anda mulai promosi.\n\n## Sebelum mulai\n\n- Menu **Langganan** hanya muncul untuk akun berperan **PIC**. Akun berperan Admin tidak melihat menunya; kalau dibuka lewat alamat langsung, Admin dikembalikan ke **Profil travel**. Peran dijelaskan di [Undang tim](slug:undang-tim).\n- Anda perlu foto atau tangkapan layar bukti transfer (JPG, PNG, atau WebP, maksimal 10 MB).\n\n## Langkah\n\n### Pembayaran pertama (aktivasi)\n\nTravel yang baru mendaftar berstatus **Belum aktif**. Selama belum aktif, hanya halaman pembayaran yang bisa dibuka; menu lain mengarahkan Anda kembali ke tagihan. Website dan dashboard terbuka penuh setelah pembayaran diverifikasi.\n\n1. Buka **Pengaturan > Langganan**. Bila belum ada tagihan, pilih paket di bagian **Pilih paket aktivasi**.\n2. Isi **Kode kupon** bila punya, lalu klik **Pakai** (lihat bagian kupon di bawah).\n3. Cek rincian **Total**, lalu klik **Lanjut ke pembayaran**.\n4. Di halaman invoice, transfer ke rekening yang tertera di bagian **Transfer bank**. Salin jumlahnya dengan tombol salin di samping **Total transfer**. Jumlah sudah termasuk **kode unik** 3 digit agar pembayaran Anda mudah dicocokkan, jadi transfer persis sesuai total.\n5. Klik **Unggah bukti transfer** dan pilih berkas bukti.\n6. Tunggu verifikasi. Halaman menampilkan keterangan \"Diverifikasi maksimal 24 jam\" dan status tagihan berubah menjadi **Sedang diverifikasi**.\n\nAnda juga bisa mengunduh invoice lewat **Unduh PDF**.\n\n{{gambar: halaman invoice dengan Total transfer, kotak Transfer bank, dan tombol Unggah bukti transfer}}\n\n### Perpanjang langganan\n\n1. Buka **Pengaturan > Langganan**. Bagian **Paket saat ini** menampilkan status dan sisa hari.\n2. Klik **Perpanjang langganan**. Pilihan paket dan kupon muncul otomatis bila langganan sudah masuk 30 hari terakhir, sudah lewat masa aktif, atau website ditangguhkan.\n3. Pilih paket di **Pilih paket perpanjangan**, lalu lanjutkan seperti pembayaran pertama.\n\nSelama ada tagihan yang belum dibayar, Anda bisa memilih **Ganti paket** (hanya sebelum bukti transfer diunggah). Tagihan lama yang belum dibayar akan diganti oleh tagihan baru.\n\n### Kupon dan promo\n\n- Masukkan kode di kolom **Kode kupon**, lalu klik **Pakai**. Bila berlaku, tampil keterangan \"Diskon ... % diterapkan\" dan baris **Kupon** di rincian total.\n- Kupon dipotong dari harga setelah promo paket (bila ada). Promo paket berjudul \"pembayaran pertama\" hanya untuk travel yang belum pernah membayar.\n- Satu kupon hanya bisa dipakai sekali oleh satu travel. Kupon juga bisa ditolak karena tidak ditemukan, sudah tidak aktif, kedaluwarsa, kuotanya habis, atau tidak berlaku untuk paket yang dipilih. Alasannya tampil di bawah kolom kupon.\n- Kupon tidak boleh dibiarkan terketik tanpa dicek: bila kode terisi tetapi tidak valid, tagihan tidak dibuat sampai kolomnya dikosongkan atau diperbaiki.\n\n## Cek hasilnya\n\n- **Paket saat ini** menampilkan label **Aktif** dan \"Aktif sampai ... , sisa ... hari\".\n- Di **Riwayat tagihan**, tagihan Anda berstatus **Lunas**. Status lainnya: **Menunggu pembayaran**, **Sedang diverifikasi**, **Ditolak**, **Dibatalkan**.\n- Di **Beranda** muncul pengingat bila langganan perlu perhatian: pembayaran aktivasi belum selesai atau sedang diverifikasi, masa aktif tinggal 30 hari atau kurang, masa tenggang, atau ditangguhkan. Tombol di pengingat membawa Anda langsung ke tagihan.\n\n## Masa tenggang dan penangguhan\n\n- **Masa tenggang** adalah 7 hari sesudah masa aktif berakhir. Selama itu layanan tetap berjalan dan **Paket saat ini** berlabel **Masa tenggang** dengan sisa harinya.\n- Lewat masa tenggang, status berubah menjadi **Ditangguhkan**:\n  - Website publik hanya menampilkan pemberitahuan bahwa layanan sedang ditangguhkan, bukan paket dan halaman travel. Pemberitahuan itu tidak memuat kontak travel.\n  - Data terstruktur (yang memuat telepon, email, dan alamat) dan Meta Pixel tidak dipasang, dan halaman diberi tanda agar tidak diindeks Google.\n  - Form minat ditutup, dan pendaftaran agen baru tidak dibuka.\n  - Dashboard dan portal agen menjadi hanya-lihat: data tetap bisa dibaca, tetapi perubahan tidak bisa disimpan.\n- Membayar tagihan perpanjangan dan mengunggah bukti tetap bisa dilakukan saat ditangguhkan. Setelah pembayaran diverifikasi, website aktif kembali otomatis.\n\n## Kalau bermasalah\n\n- **Bukti transfer ditolak.** Invoice menampilkan banner **Bukti transfer ditolak** beserta alasannya. Unggah ulang bukti yang benar lewat **Unggah ulang bukti transfer**. Bila sudah ada tagihan lain yang terbuka, buka tagihan itu; tagihan yang ditolak tidak berlaku lagi.\n- **Menu Langganan tidak ada.** Akun Anda berperan Admin. Minta PIC mengubah peran Anda, atau PIC yang melakukan pembayaran.\n- **\"Rekening tujuan belum tersedia\".** Hubungi tim KlikUmroh lewat tautan **Hubungi KlikUmroh** di bagian bawah invoice sebelum transfer.\n- **Unggahan gagal.** Pastikan berkasnya gambar (JPG, PNG, atau WebP) dan tidak lebih dari 10 MB.\n- **Kupon ditolak.** Baca alasan di bawah kolom kupon; pilih paket lain bila kupon dibatasi untuk paket tertentu.\n- Website tampak kosong atau berisi pemberitahuan penangguhan: lihat [Kalau begini, cek ini](slug:kalau-begini-cek-ini).\n\n## Lanjut ke\n\n- [Undang tim](slug:undang-tim)\n- [Pasang domain sendiri](slug:domain-sendiri)\n- [Kalau begini, cek ini](slug:kalau-begini-cek-ini)",
+  "images": {}
+ },
+ {
+  "slug": "undang-tim",
+  "title": "Undang tim dan atur peran",
+  "stage": "lanjutan",
+  "label": "opsional",
+  "labelText": "",
+  "order": 16,
+  "summary": "Tambahkan admin atau PIC lain, atur peran dan akses mereka, dan ganti password akun Anda sendiri.",
+  "menu": "Pengaturan > Tim",
+  "alias": [
+   "tambah admin",
+   "undang staf",
+   "peran",
+   "pic",
+   "akses",
+   "ganti password",
+   "nonaktifkan admin",
+   "akun saya",
+   "tim"
+  ],
+  "body": "Dengan tim, beberapa orang bisa mengelola prospek dan operasional harian tanpa berbagi satu akun. Bab ini juga menjelaskan cara mengganti password akun Anda sendiri.\n\n## Sebelum mulai\n\nHanya akun berperan **PIC** yang bisa menambah anggota, mengubah peran, dan menonaktifkan akses. Admin melihat daftar tim saja, dengan keterangan \"Hanya PIC yang dapat mengubah tim dan langganan.\"\n\nDua peran yang ada:\n\n- **PIC**: mengelola langganan, tim, dan operasional harian.\n- **Admin**: mengelola operasional harian. Tidak dapat mengubah langganan dan tim.\n\nTravel harus selalu punya minimal satu PIC aktif.\n\n## Langkah\n\n### Tambah anggota\n\n1. Buka **Pengaturan > Tim**.\n2. Klik **Tambah anggota**.\n3. Isi **Nama**, **Email**, dan pilih **Peran** (**Admin** atau **PIC**).\n4. Isi **Password awal**, minimal 8 karakter.\n5. Klik **Tambah anggota**.\n6. Kirim email dan password awal itu ke orangnya. Ia masuk ke dashboard lewat klikumroh.id dengan email dan password tersebut, lalu sebaiknya menggantinya sendiri di **Akun saya**.\n\n{{gambar: undang-tim-1.png | jendela Tambah anggota tim dengan kolom Nama, Email, Peran, dan Password awal}}\n\n### Ubah peran atau nonaktifkan akses\n\n1. Di daftar tim, klik menu tiga titik di baris anggota.\n2. Pilih **Jadikan PIC** atau **Jadikan Admin**, atau **Nonaktifkan akses**.\n3. Untuk **Nonaktifkan akses**, konfirmasi lewat tombol **Nonaktifkan**. Anggota itu tidak bisa masuk ke dashboard sampai Anda memilih **Aktifkan kembali**.\n\nAkun Anda sendiri tidak bisa dinonaktifkan dari daftar ini.\n\n### Ganti nama, email, atau password Anda\n\n1. Klik nama Anda di sidebar, lalu pilih **Akun saya**.\n2. Ubah **Nama** atau **Email** lalu klik **Simpan profil**. Email ini dipakai untuk masuk ke dashboard.\n3. Untuk password, isi **Password saat ini**, **Password baru** (minimal 8 karakter), dan **Ulangi password baru**, lalu klik **Ganti password**.\n\n{{gambar: undang-tim-2.png | halaman Akun saya dengan bagian Profil dan Password}}\n\n## Cek hasilnya\n\nAnggota baru tampil di tabel dengan keterangan peran dan status, misalnya \"Admin, Aktif\". Anggota yang dinonaktifkan tampil dengan \"Nonaktif\".\n\n## Riwayat akses staf\n\nDi **Pengaturan > Riwayat akses staf**, Anda bisa melihat setiap kali tim KlikUmroh membuka data travel Anda, misalnya saat membantu kendala. Kolomnya: Waktu, Staf KlikUmroh, Aktivitas, dan Keterangan. Daftar ini hanya untuk dibaca dan tercatat otomatis; kosong berarti data Anda belum pernah dibuka staf.\n\n## Kalau bermasalah\n\n- **\"Email sudah terdaftar di sistem\".** Email itu sudah dipakai akun lain. Gunakan email berbeda.\n- **\"Tidak dapat menonaktifkan satu-satunya admin aktif\" atau \"Travel harus punya minimal satu PIC aktif\".** Jadikan orang lain PIC atau aktifkan akun lain dulu, baru ubah akun ini.\n- **\"Password saat ini salah\" di Akun saya.** Ketik ulang password yang sedang Anda pakai untuk masuk.\n- **Tombol Tambah anggota tidak ada.** Akun Anda berperan Admin; minta PIC melakukannya.\n\n## Lanjut ke\n\n- [Bayar dan perpanjang langganan](slug:langganan-dan-pembayaran)\n- [Kalau begini, cek ini](slug:kalau-begini-cek-ini)",
+  "images": {
+   "undang-tim-1.png": {
+    "width": 1280,
+    "height": 900
+   },
+   "undang-tim-2.png": {
+    "width": 1280,
+    "height": 700
+   }
+  }
+ },
+ {
+  "slug": "domain-sendiri",
+  "title": "Pasang domain sendiri",
+  "stage": "lanjutan",
+  "label": "opsional",
+  "labelText": "",
+  "order": 17,
+  "summary": "Buka website travel di alamat Anda sendiri, misalnya www.namatravel.com, lewat Cloudflare gratis.",
+  "menu": "Website > Domain",
+  "alias": [
+   "domain",
+   "www",
+   "dns",
+   "cloudflare",
+   "nameserver",
+   "ssl",
+   "gembok",
+   "domain belum aktif",
+   "custom domain",
+   "alamat website"
+  ],
+  "body": "Alamat bawaan seperti namatravel.klikumroh.id sudah cukup untuk mulai: website sudah tayang di sana dan Anda bisa langsung membagikan linknya. Domain sendiri bersifat opsional dan tidak menghalangi website tayang. Pasang kalau Anda ingin alamat yang lebih mudah diingat, misalnya `www.namatravel.com`.\n\nAlamat bawaan tetap aktif selama domain sendiri dipasang. Setelah domain sendiri aktif, pengunjung alamat bawaan diarahkan ke domain sendiri dengan path dan parameter linknya tetap terbawa, termasuk link referral agen.\n\n## Sebelum mulai\n\n- Anda perlu domain yang sudah dibeli. Domain bisa dibeli di penyedia domain mana pun (Niagahoster, Rumahweb, Namecheap, dan sejenisnya); pilih nama yang pendek dan mudah diingat. Simpan akun dan emailnya.\n- Domain ini dipasang lewat akun Cloudflare milik Anda (gratis). Cloudflare yang menerbitkan gembok HTTPS dan meneruskan pengunjung ke KlikUmroh, jadi Anda tidak mengurus sertifikat.\n- Siapkan waktu cukup: perubahan nameserver dan DNS bisa butuh beberapa menit sampai 24 jam untuk menyebar.\n- Jangan menghapus domain atau layanan email yang sudah berjalan di domain itu sebelum record-nya Anda pindahkan ke Cloudflare.\n\n## Langkah\n\n### 1. Daftar Cloudflare dan tambahkan domain\n\n1. Buka `dash.cloudflare.com` dan buat akun.\n2. Pilih **Add a domain**, masukkan domain Anda, lalu pilih paket **Free**.\n3. Cloudflare menampilkan dua alamat **nameserver**. Salin keduanya.\n\n### 2. Arahkan nameserver ke Cloudflare\n\n1. Masuk ke akun tempat Anda membeli domain dan cari pengaturan nameserver domain itu.\n2. Ganti nameserver lama dengan dua alamat dari Cloudflare, lalu simpan.\n3. Tunggu sampai Cloudflare menandai domain **Active**, baru lanjut.\n\n### 3. Tambahkan domain di KlikUmroh\n\n1. Buka **Website > Domain**.\n2. Di bagian **Domain sendiri**, isi **Nama domain** dengan alamat utama, misalnya `www.namatravel.com`. Tulis nama domain saja, tanpa `https://`.\n3. Biarkan kotak **Juga arahkan namatravel.com ke www.namatravel.com (disarankan)** tercentang, agar pengunjung yang mengetik tanpa www ikut sampai ke website Anda.\n4. Klik **Tambah domain**. KlikUmroh menampilkan tabel record dengan kolom **Tipe**, **Host**, dan **Nilai**, dan status **Menunggu DNS**.\n\n{{gambar: domain-sendiri-1.png | Website > Domain: Alamat bawaan, kolom Nama domain, dan tombol Tambah domain}}\n\n### 4. Buat record di Cloudflare\n\n1. Di Cloudflare buka domain Anda, lalu **DNS > Records**.\n2. Untuk setiap baris di tabel KlikUmroh, klik **Add record** dan salin Tipe, Host, dan Nilai persis seperti di tabel. Tombol salin di tabel mengisi Host dalam bentuk yang biasa dipakai panel DNS (misalnya `@` untuk domain tanpa www).\n3. Record **CNAME** dan **A**: biarkan **Proxied** (awan oranye). Record **TXT**: selalu **DNS only**.\n4. Hapus record A atau CNAME lama untuk host yang sama, misalnya bawaan hosting sebelumnya, agar tidak bentrok.\n5. Salin nilai TXT tanpa tanda kutip dan tanpa spasi tambahan.\n\nBila alamat utama Anda domain tanpa www, tabel meminta record **A**, bukan CNAME. Tabel selalu menampilkan record yang benar untuk alamat yang Anda isi.\n\n### 5. Atur SSL di Cloudflare\n\n1. Buka **SSL/TLS > Overview** dan pilih mode **Full**. Jangan **Flexible** dan jangan **Full (strict)**.\n2. Buka **SSL/TLS > Edge Certificates** dan nyalakan **Always Use HTTPS**.\n\n### 6. Periksa di KlikUmroh\n\n1. Kembali ke **Website > Domain** dan klik **Periksa sekarang**.\n2. Bila record sudah terbaca, status berubah menjadi **Aktif**. Bila belum, tunggu beberapa menit lalu klik lagi.\n3. Buka `https://www.namatravel.com`. Website travel tampil dengan gembok HTTPS.\n\n## Cek hasilnya\n\n- Status di samping nama domain adalah **Aktif**, dengan keterangan \"Terhubung sejak ...\".\n- Alamat tanpa www dan alamat bawaan membuka website di alamat utama. Alamat tanpa www baru bisa aktif setelah alamat www aktif.\n- Di Beranda, langkah **Pakai domain sendiri** tercentang setelah ada domain sendiri yang aktif.\n- Link website yang disalin dari dashboard mengikuti domain sendiri yang aktif.\n\n## Kalau bermasalah\n\nBila pemeriksaan gagal, KlikUmroh menampilkan status **Gagal diverifikasi** beserta alasannya di bawah nama domain.\n\n- **Record belum terbaca.** Cek ulang tabel (tipe, host, nilai), tunggu beberapa menit, lalu klik **Periksa sekarang**.\n- **TXT tidak cocok.** Nilai TXT harus persis sama dengan tabel, tanpa tanda kutip atau spasi tambahan.\n- **Domain belum Active di Cloudflare.** Nameserver di penyedia domain belum diganti; ulangi langkah 2.\n- **Halaman berputar atau \"terlalu banyak pengalihan\".** Mode SSL Cloudflare masih Flexible; ubah ke **Full**.\n- **Error 525 atau 526.** Mode SSL Full (strict); ubah ke **Full**.\n- **Muncul situs lain atau halaman hosting lama.** Masih ada record A atau CNAME lama untuk host yang sama; hapus.\n- **Tanpa www tidak terbuka, tetapi www terbuka.** Alamat tanpa www belum ditambahkan atau recordnya belum dibuat sesuai tabel.\n- **Aktif tetapi muncul peringatan \"Pemeriksaan DNS terakhir gagal ...x\".** Pastikan record DNS tidak berubah atau terhapus.\n- Ingin berhenti memakai domain sendiri: klik **Hapus** di samping domain. Website kembali memakai alamat bawaan.\n\nMasih terkendala? Hubungi tim KlikUmroh dan sertakan nama domain Anda.\n\n## Lanjut ke\n\n- [Lihat website Anda](slug:lihat-website)\n- [SEO](slug:seo)\n- [Kalau begini, cek ini](slug:kalau-begini-cek-ini)",
+  "images": {
+   "domain-sendiri-1.png": {
+    "width": 1280,
+    "height": 352
+   }
+  }
+ },
+ {
+  "slug": "kalau-begini-cek-ini",
+  "title": "Kalau begini, cek ini",
+  "stage": "bantuan",
+  "label": "",
+  "labelText": "",
+  "order": 18,
+  "summary": "Daftar masalah yang sering ditemui admin travel, penyebab yang mungkin, dan langkah mengeceknya.",
+  "menu": "Panduan",
+  "alias": [
+   "tidak muncul",
+   "error",
+   "gagal",
+   "belum bisa",
+   "bingung",
+   "kenapa",
+   "masalah",
+   "tidak tampil",
+   "tidak bisa",
+   "hilang"
+  ],
+  "body": "Cari gejala yang Anda alami di bawah ini. Setiap bagian menyebut penyebab yang memang dikenali sistem, lalu langkah untuk mengeceknya.\n\n## Paket saya tidak muncul di website\n\nWebsite hanya menampilkan paket yang berstatus **Tayang** dan belum berangkat. Cek berurutan:\n\n1. Buka **Paket** dan lihat label status paket. Paket berlabel **Draf** atau **Arsip** tidak tampil di website. Buka paketnya, lalu klik **Tayangkan di website**.\n2. Paket berlabel **Sudah berangkat** (tanggal berangkat sudah lewat, dihitung per hari menurut waktu WIB) otomatis keluar dari website. Ubah tanggal berangkatnya bila memang salah.\n3. Paket baru tidak bisa ditayangkan tanpa harga. Isi harga dulu, lalu tayangkan.\n4. Bila seluruh website yang tidak tampil, lihat bagian \"Website saya terlihat kosong\".\n\nLanjut: [Buat paket pertama](slug:paket-pertama) dan [Detail paket](slug:detail-paket).\n\n## Harga atau tanggal berangkat tidak tampil di kartu paket\n\n- **Harga**: paket yang tayang wajib berharga, jadi kartu paket menampilkan \"Mulai Rp ...\" selama harganya terisi lebih dari nol. Kalau tidak terlihat, cek apakah paket yang Anda lihat benar-benar paket yang tayang dan harganya sudah tersimpan.\n- **Tanggal berangkat**: kolom tanggal bersifat opsional. Bila dikosongkan, kartu paket tidak menampilkan tanggal, dan paket tanpa tanggal tidak ikut saringan bulan di website.\n\nIsi atau perbaiki lewat **Paket**, buka paketnya, lalu simpan. Lihat [Detail paket](slug:detail-paket).\n\n## Agen tidak bisa masuk, atau akunnya menunggu persetujuan\n\n- Agen yang baru mendaftar berstatus menunggu persetujuan. Buka **Agen > Pendaftaran** dan setujui atau tolak pendaftarannya. Agen yang masih menunggu, ditolak, atau dinonaktifkan tetap bisa masuk portal, tetapi fitur seperti komisi dan leaderboard menjawab \"Akun belum aktif\" sampai statusnya aktif.\n- Agen yang dinonaktifkan atau ditolak keluar dari semua perangkat dan harus masuk ulang.\n- Pendaftaran agen baru ditutup selama travel masih **Belum aktif** (belum bayar aktivasi) atau **Ditangguhkan**. Selesaikan pembayaran di **Pengaturan > Langganan**.\n- Bila agen memakai kode referral perekrut yang diketik manual dan perekrutnya sedang tidak aktif, pendaftaran ditolak dengan pesan untuk mengosongkan kolom kode referral.\n- Agen yang pendaftarannya ditolak karena bukti pembayaran, bisa mengunggah ulang bukti dan kembali ke status menunggu.\n\nLanjut: [Terima agen](slug:terima-agen) dan [Aturan agen](slug:aturan-agen).\n\n## Prospek dari agen tidak tercatat atas nama agen\n\nProspek hanya dicatat atas nama agen bila semua ini terpenuhi:\n\n1. Pengunjung masuk lewat link referral agen itu (`/ref/kode`). Kode disimpan di browser pengunjung selama 30 hari.\n2. Agen berstatus **aktif**. Link agen yang masih menunggu, ditolak, atau dinonaktifkan tidak menghasilkan prospek atas namanya.\n3. Kode referral milik agen di travel yang sama. Kode dari travel lain diabaikan.\n4. Nomor jamaah belum menjadi prospek yang masih berjalan. Bila nomor yang sama masuk lagi saat prospek lamanya masih terbuka, tidak dibuat prospek kedua dan pemilik pertama tetap.\n\nProspek tanpa agen tercatat dengan kanal **Website** atau **Iklan**. Cek di **Prospek** kolom **Kanal**. Bila agen mengeluhkan, pastikan statusnya di **Agen**.\n\nLanjut: [Prospek masuk](slug:prospek-masuk) dan [Aturan agen](slug:aturan-agen).\n\n## Komisi agen belum cair\n\nCek berurutan:\n\n1. **Tertahan sampai lunas.** Dengan aturan **Setelah jamaah lunas** (**Pengaturan > Aturan agen**, bagian **Pencairan komisi**), komisi tertahan sejak Closing sampai Anda membuka prospeknya dan klik **Tandai lunas**. Dengan aturan **Langsung saat DP**, komisi bisa dicairkan begitu prospek Closing.\n2. **Prospek belum Closing.** Komisi baru tercatat saat status prospek menjadi Closing.\n3. **Komisi paket kosong.** Paket tanpa nilai komisi tidak memberi tahu agen apa yang ia dapat. Isi komisi di setiap paket yang tayang.\n4. **Di bawah minimal pencairan.** Pengajuan di bawah angka **Minimal pencairan** ditolak.\n5. **Pengajuan belum diproses.** Buka **Pencairan komisi**. Pengajuan agen berstatus menunggu persetujuan, lalu disetujui, lalu ditandai sudah ditransfer setelah Anda transfer.6. **Closing dibatalkan.** Komisi yang sudah tercatat dikoreksi; bila sebagian sudah bisa dicairkan, potongannya diambil dari komisi berikutnya.\n\nLanjut: [Pencairan komisi](slug:pencairan-komisi) dan [Komisi per paket](slug:komisi-per-paket).\n\n## Domain saya belum aktif\n\nStatus domain di **Website > Domain** punya tiga kemungkinan: **Menunggu DNS**, **Aktif**, dan **Gagal diverifikasi**. Alasan kegagalan tampil di bawah nama domain. Penyebab yang dikenali panduan:\n\n- Record belum dibuat, salah ketik, atau belum menyebar. Tunggu beberapa menit lalu klik **Periksa sekarang**.\n- Nilai TXT tidak persis sama dengan tabel.\n- Nameserver belum diganti ke Cloudflare sehingga domain belum Active di sana.\n- Mode SSL Cloudflare bukan **Full**.\n- Alamat tanpa www baru bisa aktif setelah alamat www aktif.\n\nLangkah lengkap ada di [Pasang domain sendiri](slug:domain-sendiri). Ingat, alamat bawaan namatravel.klikumroh.id tetap bisa dipakai selama domain sendiri belum aktif.\n\n## Website saya tidak muncul di Google\n\n- Website yang **Ditangguhkan** (langganan lewat masa tenggang) diberi tanda agar tidak diindeks Google. Perpanjang langganan di **Pengaturan > Langganan**.\n- Travel demo juga tidak diindeks.\n- Alamat travel yang belum aktif tidak menampilkan website dan diberi tanda tidak diindeks.\n- Judul, deskripsi, dan kota di **Website > SEO** kosong atau belum diisi. Isi agar hasil pencarian lebih jelas.\n\nLanjut: [SEO](slug:seo) dan [Bayar dan perpanjang langganan](slug:langganan-dan-pembayaran).\n\n## Website saya terlihat kosong atau muncul pemberitahuan penangguhan\n\n- **\"Layanan Website Sedang Ditangguhkan Sementara\"**: langganan sudah lewat masa tenggang 7 hari. Perpanjang di **Pengaturan > Langganan** (hanya PIC). Setelah pembayaran diverifikasi, website aktif lagi otomatis.\n- **\"Situs travel belum tersedia\"**: alamat yang dibuka belum terhubung ke travel yang aktif. Periksa ejaan alamat, dan pastikan pembayaran aktivasi sudah diverifikasi.\n- **\"Situs sedang gangguan\"**: halaman gagal memuat data travel. Klik **Muat ulang**; alamat dan link referral tetap terbawa.\n- Website tampil tetapi beranda sepi: biasanya belum ada paket berstatus **Tayang** yang belum berangkat. Lihat gejala pertama di atas.\n\nLanjut: [Bayar dan perpanjang langganan](slug:langganan-dan-pembayaran) dan [Lihat website](slug:lihat-website).\n\n## Checklist di Beranda tidak tercentang\n\nSetiap langkah tercentang otomatis dari data travel Anda, bukan dicentang manual. Syaratnya:\n\n- **Lengkapi profil travel**: nama travel terisi, dan alamat atau kota kantor terisi.\n- **Pasang logo travel**: logo sudah diunggah.\n- **Tayangkan paket pertama**: ada paket **Tayang** dengan harga dan tanggal berangkat.\n- **Bangun kepercayaan**: ada minimal satu testimoni atau banner yang aktif.\n- **Lihat website Anda**: tercentang setelah Anda klik **Buka website** dari kartu itu (di browser ini), atau setelah travel menerima prospek pertama.\n- **Atur program agen**: **Keuntungan menjadi agen** dan **Syarat & ketentuan** keduanya terisi (**Pengaturan > Aturan agen**).\n- **Atur komisi agen**: ada paket tayang, dan semua paket tayang punya komisi.\n- **Buat target & reward**: ada minimal satu target.\n- **Bagikan link pendaftaran agen**: ada minimal satu agen yang mendaftar. **Setujui agen pertama**: ada minimal satu agen aktif.\n- **Dapatkan prospek pertama**: ada minimal satu prospek. **Tindak lanjuti prospek**: ada prospek yang statusnya bukan **Baru**.\n- **Pasang pelacakan iklan**: Meta Pixel sudah diisi.\n- **Pakai domain sendiri**: ada domain sendiri berstatus **Aktif**.\n- **Undang tim**: ada lebih dari satu akun admin aktif.\n\nBila sudah dikerjakan tetapi belum tercentang, muat ulang halaman Beranda dan periksa syaratnya di atas. Bab terkait: [Profil travel](slug:profil-travel), [Logo dan warna](slug:logo-dan-warna), [Testimoni, banner, dan FAQ](slug:testimoni-banner-faq), [Target dan reward](slug:target-dan-reward), [Undang tim](slug:undang-tim).\n\n## Lanjut ke\n\n- [Istilah](slug:istilah)",
+  "images": {}
+ },
+ {
+  "slug": "istilah",
+  "title": "Istilah yang dipakai di KlikUmroh",
+  "stage": "bantuan",
+  "label": "",
+  "labelText": "",
+  "order": 19,
+  "summary": "Arti singkat istilah yang muncul di dashboard, portal agen, dan panduan ini.",
+  "menu": "Panduan",
+  "alias": [
+   "arti",
+   "apa itu",
+   "istilah",
+   "glosarium",
+   "pengertian",
+   "kamus",
+   "singkatan"
+  ],
+  "body": "Daftar ini urut abjad dan memakai arti persis seperti di sistem.\n\n**Agen**\nOrang yang membawa calon jamaah ke travel Anda lewat link referral dan mendapat komisi. Status agen: menunggu persetujuan, aktif, ditolak, atau nonaktif. Hanya agen aktif yang prospeknya tercatat atas namanya. Lihat [Terima agen](slug:terima-agen).\n\n**Banner**\nGambar promo di beranda website travel. Diatur di **Website > Banner**. Lihat [Testimoni, banner, dan FAQ](slug:testimoni-banner-faq).\n\n**Closing**\nStatus prospek yang berarti jamaah sudah membayar DP. Pada saat ini komisi agen tercatat. Status Closing bersifat final dan hanya admin yang bisa menetapkannya; bila perlu, closing bisa dibatalkan dengan alasan.\n\n**Komisi**\nUang yang didapat agen untuk setiap jamaah yang Closing. Besarnya diatur per paket. Komisi bisa tertahan atau langsung bisa dicairkan, tergantung aturan pencairan travel. Lihat [Komisi per paket](slug:komisi-per-paket).\n\n**Komisi Pembinaan**\nBonus untuk agen yang merekrut agen lain (upline), diambil dari Closing rekrutannya. Dinyalakan di **Pengaturan > Aturan agen**. Lihat [Aturan agen](slug:aturan-agen).\n\n**Conversions API**\nCara mengirim peristiwa dari server website ke Meta untuk mengukur iklan, berpasangan dengan Meta Pixel. Diatur di **Iklan & pelacakan**.\n\n**Domain**\nAlamat website, misalnya `www.namatravel.com`. Domain sendiri bersifat opsional dan dipasang di **Website > Domain**. Lihat [Pasang domain sendiri](slug:domain-sendiri).\n\n**Downline**\nAgen yang direkrut oleh agen lain. Perekrutnya disebut upline.\n\n**Kanal**\nAsal sebuah prospek: **Website** (masuk langsung), **Iklan** (dari klik iklan), atau **Agen** (lewat link referral agen). Menu **Kanal** menampilkan perbandingannya.\n\n**Link referral**\nLink khusus milik satu agen (berbentuk `/ref/kode`). Pengunjung yang masuk lewat link ini tercatat sebagai prospek atas nama agen tersebut, selama agennya aktif.\n\n**Lunas**\nPenanda bahwa jamaah sudah melunasi pembayaran, bukan status pipeline. Diberikan lewat tombol **Tandai lunas** pada prospek yang sudah Closing, dan pada aturan **Setelah jamaah lunas** ini melepas komisi yang tertahan.\n\n**Meta Pixel**\nKode pelacak dari Meta (Facebook dan Instagram) yang dipasang di website untuk mengukur iklan. ID-nya diisi di **Iklan & pelacakan**. Tidak dipasang saat website ditangguhkan.\n\n**Mitra Agen**\nSebutan untuk agen di halaman pendaftaran agen (\"Daftar Mitra Agen\"). Orang yang mendaftar di sana menjadi agen yang menunggu persetujuan Anda.\n\n**Paket**\nPaket umroh yang dijual travel. Statusnya:\n- **Draf**: belum tampil di website.\n- **Tayang**: tampil di website.\n- **Sudah berangkat**: paket tayang yang tanggal berangkatnya sudah lewat; otomatis tidak tampil di website.\n- **Arsip**: disimpan tanpa tampil di website.\n\n**PIC**\nPeran akun yang mengelola langganan, tim, dan operasional harian. Satu travel harus punya minimal satu PIC aktif. Peran lain adalah Admin. Lihat [Undang tim](slug:undang-tim).\n\n**Pipeline (status prospek)**\nUrutan status prospek: **Baru**, **Dihubungi**, **Tertarik**, lalu **Closing** atau **Tidak lanjut**.\n\n**Prospek**\nCalon jamaah yang mengisi form minat di website. Kumpulan prospek ada di menu **Prospek**. Lihat [Prospek masuk](slug:prospek-masuk).\n\n**SEO**\nPengaturan agar website mudah ditemukan di Google: judul, deskripsi, kata kunci, kota, dan gambar saat link dibagikan. Diatur di **Website > SEO**. Lihat [SEO](slug:seo).\n\n**Subdomain**\nAlamat bawaan travel dari KlikUmroh, berbentuk `namatravel.klikumroh.id`. Selalu aktif dan gratis.\n\n**Target & reward**\nTarget jumlah capaian untuk agen pada periode tertentu beserta hadiahnya. Diatur di **Target & reward**. Reward tidak bisa diberikan bila capaian agen di bawah target. Lihat [Target dan reward](slug:target-dan-reward).\n\n**Testimoni**\nKesan atau cerita jamaah yang ditampilkan di website untuk membangun kepercayaan. Diatur di **Website > Testimoni**.",
+  "images": {}
+ }
+]

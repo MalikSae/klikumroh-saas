@@ -2,7 +2,7 @@
 // Approved prototype: dashboard/design/prototype.html.
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronsUpDown, ExternalLink, LogOut, Menu, UserRound } from 'lucide-react';
+import { BookOpen, ChevronsUpDown, ExternalLink, LogOut, Menu, UserRound } from 'lucide-react';
 import {
   fetchDomains,
   fetchMyProfile,
@@ -25,6 +25,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Banner, Button, IconButton, SearchField } from '../ui';
 import { subscriptionNotice } from './subscriptionNotice';
 import { primaryCustomHost, siteBaseUrl, type DomainLike } from './siteUrl';
+import { guideUrl } from './guideUrl';
 import { NAV_GROUPS, SETTINGS_ITEM, itemActive, titleForPath, type BadgeKey, type NavItem } from './nav';
 import { NotificationMenu } from './NotificationMenu';
 import { MobileNav } from './MobileNav';
@@ -333,6 +334,11 @@ export const AppFrame: React.FC = () => {
                   Lihat website
                 </a>
               )}
+              {/* The admin guide is a page of klikumroh.id (Next.js), not of this app, so it opens in its own tab. */}
+              <a href={guideUrl()} target="_blank" rel="noopener noreferrer" className="ap-nav__item">
+                <BookOpen className="ku-icon" aria-hidden="true" />
+                Panduan
+              </a>
               <NavItemLink item={SETTINGS_ITEM} path={location.pathname} badges={badges} />
             </nav>
             <UserMenu name={user?.name || 'Admin'} role="Admin travel" />
